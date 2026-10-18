@@ -4,16 +4,12 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import type useFormInit from "@/src/hooks/use-form-init";
 import { twMerge } from "tailwind-merge";
-import useGoogleAuth, {
-    type GoogleAuthMode,
-} from "@/src/hooks/use-google-auth";
+import useGoogleAuth from "@/src/hooks/use-google-auth";
 
 type Props = Pick<
     ReturnType<typeof useFormInit>,
     "loading" | "setLoading" | "setStatus"
-> & {
-    mode: GoogleAuthMode;
-};
+>;
 
 /**
  * Themed button with Google's own (transparent) button laid over it. Once
@@ -21,21 +17,18 @@ type Props = Pick<
  * themed button below is hidden from assistive tech.
  */
 export default function GoogleAuthButton({
-    mode,
     loading,
     setLoading,
     setStatus,
 }: Props) {
     const { handleButtonClick, googleButtonRef, googleReady } = useGoogleAuth({
-        mode,
         loading,
         setLoading,
         setStatus,
     });
 
     const overlayActive = googleReady && !loading;
-    const label =
-        mode == "signup" ? "Sign up with Google" : "Log in with Google";
+    const label = "Log in with Google";
 
     return (
         <Row className="w-full relative justify-center rounded-default focus-within:ring-2 focus-within:ring-primary/70">

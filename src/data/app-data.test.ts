@@ -10,14 +10,10 @@ describe("AppData auth constants", () => {
         expect(AppData["AuthCSRFCookieName"]).toBe(
             `${SiteData["SiteSlug"]}_auth_csrf`,
         );
-        expect(AppData["SSOAuthCookieName"]).toBe(
-            `${SiteData["SiteSlug"]}_sso_auth`,
-        );
     });
 
     test("expiry and limits are positive", () => {
         expect(AppData["AuthExpiryDays"]).toBeGreaterThan(0);
-        expect(AppData["SSOCodeExpiryMinutes"]).toBeGreaterThan(0);
         expect(AppData["DefaultQueryLimit"]).toBeGreaterThan(0);
     });
 

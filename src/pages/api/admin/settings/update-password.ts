@@ -2,7 +2,6 @@ import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserPasswordHash from "@/src/functions/backend/auth/grab-user-password-hash";
 import verifyUserPassword from "@/src/functions/backend/auth/verify-user-password";
 import setUserPassword from "@/src/functions/backend/auth/set-user-password";
-import grabLoginMethod from "@/src/functions/backend/auth/grab-login-method";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { AppData } from "@/src/data/app-data";
 import type { ApiReqParams } from "@/src/types";
@@ -14,8 +13,7 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * Sets or changes the logged-in user's own password (password login mode
- * only). Acts only on the session user; changing an existing password
+ * Sets or changes the logged-in user's own password. Acts only on the session user; changing an existing password
  * needs the current one.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
@@ -35,10 +33,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
                 msg: `Unauthorized`,
                 logoutUser: true,
             };
-        }
-
-        if (grabLoginMethod() != "password") {
-            throw new Error(`Password login is turned off.`);
         }
 
         const user_id = user.id;

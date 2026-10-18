@@ -1,11 +1,11 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import grabBots from "@/src/functions/backend/db/bots/grab-bots";
+import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 
 /**
- * Opens the coordinator's conversation. With no crew yet, renders the empty
- * shell.
+ * Opens the coordinator's conversation, creating the coordinator first if
+ * this workspace doesn't have one yet.
  */
 export const server: BunextPageServerFn<PagePropsType> = async ({ req }) => {
     const { user } = await userAuth({ req });
@@ -18,20 +18,11 @@ export const server: BunextPageServerFn<PagePropsType> = async ({ req }) => {
         };
     }
 
-    const bots = await grabBots({ user_id: user.id });
-    const first_bot = bots[0];
-
-    if (first_bot?.id) {
-        return {
-            redirect: {
-                destination: `/admin/bots/${first_bot.id}`,
-            },
-        };
-    }
+    const coordinator_id = await ensureCoordinatorBot({ user_id: user.id });
 
     return {
-        props: {
-            bots,
+        redirect: {
+            destination: `/admin/bots/${coordinator_id}`,
         },
     };
 };

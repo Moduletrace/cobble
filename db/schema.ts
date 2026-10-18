@@ -242,6 +242,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
+                    fieldName: "system_prompt",
+                    fieldDescription: `The bot's core instructions, in markdown`,
+                    dataType: "TEXT",
+                },
+                {
                     fieldName: "unread",
                     dataType: "INTEGER",
                     options: [0, 1],

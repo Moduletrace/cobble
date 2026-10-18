@@ -6,6 +6,7 @@ import {
     SlidersHorizontal,
     type LucideIcon,
 } from "lucide-react";
+import { SettingsDefaultPath } from "@/src/dict/settings-pages-dict";
 
 export type RailUserMenuItem = {
     title: string;
@@ -26,9 +27,9 @@ export type RailUserMenuItem = {
  * destinations are only reachable from here.
  */
 export const RailUserMenuItems: RailUserMenuItem[] = [
-    { title: "Activity", url: "/admin/logs", Icon: Activity },
+    { title: "Activity", Icon: Activity },
     { title: "Routines", Icon: Clock },
-    { title: "Settings", url: "/admin/settings", Icon: SlidersHorizontal },
+    { title: "Settings", url: SettingsDefaultPath, Icon: SlidersHorizontal },
     { title: "Help", Icon: CircleHelp },
     { title: "Sign out", url: "/auth/logout", Icon: LogOut, destructive: true },
 ];

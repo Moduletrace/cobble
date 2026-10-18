@@ -2,43 +2,36 @@ import { useContext } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { AppContext } from "@/src/pages/__root";
 import RailHeader from "../(partials)/rail-header";
-import CoordinatorRow from "../(partials)/coordinator-row";
-import BotRow from "../(partials)/bot-row";
+import RailCrewList from "../(partials)/rail-crew-list";
+import RailSettingsList from "../(partials)/rail-settings-list";
 import RailUserRow from "../(partials)/rail-user-row";
 
 /**
- * Left rail: wordmark, the pinned coordinator, then the crew. Collapses to a
- * 64px icon rail below 1024px.
+ * Left rail: wordmark, then the crew (pinned coordinator first). On
+ * `/admin/settings/*` the crew is swapped for a back link and the settings
+ * sub pages. Collapses to a 64px icon rail below 1024px.
  */
 export default function BotsRail() {
     const { pageProps } = useContext(AppContext);
 
-    const bots = pageProps?.bots || [];
-    const selected_id = pageProps?.bot?.id;
-    const coordinator = bots.find((bot) => bot.kind === "coordinator");
-    const workers = bots.filter((bot) => bot.kind !== "coordinator");
+    const pathname = pageProps?.url?.pathname;
+    const is_settings_page = Boolean(pathname?.startsWith("/admin/settings"));
 
     return (
         <Stack
             className="w-16 lg:w-[260px] shrink-0 h-full gap-0! items-stretch border-0 border-r border-solid border-hairline"
-            aria-label="Bots"
+            aria-label={is_settings_page ? "Settings" : "Bots"}
         >
-            <RailHeader />
+            <RailHeader show_new_bot={!is_settings_page} />
             <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch px-2 lg:px-3 pt-1">
-                {coordinator ? (
-                    <CoordinatorRow
-                        bot={coordinator}
-                        bots={bots}
-                        selected={coordinator.id === selected_id}
+                {is_settings_page ? (
+                    <RailSettingsList pathname={pathname} />
+                ) : (
+                    <RailCrewList
+                        bots={pageProps?.bots || []}
+                        selected_id={pageProps?.bot?.id || undefined}
                     />
-                ) : null}
-                {workers.map((bot) => (
-                    <BotRow
-                        key={bot.id}
-                        bot={bot}
-                        selected={bot.id === selected_id}
-                    />
-                ))}
+                )}
             </Stack>
             <RailUserRow />
         </Stack>

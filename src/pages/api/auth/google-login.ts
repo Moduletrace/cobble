@@ -1,8 +1,6 @@
 import loginUser from "@/src/functions/backend/auth/login-user";
 import verifyGoogleIdToken from "@/src/functions/backend/auth/verify-google-id-token";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
-import createSignupUser from "@/src/functions/backend/auth/create-signup-user";
-import generateUniqueUsername from "@/src/functions/backend/auth/generate-unique-username";
 import uploadAndRecordMedia from "@/src/functions/backend/db/users/media/upload-and-record-media";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { GoogleLoginRequestSchema } from "@/src/schemas/auth-schema";
@@ -14,12 +12,16 @@ import type {
     BunextAPIRouteHandler,
 } from "@moduletrace/bunext/types";
 
+/**
+ * Logs an existing user in with Google. Never creates accounts: people are
+ * added by an admin, and the super admin is created at first-run signup.
+ */
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
     req,
     body,
 }) => {
     try {
-        const { google_token, google_signup } = parseWithSchema({
+        const { google_token } = parseWithSchema({
             schema: GoogleLoginRequestSchema,
             data: body,
         });
@@ -42,43 +44,11 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             exact_match: true,
         });
 
-        let target_user = target_user_res.singleRes;
-
-        if (!target_user?.id && google_signup) {
-            const new_user_id = await createSignupUser({
-                first_name:
-                    googleUser.given_name ||
-                    googleUser.name?.split(" ")[0] ||
-                    googleUser.email.split("@")[0] ||
-                    "",
-                last_name: googleUser.family_name,
-                email: googleUser.email.toLowerCase(),
-                username: await generateUniqueUsername({
-                    email: googleUser.email,
-                }),
-            });
-
-            await logEvent({
-                title: "Google signup",
-                category: "auth",
-                user_id: new_user_id,
-                plain_text: `User #${new_user_id} signed up with Google.`,
-                metadata: {
-                    user_id: new_user_id,
-                },
-                ip_address: grabRequestIP(req),
-            });
-
-            target_user = (
-                await grabUsers({
-                    query: { user_id: new_user_id },
-                })
-            ).singleRes;
-        }
+        const target_user = target_user_res.singleRes;
 
         if (!target_user?.id) {
             throw new AppError(
-                `No account exists for ${googleUser.email}. Please sign up first.`,
+                `No account exists for ${googleUser.email}. Ask your admin to add you.`,
             );
         }
 

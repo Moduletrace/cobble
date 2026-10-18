@@ -13,10 +13,13 @@ import type {
     BotMessageAuthor,
     BotTaskStepState,
 } from "@/src/dict/bot-dict";
+import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
 
 /**
  * Seeds the sample crew from the approved chat design into one user's
- * workspace. Idempotent: skips a user who already has bots.
+ * workspace. The coordinator already exists (it's made with the account),
+ * so its sample messages go onto it. Idempotent: skips a user who already
+ * has worker bots.
  *
  * Usage: `bun run seed:bots [email]` (defaults to SEED_SUPER_ADMIN_EMAIL).
  */
@@ -198,6 +201,20 @@ async function insertBot({
 }) {
     const last_ago = Math.min(...bot.messages.map((m) => m.ago));
 
+    if (!bot.hue) {
+        const coordinator_id = await ensureCoordinatorBot({ user_id });
+
+        await BunSQLite.sql({
+            sql: `UPDATE bots SET face = ?, status_line = ?, last_activity_at = ? WHERE id = ?`,
+            values: [bot.face, bot.status_line, now - last_ago, coordinator_id],
+        });
+
+        await insertMessages({ bot_id: coordinator_id, bot, now });
+
+        console.log(`  ${bot.name} (#${coordinator_id}, existing)`);
+        return;
+    }
+
     const bot_res = await BunSQLite.insert<BUN_SQLITE_COBBLE_BOTS, Table>({
         table: "bots",
         data: [
@@ -221,6 +238,24 @@ async function insertBot({
         throw new Error(`Failed to create bot ${bot.name}: ${bot_res.msg}`);
     }
 
+    await insertMessages({ bot_id, bot, now });
+
+    if (bot.task) {
+        await insertTask({ bot_id, task: bot.task });
+    }
+
+    console.log(`  ${bot.name} (#${bot_id})`);
+}
+
+async function insertMessages({
+    bot_id,
+    bot,
+    now,
+}: {
+    bot_id: number;
+    bot: SeedBot;
+    now: number;
+}) {
     const messages_res = await BunSQLite.insert<
         BUN_SQLITE_COBBLE_BOT_MESSAGES,
         Table
@@ -241,12 +276,6 @@ async function insertBot({
             `Failed to add messages for ${bot.name}: ${messages_res.msg}`,
         );
     }
-
-    if (bot.task) {
-        await insertTask({ bot_id, task: bot.task });
-    }
-
-    console.log(`  ${bot.name} (#${bot_id})`);
 }
 
 async function insertTask({
@@ -302,16 +331,21 @@ async function seedBots() {
         process.exit(1);
     }
 
-    const existing = (
+    const existing_workers = (
         await BunSQLite.select<BUN_SQLITE_COBBLE_BOTS, Table>({
             table: "bots",
-            query: { query: { user_id: { value: user.id } } },
+            query: {
+                query: {
+                    user_id: { value: user.id },
+                    kind: { value: "worker" },
+                },
+            },
         })
     ).payload;
 
-    if (existing?.length) {
+    if (existing_workers?.length) {
         console.log(
-            `User #${user.id} <${EMAIL}> already has ${existing.length} bots. Skipping.`,
+            `User #${user.id} <${EMAIL}> already has ${existing_workers.length} worker bots. Skipping.`,
         );
         return;
     }

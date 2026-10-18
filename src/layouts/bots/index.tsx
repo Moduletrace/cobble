@@ -3,8 +3,8 @@ import Row from "@moduletrace/twui/layout/Row";
 import BotsRail from "./(sections)/bots-rail";
 
 /**
- * Full-bleed chat shell for `/admin/bots/*`: the rail of bot conversations,
- * then the page (conversation + working-on panel). No cards, no shadows;
+ * Full-bleed shell for every `/admin/*` page: the rail of bot conversations,
+ * then the page (conversation + working-on panel, or settings). No cards, no shadows;
  * regions are separated by 1px hairlines.
  */
 export default function BotsLayout({

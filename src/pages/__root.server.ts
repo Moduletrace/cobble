@@ -1,20 +1,49 @@
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import type { PagePropsType } from "../types";
 import userAuth from "../functions/backend/auth/user-auth";
-import grabLoginMethod from "../functions/backend/auth/grab-login-method";
+import grabHasUsers from "../functions/backend/auth/grab-has-users";
+import isAdminSectionPath from "../utils/is-admin-section-path";
+import { AdminHomePath } from "../dict/admin-sections-dict";
+import isUnknownSettingsPath from "../utils/is-unknown-settings-path";
+import { SettingsDefaultPath } from "../dict/settings-pages-dict";
 
+/**
+ * Routing for a local install. There are no public pages:
+ * - no account yet: everything goes to `/auth/signup` (super admin setup)
+ * - signup after setup: back to `/auth/login` (or the bots if logged in)
+ * - anything outside the live admin sections and `/auth`: `/admin/bots`
+ * - an unknown `/admin/settings/*` page: `/admin/settings/general`
+ * - `/admin/*` logged out: `/auth/login`
+ * - `/auth/*` logged in (except logout): `/admin/bots`
+ */
 const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
     const { user, user_types } = await userAuth({ req });
-    const is_admin_page =
-        url.pathname.startsWith("/admin") || url.pathname.startsWith("/auth");
+    const is_signup_page = url.pathname.startsWith("/auth/signup");
+    const has_users = await grabHasUsers();
+
+    if (!has_users && !is_signup_page) {
+        return redirect({ destination: "/auth/signup" });
+    }
+
+    if (has_users && is_signup_page) {
+        return redirect({
+            destination: user?.logged_in_status ? AdminHomePath : "/auth/login",
+        });
+    }
 
     if (url.pathname.startsWith("/admin") && !user?.logged_in_status) {
-        return {
-            redirect: {
-                destination: "/auth/login",
-                permanent: false,
-            },
-        };
+        return redirect({ destination: "/auth/login" });
+    }
+
+    if (
+        !isAdminSectionPath({ pathname: url.pathname }) &&
+        !url.pathname.startsWith("/auth")
+    ) {
+        return redirect({ destination: AdminHomePath });
+    }
+
+    if (isUnknownSettingsPath({ pathname: url.pathname })) {
+        return redirect({ destination: SettingsDefaultPath });
     }
 
     if (
@@ -22,19 +51,13 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
         !url.pathname.match(/logout/) &&
         user?.logged_in_status
     ) {
-        return {
-            redirect: {
-                destination: "/admin",
-                permanent: false,
-            },
-        };
+        return redirect({ destination: AdminHomePath });
     }
 
     return {
         props: {
             environment: process.env.NODE_ENV,
             envs: {
-                AUTH_LOGIN_METHOD: grabLoginMethod(),
                 GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
                 R2_PUBLIC_DOMAIN: process.env.R2_PUBLIC_DOMAIN || "",
                 PAYSTACK_PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY || "",
@@ -42,9 +65,16 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
             user,
             user_types,
         },
-        cache_page: is_admin_page ? false : true,
-        cache_expiry: 360,
     };
 };
+
+function redirect({ destination }: { destination: string }) {
+    return {
+        redirect: {
+            destination,
+            permanent: false,
+        },
+    };
+}
 
 export default server;

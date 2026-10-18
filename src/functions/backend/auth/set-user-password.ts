@@ -4,7 +4,6 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import hashPassword from "./hash-password";
-import deleteUserSSOCodes from "./delete-user-sso-codes";
 import AppError from "@/src/utils/app-error";
 
 type Params = {
@@ -13,9 +12,7 @@ type Params = {
 };
 
 /**
- * Creates or replaces the user's password. Outstanding login codes are
- * revoked, since a code issued before the change would skip the new
- * password.
+ * Creates or replaces the user's password.
  */
 export default async function setUserPassword({ user_id, password }: Params) {
     const password_hash = await hashPassword({ password });
@@ -37,6 +34,4 @@ export default async function setUserPassword({ user_id, password }: Params) {
     if (!res.success) {
         throw new AppError(`Couldn't save your password. Please try again.`);
     }
-
-    await deleteUserSSOCodes({ user_id });
 }

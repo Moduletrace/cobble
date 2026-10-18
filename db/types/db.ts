@@ -167,6 +167,10 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      * Short status sentence, e.g. "Waiting on you"
      */
     status_line?: string;
+    /** 
+     * The bot's core instructions, in markdown
+     */
+    system_prompt?: string;
     unread?: 0 | 1 | "";
     /** 
      * Unix timestamp of the latest message, for rail ordering

@@ -49,6 +49,12 @@ export const BotKinds = [
 export type BotKind = (typeof BotKinds)[number]["value"];
 
 /**
+ * Every workspace has exactly one coordinator, created with the account. It
+ * coordinates the crew and hands work to the other bots.
+ */
+export const CoordinatorBotName = "Coordinator";
+
+/**
  * A bot's face is its status. There are no badges or spinners.
  */
 export const BotFaces = [

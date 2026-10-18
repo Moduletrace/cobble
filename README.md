@@ -1,6 +1,6 @@
 # bunext-sqlite
 
-A preset for [bunext](https://github.com/moduletrace/bunext) running [bun-sqlite](https://github.com/moduletrace/bun-sqlite) as the database management system. Use this as the starting point for new full-stack Bun projects: filesystem routing, SQLite with generated types, SSO login, an admin CRUD API, WebSockets, cron, audit logging, and email all wired up out of the box.
+A preset for [bunext](https://github.com/moduletrace/bunext) running [bun-sqlite](https://github.com/moduletrace/bun-sqlite) as the database management system. Use this as the starting point for new full-stack Bun projects: filesystem routing, SQLite with generated types, password login, an admin CRUD API, WebSockets, cron, audit logging, and email all wired up out of the box.
 
 ## Stack
 
@@ -24,10 +24,12 @@ A preset for [bunext](https://github.com/moduletrace/bunext) running [bun-sqlite
 1. `cp .env.example .env` (if present) or create `.env` with `ENCRYPTION_KEY`/`ENCRYPTION_SALT` values.
 2. `bun install`
 3. `bun run db:schema` - creates tables and regenerates `db/types/db.ts`.
-4. `bun run seed` - creates a `super_admin` user (default `super.admin@example.com`, override with `SEED_SUPER_ADMIN_EMAIL`, `SEED_SUPER_ADMIN_USERNAME`, `SEED_SUPER_ADMIN_FIRST_NAME`, `SEED_SUPER_ADMIN_LAST_NAME`).
-5. `bun run dev` - starts the dev server (default port `7227`).
+4. `bun run dev` - starts the dev server (default port `7227`).
+5. Open the app. With no accounts yet, every page sends you to `/auth/signup` to create the super admin (user #1). That is the only time signup is shown.
 
-Log in at `/auth/login` with the super admin email. In `code` mode the SSO code is emitted to the server console in development; in `password` mode enter the password first, then the emailed code.
+Headless alternative to step 5: `SEED_SUPER_ADMIN_PASSWORD=... bun run seed` creates the super admin from the CLI (default `super.admin@example.com`, override with `SEED_SUPER_ADMIN_EMAIL`, `SEED_SUPER_ADMIN_USERNAME`, `SEED_SUPER_ADMIN_FIRST_NAME`, `SEED_SUPER_ADMIN_LAST_NAME`).
+
+Log in at `/auth/login` with your email or username and password.
 
 ## Available Scripts
 
@@ -73,12 +75,12 @@ Log in at `/auth/login` with the super admin email. In `code` mode the SSO code 
 
 ### Auth
 
-- **Auth guard:** `src/pages/__root.server.ts` - runs per request. `/admin/*` requires login; `/auth/*` redirects logged-in users.
+- **Auth guard:** `src/pages/__root.server.ts` - runs per request. There are no public pages: anything outside `/admin` and `/auth` redirects to `/admin`. With no accounts, everything redirects to `/auth/signup`; once one exists, signup redirects away. `/admin/*` requires login; `/auth/*` redirects logged-in users.
 - **Session:** encrypted cookie (`AES-256-GCM`, PBKDF2-derived key) + a matching CSRF cookie, verified constant-time on every request (`src/functions/backend/auth/user-auth.ts`). 60-day expiry.
-- **Login method:** set site-wide with `AUTH_LOGIN_METHOD` (`code` by default, or `password`). In `code` mode users get a passwordless emailed code. In `password` mode they enter a password (`api/auth/password-login.ts`) and then the emailed code as a second step; password reset lives at `/auth/reset-password` (`api/auth/request-password-reset.ts`, `api/auth/reset-password.ts`) and set/change password at `/admin/settings/password`. Google OAuth is available in both modes via `api/auth/google-login.ts`.
-- **SSO codes:** emailed, stored in `sso_login_codes`, 15-minute expiry, bound to the issuing method so a reset code can't complete a login.
+- **Login:** email or username plus password (`api/auth/password-login.ts`), no email step. Set/change password at `/admin/settings/change-password`. Google login (`api/auth/google-login.ts`) works for existing accounts only when `GOOGLE_CLIENT_ID` is set; it never creates accounts.
+- **Signup:** first-run only (`api/auth/signup.tsx`): creates the super admin with a password and logs them in. Refused once any user exists.
 - **RBAC:** `src/utils/rbac/` - `super_admin` passes everything; other grants/revocations are governed by `UserTypeAssignmentMatrix`/`UserTypeDeletionMatrix` in `src/dict/user-types-dict.ts`.
-- **Audit trail:** every auth event (code requested, login, failure, logout) is written to the `logs` table via `src/functions/backend/logger.ts`.
+- **Audit trail:** every auth event (signup, login, failure, logout) is written to the `logs` table via `src/functions/backend/logger.ts`.
 
 ### Admin CRUD API
 
@@ -94,7 +96,7 @@ Super admins can create, list, download, and restore database snapshots from `/a
 
 ### Settings
 
-`/admin/settings` holds the current user's profile (editable by every logged-in user, including `read_only`). `/admin/settings/password` appears only when `AUTH_LOGIN_METHOD=password`.
+`/admin/settings` redirects to `/admin/settings/general` (theme: System, Light or Dark, saved per device). `/admin/settings/profile` is the current user's profile (editable by every logged-in user, including `read_only`). `/admin/settings/change-password` sets or changes the user's own password. The sub pages are listed in the rail (`src/dict/settings-pages-dict.ts`).
 
 ### WebSockets
 

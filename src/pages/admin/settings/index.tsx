@@ -1,14 +1,15 @@
-import Hero from "./(sections)/hero";
-import AccountFormSection from "./(sections)/account-form-section";
-import settingsPageMeta from "./(functions)/settings-page-meta";
+import type { BunextPageModuleMeta } from "@moduletrace/bunext/types";
+import { SiteData } from "@/src/data/site-data";
 
+/**
+ * Never rendered: `index.server.ts` always redirects to
+ * `SettingsDefaultPath`.
+ */
 export default function AdminSettingsPage() {
-    return (
-        <>
-            <Hero section_title="Profile" />
-            <AccountFormSection />
-        </>
-    );
+    return null;
 }
 
-export const meta = settingsPageMeta({ label: "Profile" });
+export const meta: BunextPageModuleMeta = {
+    title: `Settings | ${SiteData["SiteName"]}`,
+    description: "Redirecting to your profile settings.",
+};

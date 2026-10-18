@@ -2,10 +2,10 @@ import { SiteData } from "./site-data";
 
 export const AppData = {
     HashCost: 12,
-    SSOAuthCookieName: `${SiteData["SiteSlug"]}_sso_auth`,
-    SSOCodeExpiryMinutes: 15,
-    SSOPendingLoginMaxMinutes: 60,
-    SSOPendingLoginStorageKey: `${SiteData["SiteSlug"]}_sso_pending_login`,
+    /**
+     * Shared with twui's `ColorSchemeSelector`, so it must stay `theme`.
+     */
+    ThemeStorageKey: "theme",
     ServerHealthMessage: "Server Running Well",
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,
@@ -20,8 +20,6 @@ export const AppData = {
     ImageQuality: 85,
     ImageThumbnailQuality: 70,
     PaystackEndpoint: "https://api.paystack.co",
-    SSOMaxCodeAttempts: 5,
-    SSOCodeRequestLimit: 5,
     ContactFormLimit: 5,
     RateLimitWindowMinutes: 15,
     UsernameRegex: /^[a-z0-9._-]{3,32}$/,

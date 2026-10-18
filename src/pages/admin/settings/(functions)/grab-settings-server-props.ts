@@ -1,4 +1,5 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
+import { AdminHomePath } from "@/src/dict/admin-sections-dict";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
 import sanitizeUserBio from "@/src/functions/backend/db/users/sanitize-user-bio";
 import grabUserPasswordHash from "@/src/functions/backend/auth/grab-user-password-hash";
@@ -26,7 +27,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
     if (!user_res.singleRes) {
         return {
             redirect: {
-                destination: "/admin",
+                destination: AdminHomePath,
             },
         };
     }

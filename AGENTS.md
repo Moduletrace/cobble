@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This is **Cobble** (`cobble.moduletrace.org`): an open-source crew of small AI worker bots. Product and design source of truth is the handoff in `assets/handoff/` (gitignored locally): `PRODUCT.md`, `IMPLEMENTATION.md`, `tokens/`. Unit noun is **bot**, never "agent" or "expert".
+This is **Cobble** (`cobble.moduletrace.org`): an open-source crew of small AI worker bots. The design handoff in `assets/handoff/` (gitignored locally: `PRODUCT.md`, `IMPLEMENTATION.md`, `tokens/`) is the starting point for the core concepts and visual language, not the end product. The app is expected to move away from it; when it and the current code or the user disagree, the code and the user win. Unit noun is **bot**, never "agent" or "expert".
 
 ## Stack
 
@@ -34,7 +34,7 @@ This is **Cobble** (`cobble.moduletrace.org`): an open-source crew of small AI w
 | DB admin UI                      | `bun run db:admin`                                        |
 | DB backup                        | `bun run db:backup`                                       |
 | Seed super admin user            | `bun run seed` (runs `src/scripts/seed-super-admin.tsx`)  |
-| Seed sample bot crew             | `bun run seed:bots [email]` (runs `src/scripts/seed-bots.ts`, idempotent) |
+| Seed sample bot crew             | `bun run seed:bots [email]` (runs `src/scripts/seed-bots.ts`, idempotent: adds sample messages to the existing coordinator and the sample workers, skips users who already have workers) |
 | Query DB (CLI)                   | `bun llm-code-assistant/query-db.ts "<sql>"`              |
 | Install                          | `bun install`                                             |
 
@@ -53,14 +53,18 @@ Inspect live data with `bun llm-code-assistant/query-db.ts "<sql>"` - a read-onl
 ### Auth
 
 - **Auth guard:** `src/pages/__root.server.ts` - server function that runs on every request.
+    - No public pages: anything outside the live admin sections (`AdminSections` in `src/dict/admin-sections-dict.ts`: `/admin/bots`, `/admin/settings`) and `/auth` redirects to `AdminHomePath` (`/admin/bots`). `/admin` itself only redirects there. People, logs and backups exist in code but are closed until added back to `AdminSections` and the aside dict
+    - No users at all: everything redirects to `/auth/signup` (first-run super admin setup, `grabHasUsers`); once a user exists `/auth/signup` redirects away
     - Redirects unauthenticated `/admin/*` → `/auth/login`
-    - Already-authenticated users hitting `/auth/*` (except paths containing `/logout`) are redirected to `/admin`
+    - Unknown `/admin/settings/*` pages (not in `SettingsPages`, `src/utils/is-unknown-settings-path.ts`) redirect to `/admin/settings/general`
+    - Already-authenticated users hitting `/auth/*` (except paths containing `/logout`) are redirected to `/admin/bots`; login and signup land there too
 - **Session:** encrypted auth cookie (AES-256-GCM, PBKDF2-derived key from `ENCRYPTION_KEY`/`ENCRYPTION_SALT`) plus a CSRF cookie. `userAuth` (`src/functions/backend/auth/user-auth.ts`) decrypts, checks expiry (`AuthExpiryDays`, 60) against the embedded `date`, verifies the CSRF cookie against the token embedded in the session (constant-time, `src/utils/safe-compare.ts`), and re-reads `user_types` from the DB every request (revoked users lose access immediately).
-- **Login:** SSO codes (`sso_login_codes` table, 15-min expiry, `randomInt`-generated) via `api/auth/get-login-code.tsx` + `api/auth/login.ts`. Codes are bound to the `user_id` in the encrypted SSO cookie, compared with `safeCompare`, and deleted after `SSOMaxCodeAttempts` failures. `get-login-code` returns the same response for unknown users (no enumeration). Google OAuth is available via `api/auth/google-login.ts` (creates the account when called with `google_signup` from the signup page). Sessions are issued by `src/functions/backend/auth/login-user.ts` (supports `reauth` for silent refresh without audit logging).
-- **Login method (site-wide, `AUTH_LOGIN_METHOD`):** `code` (default; passwordless, emailed code only via `get-login-code`) or `password` (`api/auth/password-login.ts`, then the emailed code as a second step). Parsed by `src/utils/parse-login-method.ts` (anything but `password` means `code`), read server-side with `grabLoginMethod()` and client-side with `useLoginMethod()` (from `envs.AUTH_LOGIN_METHOD`). Each mode's endpoints refuse requests in the other mode. The SSO cookie records the issuing `method`; `verifySSOCode` (`src/functions/backend/auth/verify-sso-code.ts`) only accepts codes whose method matches, so login takes the site method and password reset takes `reset`. Password mode adds `/auth/reset-password` (+ `/confirm`) via `api/auth/request-password-reset.ts` / `api/auth/reset-password.ts`, a required password at signup, and set/change password in `/admin/settings/password`. bcrypt hashes live in the separate `user_passwords` table (never in `users`; blocked from the CRUD API via `src/dict/private-tables.ts`). `api/auth/resend-login-code.ts` resends from the SSO cookie.
+- **Login:** local install, so email or username plus password only (`api/auth/password-login.ts`, rate limited), no emailed code step and no emailed password reset. Google login (`api/auth/google-login.ts`) is for existing accounts only and shows when `GOOGLE_CLIENT_ID` is set; it never creates accounts. Sessions are issued by `src/functions/backend/auth/login-user.ts` (supports `reauth` for silent refresh without audit logging).
+- **Signup:** first-run only. `api/auth/signup.tsx` refuses once any user exists, creates the super admin (`create-super-admin-user.ts`, so user #1) with a required password, and logs them in. No Google signup. `bun run seed` (needs `SEED_SUPER_ADMIN_PASSWORD`) is the headless alternative.
+- **Passwords:** bcrypt hashes live in the separate `user_passwords` table (never in `users`; blocked from the CRUD API via `src/dict/private-tables.ts`). Set/change at `/admin/settings/change-password`.
 - **Auth layout:** `/auth/*` (except `/auth/logout`) renders in `src/layouts/auth/` with no site header/footer.
 - **RBAC:** `src/utils/check-user-access.ts` (includes/excludes primitive, `super_admin` bypass) plus the declarative engine in `src/utils/rbac/` - `userTypeAssignment` interprets `UserTypeAssignmentMatrix`/`UserTypeDeletionMatrix` in `src/dict/user-types-dict.ts`. `read_only` users are blocked from non-GET CRUD in the router.
-- **Audit trail:** `src/functions/backend/logger.ts` - `logEvent`/`logError` write to the `logs` table. Login, SSO, Google login, logout, cron runs, and WebSocket connects are all logged.
+- **Audit trail:** `src/functions/backend/logger.ts` - `logEvent`/`logError` write to the `logs` table. Signup, login, Google login, logout, cron runs, and WebSocket connects are all logged.
 
 ### WebSocket
 
@@ -79,8 +83,9 @@ Inspect live data with `bun llm-code-assistant/query-db.ts "<sql>"` - a read-onl
 
 ### Bots (the chat shell)
 
-- **Tables:** `bots` (per-user workspace; `kind` worker|coordinator, `hue`, `role`, `face`, `status_line`, `unread`), `bot_messages`, `bot_tasks`, `bot_task_steps`. Enums in `src/dict/bot-dict.ts`.
-- **Routes:** `/admin/bots` redirects to the first bot (coordinator pinned first); `/admin/bots/[bot_id]` renders conversation + working-on panel. Both render in the full-bleed `src/layouts/bots/` layout (rail of conversations + user popover), selected in `__root.tsx` before the admin layout.
+- **Tables:** `bots` (per-user workspace; `kind` worker|coordinator, `hue`, `role`, `face`, `status_line`, `system_prompt` (the bot's core instructions, markdown), `unread`), `bot_messages`, `bot_tasks`, `bot_task_steps`. Enums in `src/dict/bot-dict.ts`.
+- **Coordinator:** every workspace has exactly one `kind: coordinator` bot that coordinates the crew and delegates to the workers. It is created with the account (signup, `bun run seed`) and, as a fallback, by `/admin/bots`, all via `ensureCoordinatorBot` (`src/functions/backend/db/bots/ensure-coordinator-bot.ts`, idempotent). Name in `CoordinatorBotName` (`src/dict/bot-dict.ts`). Its default prompt is `CoordinatorSystemPrompt` (`src/data/coordinator-system-prompt.ts`): attached at creation, and backfilled onto a coordinator whose prompt is empty, never over an edited one.
+- **Routes:** `/admin/bots` ensures the coordinator and redirects to its chat (`/admin/bots/1` on a fresh install); `/admin/bots/[bot_id]` renders conversation + working-on panel. Both render in the full-bleed `src/layouts/bots/` layout (rail of conversations + user popover), which `__root.tsx` uses for every `/admin/*` page.
 - **Server:** `src/functions/backend/db/bots/` (`grab-bots`, `grab-bot-messages`, `grab-active-bot-task`, `grab-user-bot`, `mark-bot-read`, `insert-user-message`). `api/admin/bots/send-message.ts` posts a user message to a bot owned by the session user (zod: `src/schemas/bot-schema.ts`).
 - **Avatars:** `BotStone` (`src/components/general/bot-stone.tsx`) renders the stone inline from `src/data/stone-geometry.ts`, hue as a fill token, face (`idle|working|done|asleep|needs-you`) drawn as eyes. The coordinator is hue-less (ink body, paper eyes; inverts in dark). Never put a stone in a circle/badge or add outline/shadow. Wordmark is vector (`Wordmark`, `src/data/wordmark-paths.ts`), never live text.
 - **Copy helpers:** `src/utils/crew-status.ts` (`3 working · 1 needs you`, "Three bots are working. One needs you."), `src/utils/relative-time.ts` (relative timestamps only).
@@ -88,16 +93,15 @@ Inspect live data with `bun llm-code-assistant/query-db.ts "<sql>"` - a read-onl
 
 ## Admin Route Hierarchy
 
-Actual preset routes under `/admin`:
+Live routes under `/admin` (see `AdminSections`): `/admin/bots` and `/admin/settings`. `/admin` redirects to `/admin/bots`; there is no dashboard. The rest below are built but closed for now (redirect to `/admin/bots`):
 
-- `/admin` - dashboard
 - `/admin/people` - admin users list, plus `create/`, `[user_id]/` (profile), `[user_id]/edit/`
-- `/admin/bots` - the Cobble chat shell, plus `[bot_id]/`
-- `/admin/logs` - audit log (super admin; also the "Activity" item in the bots popover)
+- `/admin/bots` (live) - the Cobble chat shell, plus `[bot_id]/`
+- `/admin/logs` - audit log (super admin; the "Activity" item in the bots popover is disabled while this is closed)
 - `/admin/backups` - super admin only: create/list/download database snapshots in `db/.backups`, plus `restore/` (restore a listed backup, or upload a SQLite database file which is saved to `.backups` then restored). Shells out to the `bun-sqlite` CLI (`backup`, and `import <file>` since `restore` is interactive) via `src/functions/backend/backups/`; API routes in `api/admin/backups/`
-- `/admin/settings` - current user profile, plus `password/` (only when `AUTH_LOGIN_METHOD=password`; redirects to `/admin/settings` otherwise). The aside renders it as a collapsible sub-nav via `children` in `(dict)/admin-aside-groups-dict.tsx`
+- `/admin/settings` (live) - redirects to `SettingsDefaultPath` (`/admin/settings/general`). Sub pages: `general/` (theme: System/Light/Dark per device via `useThemePreference`, stored in `localStorage[AppData.ThemeStorageKey]`, the same key `ThemeInitScript` and twui's `ColorSchemeSelector` read; applies instantly, no save bar), `profile/` (current user profile) and `change-password/` (set/change own password), each wrapped in `SettingsShell` (`(partials)/settings-shell.tsx`: 64px pane header like the conversation header, then one centered column). Content is built from `SettingsGroup` blocks (label + description left, controls right, hairline-separated, no cards) and ends with the sticky `SettingsSaveBar` (Save enabled only when dirty, Discard, one-line status). Saves don't reload the page. Keep save notices in component state: `useFormInit` clears `status` whenever the form changes. Sub pages are declared once in `src/dict/settings-pages-dict.ts`; on every `/admin/settings/*` page the rail swaps the crew for a back link plus that list. Add a sub page by adding its folder and a dict entry
 
-Admin sidebar data in `src/layouts/admin/(partials)/admin-aside-links-dict.tsx`; aside chrome in `(partials)/admin-aside.tsx`. Page heroes use the shared `AdminHero` component (`src/components/general/admin-hero.tsx`).
+Every `/admin/*` page renders in the bots layout (`src/layouts/bots/`); there is no separate admin layout or aside. The rail shows the crew (`(partials)/rail-crew-list.tsx`, needs `bots` in page props), except on `/admin/settings/*` where it shows "Back to bots" plus the settings sub pages (`(partials)/rail-settings-list.tsx`). Page heroes use the shared `AdminHero` component (`src/components/general/admin-hero.tsx`).
 
 ## Page Directory Rules
 
@@ -161,7 +165,7 @@ Server functions use `index.server.ts` alongside `index.tsx` (e.g. `single-docum
 - Prefer existing patterns over new abstractions.
 - **Do not patch `@moduletrace/twui`** - it is a general, publishable library shared across projects. Do not edit the installed package in `node_modules`; compose or override with `src/components/general/` components and `src/styles/main.css` instead.
 - `.env` is gitignored but exists locally with secrets. Do not commit it. It is also excluded by `.dockerignore`; production passes it with `docker run --env-file`.
-- **Rate limiting:** `src/utils/rate-limit.ts` (in-memory fixed window, per process). Unauthenticated endpoints that send email or check secrets (`get-login-code`, `login`, `contact`) must be rate limited.
+- **Rate limiting:** `src/utils/rate-limit.ts` (in-memory fixed window, per process). Unauthenticated endpoints that send email or check secrets (`password-login`, `signup`, `contact`) must be rate limited.
 - **Validation:** validate untrusted request bodies with the zod schemas in `src/schemas/` via `parseWithSchema`. Throw `AppError` for messages that are safe to show; catch blocks return `safeErrorMessage` so internal errors never reach the client.
 - **HTML columns:** any `html: true` column that accepts user input must be sanitized with `sanitizeRichTextHtml` (or `sanitizeUserBio` for `users.bio`) before it is stored or rendered with `dangerouslySetInnerHTML`.
 - **Outgoing email outside production** goes through `resolveEmailRecipient` (`src/functions/backend/email/resolve-email-recipient.ts`) and is redirected to `DEV_EMAIL_RECIPIENT`. Never hardcode recipient addresses.

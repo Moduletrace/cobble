@@ -1,3 +1,5 @@
+import { AppData } from "@/src/data/app-data";
+
 /**
  * Applies the saved color scheme to `<html>` before first paint, so pages
  * never flash light before twui's `ColorSchemeSelector` mounts. Mirrors the
@@ -5,7 +7,7 @@
  */
 const ThemeInitScriptSource = `(function () {
     try {
-        var theme = localStorage.getItem("theme");
+        var theme = localStorage.getItem("${AppData["ThemeStorageKey"]}");
         if (theme !== "dark" && theme !== "light") {
             theme = window.matchMedia("(prefers-color-scheme: dark)").matches
                 ? "dark"

@@ -1,18 +1,14 @@
 import type { BunextPageModuleMeta } from "@moduletrace/bunext/types";
 import { SiteData } from "@/src/data/site-data";
-import DashboardHero from "./(sections)/dashboard-hero";
-import DashboardShortcutsSection from "./(sections)/dashboard-shortcuts-section";
 
-export default function AdminDashboardPage() {
-    return (
-        <>
-            <DashboardHero />
-            <DashboardShortcutsSection />
-        </>
-    );
+/**
+ * Never rendered: `index.server.ts` always redirects to `AdminHomePath`.
+ */
+export default function AdminPage() {
+    return null;
 }
 
 export const meta: BunextPageModuleMeta = {
-    title: `Admin Dashboard | ${SiteData["SiteName"]}`,
-    description: `Admin dashboard for managing the ${SiteData["SiteName"]} website.`,
+    title: `${SiteData["SiteName"]}`,
+    description: "Redirecting to your bots.",
 };

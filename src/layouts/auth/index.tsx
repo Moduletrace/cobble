@@ -10,7 +10,7 @@ type Props = {
 
 /**
  * Distraction-free layout for `/auth/*`: logo and theme switch on top,
- * centered content, legal links at the bottom. No site header or footer.
+ * centered content, copyright at the bottom. No site header or footer.
  */
 export default function AuthLayout({ children }: Props): React.JSX.Element {
     return (

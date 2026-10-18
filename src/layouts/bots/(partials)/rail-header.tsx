@@ -4,7 +4,14 @@ import Wordmark from "@/src/components/general/wordmark";
 import LogoIcon from "@/src/components/general/logo-icon";
 import NewBotButton from "./new-bot-button";
 
-export default function RailHeader() {
+type Props = {
+    /**
+     * Off on settings pages, where adding a bot is out of place.
+     */
+    show_new_bot?: boolean;
+};
+
+export default function RailHeader({ show_new_bot = true }: Props) {
     return (
         <Row className="h-[72px] shrink-0 gap-0! flex-nowrap items-start justify-center lg:justify-between px-0 lg:pl-5 lg:pr-6 pt-5">
             <Link
@@ -14,7 +21,7 @@ export default function RailHeader() {
                 <Wordmark height={15} className="hidden lg:block" />
                 <LogoIcon icon_size={28} img_props={{ className: "lg:hidden" }} />
             </Link>
-            <NewBotButton />
+            {show_new_bot ? <NewBotButton /> : null}
         </Row>
     );
 }

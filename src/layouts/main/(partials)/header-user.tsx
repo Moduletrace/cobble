@@ -35,8 +35,8 @@ export default function HeaderUser() {
                     <LinkList
                         links={[
                             {
-                                title: "Dashboard",
-                                url: "/admin",
+                                title: "Bots",
+                                url: "/admin/bots",
                             },
                             {
                                 component: <Divider />,

@@ -13,7 +13,6 @@ import type { User } from "@/src/types";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import grabMediaURL from "../media/grab-media-url";
 import logEvent, { grabRequestIP } from "../logger";
-import deleteUserSSOCodes from "./delete-user-sso-codes";
 import AppError from "@/src/utils/app-error";
 
 type Params = {
@@ -120,8 +119,6 @@ export default async function loginUser({
                 maxAge,
             },
         ]);
-
-        await deleteUserSSOCodes({ user_id: new_logged_in_user.id });
 
         if (!reauth) {
             await logEvent({

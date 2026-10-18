@@ -70,7 +70,6 @@ export type PagePropsType = {
     has_password?: boolean;
     backups?: DbBackup[] | null;
     envs?: {
-        AUTH_LOGIN_METHOD?: LoginMethod;
         GOOGLE_CLIENT_ID?: string;
         R2_PUBLIC_DOMAIN?: string;
         PAYSTACK_PUBLIC_KEY?: string;
@@ -264,21 +263,6 @@ export type LoginFormObject = {
     password?: string;
 };
 
-/**
- * Site-wide login method, set by `AUTH_LOGIN_METHOD`.
- */
-export type LoginMethod = "password" | "code";
-
-/**
- * What an emailed code is for: completing a login, or a password reset.
- */
-export type SSOMethod = LoginMethod | "reset";
-
-export type SSOPendingLogin = {
-    identifier: string;
-    method: SSOMethod;
-};
-
 export type SignupFormObject = {
     first_name?: string;
     last_name?: string;
@@ -292,16 +276,6 @@ export type PasswordFormObject = {
     current_password?: string;
     new_password?: string;
     confirm_password?: string;
-};
-
-export type PasswordResetFormObject = {
-    code?: string;
-    new_password?: string;
-    confirm_password?: string;
-};
-
-export type SSOFormObject = {
-    code?: string;
 };
 
 export type ContactFormObject = {
@@ -332,8 +306,6 @@ export type ApiReqParams<
     };
     new_password?: string;
     google_token?: string;
-    google_signup?: boolean;
-    sso_code?: string;
     contact?: {
         name?: string;
         email?: string;
@@ -402,22 +374,6 @@ export type GoogleWindow = globalThis.Window & {
             };
         };
     };
-};
-
-export type SSOAuth = {
-    user_id: number;
-    sso_code: string | number;
-    email?: string | null;
-    /**
-     * What issued this code. Login only accepts codes whose method matches
-     * the site-wide login method; reset codes only work for resets.
-     */
-    method?: SSOMethod;
-    /**
-     * When the first step passed. Resends are refused after
-     * `SSOPendingLoginMaxMinutes`.
-     */
-    first_step_at?: number;
 };
 
 export type UserAuthReturn = {

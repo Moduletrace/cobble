@@ -32,10 +32,6 @@ export const server: BunextPageServerFn = async ({ req }) => {
                     name: AppData["AuthCSRFCookieName"],
                     httpOnly: true,
                 },
-                {
-                    name: AppData["SSOAuthCookieName"],
-                    httpOnly: true,
-                },
             ]);
             return new_res;
         },

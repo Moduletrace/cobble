@@ -14,7 +14,7 @@ import { SiteData } from "@/src/data/site-data";
 export default function LogoutPage() {
     useEffect(() => {
         setTimeout(() => {
-            window.location.pathname = "/";
+            window.location.pathname = "/auth/login";
         }, 1000);
     }, []);
 
@@ -43,5 +43,5 @@ export default function LogoutPage() {
 
 export const meta: BunextPageModuleMeta = {
     title: `Logging Out | ${SiteData["SiteName"]}`,
-    description: "You are being logged out and redirected to the homepage.",
+    description: "You are being logged out and redirected to the login page.",
 };

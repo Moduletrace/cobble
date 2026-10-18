@@ -1,31 +1,25 @@
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
+import { AdminHomePath } from "@/src/dict/admin-sections-dict";
 import type useFormInit from "@/src/hooks/use-form-init";
-import type { ApiReqParams, LoginMethod, SignupFormObject } from "@/src/types";
+import type { ApiReqParams, SignupFormObject } from "@/src/types";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
-import saveSSOPendingLogin from "@/src/functions/frontend/save-sso-pending-login";
 import validatePassword from "@/src/utils/validate-password";
 
-type Params = ReturnType<typeof useFormInit<SignupFormObject>> & {
-    method: LoginMethod;
-};
+type Params = ReturnType<typeof useFormInit<SignupFormObject>>;
 
 export default async function submitSignupForm({
     setLoading,
     setStatus,
     form,
-    method,
 }: Params) {
-    const password_error =
-        method == "password"
-            ? validatePassword({ password: form.password })
-            : undefined;
+    const password_error = validatePassword({ password: form.password });
 
     if (password_error) {
         setStatus({ error: true, msg: password_error });
         return;
     }
 
-    if (method == "password" && form.password != form.confirm_password) {
+    if (form.password != form.confirm_password) {
         setStatus({ error: true, msg: "The passwords don't match." });
         return;
     }
@@ -42,18 +36,14 @@ export default async function submitSignupForm({
                     last_name: form.last_name,
                     username: form.username,
                     email: form.email,
-                    password: method == "password" ? form.password : undefined,
+                    password: form.password,
                 },
             },
         },
     );
 
     if (res.success) {
-        saveSSOPendingLogin({
-            identifier: form.email?.trim() || "",
-            method,
-        });
-        window.location.pathname = `/auth/sso`;
+        window.location.pathname = AdminHomePath;
     } else {
         setStatus({
             error: true,

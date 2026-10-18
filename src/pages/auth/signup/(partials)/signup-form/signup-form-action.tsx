@@ -6,8 +6,8 @@ export default function SignupFormAction({}: ReturnType<
     typeof useFormInit<SignupFormObject>
 >) {
     return (
-        <Button title="Create account" type="submit" className="w-full">
-            Create account
+        <Button title="Create super admin" type="submit" className="w-full">
+            Create super admin
         </Button>
     );
 }

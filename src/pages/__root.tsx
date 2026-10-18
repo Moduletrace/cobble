@@ -10,7 +10,6 @@ import type {
 import type { AppContextObject, AppStateObject } from "@/src/types";
 import { SiteData } from "@/src/data/site-data";
 import Layout from "../layouts/main";
-import AdminLayout from "../layouts/admin";
 import AuthLayout from "../layouts/auth";
 import BotsLayout from "../layouts/bots";
 import ThemeInitScript from "../components/general/theme-init-script";
@@ -47,18 +46,10 @@ export default function App({
         query,
     };
 
-    if (url?.pathname.startsWith("/admin/bots")) {
-        return (
-            <AppContext.Provider value={appContextObject}>
-                <BotsLayout>{children}</BotsLayout>
-            </AppContext.Provider>
-        );
-    }
-
     if (url?.pathname.startsWith("/admin")) {
         return (
             <AppContext.Provider value={appContextObject}>
-                <AdminLayout>{children}</AdminLayout>
+                <BotsLayout>{children}</BotsLayout>
             </AppContext.Provider>
         );
     }

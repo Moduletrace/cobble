@@ -1,9 +1,11 @@
 import type { BunextPageModuleMeta } from "@moduletrace/bunext/types";
 import { SiteData } from "@/src/data/site-data";
-import EmptyCrew from "./(sections)/empty-crew";
 
+/**
+ * Never rendered: `index.server.ts` always redirects to the coordinator.
+ */
 export default function BotsPage() {
-    return <EmptyCrew />;
+    return null;
 }
 
 export const meta: BunextPageModuleMeta = {

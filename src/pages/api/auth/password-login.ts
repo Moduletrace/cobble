@@ -1,7 +1,6 @@
-import issueSSOLoginCode from "@/src/functions/backend/auth/issue-sso-login-code";
 import findUserByIdentifier from "@/src/functions/backend/auth/find-user-by-identifier";
 import verifyUserPassword from "@/src/functions/backend/auth/verify-user-password";
-import grabLoginMethod from "@/src/functions/backend/auth/grab-login-method";
+import loginUser from "@/src/functions/backend/auth/login-user";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { AppData } from "@/src/data/app-data";
 import rateLimit from "@/src/utils/rate-limit";
@@ -15,18 +14,13 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * First factor of password login. A correct password issues an emailed
- * login code (second factor), completed through `api/auth/login`.
+ * Logs a user in with their email or username and password.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
     req,
     body,
 }) => {
     try {
-        if (grabLoginMethod() != "password") {
-            throw new AppError(`Password login is turned off.`);
-        }
-
         const { login } = parseWithSchema({
             schema: PasswordLoginRequestSchema,
             data: body,
@@ -60,7 +54,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             password,
         });
 
-        if (!is_valid || !target_user?.id || !target_user.email) {
+        if (!is_valid || !target_user?.id) {
             await logEvent({
                 title: "Password login failed",
                 category: "auth",
@@ -77,21 +71,9 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             };
         }
 
-        await logEvent({
-            title: "Password verified",
-            category: "auth",
+        return await loginUser({
             user_id: target_user.id,
-            plain_text: `User #${target_user.id} [${target_user.first_name} ${target_user.last_name}] entered a correct password. Login code sent.`,
-            metadata: {
-                user_id: target_user.id,
-            },
-            ip_address: grabRequestIP(req),
-        });
-
-        return issueSSOLoginCode({
-            user_id: target_user.id,
-            email: target_user.email,
-            method: "password",
+            req,
         });
     } catch (error: unknown) {
         return {

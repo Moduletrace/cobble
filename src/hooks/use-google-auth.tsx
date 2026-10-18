@@ -1,4 +1,5 @@
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
+import { AdminHomePath } from "@/src/dict/admin-sections-dict";
 import type useFormInit from "@/src/hooks/use-form-init";
 import { AppContext } from "@/src/pages/__root";
 import type { ApiReqParams, GoogleWindow } from "@/src/types";
@@ -8,20 +9,15 @@ import { useContext, useEffect, useRef, useState } from "react";
 const GoogleScriptSelector =
     'script[src="https://accounts.google.com/gsi/client"]';
 
-export type GoogleAuthMode = "login" | "signup";
-
 type Params = Pick<
     ReturnType<typeof useFormInit>,
     "loading" | "setLoading" | "setStatus"
-> & {
-    mode: GoogleAuthMode;
-};
+>;
 
 export default function useGoogleAuth({
     loading,
     setStatus,
     setLoading,
-    mode,
 }: Params) {
     const { pageProps } = useContext(AppContext);
 
@@ -42,21 +38,16 @@ export default function useGoogleAuth({
                 method: "POST",
                 body: {
                     google_token,
-                    google_signup: mode == "signup",
                 },
             },
         );
 
         if (res.success) {
-            window.location.pathname = `/admin`;
+            window.location.pathname = AdminHomePath;
         } else {
             setStatus({
                 error: true,
-                msg:
-                    res.msg ||
-                    (mode == "signup"
-                        ? "Couldn't sign up with Google."
-                        : "Couldn't log in with Google."),
+                msg: res.msg || "Couldn't log in with Google.",
             });
             setLoading(false);
         }
@@ -175,7 +166,7 @@ export default function useGoogleAuth({
         googleId.renderButton(googleButtonRef.current, {
             theme: "outline",
             size: "large",
-            text: mode == "signup" ? "signup_with" : "signin_with",
+            text: "signin_with",
             shape: "rectangular",
             width: Math.min(buttonWidth, 400),
         });

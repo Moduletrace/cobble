@@ -4,6 +4,9 @@ import type {
     BUN_SQLITE_COBBLE_USERS,
     BunSQLiteTables,
 } from "@/db/types/db";
+import setUserPassword from "@/src/functions/backend/auth/set-user-password";
+import validatePassword from "@/src/utils/validate-password";
+import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
 
 const FIRST_NAME = process.env.SEED_SUPER_ADMIN_FIRST_NAME || "Super";
 const LAST_NAME = process.env.SEED_SUPER_ADMIN_LAST_NAME || "Admin";
@@ -11,8 +14,16 @@ const EMAIL =
     process.env.SEED_SUPER_ADMIN_EMAIL || "super.admin@example.com";
 const USERNAME =
     process.env.SEED_SUPER_ADMIN_USERNAME || "super_admin";
+const PASSWORD = process.env.SEED_SUPER_ADMIN_PASSWORD;
 
 async function seedSuperAdmin() {
+    const password_error = validatePassword({ password: PASSWORD });
+
+    if (password_error || !PASSWORD) {
+        console.error(`SEED_SUPER_ADMIN_PASSWORD: ${password_error}`);
+        process.exit(1);
+    }
+
     const existing = (
         await BunSQLite.select<
             BUN_SQLITE_COBBLE_USERS,
@@ -80,6 +91,12 @@ async function seedSuperAdmin() {
         })
     ).payload?.[0];
 
+    await setUserPassword({ user_id: Number(user_id), password: PASSWORD });
+    console.log(`Set the password for user #${user_id}.`);
+
+    const coordinator_id = await ensureCoordinatorBot({ user_id });
+    console.log(`Coordinator bot is #${coordinator_id}.`);
+
     if (has_super_admin) {
         console.log(`User #${user_id} already has the super_admin type.`);
         return;
@@ -109,6 +126,6 @@ async function seedSuperAdmin() {
 await seedSuperAdmin();
 
 console.log(
-    `Seed complete. Log in via SSO code sent to ${EMAIL} at /auth/login.`,
+    `Seed complete. Log in as ${EMAIL} or ${USERNAME} at /auth/login.`,
 );
 process.exit(0);
