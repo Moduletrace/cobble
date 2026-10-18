@@ -1,0 +1,17 @@
+# Secrets are passed at runtime with `docker run --env-file`, never baked in
+.env
+.env.*
+!.env.example
+secrets
+
+node_modules
+.git
+.data
+.bunext
+.bun-sqlite
+db/bsqlite
+db/.backups
+db/.exports
+coverage
+logs
+*.log

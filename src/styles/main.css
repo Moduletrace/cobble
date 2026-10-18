@@ -1,0 +1,283 @@
+@import "@moduletrace/twui/base.css";
+
+@theme inline {
+    /* Typography */
+    --font-sans:
+        "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* Cool neutral scale - remaps `slate-*` so every existing border/text
+       utility across the app inherits the canvas + ink palette */
+    --color-slate-50: #f9fafb;
+    --color-slate-100: #f2f4f7;
+    --color-slate-200: #e4e7ec;
+    --color-slate-300: #d0d5dd;
+    --color-slate-400: #98a2b3;
+    --color-slate-500: #667085;
+    --color-slate-600: #475467;
+    --color-slate-700: #344054;
+    --color-slate-800: #1d2939;
+    --color-slate-900: #101828;
+    --color-slate-950: #0c111d;
+
+    --color-background-light: #ffffff;
+    --color-foreground-light: #101828;
+    --color-background-dark: #0c111d;
+    --color-foreground-dark: #eaecf0;
+
+    /* Ink - primary actions */
+    --color-primary: #101828;
+    --color-primary-hover: #1d2939;
+    --color-primary-outline: #101828;
+    --color-primary-text: #101828;
+    --color-primary-dark: #eaecf0;
+    --color-primary-dark-hover: #d0d5dd;
+    --color-primary-dark-outline: #eaecf0;
+    --color-primary-dark-text: #101828;
+
+    /* Graphite - links, secondary actions */
+    --color-secondary: #344054;
+    --color-secondary-hover: #1d2939;
+    --color-secondary-outline: #475467;
+    --color-secondary-text: #344054;
+    --color-secondary-dark: #d0d5dd;
+    --color-secondary-dark-hover: #eaecf0;
+    --color-secondary-dark-outline: #98a2b3;
+    --color-secondary-dark-text: #101828;
+
+    /* Muted blue-violet - used sparingly for emphasis */
+    --color-accent: #5b5bd6;
+    --color-accent-hover: #4b4bc4;
+    --color-accent-outline: #4b4bc4;
+    --color-accent-text: #5b5bd6;
+    --color-accent-dark: #8b8cf0;
+    --color-accent-dark-hover: #a3a4f5;
+    --color-accent-dark-outline: #8b8cf0;
+    --color-accent-dark-text: #ffffff;
+
+    --color-dark: #0c111d;
+    --color-dark-hover: #161b26;
+    --color-dark-outline: #0c111d;
+    --color-dark-text: #0c111d;
+    --color-dark-dark: #0c111d;
+    --color-dark-dark-hover: #161b26;
+    --color-dark-dark-outline: #0c111d;
+    --color-dark-dark-text: #0c111d;
+
+    /* Canvas - page background */
+    --color-light: #f7f8fa;
+    --color-light-hover: #f2f4f7;
+    --color-light-outline: #e4e7ec;
+    --color-light-text: #f7f8fa;
+    --color-light-dark: #f7f8fa;
+    --color-light-dark-hover: #f2f4f7;
+    --color-light-dark-outline: #e4e7ec;
+    --color-light-dark-text: #f7f8fa;
+
+    --color-gray: #eaecf0;
+    --color-gray-hover: #e4e7ec;
+    --color-gray-dark: #1d2939;
+    --color-gray-dark-hover: #344054;
+
+    --color-link: #101828;
+    --color-link-dark: #eaecf0;
+
+    --radius-default: 6px;
+    --radius-default-sm: 4px;
+    --radius-default-xs: 2px;
+    --radius-default-lg: 10px;
+    --radius-default-xl: 14px;
+}
+
+body {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    @apply bg-light dark:bg-background-dark antialiased;
+}
+
+::selection {
+    @apply bg-accent/20 text-dark dark:text-white;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.heading {
+    font-family: var(--font-sans);
+    @apply m-0! font-semibold leading-[1.15em] tracking-tight;
+}
+
+/* Display headings: tight, heavy geometric sans */
+h1,
+h2 {
+    @apply font-semibold tracking-[-0.045em] leading-[1.02em] text-balance;
+}
+
+h1 {
+    @apply text-[44px]! md:text-6xl! xl:text-[76px]!;
+}
+
+h2 {
+    @apply text-[34px]! xl:text-5xl! tracking-[-0.04em];
+}
+
+h3 {
+    @apply text-lg! leading-snug;
+}
+
+h4 {
+    @apply text-base! leading-snug;
+}
+
+h5 {
+    @apply text-sm! font-semibold;
+}
+
+h6 {
+    @apply text-xs! font-semibold;
+}
+
+.twui-button-general {
+    @apply font-medium tracking-tight transition-colors;
+}
+
+.twui-button-primary {
+    @apply dark:text-primary-dark-text;
+}
+
+/* `primary-dark-text` is ink for the filled light button; outlined sits on the dark page */
+.twui-button-primary-outlined {
+    @apply dark:text-primary-dark;
+}
+
+.twui-row {
+    @apply gap-4;
+}
+
+a {
+    @apply outline-none border-none text-primary dark:text-primary-dark;
+}
+
+.twui-section {
+    @apply py-24 xl:py-32;
+}
+
+/* Eyebrow label with an accent dot */
+.htag {
+    @apply inline-flex items-center gap-2.5 text-sm font-medium text-slate-500 dark:text-slate-400;
+    @apply before:size-1.5 before:rounded-full before:bg-accent before:content-[''];
+}
+
+.twui-paper,
+.twui-card {
+    @apply border-slate-200 shadow-xs shadow-slate-900/3;
+    @apply dark:border-white/10 dark:shadow-none;
+}
+
+.twui-input-wrapper {
+    @apply bg-white dark:bg-background-dark transition-[outline-color];
+}
+
+.twui-input-label {
+    @apply text-slate-500 dark:text-slate-400;
+}
+
+.twui-breadcrumb-link {
+    @apply text-xs!;
+}
+
+header .twui-header-link {
+    @apply text-slate-600 hover:text-slate-900;
+}
+
+.dark header .twui-header-link {
+    @apply text-white/70 hover:text-white;
+}
+
+header .twui-header-link > * > * {
+    @apply transition-colors;
+}
+
+footer a {
+    @apply text-slate-500 hover:text-slate-900 hover:opacity-100 transition-colors;
+    @apply dark:text-slate-400 dark:hover:text-white;
+}
+
+.header-user-dropdown * {
+    @apply text-dark dark:text-foreground-dark;
+}
+
+.header-user-dropdown a {
+    @apply text-sm;
+}
+
+.twui-anchor {
+    @apply text-secondary dark:text-secondary-dark;
+}
+
+footer .twui-anchor {
+    @apply text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white;
+}
+
+footer .twui-anchor.active {
+    @apply text-slate-900! dark:text-white! font-normal;
+}
+
+.twui-anchor.active {
+    @apply font-semibold opacity-100! text-dark dark:text-white;
+}
+
+/* Admin sidebar navigation */
+[data-admin-nav] .twui-anchor {
+    @apply flex w-full items-center rounded-default px-3 py-2 text-sm text-slate-600 border-0;
+    @apply hover:bg-slate-900/5 hover:text-slate-900 transition-colors;
+    @apply dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white;
+}
+
+[data-admin-nav] .twui-anchor svg {
+    @apply text-slate-400 transition-colors dark:text-slate-500;
+}
+
+[data-admin-nav] .twui-anchor.active {
+    @apply bg-white font-medium text-slate-900 shadow-sm shadow-slate-900/5 ring-1 ring-slate-900/5;
+    @apply dark:bg-white/10 dark:text-white dark:shadow-none dark:ring-white/10;
+}
+
+[data-admin-nav] .twui-anchor.active svg {
+    @apply text-accent;
+}
+
+#admin-main {
+    @apply w-full max-w-[1200px] mx-auto;
+}
+
+#admin-main section {
+    @apply px-5 py-8 xl:px-10 flex flex-col items-start gap-10;
+}
+
+#admin-main h1 {
+    @apply text-3xl! xl:text-4xl! tracking-[-0.035em];
+}
+
+#admin-main h2 {
+    @apply text-2xl! tracking-[-0.03em];
+}
+
+#admin-main h3 {
+    @apply text-lg!;
+}
+
+#admin-main h4 {
+    @apply text-base!;
+}
+
+#admin-main h5 {
+    @apply text-sm!;
+}
+
+#admin-main h6 {
+    @apply text-xs!;
+}
