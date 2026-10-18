@@ -5,7 +5,7 @@ import { useContext } from "react";
 import UserForm from "../../../create/(partials)/user-form";
 import _ from "lodash";
 import type { UserFormObject, UserType } from "@/src/types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
 export default function EditPersonFormSection() {
     const { pageProps } = useContext(AppContext);
@@ -21,8 +21,8 @@ export default function EditPersonFormSection() {
             <UserForm
                 existing_user={{
                     ...(_.pick<
-                        BUN_SQLITE_BSQLITE_USERS_JOIN,
-                        keyof BUN_SQLITE_BSQLITE_USERS_JOIN
+                        BUN_SQLITE_COBBLE_USERS_JOIN,
+                        keyof BUN_SQLITE_COBBLE_USERS_JOIN
                     >(person, [
                         "first_name",
                         "last_name",

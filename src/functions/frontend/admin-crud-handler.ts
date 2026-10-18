@@ -1,10 +1,10 @@
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { ApiReqParams, ClientAdminCrudParams } from "@/src/types";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 
 export default async function adminCrudHandler<
-    T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS,
+    T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
 >(params: ClientAdminCrudParams<T>) {
     const {
         action,

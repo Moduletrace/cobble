@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_LOGS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_LOGS } from "@/db/types/db";
 import Card from "@moduletrace/twui/elements/Card";
 import Tag from "@moduletrace/twui/elements/Tag";
 import H3 from "@moduletrace/twui/layout/H3";
@@ -16,7 +16,7 @@ import {
 import DeleteLogsButton from "./delete-logs-button";
 
 type Props = {
-    log: BUN_SQLITE_BSQLITE_LOGS;
+    log: BUN_SQLITE_COBBLE_LOGS;
     selected?: boolean;
     toggleSelected: (params: { id: number; checked: boolean }) => void;
     afterDelete: (params: { deleted_ids: number[] }) => void;

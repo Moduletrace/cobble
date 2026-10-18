@@ -1,6 +1,6 @@
 import type {
-    BUN_SQLITE_BSQLITE_USER_TYPES,
-    BUN_SQLITE_BSQLITE_USERS,
+    BUN_SQLITE_COBBLE_USER_TYPES,
+    BUN_SQLITE_COBBLE_USERS,
 } from "@/db/types/db";
 import adminCrudHandler from "@/src/functions/frontend/admin-crud-handler";
 import clientDeleteMediaHandler from "@/src/functions/frontend/client-delete-media-handler";
@@ -26,7 +26,7 @@ export default async function submitUserForm({
             return;
         }
 
-        const new_user_data: BUN_SQLITE_BSQLITE_USERS = _.pick<
+        const new_user_data: BUN_SQLITE_COBBLE_USERS = _.pick<
             UserFormObject,
             keyof UserFormObject
         >(form, ["first_name", "last_name", "email", "username", "bio"]);
@@ -99,7 +99,7 @@ export default async function submitUserForm({
 
             if (user_types?.[0]) {
                 const add_user_types =
-                    await adminCrudHandler<BUN_SQLITE_BSQLITE_USER_TYPES>({
+                    await adminCrudHandler<BUN_SQLITE_COBBLE_USER_TYPES>({
                         action: "insert",
                         table: "user_types",
                         insert_data: user_types.map((ut) => ({

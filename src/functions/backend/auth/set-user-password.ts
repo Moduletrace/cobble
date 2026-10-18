@@ -1,6 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
-    BUN_SQLITE_BSQLITE_USER_PASSWORDS,
+    BUN_SQLITE_COBBLE_USER_PASSWORDS,
     BunSQLiteTables,
 } from "@/db/types/db";
 import hashPassword from "./hash-password";
@@ -21,7 +21,7 @@ export default async function setUserPassword({ user_id, password }: Params) {
     const password_hash = await hashPassword({ password });
 
     const res = await BunSQLite.insert<
-        BUN_SQLITE_BSQLITE_USER_PASSWORDS,
+        BUN_SQLITE_COBBLE_USER_PASSWORDS,
         (typeof BunSQLiteTables)[number]
     >({
         table: "user_passwords",

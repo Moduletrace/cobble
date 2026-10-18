@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_BSQLITE_USERS, BunSQLiteTables } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS, BunSQLiteTables } from "@/db/types/db";
 import AppError from "@/src/utils/app-error";
 
 type Params = {
@@ -24,7 +24,7 @@ export default async function generateUniqueUsername({ email }: Params) {
 
         const existing = (
             await BunSQLite.select<
-                BUN_SQLITE_BSQLITE_USERS,
+                BUN_SQLITE_COBBLE_USERS,
                 (typeof BunSQLiteTables)[number]
             >({
                 table: "users",

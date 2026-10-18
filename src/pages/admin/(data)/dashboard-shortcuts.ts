@@ -1,11 +1,4 @@
-import {
-    FileText,
-    Mail,
-    Receipt,
-    SquarePen,
-    Users,
-    type LucideIcon,
-} from "lucide-react";
+import { Bot, Users, type LucideIcon } from "lucide-react";
 
 export type DashboardShortcut = {
     title: string;
@@ -16,28 +9,10 @@ export type DashboardShortcut = {
 
 export const DashboardShortcuts: DashboardShortcut[] = [
     {
-        title: "Invoices",
-        description: "Bill clients, track payment status and export PDFs.",
-        url: "/admin/invoices",
-        Icon: Receipt,
-    },
-    {
-        title: "Quotes",
-        description: "Draft priced proposals and convert them to invoices.",
-        url: "/admin/quotes",
-        Icon: SquarePen,
-    },
-    {
-        title: "Letters",
-        description: "Compose letterhead documents ready to print or send.",
-        url: "/admin/letters",
-        Icon: FileText,
-    },
-    {
-        title: "Emails",
-        description: "Write, attach and send branded email from one place.",
-        url: "/admin/emails",
-        Icon: Mail,
+        title: "Bots",
+        description: "Talk to your crew, see what they are working on and answer what needs you.",
+        url: "/admin/bots",
+        Icon: Bot,
     },
     {
         title: "People",

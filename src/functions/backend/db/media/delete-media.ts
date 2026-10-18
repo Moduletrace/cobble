@@ -1,5 +1,5 @@
 import _ from "lodash";
-import type { BUN_SQLITE_BSQLITE_MEDIA } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import grabMediaFromParadigm from "@/src/functions/backend/db/media/grab-media-from-paraidigm";
 import type { MediaParadigmType, TableType, User } from "@/src/types";
 import grabDirNames from "@/src/utils/grab-dir-names";
@@ -55,7 +55,7 @@ export default async function deleteMedia(params: Params) {
             const media_id_to_delete = media_ids_to_del[i];
 
             const target_media = (
-                await BunSQLite.select<BUN_SQLITE_BSQLITE_MEDIA>({
+                await BunSQLite.select<BUN_SQLITE_COBBLE_MEDIA>({
                     table: "media",
                     targetId: media_id_to_delete,
                 })
@@ -77,7 +77,7 @@ export default async function deleteMedia(params: Params) {
         const media_id = media_to_delete_array[i];
 
         const target_media = (
-            await BunSQLite.select<BUN_SQLITE_BSQLITE_MEDIA>({
+            await BunSQLite.select<BUN_SQLITE_COBBLE_MEDIA>({
                 table: "media",
                 targetId: media_id,
             })
@@ -101,7 +101,7 @@ export default async function deleteMedia(params: Params) {
             );
         }
 
-        await BunSQLite.delete<BUN_SQLITE_BSQLITE_MEDIA, TableType>({
+        await BunSQLite.delete<BUN_SQLITE_COBBLE_MEDIA, TableType>({
             table: "media",
             targetId: target_media.id,
         });

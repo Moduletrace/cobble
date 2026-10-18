@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_USERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
 import TinyMCEEditor from "@moduletrace/twui/editors/TinyMCE";
 import Button from "@moduletrace/twui/layout/Button";
 import useFormInit from "@/src/hooks/use-form-init";
@@ -8,7 +8,7 @@ export default function UserFormBio({
     existing,
     existing_full,
     form,
-}: ReturnType<typeof useFormInit<BUN_SQLITE_BSQLITE_USERS>>) {
+}: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
     const title = existing_full?.id ? "Update User" : "Create New User";
 
     return (

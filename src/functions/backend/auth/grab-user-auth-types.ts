@@ -1,5 +1,5 @@
 import type {
-    BUN_SQLITE_BSQLITE_USER_TYPES,
+    BUN_SQLITE_COBBLE_USER_TYPES,
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { UserAuthReturn } from "@/src/types";
@@ -16,7 +16,7 @@ export default async function grabUserAuthTypes({
         const user_types =
             (
                 await BunSQLite.select<
-                    BUN_SQLITE_BSQLITE_USER_TYPES,
+                    BUN_SQLITE_COBBLE_USER_TYPES,
                     (typeof BunSQLiteTables)[number]
                 >({
                     table: "user_types",

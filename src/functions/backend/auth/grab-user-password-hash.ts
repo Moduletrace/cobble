@@ -1,6 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
-    BUN_SQLITE_BSQLITE_USER_PASSWORDS,
+    BUN_SQLITE_COBBLE_USER_PASSWORDS,
     BunSQLiteTables,
 } from "@/db/types/db";
 
@@ -15,7 +15,7 @@ type Params = {
 export default async function grabUserPasswordHash({ user_id }: Params) {
     const record = (
         await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_USER_PASSWORDS,
+            BUN_SQLITE_COBBLE_USER_PASSWORDS,
             (typeof BunSQLiteTables)[number]
         >({
             table: "user_passwords",

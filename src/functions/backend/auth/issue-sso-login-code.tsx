@@ -13,7 +13,7 @@ import type {
     BunextAPIRouteHandlerObjectReturn,
 } from "@moduletrace/bunext/types";
 import type {
-    BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES,
+    BUN_SQLITE_COBBLE_SSO_LOGIN_CODES,
     BunSQLiteTables,
 } from "@/db/types/db";
 
@@ -37,7 +37,7 @@ export default async function issueSSOLoginCode({
     const sso_code = randomInt(0, 1000000).toString().padStart(6, "0");
 
     const record_sso = await BunSQLite.insert<
-        BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES,
+        BUN_SQLITE_COBBLE_SSO_LOGIN_CODES,
         (typeof BunSQLiteTables)[number]
     >({
         data: [

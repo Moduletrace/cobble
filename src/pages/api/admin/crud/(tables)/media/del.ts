@@ -4,8 +4,8 @@ import type { APIResponseObject } from "@moduletrace/bunext/types";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
 import type {
-    BUN_SQLITE_BSQLITE_ALL_TYPEDEFS,
-    BUN_SQLITE_BSQLITE_MEDIA,
+    BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
+    BUN_SQLITE_COBBLE_MEDIA,
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { rmSync } from "fs";
@@ -30,12 +30,12 @@ export default async function (
     }
 
     let query = _.merge<
-        ServerQueryParam<BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>,
-        ServerQueryParam<BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>
+        ServerQueryParam<BUN_SQLITE_COBBLE_ALL_TYPEDEFS>,
+        ServerQueryParam<BUN_SQLITE_COBBLE_ALL_TYPEDEFS>
     >(body?.sql_query || {}, {});
 
     const media_to_delete = await BunSQLite.select<
-        BUN_SQLITE_BSQLITE_MEDIA,
+        BUN_SQLITE_COBBLE_MEDIA,
         TableType
     >({
         table: "media",
@@ -68,7 +68,7 @@ export default async function (
             });
         }
 
-        await BunSQLite.delete<BUN_SQLITE_BSQLITE_MEDIA, TableType>({
+        await BunSQLite.delete<BUN_SQLITE_COBBLE_MEDIA, TableType>({
             table: "media",
             targetId: media.id,
         });

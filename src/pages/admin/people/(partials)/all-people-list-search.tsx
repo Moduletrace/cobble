@@ -5,7 +5,7 @@ import { useRef } from "react";
 import _ from "lodash";
 import twuiSlugToNormalText from "@moduletrace/twui/utils/slug-to-normal-text";
 import type useAllPeopleListInit from "../(hooks)/use-all-people-list-init";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 import searchableFieldToQueryField from "@/src/utils/searchable-field-to-query-field";
 import type { ApiReqParams } from "@/src/types";
 
@@ -13,7 +13,7 @@ export default function AllPeopleListSearch({
     setUsersQuery,
     location_query,
 }: ReturnType<typeof useAllPeopleListInit>) {
-    const searchable_fields: (keyof BUN_SQLITE_BSQLITE_USERS_JOIN)[] = [
+    const searchable_fields: (keyof BUN_SQLITE_COBBLE_USERS_JOIN)[] = [
         "first_name",
         "last_name",
         "email",

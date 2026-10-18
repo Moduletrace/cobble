@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
 import checkAllowedJoins from "@/src/functions/backend/db/check-allowed-joins";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
@@ -14,8 +14,8 @@ export default async function (
     let final_sql_query = _.merge(query?.sql_query, body?.sql_query) || {};
     let final_query =
         _.merge<
-            ApiReqParams<BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>,
-            ApiReqParams<BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>
+            ApiReqParams<BUN_SQLITE_COBBLE_ALL_TYPEDEFS>,
+            ApiReqParams<BUN_SQLITE_COBBLE_ALL_TYPEDEFS>
         >(query || {}, { sql_query: final_sql_query }) || {};
 
     const allowed_joins: TableType[] = ["user_types", "media"];

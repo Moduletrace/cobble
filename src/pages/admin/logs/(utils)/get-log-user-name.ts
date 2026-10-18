@@ -1,7 +1,7 @@
-import type { BUN_SQLITE_BSQLITE_LOGS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
 
 type Params = {
-    log: BUN_SQLITE_BSQLITE_LOGS_JOIN;
+    log: BUN_SQLITE_COBBLE_LOGS_JOIN;
 };
 
 export default function getLogUserName({ log }: Params) {

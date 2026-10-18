@@ -5,18 +5,14 @@ export const BunSQLiteTables = [
     "user_passwords",
     "media",
     "media_paradigms",
-    "letters",
-    "emails",
-    "email_attachments",
-    "invoices",
-    "invoice_items",
-    "quotes",
-    "quote_items",
-    "invoice_quotes",
+    "bots",
+    "bot_messages",
+    "bot_tasks",
+    "bot_task_steps",
     "logs",
 ] as const
 
-export type BUN_SQLITE_BSQLITE_USERS = {
+export type BUN_SQLITE_COBBLE_USERS = {
     /** 
      * The unique identifier of the record.
      */
@@ -37,7 +33,7 @@ export type BUN_SQLITE_BSQLITE_USERS = {
     archived?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_BSQLITE_USER_TYPES = {
+export type BUN_SQLITE_COBBLE_USER_TYPES = {
     /** 
      * The unique identifier of the record.
      */
@@ -54,7 +50,7 @@ export type BUN_SQLITE_BSQLITE_USER_TYPES = {
     user_type?: string;
 }
 
-export type BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES = {
+export type BUN_SQLITE_COBBLE_SSO_LOGIN_CODES = {
     /** 
      * The unique identifier of the record.
      */
@@ -71,7 +67,7 @@ export type BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES = {
     code?: string;
 }
 
-export type BUN_SQLITE_BSQLITE_USER_PASSWORDS = {
+export type BUN_SQLITE_COBBLE_USER_PASSWORDS = {
     /** 
      * The unique identifier of the record.
      */
@@ -88,7 +84,7 @@ export type BUN_SQLITE_BSQLITE_USER_PASSWORDS = {
     password_hash?: string;
 }
 
-export type BUN_SQLITE_BSQLITE_MEDIA = {
+export type BUN_SQLITE_COBBLE_MEDIA = {
     /** 
      * The unique identifier of the record.
      */
@@ -116,7 +112,7 @@ export type BUN_SQLITE_BSQLITE_MEDIA = {
     archived?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_BSQLITE_MEDIA_PARADIGMS = {
+export type BUN_SQLITE_COBBLE_MEDIA_PARADIGMS = {
     /** 
      * The unique identifier of the record.
      */
@@ -133,7 +129,7 @@ export type BUN_SQLITE_BSQLITE_MEDIA_PARADIGMS = {
     media_paradigm?: "user-profile-image" | "generic" | "event" | "";
 }
 
-export type BUN_SQLITE_BSQLITE_LETTERS = {
+export type BUN_SQLITE_COBBLE_BOTS = {
     /** 
      * The unique identifier of the record.
      */
@@ -146,21 +142,83 @@ export type BUN_SQLITE_BSQLITE_LETTERS = {
      * The time when the record was updated. (Unix Timestamp)
      */
     updated_at?: number | "";
+    /** 
+     * Workspace owner
+     */
+    user_id?: number | "";
+    name?: string;
+    /** 
+     * One coordinator per workspace; everything else is a worker
+     */
+    kind?: "worker" | "coordinator" | "";
+    /** 
+     * Permanent identity hue. Null for the coordinator
+     */
+    hue?: "ember" | "amber" | "moss" | "teal" | "cobalt" | "violet" | "rose" | "";
+    /** 
+     * The bot's job in one line. Null for the coordinator
+     */
+    role?: string;
+    /** 
+     * The bot's status, shown as its face
+     */
+    face?: "idle" | "working" | "done" | "asleep" | "needs-you" | "";
+    /** 
+     * Short status sentence, e.g. "Waiting on you"
+     */
+    status_line?: string;
+    unread?: 0 | 1 | "";
+    /** 
+     * Unix timestamp of the latest message, for rail ordering
+     */
+    last_activity_at?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    author?: "bot" | "user" | "";
+    text?: string;
+    /** 
+     * Renders the Needs you chip under the message
+     */
+    needs_you?: 0 | 1 | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_TASKS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
     title?: string;
-    to_name?: string;
-    to_address?: string;
-    from_name?: string;
-    from_address?: string;
-    subject?: string;
-    salutation?: string;
-    body_html?: string;
-    closing?: string;
-    signature_name?: string;
-    signature_title?: string;
-    archived?: 0 | 1 | "";
+    status?: "active" | "done" | "";
+    /** 
+     * "Open computer" target
+     */
+    computer_url?: string;
 }
 
-export type BUN_SQLITE_BSQLITE_EMAILS = {
+export type BUN_SQLITE_COBBLE_BOT_TASK_STEPS = {
     /** 
      * The unique identifier of the record.
      */
@@ -173,149 +231,13 @@ export type BUN_SQLITE_BSQLITE_EMAILS = {
      * The time when the record was updated. (Unix Timestamp)
      */
     updated_at?: number | "";
-    title?: string;
-    subject?: string;
-    body_html?: string;
-    to_emails?: string;
-    status?: "draft" | "sent" | "";
-    sent_at?: number | "";
-    archived?: 0 | 1 | "";
+    task_id?: number | "";
+    label?: string;
+    state?: "done" | "active" | "pending" | "";
+    position?: number | "";
 }
 
-export type BUN_SQLITE_BSQLITE_EMAIL_ATTACHMENTS = {
-    /** 
-     * The unique identifier of the record.
-     */
-    id?: number | "";
-    /** 
-     * The time when the record was created. (Unix Timestamp)
-     */
-    created_at?: number | "";
-    /** 
-     * The time when the record was updated. (Unix Timestamp)
-     */
-    updated_at?: number | "";
-    email_id?: number | "";
-    type?: "letter" | "invoice" | "quote" | "file" | "";
-    letter_id?: number | "";
-    media_id?: number | "";
-    invoice_id?: number | "";
-    quote_id?: number | "";
-    file_name?: string;
-    mime_type?: string;
-}
-
-export type BUN_SQLITE_BSQLITE_INVOICES = {
-    /** 
-     * The unique identifier of the record.
-     */
-    id?: number | "";
-    /** 
-     * The time when the record was created. (Unix Timestamp)
-     */
-    created_at?: number | "";
-    /** 
-     * The time when the record was updated. (Unix Timestamp)
-     */
-    updated_at?: number | "";
-    title?: string;
-    short_description?: string;
-    invoice_number?: string;
-    client_name?: string;
-    client_email?: string;
-    client_address?: string;
-    issue_date?: number | "";
-    due_date?: number | "";
-    status?: "draft" | "issued" | "paid" | "cancelled" | "";
-    notes?: string;
-    archived?: 0 | 1 | "";
-}
-
-export type BUN_SQLITE_BSQLITE_INVOICE_ITEMS = {
-    /** 
-     * The unique identifier of the record.
-     */
-    id?: number | "";
-    /** 
-     * The time when the record was created. (Unix Timestamp)
-     */
-    created_at?: number | "";
-    /** 
-     * The time when the record was updated. (Unix Timestamp)
-     */
-    updated_at?: number | "";
-    invoice_id?: number | "";
-    description?: string;
-    quantity?: number | "";
-    unit_price_kobo?: number | "";
-    sort_order?: number | "";
-}
-
-export type BUN_SQLITE_BSQLITE_QUOTES = {
-    /** 
-     * The unique identifier of the record.
-     */
-    id?: number | "";
-    /** 
-     * The time when the record was created. (Unix Timestamp)
-     */
-    created_at?: number | "";
-    /** 
-     * The time when the record was updated. (Unix Timestamp)
-     */
-    updated_at?: number | "";
-    title?: string;
-    short_description?: string;
-    quote_number?: string;
-    client_name?: string;
-    client_email?: string;
-    client_address?: string;
-    issue_date?: number | "";
-    valid_until?: number | "";
-    status?: "draft" | "sent" | "accepted" | "declined" | "expired" | "";
-    notes?: string;
-    archived?: 0 | 1 | "";
-}
-
-export type BUN_SQLITE_BSQLITE_QUOTE_ITEMS = {
-    /** 
-     * The unique identifier of the record.
-     */
-    id?: number | "";
-    /** 
-     * The time when the record was created. (Unix Timestamp)
-     */
-    created_at?: number | "";
-    /** 
-     * The time when the record was updated. (Unix Timestamp)
-     */
-    updated_at?: number | "";
-    quote_id?: number | "";
-    description?: string;
-    quantity?: number | "";
-    unit_price_kobo?: number | "";
-    sort_order?: number | "";
-}
-
-export type BUN_SQLITE_BSQLITE_INVOICE_QUOTES = {
-    /** 
-     * The unique identifier of the record.
-     */
-    id?: number | "";
-    /** 
-     * The time when the record was created. (Unix Timestamp)
-     */
-    created_at?: number | "";
-    /** 
-     * The time when the record was updated. (Unix Timestamp)
-     */
-    updated_at?: number | "";
-    invoice_id?: number | "";
-    quote_id?: number | "";
-    amount_kobo?: number | "";
-}
-
-export type BUN_SQLITE_BSQLITE_LOGS = {
+export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * The unique identifier of the record.
      */
@@ -362,4 +284,4 @@ export type BUN_SQLITE_BSQLITE_LOGS = {
     ip_address?: string;
 }
 
-export type BUN_SQLITE_BSQLITE_ALL_TYPEDEFS = BUN_SQLITE_BSQLITE_USERS & BUN_SQLITE_BSQLITE_USER_TYPES & BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES & BUN_SQLITE_BSQLITE_USER_PASSWORDS & BUN_SQLITE_BSQLITE_MEDIA & BUN_SQLITE_BSQLITE_MEDIA_PARADIGMS & BUN_SQLITE_BSQLITE_LETTERS & BUN_SQLITE_BSQLITE_EMAILS & BUN_SQLITE_BSQLITE_EMAIL_ATTACHMENTS & BUN_SQLITE_BSQLITE_INVOICES & BUN_SQLITE_BSQLITE_INVOICE_ITEMS & BUN_SQLITE_BSQLITE_QUOTES & BUN_SQLITE_BSQLITE_QUOTE_ITEMS & BUN_SQLITE_BSQLITE_INVOICE_QUOTES & BUN_SQLITE_BSQLITE_LOGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_LOGS

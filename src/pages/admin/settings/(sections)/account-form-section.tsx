@@ -4,7 +4,7 @@ import { useContext } from "react";
 import AccountForm from "../(partials)/account-form";
 import _ from "lodash";
 import type { UserFormObject } from "@/src/types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
 export default function AccountFormSection() {
     const { pageProps } = useContext(AppContext);
@@ -18,8 +18,8 @@ export default function AccountFormSection() {
             <AccountForm
                 existing_user={
                     _.pick<
-                        BUN_SQLITE_BSQLITE_USERS_JOIN,
-                        keyof BUN_SQLITE_BSQLITE_USERS_JOIN
+                        BUN_SQLITE_COBBLE_USERS_JOIN,
+                        keyof BUN_SQLITE_COBBLE_USERS_JOIN
                     >(person, [
                         "first_name",
                         "last_name",

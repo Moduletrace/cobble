@@ -1,5 +1,5 @@
 {
-    "name": "bunext-sqlite-preset",
+    "name": "cobble",
     "module": "index.ts",
     "type": "module",
     "private": true,
@@ -11,6 +11,7 @@
         "db:admin": "bunx bun-sqlite admin",
         "db:backup": "bunx bun-sqlite backup",
         "seed": "bun src/scripts/seed-super-admin.tsx",
+        "seed:bots": "bun src/scripts/seed-bots.ts",
         "deploy:prod": "./deploy/deploy-prod.sh",
         "start": "NODE_ENV=production bun src/server.ts",
         "typecheck": "tsc --noEmit",

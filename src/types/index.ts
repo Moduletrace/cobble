@@ -1,14 +1,12 @@
 import type {
-    BUN_SQLITE_BSQLITE_ALL_TYPEDEFS,
-    BUN_SQLITE_BSQLITE_EMAILS,
-    BUN_SQLITE_BSQLITE_INVOICE_ITEMS,
-    BUN_SQLITE_BSQLITE_INVOICES,
-    BUN_SQLITE_BSQLITE_LETTERS,
-    BUN_SQLITE_BSQLITE_MEDIA,
-    BUN_SQLITE_BSQLITE_QUOTE_ITEMS,
-    BUN_SQLITE_BSQLITE_QUOTES,
-    BUN_SQLITE_BSQLITE_USER_TYPES,
-    BUN_SQLITE_BSQLITE_USERS,
+    BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
+    BUN_SQLITE_COBBLE_BOT_MESSAGES,
+    BUN_SQLITE_COBBLE_BOT_TASK_STEPS,
+    BUN_SQLITE_COBBLE_BOT_TASKS,
+    BUN_SQLITE_COBBLE_BOTS,
+    BUN_SQLITE_COBBLE_MEDIA,
+    BUN_SQLITE_COBBLE_USER_TYPES,
+    BUN_SQLITE_COBBLE_USERS,
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { UserTypes } from "../dict/user-types-dict";
@@ -17,10 +15,8 @@ import type { LucideIcon } from "lucide-react";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
 import type { MediaParadigms, MediaTypes } from "../dict/media-dict";
 import type { BunextPageModuleServerReturnURLObject } from "@moduletrace/bunext/types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "./sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "./sql-joins";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
-import type { EmailAttachmentRecord } from "../functions/backend/db/documents/grab-email-attachments";
-import type { InvoiceQuoteLinkRecord } from "../functions/backend/db/invoices/grab-invoice";
 
 export type User = {
     id: number;
@@ -38,6 +34,21 @@ export type User = {
 };
 
 /**
+ * A bot row plus its latest message, for the rail.
+ */
+export type BotWithLastMessage = BUN_SQLITE_COBBLE_BOTS & {
+    last_message_text?: string | null;
+    last_message_at?: number | null;
+};
+
+/**
+ * The task shown in the working-on panel, with its ordered steps.
+ */
+export type BotTaskWithSteps = BUN_SQLITE_COBBLE_BOT_TASKS & {
+    steps: BUN_SQLITE_COBBLE_BOT_TASK_STEPS[];
+};
+
+/**
  * A database snapshot in the bun-sqlite backups directory (`db/.backups`).
  */
 export type DbBackup = {
@@ -48,18 +59,13 @@ export type DbBackup = {
 
 export type PagePropsType = {
     user?: User | null;
-    user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
-    person?: BUN_SQLITE_BSQLITE_USERS_JOIN | null;
-    persons?: BUN_SQLITE_BSQLITE_USERS_JOIN[] | null;
-    letter?: BUN_SQLITE_BSQLITE_LETTERS | null;
-    email?: BUN_SQLITE_BSQLITE_EMAILS | null;
-    email_template_html?: string;
-    attachments?: EmailAttachmentRecord[] | null;
-    invoice?: BUN_SQLITE_BSQLITE_INVOICES | null;
-    invoice_items?: BUN_SQLITE_BSQLITE_INVOICE_ITEMS[] | null;
-    invoice_quote_links?: InvoiceQuoteLinkRecord[] | null;
-    quote?: BUN_SQLITE_BSQLITE_QUOTES | null;
-    quote_items?: BUN_SQLITE_BSQLITE_QUOTE_ITEMS[] | null;
+    user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
+    person?: BUN_SQLITE_COBBLE_USERS_JOIN | null;
+    persons?: BUN_SQLITE_COBBLE_USERS_JOIN[] | null;
+    bots?: BotWithLastMessage[] | null;
+    bot?: BotWithLastMessage | null;
+    bot_messages?: BUN_SQLITE_COBBLE_BOT_MESSAGES[] | null;
+    bot_task?: BotTaskWithSteps | null;
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;
@@ -225,7 +231,7 @@ export type WebSocketDataType = {
 export type WebsocketRoomType = (typeof WebsocketRooms)[number]["value"];
 
 export type UserAssignmentFnParams = {
-    actor_user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    actor_user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     target_user_type: UserType;
     target_user_types?: UserType[];
     action: "assign" | "delete";
@@ -306,7 +312,7 @@ export type ContactFormObject = {
 };
 
 export type ApiReqParams<
-    T extends BUN_SQLITE_BSQLITE_ALL_TYPEDEFS = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS,
+    T extends BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
 > = {
     login?: {
         email?: string;
@@ -339,8 +345,8 @@ export type ApiReqParams<
     sql_select_params?: any;
     sql_insert_params?: any;
     count?: boolean;
-    insert_data?: BUN_SQLITE_BSQLITE_ALL_TYPEDEFS[];
-    update_data?: BUN_SQLITE_BSQLITE_ALL_TYPEDEFS;
+    insert_data?: BUN_SQLITE_COBBLE_ALL_TYPEDEFS[];
+    update_data?: BUN_SQLITE_COBBLE_ALL_TYPEDEFS;
     update_on_duplicate?: boolean;
     user_id?: string | number | null;
     dependent_id?: string | number | null;
@@ -360,15 +366,6 @@ export type ApiReqParams<
     id?: string | number;
     ids?: (string | number)[];
     paystack_payment_reference?: string;
-    letter_id?: string | number;
-    email_id?: string | number;
-    invoice_id?: string | number;
-    quote_id?: string | number;
-    to_email?: string;
-    to_name?: string;
-    to_address?: string;
-    letter_date?: number;
-    attach_pdf?: boolean;
     target_user_type?: UserType;
     page?: number;
     /**
@@ -382,7 +379,7 @@ export type ApiReqParams<
 
     text?: string;
     return_media_text_content?: boolean;
-    media?: BUN_SQLITE_BSQLITE_MEDIA;
+    media?: BUN_SQLITE_COBBLE_MEDIA;
     backup_name?: string;
 };
 
@@ -427,7 +424,7 @@ export type UserAuthReturn = {
     success: boolean;
     msg?: string;
     user?: User | null;
-    user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
 };
 
 export type SQLInsertGenValueType =
@@ -446,14 +443,14 @@ export type AdminCrudAPIParams = {
     table: TableType;
     id?: string | number;
     user: User;
-    user_types: BUN_SQLITE_BSQLITE_USER_TYPES[];
+    user_types: BUN_SQLITE_COBBLE_USER_TYPES[];
     body?: ApiReqParams;
     query?: ApiReqParams;
     req: Request;
 };
 
 export type ClientAdminCrudParams<
-    T extends BUN_SQLITE_BSQLITE_ALL_TYPEDEFS = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS,
+    T extends BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
 > = {
     action: "get" | "insert" | "update" | "delete";
     table: TableType;
@@ -469,26 +466,27 @@ export type ClientAdminCrudParams<
     request_body?: ApiReqParams<T>;
 };
 
-export type AdminFetchParams<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = {
+export type AdminFetchParams<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = {
     url: string;
     query?: ApiReqParams<T>;
     body?: ApiReqParams<T>;
     method?: "PUT" | "DELETE" | "POST" | "GET";
 };
 
-export type UserFormObject = BUN_SQLITE_BSQLITE_USERS & {
+export type UserFormObject = BUN_SQLITE_COBBLE_USERS & {
     user_types?: UserType[];
 };
 
 export type PageQueryObject = {
     user_id?: string;
+    bot_id?: string;
     event_id?: string;
     user_type?: UserType;
 };
 
 export type MediaParadigmType = (typeof MediaParadigms)[number]["value"];
 
-export type AddEventFormMediaObject = BUN_SQLITE_BSQLITE_MEDIA &
+export type AddEventFormMediaObject = BUN_SQLITE_COBBLE_MEDIA &
     ImageInputToBase64FunctionReturn;
 
 export type MediaDataType =

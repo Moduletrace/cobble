@@ -9,7 +9,7 @@ node_modules
 .data
 .bunext
 .bun-sqlite
-db/bsqlite
+db/cobble
 db/.backups
 db/.exports
 coverage

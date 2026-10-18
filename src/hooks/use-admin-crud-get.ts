@@ -3,12 +3,12 @@ import adminCrudHandler from "../functions/frontend/admin-crud-handler";
 import _ from "lodash";
 import { AppData } from "../data/app-data";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import type { ApiReqParams, ClientAdminCrudParams, TableType } from "../types";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
 import EJSON from "../utils/ejson";
 
-type Params<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = Pick<
+type Params<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = Pick<
     ClientAdminCrudParams,
     "id" | "count"
 > & {
@@ -22,7 +22,7 @@ type Params<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = Pick<
     request_query?: ApiReqParams<T>;
 };
 
-export function useAdminCrudGet<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>({
+export function useAdminCrudGet<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS>({
     table,
     sql_query,
     count: add_count_param,

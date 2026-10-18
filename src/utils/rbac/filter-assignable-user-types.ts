@@ -1,9 +1,9 @@
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import type { UserType } from "@/src/types";
 import userTypeAssignment from "./user-type-assignment";
 
 type Params = {
-    actor_user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    actor_user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     user_types: UserType[];
 };
 

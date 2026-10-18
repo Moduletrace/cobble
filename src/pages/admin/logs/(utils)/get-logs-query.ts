@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_LOGS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
 import type { LogCategoryValue } from "../(data)/log-category-styles";
 
@@ -11,7 +11,7 @@ type Params = {
  */
 export default function getLogsQuery({
     category,
-}: Params): ServerQueryParam<BUN_SQLITE_BSQLITE_LOGS_JOIN> {
+}: Params): ServerQueryParam<BUN_SQLITE_COBBLE_LOGS_JOIN> {
     return {
         order: { field: "created_at", strategy: "DESC" },
         query: category ? { category: { value: category } } : undefined,

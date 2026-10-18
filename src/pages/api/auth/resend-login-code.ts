@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_USERS, BunSQLiteTables } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS, BunSQLiteTables } from "@/db/types/db";
 import issueSSOLoginCode from "@/src/functions/backend/auth/issue-sso-login-code";
 import { grabRequestIP } from "@/src/functions/backend/logger";
 import grabLoginMethod from "@/src/functions/backend/auth/grab-login-method";
@@ -80,7 +80,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         const target_user = (
             await BunSQLite.select<
-                BUN_SQLITE_BSQLITE_USERS,
+                BUN_SQLITE_COBBLE_USERS,
                 (typeof BunSQLiteTables)[number]
             >({
                 table: "users",

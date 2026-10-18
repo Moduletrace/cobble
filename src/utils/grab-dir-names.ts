@@ -1,9 +1,9 @@
 import path from "path";
 import type { User } from "../types";
-import type { BUN_SQLITE_BSQLITE_USERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
 
 type Params = {
-    user?: BUN_SQLITE_BSQLITE_USERS | User;
+    user?: BUN_SQLITE_COBBLE_USERS | User;
 };
 
 export default function grabDirNames(params?: Params) {

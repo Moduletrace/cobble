@@ -1,15 +1,15 @@
-import type { BUN_SQLITE_BSQLITE_MEDIA_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_MEDIA_JOIN } from "@/src/types/sql-joins";
 import type { APIResponseObject } from "@moduletrace/bun-sqlite";
 import _ from "lodash";
 import grabUsers from "../users/grab-users";
 
 type Params = {
-    media_res: APIResponseObject<BUN_SQLITE_BSQLITE_MEDIA_JOIN>;
+    media_res: APIResponseObject<BUN_SQLITE_COBBLE_MEDIA_JOIN>;
 };
 
 export default async function appendUsersToMedia({
     media_res,
-}: Params): Promise<APIResponseObject<BUN_SQLITE_BSQLITE_MEDIA_JOIN>> {
+}: Params): Promise<APIResponseObject<BUN_SQLITE_COBBLE_MEDIA_JOIN>> {
     try {
         let new_media_res = _.cloneDeep(media_res);
 

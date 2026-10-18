@@ -4,8 +4,8 @@ import { encrypt } from "@/src/utils/crypt";
 import grabUsers from "../db/users/grab-users";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
-    BUN_SQLITE_BSQLITE_MEDIA,
-    BUN_SQLITE_BSQLITE_USER_TYPES,
+    BUN_SQLITE_COBBLE_MEDIA,
+    BUN_SQLITE_COBBLE_USER_TYPES,
     BunSQLiteTables,
 } from "@/db/types/db";
 import generateCSRF from "./gen-csrf";
@@ -44,7 +44,7 @@ export default async function loginUser({
 
         const target_user_types = (
             await BunSQLite.select<
-                BUN_SQLITE_BSQLITE_USER_TYPES,
+                BUN_SQLITE_COBBLE_USER_TYPES,
                 (typeof BunSQLiteTables)[number]
             >({
                 table: "user_types",
@@ -65,7 +65,7 @@ export default async function loginUser({
         const profile_media = target_user.profile_media_id
             ? (
                   await BunSQLite.select<
-                      BUN_SQLITE_BSQLITE_MEDIA,
+                      BUN_SQLITE_COBBLE_MEDIA,
                       (typeof BunSQLiteTables)[number]
                   >({
                       table: "media",

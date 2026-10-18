@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_USERS, BunSQLiteTables } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS, BunSQLiteTables } from "@/db/types/db";
 import issueSSOLoginCode from "@/src/functions/backend/auth/issue-sso-login-code";
 import createSignupUser from "@/src/functions/backend/auth/create-signup-user";
 import setUserPassword from "@/src/functions/backend/auth/set-user-password";
@@ -67,7 +67,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         const existing_email_user = (
             await BunSQLite.select<
-                BUN_SQLITE_BSQLITE_USERS,
+                BUN_SQLITE_COBBLE_USERS,
                 (typeof BunSQLiteTables)[number]
             >({
                 table: "users",
@@ -103,7 +103,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         const existing_username_user = (
             await BunSQLite.select<
-                BUN_SQLITE_BSQLITE_USERS,
+                BUN_SQLITE_COBBLE_USERS,
                 (typeof BunSQLiteTables)[number]
             >({
                 table: "users",

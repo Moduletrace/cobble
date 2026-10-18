@@ -1,5 +1,5 @@
 import type {
-    BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES,
+    BUN_SQLITE_COBBLE_SSO_LOGIN_CODES,
     BunSQLiteTables,
 } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
@@ -70,7 +70,7 @@ export default async function verifySSOCode({
 
     const target_sso = (
         await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_SSO_LOGIN_CODES,
+            BUN_SQLITE_COBBLE_SSO_LOGIN_CODES,
             (typeof BunSQLiteTables)[number]
         >({
             table: "sso_login_codes",

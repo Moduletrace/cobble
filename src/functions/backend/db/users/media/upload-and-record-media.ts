@@ -1,7 +1,7 @@
 import type {
-    BUN_SQLITE_BSQLITE_MEDIA,
-    BUN_SQLITE_BSQLITE_MEDIA_PARADIGMS,
-    BUN_SQLITE_BSQLITE_USERS,
+    BUN_SQLITE_COBBLE_MEDIA,
+    BUN_SQLITE_COBBLE_MEDIA_PARADIGMS,
+    BUN_SQLITE_COBBLE_USERS,
     BunSQLiteTables,
 } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
@@ -26,12 +26,12 @@ import deleteMedia from "../../media/delete-media";
 type Params = {
     media_paradigms?: MediaParadigm[];
     media_type?: MediaType;
-    user: BUN_SQLITE_BSQLITE_USERS | User;
+    user: BUN_SQLITE_COBBLE_USERS | User;
     data?: MediaDataType;
     is_primary?: boolean;
     update_on_duplicate?: boolean;
     extract_media_text_content?: boolean;
-    media?: BUN_SQLITE_BSQLITE_MEDIA;
+    media?: BUN_SQLITE_COBBLE_MEDIA;
     media_name?: string;
     media_mime_type?: string;
     is_private?: boolean;
@@ -59,7 +59,7 @@ export default async function uploadAndRecordMedia({
     thumbnail_width,
     existing_media_id,
     media_text_content: passed_media_text_content,
-}: Params): Promise<APIResponseObject<BUN_SQLITE_BSQLITE_MEDIA>> {
+}: Params): Promise<APIResponseObject<BUN_SQLITE_COBBLE_MEDIA>> {
     const now = Date.now();
     let target_file_name = `${media_name || now}`;
     let target_file_thumbnail_name = `${media_name || now}-thumb`;
@@ -207,7 +207,7 @@ export default async function uploadAndRecordMedia({
 
     if (is_primary) {
         const existing_user_primary_media = await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_MEDIA,
+            BUN_SQLITE_COBBLE_MEDIA,
             TableType
         >({
             table: "media",
@@ -227,7 +227,7 @@ export default async function uploadAndRecordMedia({
         }
     }
 
-    const media_data: BUN_SQLITE_BSQLITE_MEDIA = {
+    const media_data: BUN_SQLITE_COBBLE_MEDIA = {
         ...media,
         user_id: Number(user.id),
         is_primary: is_primary ? 1 : 0,
@@ -239,11 +239,11 @@ export default async function uploadAndRecordMedia({
         text_content: media_text_content,
     };
 
-    let media_record: BUN_SQLITE_BSQLITE_MEDIA | undefined = undefined;
+    let media_record: BUN_SQLITE_COBBLE_MEDIA | undefined = undefined;
 
     if (existing_media_id) {
         const update_media_record = await BunSQLite.update<
-            BUN_SQLITE_BSQLITE_MEDIA,
+            BUN_SQLITE_COBBLE_MEDIA,
             TableType
         >({
             data: media_data,
@@ -254,7 +254,7 @@ export default async function uploadAndRecordMedia({
         media_record = update_media_record.singleRes || undefined;
     } else {
         const new_media_record = await BunSQLite.insert<
-            BUN_SQLITE_BSQLITE_MEDIA,
+            BUN_SQLITE_COBBLE_MEDIA,
             TableType
         >({
             data: [media_data],
@@ -271,7 +271,7 @@ export default async function uploadAndRecordMedia({
 
     if (media_paradigms?.[0] && media_record?.id) {
         const delete_existing_paradigms = await BunSQLite.delete<
-            BUN_SQLITE_BSQLITE_MEDIA_PARADIGMS,
+            BUN_SQLITE_COBBLE_MEDIA_PARADIGMS,
             (typeof BunSQLiteTables)[number]
         >({
             table: "media_paradigms",
@@ -281,7 +281,7 @@ export default async function uploadAndRecordMedia({
         });
 
         await BunSQLite.insert<
-            BUN_SQLITE_BSQLITE_MEDIA_PARADIGMS,
+            BUN_SQLITE_COBBLE_MEDIA_PARADIGMS,
             (typeof BunSQLiteTables)[number]
         >({
             data: media_paradigms.map((mp) => ({

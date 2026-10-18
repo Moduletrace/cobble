@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import checkUserAccess from "./check-user-access";
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 
-function makeUserTypes(...types: string[]): BUN_SQLITE_BSQLITE_USER_TYPES[] {
+function makeUserTypes(...types: string[]): BUN_SQLITE_COBBLE_USER_TYPES[] {
     return types.map((user_type) => ({
         user_id: 1,
         user_type,

@@ -1,9 +1,9 @@
-import type { BUN_SQLITE_BSQLITE_MEDIA } from "@/db/types/db";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
 type Params = {
-    media?: BUN_SQLITE_BSQLITE_MEDIA;
-    user?: BUN_SQLITE_BSQLITE_USERS_JOIN;
+    media?: BUN_SQLITE_COBBLE_MEDIA;
+    user?: BUN_SQLITE_COBBLE_USERS_JOIN;
 };
 
 export default function grabMediaURL({ media: passed_media, user }: Params) {

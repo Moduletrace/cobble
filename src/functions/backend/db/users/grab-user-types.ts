@@ -1,5 +1,5 @@
 import type {
-    BUN_SQLITE_BSQLITE_USER_TYPES,
+    BUN_SQLITE_COBBLE_USER_TYPES,
     BunSQLiteTables,
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
@@ -13,9 +13,9 @@ type Params = {
  */
 export default async function grabUserTypes({
     user_id,
-}: Params): Promise<BUN_SQLITE_BSQLITE_USER_TYPES[]> {
+}: Params): Promise<BUN_SQLITE_COBBLE_USER_TYPES[]> {
     const res = await BunSQLite.select<
-        BUN_SQLITE_BSQLITE_USER_TYPES,
+        BUN_SQLITE_COBBLE_USER_TYPES,
         (typeof BunSQLiteTables)[number]
     >({
         table: "user_types",

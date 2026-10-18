@@ -12,6 +12,7 @@ import { SiteData } from "@/src/data/site-data";
 import Layout from "../layouts/main";
 import AdminLayout from "../layouts/admin";
 import AuthLayout from "../layouts/auth";
+import BotsLayout from "../layouts/bots";
 import ThemeInitScript from "../components/general/theme-init-script";
 
 export const AppContext = React.createContext<AppContextObject>(
@@ -45,6 +46,14 @@ export default function App({
         pageProps: { ...props, url },
         query,
     };
+
+    if (url?.pathname.startsWith("/admin/bots")) {
+        return (
+            <AppContext.Provider value={appContextObject}>
+                <BotsLayout>{children}</BotsLayout>
+            </AppContext.Provider>
+        );
+    }
 
     if (url?.pathname.startsWith("/admin")) {
         return (
@@ -94,7 +103,7 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
                 crossOrigin=""
             />
             <link
-                href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap"
                 rel="stylesheet"
             />
             <link rel="icon" href="/favicon.ico" sizes="16x16 24x24 32x32 48x48" />

@@ -2,17 +2,17 @@ import Tag from "@moduletrace/twui/elements/Tag";
 import LucideIcon from "@moduletrace/twui/elements/lucide-icon";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Span from "@moduletrace/twui/layout/Span";
-import type { BUN_SQLITE_BSQLITE_LOGS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
 import dayjs from "dayjs";
 import getLogCategoryStyle from "../(utils)/get-log-category-style";
 import getLogUserName from "../(utils)/get-log-user-name";
 import DeleteLogsButton from "./delete-logs-button";
 
 type Props = {
-    log: BUN_SQLITE_BSQLITE_LOGS_JOIN;
+    log: BUN_SQLITE_COBBLE_LOGS_JOIN;
     selected?: boolean;
     toggleSelected: (params: { id: number; checked: boolean }) => void;
-    openLog: (params: { log: BUN_SQLITE_BSQLITE_LOGS_JOIN }) => void;
+    openLog: (params: { log: BUN_SQLITE_COBBLE_LOGS_JOIN }) => void;
     afterDelete: (params: { deleted_ids: number[] }) => void;
 };
 

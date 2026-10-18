@@ -1,7 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
-    BUN_SQLITE_BSQLITE_USER_TYPES,
-    BUN_SQLITE_BSQLITE_USERS,
+    BUN_SQLITE_COBBLE_USER_TYPES,
+    BUN_SQLITE_COBBLE_USERS,
     BunSQLiteTables,
 } from "@/db/types/db";
 
@@ -15,7 +15,7 @@ const USERNAME =
 async function seedSuperAdmin() {
     const existing = (
         await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_USERS,
+            BUN_SQLITE_COBBLE_USERS,
             (typeof BunSQLiteTables)[number]
         >({
             table: "users",
@@ -34,7 +34,7 @@ async function seedSuperAdmin() {
         console.log(`User #${user_id} [${EMAIL}] already exists.`);
     } else {
         const insert_res = await BunSQLite.insert<
-            BUN_SQLITE_BSQLITE_USERS,
+            BUN_SQLITE_COBBLE_USERS,
             (typeof BunSQLiteTables)[number]
         >({
             table: "users",
@@ -67,7 +67,7 @@ async function seedSuperAdmin() {
 
     const has_super_admin = (
         await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_USER_TYPES,
+            BUN_SQLITE_COBBLE_USER_TYPES,
             (typeof BunSQLiteTables)[number]
         >({
             table: "user_types",
@@ -86,7 +86,7 @@ async function seedSuperAdmin() {
     }
 
     const type_res = await BunSQLite.insert<
-        BUN_SQLITE_BSQLITE_USER_TYPES,
+        BUN_SQLITE_COBBLE_USER_TYPES,
         (typeof BunSQLiteTables)[number]
     >({
         table: "user_types",

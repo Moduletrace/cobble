@@ -1,5 +1,5 @@
 import grabUserAuthTypes from "@/src/functions/backend/auth/grab-user-auth-types";
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import type { WebSocketSession } from "../types";
 
 type Params = {
@@ -8,7 +8,7 @@ type Params = {
 
 type Return = {
     allowed: boolean;
-    user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[];
+    user_types?: BUN_SQLITE_COBBLE_USER_TYPES[];
 };
 
 /**

@@ -7,7 +7,7 @@ import { AppContext } from "@/src/pages/__root";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
 import EJSON from "@/src/utils/ejson";
 import { useUsersGet } from "@/src/hooks/use-users-get";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
 type Props = {
     users_type?: UserType | null;
@@ -49,7 +49,7 @@ export default function useAllPeopleListInit({ users_type }: Props) {
         query: location_query,
     });
 
-    const selected = useRef(new Set<BUN_SQLITE_BSQLITE_USERS_JOIN>());
+    const selected = useRef(new Set<BUN_SQLITE_COBBLE_USERS_JOIN>());
 
     const { refresh, setRefresh } = useStatus();
 

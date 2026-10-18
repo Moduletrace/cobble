@@ -1,13 +1,13 @@
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import type { UserType } from "@/src/types";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
 import isPassThroughUser from "./is-pass-through-user";
 
 type Params = {
-    actor_user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    actor_user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     actor_user_id?: number | string;
     target_user_id?: number | string;
-    target_user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    target_user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     /**
      * The keys of the fields being updated (e.g. ["first_name", "email"]).
      * Used to restrict contact fields on protected users.

@@ -1,10 +1,10 @@
 import type { ApiReqParams } from "../types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "../types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "../types/sql-joins";
 
 export default function searchableFieldToQueryField({
     field,
 }: {
-    field: keyof BUN_SQLITE_BSQLITE_USERS_JOIN;
+    field: keyof BUN_SQLITE_COBBLE_USERS_JOIN;
 }): keyof ApiReqParams {
     switch (field) {
         case "email":

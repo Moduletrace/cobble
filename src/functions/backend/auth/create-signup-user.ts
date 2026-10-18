@@ -1,7 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
-    BUN_SQLITE_BSQLITE_USERS,
-    BUN_SQLITE_BSQLITE_USER_TYPES,
+    BUN_SQLITE_COBBLE_USERS,
+    BUN_SQLITE_COBBLE_USER_TYPES,
     BunSQLiteTables,
 } from "@/db/types/db";
 import AppError from "@/src/utils/app-error";
@@ -24,7 +24,7 @@ export default async function createSignupUser({
     username,
 }: Params) {
     const new_user_res = await BunSQLite.insert<
-        BUN_SQLITE_BSQLITE_USERS,
+        BUN_SQLITE_COBBLE_USERS,
         (typeof BunSQLiteTables)[number]
     >({
         table: "users",
@@ -50,7 +50,7 @@ export default async function createSignupUser({
     }
 
     const type_res = await BunSQLite.insert<
-        BUN_SQLITE_BSQLITE_USER_TYPES,
+        BUN_SQLITE_COBBLE_USER_TYPES,
         (typeof BunSQLiteTables)[number]
     >({
         table: "user_types",

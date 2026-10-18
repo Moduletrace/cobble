@@ -1,5 +1,5 @@
 export const SiteData = {
-    SiteName: `Bun SQLite Preset`,
-    SiteURL: `http://localhost:7247`,
-    SiteSlug: `bsqlite`,
+    SiteName: `cobble`,
+    SiteURL: `https://cobble.moduletrace.org`,
+    SiteSlug: `cobble`,
 } as const;

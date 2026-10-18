@@ -1,11 +1,11 @@
-import type { BUN_SQLITE_BSQLITE_USERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
 import Input from "@moduletrace/twui/form/Input";
 import useFormInit from "@/src/hooks/use-form-init";
 
 export default function UserFormUsername({
     setForm,
     form,
-}: ReturnType<typeof useFormInit<BUN_SQLITE_BSQLITE_USERS>>) {
+}: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
     return (
         <>
             <Input

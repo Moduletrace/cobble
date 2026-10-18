@@ -3,11 +3,11 @@ import _ from "lodash";
 import { AppData } from "../data/app-data";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import adminFetchHandler from "../functions/frontend/admin-fetch-handler";
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import type { AdminFetchParams, ApiReqParams } from "../types";
 import EJSON from "../utils/ejson";
 
-type Params<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = Omit<
+type Params<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = Omit<
     AdminFetchParams<T>,
     "method" | "body"
 > & {
@@ -16,7 +16,7 @@ type Params<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = Omit<
     count?: boolean;
 };
 
-export function useFetchGet<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>({
+export function useFetchGet<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS>({
     url,
     debug,
     initial_res,

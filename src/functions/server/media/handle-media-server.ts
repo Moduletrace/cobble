@@ -1,5 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_BSQLITE_MEDIA, BunSQLiteTables } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_MEDIA, BunSQLiteTables } from "@/db/types/db";
 import grabDirNames from "@/src/utils/grab-dir-names";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -24,7 +24,7 @@ export default async function handleMediaServer({
         throw new Error(`No media privacy params passed`);
     }
 
-    let media: BUN_SQLITE_BSQLITE_MEDIA | undefined = undefined;
+    let media: BUN_SQLITE_COBBLE_MEDIA | undefined = undefined;
 
     if (privacy == "private") {
         const { user, user_types } = await userAuth({ req });
@@ -34,7 +34,7 @@ export default async function handleMediaServer({
         }
 
         const media_res = await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_MEDIA,
+            BUN_SQLITE_COBBLE_MEDIA,
             (typeof BunSQLiteTables)[number]
         >({
             table: "media",
@@ -51,7 +51,7 @@ export default async function handleMediaServer({
         media = media_res.singleRes || undefined;
     } else {
         const media_res = await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_MEDIA,
+            BUN_SQLITE_COBBLE_MEDIA,
             (typeof BunSQLiteTables)[number]
         >({
             table: "media",

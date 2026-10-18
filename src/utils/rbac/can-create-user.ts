@@ -1,10 +1,10 @@
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
 import isPassThroughUser from "./is-pass-through-user";
 import { UserManagementUserTypes } from "@/src/dict/user-types-dict";
 
 type Params = {
-    user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
 };
 
 /**

@@ -8,14 +8,14 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import grabMediaURL from "@/src/functions/backend/media/grab-media-url";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 import { AppContext } from "@/src/pages/__root";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import { useContext } from "react";
 import dayjs from "dayjs";
 
 type Props = {
-    person: BUN_SQLITE_BSQLITE_USERS_JOIN;
+    person: BUN_SQLITE_COBBLE_USERS_JOIN;
 };
 
 export default function PeopleListCard({ person }: Props) {

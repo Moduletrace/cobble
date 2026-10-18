@@ -1,7 +1,7 @@
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 
 type Params = {
-    user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
 };
 
 /**

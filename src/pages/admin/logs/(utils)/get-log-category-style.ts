@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_LOGS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_LOGS } from "@/db/types/db";
 import type { TWUIButtonColorType } from "@moduletrace/twui/layout/Button";
 import {
     LogCategoryStyles,
@@ -6,7 +6,7 @@ import {
 } from "../(data)/log-category-styles";
 
 type Params = {
-    log: BUN_SQLITE_BSQLITE_LOGS;
+    log: BUN_SQLITE_COBBLE_LOGS;
 };
 
 export default function getLogCategoryStyle({ log }: Params): {

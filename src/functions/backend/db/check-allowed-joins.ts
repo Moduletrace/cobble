@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import type { TableType } from "@/src/types";
 import uniqueStringArr from "@/src/utils/unique-string-arr";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
@@ -15,11 +15,11 @@ type Params = {
     /**
      * Allowed fields from joins
      */
-    include_fields?: (keyof BUN_SQLITE_BSQLITE_ALL_TYPEDEFS)[];
+    include_fields?: (keyof BUN_SQLITE_COBBLE_ALL_TYPEDEFS)[];
     /**
      * Fields to exclude from joins
      */
-    exclude_fields?: (keyof BUN_SQLITE_BSQLITE_ALL_TYPEDEFS)[];
+    exclude_fields?: (keyof BUN_SQLITE_COBBLE_ALL_TYPEDEFS)[];
 };
 
 export default function checkAllowedJoins({
@@ -53,7 +53,7 @@ export default function checkAllowedJoins({
         for (let i = 0; i < all_joins.length; i++) {
             const join = all_joins[i];
             if (!join) continue;
-            const join_field = join.field as keyof BUN_SQLITE_BSQLITE_ALL_TYPEDEFS;
+            const join_field = join.field as keyof BUN_SQLITE_COBBLE_ALL_TYPEDEFS;
             if (!include_fields.includes(join_field)) {
                 return {
                     success: false,

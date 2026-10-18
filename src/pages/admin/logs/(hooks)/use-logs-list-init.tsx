@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_LOGS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
 import { useAdminCrudGet } from "@/src/hooks/use-admin-crud-get";
 import { useEffect, useState } from "react";
 import type { LogCategoryValue } from "../(data)/log-category-styles";
@@ -19,7 +19,7 @@ export default function useLogsListInit(_props?: Props) {
         setLimit,
         ready,
         setReady,
-    } = useAdminCrudGet<BUN_SQLITE_BSQLITE_LOGS_JOIN>({
+    } = useAdminCrudGet<BUN_SQLITE_COBBLE_LOGS_JOIN>({
         table: "logs",
         count: true,
         sql_query: getLogsQuery({}),
@@ -27,7 +27,7 @@ export default function useLogsListInit(_props?: Props) {
 
     const [category, setCategory] = useState<LogCategoryValue | undefined>();
     const [selected_ids, setSelectedIds] = useState<number[]>([]);
-    const [active_log, setActiveLog] = useState<BUN_SQLITE_BSQLITE_LOGS_JOIN>();
+    const [active_log, setActiveLog] = useState<BUN_SQLITE_COBBLE_LOGS_JOIN>();
     const [log_modal_open, setLogModalOpen] = useState(false);
 
     useEffect(() => {
@@ -48,7 +48,7 @@ export default function useLogsListInit(_props?: Props) {
         });
     };
 
-    const openLog = ({ log }: { log: BUN_SQLITE_BSQLITE_LOGS_JOIN }) => {
+    const openLog = ({ log }: { log: BUN_SQLITE_COBBLE_LOGS_JOIN }) => {
         setActiveLog(log);
         setLogModalOpen(true);
     };

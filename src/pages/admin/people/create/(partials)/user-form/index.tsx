@@ -1,7 +1,7 @@
 import Form from "@moduletrace/twui/form/Form";
 import LoadingOverlay from "@moduletrace/twui/elements/LoadingOverlay";
 import useFormInit from "@/src/hooks/use-form-init";
-import type { BUN_SQLITE_BSQLITE_USERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
 import submitUserForm from "../../(functions)/submit-user-form";
 import UserFormName from "./user-form-name";
 import Tag from "@moduletrace/twui/elements/Tag";
@@ -16,7 +16,7 @@ import UserFormImage from "./user-form-image";
 
 type Props = {
     existing_user?: UserFormObject;
-    existing_user_full?: BUN_SQLITE_BSQLITE_USERS;
+    existing_user_full?: BUN_SQLITE_COBBLE_USERS;
 };
 
 export default function UserForm({ existing_user, existing_user_full }: Props) {

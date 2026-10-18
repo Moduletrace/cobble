@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_USERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
 import Input from "@moduletrace/twui/form/Input";
 import Row from "@moduletrace/twui/layout/Row";
 import useFormInit from "@/src/hooks/use-form-init";
@@ -6,7 +6,7 @@ import useFormInit from "@/src/hooks/use-form-init";
 export default function UserFormName({
     setForm,
     form,
-}: ReturnType<typeof useFormInit<BUN_SQLITE_BSQLITE_USERS>>) {
+}: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
     return (
         <Row className="w-full grid xl:grid-cols-2">
             <Input

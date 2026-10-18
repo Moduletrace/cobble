@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_USERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
 import adminCrudHandler from "@/src/functions/frontend/admin-crud-handler";
 import clientDeleteMediaHandler from "@/src/functions/frontend/client-delete-media-handler";
 import clientUploadMediaHandler from "@/src/functions/frontend/client-upload-media-handler";
@@ -24,7 +24,7 @@ export default async function submitAccountForm({
             return;
         }
 
-        const new_user_data: BUN_SQLITE_BSQLITE_USERS = _.pick<
+        const new_user_data: BUN_SQLITE_COBBLE_USERS = _.pick<
             UserFormObject,
             keyof UserFormObject
         >(form, ["first_name", "last_name", "email", "username", "bio"]);

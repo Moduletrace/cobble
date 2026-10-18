@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import {
     RolesAdminCantUpdate,
     SuperAdminOnlyEditableUserTypes,
@@ -18,7 +18,7 @@ export default async function (
     let final_sql_query = _.merge(query?.sql_query, body?.sql_query) || {};
 
     const records_to_delete =
-        await BunSQLite.select<BUN_SQLITE_BSQLITE_ALL_TYPEDEFS>({
+        await BunSQLite.select<BUN_SQLITE_COBBLE_ALL_TYPEDEFS>({
             table,
             query: final_sql_query,
             targetId: id,

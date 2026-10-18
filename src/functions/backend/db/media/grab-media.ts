@@ -1,7 +1,7 @@
-import type { BUN_SQLITE_BSQLITE_MEDIA } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import type { ApiReqParams, User } from "@/src/types";
-import type { BUN_SQLITE_BSQLITE_MEDIA_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_MEDIA_JOIN } from "@/src/types/sql-joins";
 import BunSQLite, { type APIResponseObject } from "@moduletrace/bun-sqlite";
 import type { SQLInsertGenValueType } from "@moduletrace/bun-sqlite";
 import _ from "lodash";
@@ -14,7 +14,7 @@ type Params = {
 
 export default async function grabMedia(
     params?: Params,
-): Promise<APIResponseObject<BUN_SQLITE_BSQLITE_MEDIA_JOIN>> {
+): Promise<APIResponseObject<BUN_SQLITE_COBBLE_MEDIA_JOIN>> {
     const { query, user } = params || {};
 
     try {
@@ -72,7 +72,7 @@ export default async function grabMedia(
 
         // 4. Parameterized Search Terms
         if (query?.search_terms?.length) {
-            const fields_to_search: (keyof BUN_SQLITE_BSQLITE_MEDIA)[] = [
+            const fields_to_search: (keyof BUN_SQLITE_COBBLE_MEDIA)[] = [
                 "title",
                 "description",
                 "summary",
@@ -109,7 +109,7 @@ export default async function grabMedia(
         const final_sql = `${sql}\n${sql_limit}`;
         const final_values = [...values, ...limitValues];
 
-        const res = await BunSQLite.sql<BUN_SQLITE_BSQLITE_MEDIA_JOIN>({
+        const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_MEDIA_JOIN>({
             sql: final_sql,
             values: final_values,
         });

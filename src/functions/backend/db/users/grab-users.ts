@@ -1,6 +1,6 @@
 import { AppData } from "@/src/data/app-data";
 import type { ApiReqParams, SQLInsertGenValueType } from "@/src/types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import _ from "lodash";
@@ -17,7 +17,7 @@ type Params = {
 
 export default async function grabUsers(
     params?: Params,
-): Promise<APIResponseObject<BUN_SQLITE_BSQLITE_USERS_JOIN>> {
+): Promise<APIResponseObject<BUN_SQLITE_COBBLE_USERS_JOIN>> {
     const { query } = params || {};
 
     try {
@@ -123,7 +123,7 @@ export default async function grabUsers(
             sql_limit += `OFFSET ${offset}\n`;
         }
 
-        const res = await BunSQLite.sql<BUN_SQLITE_BSQLITE_USERS_JOIN>({
+        const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_USERS_JOIN>({
             sql: `${sql}\n${sql_limit}`,
             values,
         });

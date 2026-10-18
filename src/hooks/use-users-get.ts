@@ -2,7 +2,7 @@ import _ from "lodash";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import adminFetchHandler from "../functions/frontend/admin-fetch-handler";
 import type { ApiReqParams } from "../types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "../types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "../types/sql-joins";
 import { useEffect, useRef, useState } from "react";
 import EJSON from "../utils/ejson";
 
@@ -10,7 +10,7 @@ type Params = {
     query?: ApiReqParams;
     debug?: boolean;
     page?: number;
-    initial_users?: BUN_SQLITE_BSQLITE_USERS_JOIN[];
+    initial_users?: BUN_SQLITE_COBBLE_USERS_JOIN[];
 };
 
 export function useUsersGet({
@@ -20,7 +20,7 @@ export function useUsersGet({
     initial_users,
 }: Params) {
     const [users, setUsers] = useState<
-        BUN_SQLITE_BSQLITE_USERS_JOIN[] | undefined
+        BUN_SQLITE_COBBLE_USERS_JOIN[] | undefined
     >(initial_users);
     const [count, setCount] = useState<number | undefined>();
     const [page, setPage] = useState<number>(initial_page || 1);
@@ -49,7 +49,7 @@ export function useUsersGet({
             console.log("final_query", final_query);
         }
 
-        adminFetchHandler<BUN_SQLITE_BSQLITE_USERS_JOIN>({
+        adminFetchHandler<BUN_SQLITE_COBBLE_USERS_JOIN>({
             url: `/api/admin/grab-users`,
             query: final_query,
         })

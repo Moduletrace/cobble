@@ -1,10 +1,74 @@
 @import "@moduletrace/twui/base.css";
 
+/* Cobble design tokens (handoff `tokens/tokens.css`). Light on `:root`, dark
+   on `.dark` (twui's dark variant). Exposed to Tailwind in `@theme inline`. */
+:root {
+    --c-paper: #fbfaf7;
+    --c-surface: #ffffff;
+    --c-sunken: #f0ede6;
+    --c-ink: #0e1116;
+    --c-ink-secondary: #5b6470;
+    --c-ink-disabled: #a8afb8;
+    --c-border: #e8e4dc;
+    --c-border-strong: #948e83;
+    --c-on-ink: #fbfaf7;
+
+    --e-1: 0 1px 2px rgba(14, 17, 22, 0.06), 0 8px 24px rgba(14, 17, 22, 0.1);
+
+    --m-fast: 120ms;
+    --m-base: 180ms;
+    --m-slow: 240ms;
+}
+
+.dark {
+    --c-paper: #12151a;
+    --c-surface: #191d24;
+    --c-sunken: #20252d;
+    --c-ink: #f4f2ec;
+    --c-ink-secondary: #9ca5b0;
+    --c-ink-disabled: #6b7280;
+    --c-border: #2b3138;
+    --c-border-strong: #616c79;
+    --c-on-ink: #12151a;
+
+    --e-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --m-fast: 0ms;
+        --m-base: 0ms;
+        --m-slow: 0ms;
+    }
+}
+
 @theme inline {
     /* Typography */
     --font-sans:
-        "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        "Lato", "Liberation Sans", system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* Cobble neutrals - switch with the color scheme */
+    --color-paper: var(--c-paper);
+    --color-surface: var(--c-surface);
+    --color-sunken: var(--c-sunken);
+    --color-ink: var(--c-ink);
+    --color-ink-secondary: var(--c-ink-secondary);
+    --color-ink-disabled: var(--c-ink-disabled);
+    --color-hairline: var(--c-border);
+    --color-hairline-strong: var(--c-border-strong);
+    --color-on-ink: var(--c-on-ink);
+
+    /* Bot identity hues - permanent, never status */
+    --color-hue-ember: #e4572e;
+    --color-hue-amber: #e9a23b;
+    --color-hue-moss: #7fae3c;
+    --color-hue-teal: #16a394;
+    --color-hue-cobalt: #3b7dd8;
+    --color-hue-violet: #7c5cd6;
+    --color-hue-rose: #d6538c;
+
+    --shadow-popover: var(--e-1);
 
     /* Cool neutral scale - remaps `slate-*` so every existing border/text
        utility across the app inherits the canvas + ink palette */
@@ -21,19 +85,19 @@
     --color-slate-950: #0c111d;
 
     --color-background-light: #ffffff;
-    --color-foreground-light: #101828;
-    --color-background-dark: #0c111d;
-    --color-foreground-dark: #eaecf0;
+    --color-foreground-light: #0e1116;
+    --color-background-dark: #12151a;
+    --color-foreground-dark: #f4f2ec;
 
     /* Ink - primary actions */
-    --color-primary: #101828;
-    --color-primary-hover: #1d2939;
-    --color-primary-outline: #101828;
-    --color-primary-text: #101828;
-    --color-primary-dark: #eaecf0;
-    --color-primary-dark-hover: #d0d5dd;
-    --color-primary-dark-outline: #eaecf0;
-    --color-primary-dark-text: #101828;
+    --color-primary: #0e1116;
+    --color-primary-hover: #252a32;
+    --color-primary-outline: #0e1116;
+    --color-primary-text: #0e1116;
+    --color-primary-dark: #f4f2ec;
+    --color-primary-dark-hover: #dedad0;
+    --color-primary-dark-outline: #f4f2ec;
+    --color-primary-dark-text: #12151a;
 
     /* Graphite - links, secondary actions */
     --color-secondary: #344054;
@@ -45,53 +109,52 @@
     --color-secondary-dark-outline: #98a2b3;
     --color-secondary-dark-text: #101828;
 
-    /* Muted blue-violet - used sparingly for emphasis */
-    --color-accent: #5b5bd6;
-    --color-accent-hover: #4b4bc4;
-    --color-accent-outline: #4b4bc4;
-    --color-accent-text: #5b5bd6;
-    --color-accent-dark: #8b8cf0;
-    --color-accent-dark-hover: #a3a4f5;
-    --color-accent-dark-outline: #8b8cf0;
+    /* Secondary ink - Cobble has no accent hue; hues belong to bots */
+    --color-accent: #5b6470;
+    --color-accent-hover: #474f5a;
+    --color-accent-outline: #474f5a;
+    --color-accent-text: #5b6470;
+    --color-accent-dark: #9ca5b0;
+    --color-accent-dark-hover: #b8bfc8;
+    --color-accent-dark-outline: #9ca5b0;
     --color-accent-dark-text: #ffffff;
 
-    --color-dark: #0c111d;
-    --color-dark-hover: #161b26;
-    --color-dark-outline: #0c111d;
-    --color-dark-text: #0c111d;
-    --color-dark-dark: #0c111d;
-    --color-dark-dark-hover: #161b26;
-    --color-dark-dark-outline: #0c111d;
-    --color-dark-dark-text: #0c111d;
+    --color-dark: #0e1116;
+    --color-dark-hover: #191d24;
+    --color-dark-outline: #0e1116;
+    --color-dark-text: #0e1116;
+    --color-dark-dark: #0e1116;
+    --color-dark-dark-hover: #191d24;
+    --color-dark-dark-outline: #0e1116;
+    --color-dark-dark-text: #0e1116;
 
-    /* Canvas - page background */
-    --color-light: #f7f8fa;
-    --color-light-hover: #f2f4f7;
-    --color-light-outline: #e4e7ec;
-    --color-light-text: #f7f8fa;
-    --color-light-dark: #f7f8fa;
-    --color-light-dark-hover: #f2f4f7;
-    --color-light-dark-outline: #e4e7ec;
-    --color-light-dark-text: #f7f8fa;
+    /* Paper - page background */
+    --color-light: #fbfaf7;
+    --color-light-hover: #f0ede6;
+    --color-light-outline: #e8e4dc;
+    --color-light-text: #fbfaf7;
+    --color-light-dark: #fbfaf7;
+    --color-light-dark-hover: #f0ede6;
+    --color-light-dark-outline: #e8e4dc;
+    --color-light-dark-text: #fbfaf7;
 
     --color-gray: #eaecf0;
     --color-gray-hover: #e4e7ec;
     --color-gray-dark: #1d2939;
     --color-gray-dark-hover: #344054;
 
-    --color-link: #101828;
-    --color-link-dark: #eaecf0;
+    --color-link: #0e1116;
+    --color-link-dark: #f4f2ec;
 
-    --radius-default: 6px;
-    --radius-default-sm: 4px;
-    --radius-default-xs: 2px;
+    --radius-default: 8px;
+    --radius-default-sm: 6px;
+    --radius-default-xs: 4px;
     --radius-default-lg: 10px;
     --radius-default-xl: 14px;
 }
 
 body {
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "cv11";
     @apply bg-light dark:bg-background-dark antialiased;
 }
 

@@ -1,11 +1,11 @@
-import type { BUN_SQLITE_BSQLITE_USER_TYPES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import type { UserType } from "@/src/types";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 
 type Params = {
     includes?: UserType[];
     excludes?: UserType[];
-    user_types?: BUN_SQLITE_BSQLITE_USER_TYPES[] | null;
+    user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
 };
 
 export default function checkUserAccess({

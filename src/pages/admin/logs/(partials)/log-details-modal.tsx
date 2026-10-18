@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_LOGS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Paper from "@moduletrace/twui/elements/Paper";
 import Tag from "@moduletrace/twui/elements/Tag";
@@ -16,7 +16,7 @@ import DeleteLogsButton from "./delete-logs-button";
 import LogDetailItem, { type LogDetailItemProps } from "./log-detail-item";
 
 type Props = {
-    log?: BUN_SQLITE_BSQLITE_LOGS_JOIN;
+    log?: BUN_SQLITE_COBBLE_LOGS_JOIN;
     open: boolean;
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
     afterDelete: (params: { deleted_ids: number[] }) => void;

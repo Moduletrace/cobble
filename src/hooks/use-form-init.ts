@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_BSQLITE_ALL_TYPEDEFS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_ALL_TYPEDEFS } from "@/db/types/db";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import {
     useCallback,
@@ -15,7 +15,7 @@ import twuiSlugify from "@moduletrace/twui/utils/slugify";
 import _ from "lodash";
 import type { AppContextObject } from "../types";
 
-type Params<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = {
+type Params<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = {
     /**
      * Existing record for update. All unneccasary fields
      * like join fields should be excluded.
@@ -48,7 +48,7 @@ type Params<T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS> = {
 };
 
 export default function useFormInit<
-    T extends {} = BUN_SQLITE_BSQLITE_ALL_TYPEDEFS,
+    T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
 >(params?: Params<T>) {
     const appContext = useContext(AppContext);
 

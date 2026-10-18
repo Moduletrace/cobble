@@ -2,14 +2,6 @@ import _ from "lodash";
 import users from "./(tables)/users";
 import userTypes from "./(tables)/user_types";
 import media from "./(tables)/media";
-import letters from "./(tables)/letters";
-import emails from "./(tables)/emails";
-import emailAttachments from "./(tables)/email_attachments";
-import invoices from "./(tables)/invoices";
-import invoiceItems from "./(tables)/invoice_items";
-import quotes from "./(tables)/quotes";
-import quoteItems from "./(tables)/quote_items";
-import invoiceQuotes from "./(tables)/invoice_quotes";
 import get from "./(functions)/get";
 import put from "./(functions)/put";
 import del from "./(functions)/delete";
@@ -91,22 +83,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
                 return await userTypes(crud_params);
             case "media":
                 return await media(crud_params);
-            case "letters":
-                return await letters(crud_params);
-            case "emails":
-                return await emails(crud_params);
-            case "email_attachments":
-                return await emailAttachments(crud_params);
-            case "invoices":
-                return await invoices(crud_params);
-            case "invoice_items":
-                return await invoiceItems(crud_params);
-            case "quotes":
-                return await quotes(crud_params);
-            case "quote_items":
-                return await quoteItems(crud_params);
-            case "invoice_quotes":
-                return await invoiceQuotes(crud_params);
 
             default:
                 break;

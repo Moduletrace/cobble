@@ -1,5 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_BSQLITE_USERS, BunSQLiteTables } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_USERS, BunSQLiteTables } from "@/db/types/db";
 
 type Params = {
     identifier: string;
@@ -11,7 +11,7 @@ type Params = {
 export default async function findUserByIdentifier({ identifier }: Params) {
     return (
         await BunSQLite.select<
-            BUN_SQLITE_BSQLITE_USERS,
+            BUN_SQLITE_COBBLE_USERS,
             (typeof BunSQLiteTables)[number]
         >({
             table: "users",

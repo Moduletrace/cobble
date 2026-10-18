@@ -2,7 +2,7 @@ import ImageUpload from "@moduletrace/twui/form/ImageUpload";
 import grabMediaURL from "@/src/functions/backend/media/grab-media-url";
 import useFormInit from "@/src/hooks/use-form-init";
 import type { UserFormObject } from "@/src/types";
-import type { BUN_SQLITE_BSQLITE_USERS_JOIN } from "@/src/types/sql-joins";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
 export default function UserFormImage({
     setForm,
@@ -11,7 +11,7 @@ export default function UserFormImage({
 }: ReturnType<typeof useFormInit<UserFormObject>>) {
     const title = existing_full?.id ? "Update User" : "Create New User";
 
-    const person = existing_full as BUN_SQLITE_BSQLITE_USERS_JOIN | undefined;
+    const person = existing_full as BUN_SQLITE_COBBLE_USERS_JOIN | undefined;
 
     const user_image_url = person?.profile_media_id
         ? grabMediaURL({
