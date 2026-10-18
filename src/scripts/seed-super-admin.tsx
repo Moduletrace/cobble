@@ -7,6 +7,7 @@ import type {
 import setUserPassword from "@/src/functions/backend/auth/set-user-password";
 import validatePassword from "@/src/utils/validate-password";
 import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
+import ensureMainComputer from "@/src/functions/backend/db/computers/ensure-main-computer";
 
 const FIRST_NAME = process.env.SEED_SUPER_ADMIN_FIRST_NAME || "Super";
 const LAST_NAME = process.env.SEED_SUPER_ADMIN_LAST_NAME || "Admin";
@@ -96,6 +97,12 @@ async function seedSuperAdmin() {
 
     const coordinator_id = await ensureCoordinatorBot({ user_id });
     console.log(`Coordinator bot is #${coordinator_id}.`);
+
+    const main_computer_id = await ensureMainComputer({
+        user_id,
+        coordinator_id,
+    });
+    console.log(`Main computer is #${main_computer_id}.`);
 
     if (has_super_admin) {
         console.log(`User #${user_id} already has the super_admin type.`);

@@ -2,8 +2,8 @@ import { SiteData } from "./site-data";
 
 /**
  * The coordinator's default core instructions (markdown), attached when the
- * coordinator is created. Stored per bot in `bots.system_prompt`, so a
- * workspace can edit its own copy without touching this default.
+ * coordinator is created. Stored per bot in `bots.system_prompt`, so each
+ * coordinator can edit its own copy without touching this default.
  */
 export const CoordinatorSystemPrompt = `# You are the Coordinator
 

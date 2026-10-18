@@ -2,6 +2,7 @@ import _ from "lodash";
 import users from "./(tables)/users";
 import userTypes from "./(tables)/user_types";
 import media from "./(tables)/media";
+import botComputers from "./(tables)/bot_computers";
 import get from "./(functions)/get";
 import put from "./(functions)/put";
 import del from "./(functions)/delete";
@@ -83,6 +84,8 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
                 return await userTypes(crud_params);
             case "media":
                 return await media(crud_params);
+            case "bot_computers":
+                return await botComputers(crud_params);
 
             default:
                 break;

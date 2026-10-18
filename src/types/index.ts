@@ -218,6 +218,15 @@ export const WebSocketEvents = [
      * @description Events sent from Server to Client
      */
     "server:pong",
+    /**
+     * A new message in one of the user's bot conversations (`data`: the
+     * `bot_messages` row)
+     */
+    "server:bot-message",
+    /**
+     * A bot's face or status line changed (`data`: `{ id, face, status_line }`)
+     */
+    "server:bot-updated",
 ] as const;
 
 export type WebSocketDataType = {

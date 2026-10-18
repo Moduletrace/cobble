@@ -9,6 +9,13 @@ export const BunSQLiteTables = [
     "bot_messages",
     "bot_tasks",
     "bot_task_steps",
+    "bots_queue",
+    "workspaces",
+    "workspace_bots",
+    "containers",
+    "computers",
+    "bot_computers",
+    "workspace_computers",
     "logs",
 ] as const
 
@@ -143,12 +150,12 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      */
     updated_at?: number | "";
     /** 
-     * Workspace owner
+     * Bot owner
      */
     user_id?: number | "";
     name?: string;
     /** 
-     * One coordinator per workspace; everything else is a worker
+     * One coordinator per owner; everything else is a worker
      */
     kind?: "worker" | "coordinator" | "";
     /** 
@@ -168,9 +175,13 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      */
     status_line?: string;
     /** 
-     * The bot's core instructions, in markdown
+     * The bot's core instructions, in markdown. The bot can rewrite it
      */
     system_prompt?: string;
+    /** 
+     * What the bot must always remember, in markdown. The bot keeps it up to date
+     */
+    memory?: string;
     unread?: 0 | 1 | "";
     /** 
      * Unix timestamp of the latest message, for rail ordering
@@ -241,6 +252,254 @@ export type BUN_SQLITE_COBBLE_BOT_TASK_STEPS = {
     position?: number | "";
 }
 
+export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The bot doing the work
+     */
+    bot_id?: number | "";
+    /** 
+     * The user message that asked for the work, if any
+     */
+    message_id?: number | "";
+    /** 
+     * The task shown in the working-on panel, if any
+     */
+    task_id?: number | "";
+    /** 
+     * The computer to run on, if any. Checked against the bot's access when queued
+     */
+    computer_id?: number | "";
+    /** 
+     * Short label for the job
+     */
+    title?: string;
+    /** 
+     * The brief the bot wrote for itself, in markdown
+     */
+    instructions?: string;
+    /** 
+     * Structured parameters the handler needs
+     */
+    params?: string;
+    /** 
+     * Latest progress note from the bot, in markdown
+     */
+    progress?: string;
+    /** 
+     * State to resume from if the job is picked up again
+     */
+    checkpoint?: string;
+    /** 
+     * What the bot reported when it finished, in markdown
+     */
+    result?: string;
+    /** 
+     * Unix timestamp of the first claim
+     */
+    started_at?: number | "";
+    /** 
+     * Unix timestamp of completion or final failure
+     */
+    finished_at?: number | "";
+    /** 
+     * The state of the job. (pending | processing | completed | failed)
+     */
+    status?: string;
+    /** 
+     * The number of times the job has been claimed.
+     */
+    attempts?: number | "";
+    /** 
+     * The time from which the job can be claimed. (Unix Timestamp)
+     */
+    available_at?: number | "";
+    /** 
+     * The time when the job was claimed. (Unix Timestamp)
+     */
+    locked_at?: number | "";
+    /** 
+     * The worker that claimed the job.
+     */
+    locked_by?: string;
+    /** 
+     * The error from the last failed attempt.
+     */
+    last_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Workspace owner
+     */
+    user_id?: number | "";
+    name?: string;
+    description?: string;
+    /** 
+     * Shared context in markdown, appended to the prompt of every bot in the workspace
+     */
+    system_prompt?: string;
+    archived?: 0 | 1 | "";
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_BOTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    workspace_id?: number | "";
+    bot_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CONTAINERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Docker container name, also its hostname on the network
+     */
+    name?: string;
+    /** 
+     * Docker container id, once known
+     */
+    docker_id?: string;
+    purpose?: "computer" | "";
+    /** 
+     * Image the container runs, e.g. ghcr.io/agent-infra/sandbox:latest
+     */
+    image?: string;
+    /** 
+     * Docker network shared with the main container
+     */
+    network?: string;
+    /** 
+     * Address the main container reaches it on
+     */
+    hostname?: string;
+    /** 
+     * Port the service listens on inside the container
+     */
+    port?: number | "";
+    /** 
+     * Last known docker state
+     */
+    status?: "created" | "running" | "paused" | "restarting" | "exited" | "removing" | "dead" | "unknown" | "";
+    /** 
+     * Extra docker details (ports, volumes, env names, labels)
+     */
+    metadata?: string;
+    /** 
+     * Unix timestamp of the last docker inspect
+     */
+    last_seen_at?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_COMPUTERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Computer owner
+     */
+    user_id?: number | "";
+    /** 
+     * The container this computer runs in
+     */
+    container_id?: number | "";
+    name?: string;
+    /** 
+     * One main computer per owner; everything else is a sandbox
+     */
+    kind?: "main" | "sandbox" | "";
+    description?: string;
+}
+
+export type BUN_SQLITE_COBBLE_BOT_COMPUTERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    computer_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Every bot in this workspace gets access to the computer
+     */
+    workspace_id?: number | "";
+    computer_id?: number | "";
+}
+
 export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * The unique identifier of the record.
@@ -288,4 +547,4 @@ export type BUN_SQLITE_COBBLE_LOGS = {
     ip_address?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_LOGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_LOGS

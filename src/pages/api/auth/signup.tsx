@@ -3,6 +3,7 @@ import setUserPassword from "@/src/functions/backend/auth/set-user-password";
 import grabHasUsers from "@/src/functions/backend/auth/grab-has-users";
 import loginUser from "@/src/functions/backend/auth/login-user";
 import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
+import ensureMainComputer from "@/src/functions/backend/db/computers/ensure-main-computer";
 import validatePassword from "@/src/utils/validate-password";
 import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
 import { AppData } from "@/src/data/app-data";
@@ -74,16 +75,20 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         /**
          * The account exists now, so a failure here mustn't fail signup
-         * (which is one-shot). `/admin/bots` creates it on the next visit.
+         * (which is one-shot). `/admin/bots` creates both on the next visit.
          */
-        await ensureCoordinatorBot({ user_id: new_user_id }).catch((error) =>
-            logError({
-                title: "Coordinator bot not created at signup",
-                error,
-                user_id: new_user_id,
-                ip_address: grabRequestIP(req),
-            }).catch(() => {}),
-        );
+        await ensureCoordinatorBot({ user_id: new_user_id })
+            .then((coordinator_id) =>
+                ensureMainComputer({ user_id: new_user_id, coordinator_id }),
+            )
+            .catch((error) =>
+                logError({
+                    title: "Coordinator or main computer not created at signup",
+                    error,
+                    user_id: new_user_id,
+                    ip_address: grabRequestIP(req),
+                }).catch(() => {}),
+            );
 
         await logEvent({
             title: "Super admin created",

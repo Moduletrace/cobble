@@ -17,7 +17,7 @@ import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordin
 
 /**
  * Seeds the sample crew from the approved chat design into one user's
- * workspace. The coordinator already exists (it's made with the account),
+ * crew. The coordinator already exists (it's made with the account),
  * so its sample messages go onto it. Idempotent: skips a user who already
  * has worker bots.
  *

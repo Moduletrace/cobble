@@ -1,0 +1,126 @@
+import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
+import { AppData } from "@/src/data/app-data";
+import setBotFace from "@/src/functions/backend/db/bots/set-bot-face";
+import completeBotJob from "@/src/functions/backend/db/bots-queue/complete-bot-job";
+import failBotJob from "@/src/functions/backend/db/bots-queue/fail-bot-job";
+import updateBotJob from "@/src/functions/backend/db/bots-queue/update-bot-job";
+import { logError } from "@/src/functions/backend/logger";
+import createKeyLock from "@/src/utils/create-key-lock";
+import BotJobFatalError from "./bot-job-fatal-error";
+import pushBotNotice from "./push-bot-notice";
+import runBotJob from "./run-bot-job";
+import parseJobJson from "./parse-job-json";
+import type { BotJobContext, BotJobRunner } from "./types";
+
+/**
+ * One job per computer at a time, across all running jobs.
+ */
+const computer_lock = createKeyLock();
+
+/**
+ * Renew the lock well inside the timeout, so one slow write can't lose it.
+ */
+const HEARTBEAT_MS = Math.floor(AppData.BotQueueLockTimeoutMs / 4);
+
+type Params = {
+    job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
+    worker: string;
+    /**
+     * Defaults to `runBotJob`.
+     */
+    runner?: BotJobRunner;
+};
+
+/**
+ * Runs one claimed job to the end: keeps its lock alive, waits for its
+ * computer, runs it, then completes or fails it and pushes the outcome to
+ * the user. If the job is cancelled or lost mid-way, its result is
+ * dropped.
+ */
+export default async function processBotJob({
+    job,
+    worker,
+    runner = runBotJob,
+}: Params) {
+    if (!job.id || !job.bot_id) return;
+
+    const job_id = job.id;
+    const bot_id = job.bot_id;
+    const controller = new AbortController();
+
+    const update: BotJobContext["update"] = async (params) => {
+        if (controller.signal.aborted) return false;
+
+        const held = await updateBotJob({ job_id, worker, ...params });
+
+        if (!held) controller.abort();
+
+        return held;
+    };
+
+    const heartbeat = setInterval(() => {
+        update({}).catch(() => {});
+    }, HEARTBEAT_MS);
+
+    try {
+        /**
+         * The face changes once the job really starts, after any wait for
+         * its computer.
+         */
+        const run = async () => {
+            await pushBotNotice({
+                bot_id,
+                bot: await setBotFace({
+                    bot_id,
+                    face: "working",
+                    status_line: job.title || "",
+                }),
+            });
+
+            return await runner({
+                job,
+                params: parseJobJson({ text: job.params }) || {},
+                checkpoint: parseJobJson({ text: job.checkpoint }),
+                signal: controller.signal,
+                update,
+            });
+        };
+
+        const outcome = job.computer_id
+            ? await computer_lock.run({ key: job.computer_id, task: run })
+            : await run();
+
+        if (controller.signal.aborted) return;
+
+        await pushBotNotice({
+            bot_id,
+            ...(await completeBotJob({
+                job_id,
+                worker,
+                result: outcome.result,
+                needs_you: outcome.needs_you,
+            })),
+        });
+    } catch (error: unknown) {
+        if (controller.signal.aborted) return;
+
+        const failed = await failBotJob({
+            job_id,
+            worker,
+            error: error instanceof Error ? error.message : String(error),
+            fatal: error instanceof BotJobFatalError,
+        }).catch(async (fail_error) => {
+            await logError({
+                title: `Bot job #${job_id} couldn't be failed`,
+                error: fail_error,
+            }).catch(() => {});
+            return null;
+        });
+
+        if (failed?.notice) {
+            await pushBotNotice({ bot_id, ...failed.notice });
+        }
+    } finally {
+        clearInterval(heartbeat);
+    }
+}

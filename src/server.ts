@@ -5,6 +5,8 @@ import { websocket } from "./websocket";
 import userAuth from "./functions/backend/auth/user-auth";
 import type { WebSocketSession } from "./websocket/types";
 import { logError, grabRequestIP } from "./functions/backend/logger";
+import botsQueue from "./bots-queue";
+import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 
 declare global {}
 
@@ -13,6 +15,7 @@ const WEBSOCKET_ENDPOINT = "/ws";
 const development = process.env.NODE_ENV == "development";
 const port = process.env.PORT || 7227;
 
+await enableForeignKeys();
 await bunext.bunextInit();
 
 const server = Bun.serve({
@@ -75,3 +78,4 @@ bunext.bunextLog.info(
 );
 
 cron();
+botsQueue();

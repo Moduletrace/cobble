@@ -49,7 +49,7 @@ export const BotKinds = [
 export type BotKind = (typeof BotKinds)[number]["value"];
 
 /**
- * Every workspace has exactly one coordinator, created with the account. It
+ * Every user has exactly one coordinator, created with the account. It
  * coordinates the crew and hands work to the other bots.
  */
 export const CoordinatorBotName = "Coordinator";

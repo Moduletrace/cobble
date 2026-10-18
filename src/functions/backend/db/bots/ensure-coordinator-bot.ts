@@ -9,7 +9,7 @@ type Params = {
 
 /**
  * Returns the id of the user's coordinator, creating it first (with the
- * default `CoordinatorSystemPrompt`) if the workspace has none. A
+ * default `CoordinatorSystemPrompt`) if the user has none. A
  * coordinator without a prompt gets the default; an edited prompt is never
  * overwritten. Safe to call on every visit.
  */

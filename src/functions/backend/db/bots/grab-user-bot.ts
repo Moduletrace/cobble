@@ -7,7 +7,7 @@ type Params = {
 };
 
 /**
- * A bot only if it belongs to the given workspace owner.
+ * A bot only if it belongs to the given owner.
  */
 export default async function grabUserBot({
     bot_id,

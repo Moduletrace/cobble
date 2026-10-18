@@ -1,5 +1,6 @@
 import bunext from "@moduletrace/bunext";
 import cronHeartbeat from "./heartbeat";
+import pruneBotsQueue from "./prune-bots-queue";
 import registerCronJob from "./register-cron-job";
 
 export default function cron() {
@@ -14,5 +15,11 @@ export default function cron() {
         schedule: "@hourly",
         task: cronHeartbeat,
         run_on_start: true,
+    });
+
+    registerCronJob({
+        title: "prune-bots-queue",
+        schedule: "@daily",
+        task: pruneBotsQueue,
     });
 }

@@ -6,7 +6,7 @@ type Params = {
 };
 
 /**
- * A workspace's crew for the rail: the coordinator pinned first, then
+ * A user's crew for the rail: the coordinator pinned first, then
  * workers by latest activity. Each row carries its latest message.
  */
 export default async function grabBots({
