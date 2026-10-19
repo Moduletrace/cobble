@@ -2,6 +2,7 @@ import {
     Bell,
     Bot,
     CpuAi,
+    DatabaseBackup,
     KeyRound,
     Layers,
     Monitor,
@@ -32,6 +33,8 @@ export type SettingsPage = {
 };
 
 export const SettingsComputersPath = "/admin/settings/computers";
+export const SettingsBackupsPath = "/admin/settings/backups";
+export const SettingsBackupsRestorePath = `${SettingsBackupsPath}/restore`;
 
 /**
  * The `/admin/settings/*` sub pages, listed in the rail on every settings
@@ -75,6 +78,12 @@ export const SettingsPages: SettingsPage[] = [
         title: "Environment",
         url: "/admin/settings/environment",
         Icon: Variable,
+        super_admin_only: true,
+    },
+    {
+        title: "Backups",
+        url: SettingsBackupsPath,
+        Icon: DatabaseBackup,
         super_admin_only: true,
     },
 ];
