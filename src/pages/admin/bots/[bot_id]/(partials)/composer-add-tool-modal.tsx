@@ -19,7 +19,12 @@ type Props = {
  * The "Add" chip under the composer: picks an MCP server or tool to give
  * the bot, everywhere it works.
  */
-export default function ComposerAddToolModal({ bot_name, addable, loading, onAdd }: Props) {
+export default function ComposerAddToolModal({
+    bot_name,
+    addable,
+    loading,
+    onAdd,
+}: Props) {
     const [open, setOpen] = useState(false);
 
     if (!addable.length) return null;
@@ -46,7 +51,9 @@ export default function ComposerAddToolModal({ bot_name, addable, loading, onAdd
         >
             <Stack className="w-full gap-4! items-stretch">
                 <Stack className="w-full gap-1! items-stretch">
-                    <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">Add a tool</H2>
+                    <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">
+                        Add a tool
+                    </H2>
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">
                         {`${bot_name} can use it everywhere it works, for everyone it works for.`}
                     </Span>

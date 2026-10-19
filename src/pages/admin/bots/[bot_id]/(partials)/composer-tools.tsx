@@ -62,13 +62,6 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
                 />
             ))}
 
-            {has_tools ? (
-                <Span className="-mr-2 opacity-40">
-                    <Dot size={20} />
-                </Span>
-            ) : null}
-
-            <ComposerComputerButton />
             {extensions.can_manage ? (
                 <ComposerAddToolModal
                     bot_name={bot.name || "This bot"}
@@ -77,6 +70,15 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
                     onAdd={extensions.add}
                 />
             ) : null}
+
+            {has_tools ? (
+                <Span className="-mr-2 opacity-40">
+                    <Dot size={20} />
+                </Span>
+            ) : null}
+
+            <ComposerComputerButton />
+
             {extensions.status?.error ? (
                 <Span
                     role="alert"
