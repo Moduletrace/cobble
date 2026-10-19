@@ -67,7 +67,7 @@ export default async function grabConversationProps({
      * shows its pick.
      */
     const [bot_messages, bot_harness_overview, bot_computers, bot_task, bot_extensions, transcription, speech] = await Promise.all([
-        grabBotMessages({ session_id: session.id! }),
+        grabBotMessages({ session_id: session.id!, user_id }),
         (bot.kind == "coordinator" && !scope
             ? grabHarnessOverview().then(({ harnesses }) => ({ harnesses }))
             : grabBotHarnessOverview({

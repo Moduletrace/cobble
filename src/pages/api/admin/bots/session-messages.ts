@@ -43,6 +43,7 @@ export const handler: BunextAPIRouteHandler<
             payload: await grabBotMessages({
                 session_id: session.id,
                 limit: AppData.BotReplyCatchUpMessages,
+                user_id: user.id,
             }),
         };
     } catch (error: unknown) {

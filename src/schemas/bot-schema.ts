@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
-import { BotHues, type BotHue } from "@/src/dict/bot-dict";
+import {
+    BotHues,
+    BotMessageReactions,
+    type BotHue,
+    type BotMessageReactionEmoji,
+} from "@/src/dict/bot-dict";
 
 /**
  * The workspace a conversation is in; left out (or null) for a bot's own
@@ -16,9 +21,28 @@ export const SendBotMessageRequestSchema = z.object({
         .array(z.coerce.number().int().positive())
         .max(AppData.BotAttachmentMaxFiles, `Attach up to ${AppData.BotAttachmentMaxFiles} files`)
         .default([]),
+    /**
+     * The message this one replies to, quoted above it.
+     */
+    reply_to_message_id: z.coerce.number().int().positive().nullish(),
 }).refine((body) => body.text || body.media_ids.length, "Write a message or attach a file first");
 
 export type SendBotMessageRequest = z.infer<typeof SendBotMessageRequestSchema>;
+
+/**
+ * Toggling one of the fixed reactions on a message.
+ */
+export const ReactToBotMessageRequestSchema = z.object({
+    message_id: z.coerce.number().int().positive("Pick a message"),
+    emoji: z.enum(
+        BotMessageReactions.map((reaction) => reaction.value) as [
+            BotMessageReactionEmoji,
+            ...BotMessageReactionEmoji[],
+        ],
+    ),
+});
+
+export type ReactToBotMessageRequest = z.infer<typeof ReactToBotMessageRequestSchema>;
 
 export const BotIdRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot"),

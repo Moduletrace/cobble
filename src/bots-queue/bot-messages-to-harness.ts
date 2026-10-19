@@ -2,7 +2,10 @@ import type { HarnessContentPart, HarnessMessage } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
 
 type Params = {
-    messages: Pick<BotMessageWithAttachments, "id" | "author" | "text" | "attachments">[];
+    messages: Pick<
+        BotMessageWithAttachments,
+        "id" | "author" | "text" | "attachments" | "reply_to"
+    >[];
     /**
      * Loaded files by message id (`loadAttachmentParts`). Files of other
      * messages are only named.
@@ -61,7 +64,7 @@ function messageParts({
     role: Turn["role"];
     parts?: Params["parts"];
 }): HarnessContentPart[] {
-    const text = message.text?.trim();
+    const text = replyContext({ message, text: message.text?.trim() || "" });
     const content: HarnessContentPart[] = text ? [{ type: "text", text }] : [];
 
     if (role == "assistant" || !message.attachments?.length) return content;
@@ -77,6 +80,25 @@ function messageParts({
             text: `[Attached earlier: ${message.attachments.map((file) => `"${file.name}"`).join(", ")}]`,
         },
     ];
+}
+
+/**
+ * Names the message a user turn answers, so the bot reads the reply in
+ * context even when the quoted message is further back. A reply with
+ * only files still gets the quote.
+ */
+function replyContext({
+    message,
+    text,
+}: {
+    message: Params["messages"][number];
+    text: string;
+}) {
+    if (message.author != "user" || !message.reply_to) return text;
+
+    const quote = message.reply_to.text.trim().slice(0, 500) || "(a file)";
+
+    return `[Replying to ${message.reply_to.author == "user" ? "the user's own earlier message" : "your earlier message"}: "${quote}"]${text ? `\n\n${text}` : ""}`;
 }
 
 /**

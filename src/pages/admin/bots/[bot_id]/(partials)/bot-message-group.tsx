@@ -29,9 +29,8 @@ export default function BotMessageGroup({ bot, group }: Props) {
                 {group.messages.map((message, index) => (
                     <BotMessageLine
                         key={message.id}
-                        message_id={message.id || null}
-                        text={message.text || ""}
-                        needs_you={Boolean(message.needs_you)}
+                        message={message}
+                        bot_name={bot.name || "the bot"}
                         at={index == group.messages.length - 1 ? group.at : undefined}
                     />
                 ))}

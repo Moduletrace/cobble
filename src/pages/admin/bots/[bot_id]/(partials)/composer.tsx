@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Textarea from "@moduletrace/twui/form/Textarea";
@@ -18,6 +18,7 @@ import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
+import ComposerReplyPreview from "./composer-reply-preview";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
 import ComposerVoiceButton from "./composer-voice-button";
@@ -36,6 +37,11 @@ type Props = {
      * The dictation mic is disabled while transcription has no model.
      */
     voice?: BotVoicePayload | null;
+    /**
+     * The message the next one quotes, if the user picked one.
+     */
+    reply_to?: BotMessageWithAttachments | null;
+    onCancelReply?: () => void;
     onSent: (params: { message: BotMessageWithAttachments }) => void;
 };
 
@@ -48,7 +54,15 @@ type Props = {
  * are listed under the input. The mic dictates: what's said is written
  * into the input at the cursor, to edit before sending.
  */
-export default function Composer({ bot, workspace_id, extensions, voice, onSent }: Props) {
+export default function Composer({
+    bot,
+    workspace_id,
+    extensions,
+    voice,
+    reply_to,
+    onCancelReply,
+    onSent,
+}: Props) {
     const { text, setText } = useComposerDraft({ bot_id: bot.id, workspace_id });
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
@@ -57,6 +71,13 @@ export default function Composer({ bot, workspace_id, extensions, voice, onSent 
     const input_ref = useRef<HTMLTextAreaElement>(null);
 
     useAutoGrowTextarea({ ref: input_ref, value: text });
+
+    /**
+     * Picking a message to reply to puts the cursor back in the input.
+     */
+    useEffect(() => {
+        if (reply_to) input_ref.current?.focus();
+    }, [reply_to]);
 
     const recorder = useVoiceRecorder({
         onRecorded: async ({ audio }) => {
@@ -115,6 +136,7 @@ export default function Composer({ bot, workspace_id, extensions, voice, onSent 
             workspace_id,
             text,
             media_ids: files.media_ids,
+            reply_to_message_id: reply_to?.id || null,
         });
 
         setSending(false);
@@ -156,7 +178,14 @@ export default function Composer({ bot, workspace_id, extensions, voice, onSent 
                 onRemove={files.remove}
             />
             <Stack className="shrink-0 gap-0! items-stretch border-0 border-t border-solid border-hairline">
-                <Row className="w-full max-w-container mx-auto min-h-[88px] py-7 gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text"
+                {reply_to && onCancelReply ? (
+                    <ComposerReplyPreview
+                        message={reply_to}
+                        bot_name={bot.name || "the bot"}
+                        onCancel={onCancelReply}
+                    />
+                ) : null}
+                <Row className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
                     onMouseDown={(e) => {
                         const target = e.target as HTMLElement;
 

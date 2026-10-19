@@ -74,7 +74,7 @@ export default async function grabBotChatTools({
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
-        ...grabBotTools({ user_id, bot_id, workspace_id, computers }),
+        ...grabBotTools({ user_id, bot_id, workspace_id, computers, session_id }),
         startTaskTool({
             user_id,
             bot_id,

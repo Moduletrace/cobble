@@ -7,6 +7,7 @@ import setWorkspaceComputerTool from "./set-workspace-computer-tool";
 import updateScheduleTool from "./update-schedule-tool";
 import updateInstructionsTool from "./update-instructions-tool";
 import updateMemoryTool from "./update-memory-tool";
+import reactToMessageTool from "./react-to-message-tool";
 
 type Params = {
     user_id: number | string;
@@ -20,6 +21,10 @@ type Params = {
      * The bot's computers where it runs, the current one first.
      */
     computers?: BUN_SQLITE_COBBLE_COMPUTERS[];
+    /**
+     * The session being answered, so the bot can react to its messages.
+     */
+    session_id?: number | string;
 };
 
 /**
@@ -32,6 +37,7 @@ export default function grabBotTools({
     bot_id,
     workspace_id,
     computers = [],
+    session_id,
 }: Params): HarnessTool[] {
     return [
         updateMemoryTool({ user_id, bot_id, workspace_id }),
@@ -40,6 +46,7 @@ export default function grabBotTools({
         listSchedulesTool({ user_id, bot_id }),
         updateScheduleTool({ user_id, bot_id }),
         deleteScheduleTool({ user_id, bot_id }),
+        ...(session_id ? [reactToMessageTool({ bot_id, user_id, session_id })] : []),
         ...(workspace_id && computers.length > 1
             ? [setWorkspaceComputerTool({ user_id, workspace_id, computers })]
             : []),

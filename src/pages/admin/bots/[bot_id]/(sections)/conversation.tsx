@@ -1,12 +1,18 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { BotMessageWithAttachments } from "@/src/types";
+import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
+import type {
+    BotMessageReactionData,
+    BotMessageWithAttachments,
+} from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import useLiveBots from "@/src/hooks/use-live-bots";
 import useServerEvent from "@/src/hooks/use-server-event";
 import { BotComputersContext } from "../(data)/bot-computers-context";
+import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { SpeakMessageContext } from "../(data)/speak-message-context";
+import reactToBotMessage from "../(functions)/react-to-bot-message";
 import useBotComputers from "../(hooks)/use-bot-computers";
 import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
@@ -37,6 +43,14 @@ export default function Conversation() {
     );
     const [session_id, setSessionId] = useState<number | null>(pageProps?.bot_session?.id || null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
+    const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(null);
+
+    /**
+     * A quote picked in one session doesn't follow the thread to another.
+     */
+    useEffect(() => {
+        setReplyTo(null);
+    }, [session_id]);
 
     const bots = useLiveBots({
         bots: pageProps?.bots || [],
@@ -113,12 +127,44 @@ export default function Conversation() {
         },
     });
 
+    /**
+     * A reaction toggled here or in another tab: the pushed list replaces
+     * the message's own.
+     */
+    const applyReactions = ({ message_id, reactions }: BotMessageReactionData) => {
+        setMessages((prev) =>
+            prev.map((message) =>
+                Number(message.id) == message_id ? { ...message, reactions } : message,
+            ),
+        );
+    };
+
+    useServerEvent({ event: "server:bot-reaction", onData: applyReactions });
+
+    const reactToMessage = async ({
+        message_id,
+        emoji,
+    }: {
+        message_id: number;
+        emoji: BotMessageReactionEmoji;
+    }) => {
+        const res = await reactToBotMessage({ message_id, emoji });
+
+        if (res.success && res.singleRes) applyReactions(res.singleRes);
+    };
+
     if (!bot?.id || !live_bot) return null;
 
     return (
         <BotComputersContext.Provider value={bot_computers}>
             <SpeakMessageContext.Provider value={speak}>
-                <Stack className="grow min-w-0 h-full gap-0! items-stretch">
+                <BotMessageActionsContext.Provider
+                    value={{
+                        onReply: ({ message }) => setReplyTo(message),
+                        onReact: reactToMessage,
+                    }}
+                >
+                    <Stack className="grow min-w-0 h-full gap-0! items-stretch">
                     <ConversationHeader
                         bot={live_bot}
                         workspace={workspace}
@@ -137,7 +183,11 @@ export default function Conversation() {
                         workspace_id={workspace_id}
                         extensions={pageProps?.bot_extensions}
                         voice={pageProps?.bot_voice}
+                        reply_to={reply_to}
+                        onCancelReply={() => setReplyTo(null)}
                         onSent={({ message }) => {
+                            setReplyTo(null);
+
                             if (startsNewSession(message) && message.session_id != session_id) {
                                 setSessionId(Number(message.session_id));
                                 setMessages([message]);
@@ -151,7 +201,8 @@ export default function Conversation() {
                             );
                         }}
                     />
-                </Stack>
+                    </Stack>
+                </BotMessageActionsContext.Provider>
                 <ComputerViewerModal bot={live_bot} />
             </SpeakMessageContext.Provider>
         </BotComputersContext.Provider>

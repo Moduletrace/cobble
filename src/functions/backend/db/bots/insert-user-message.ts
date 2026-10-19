@@ -16,6 +16,11 @@ type Params = {
     workspace_id?: number | null;
     text: string;
     /**
+     * The message this one answers, quoted above it. Already checked to
+     * be in the same conversation.
+     */
+    reply_to?: BUN_SQLITE_COBBLE_BOT_MESSAGES | null;
+    /**
      * Files to attach, already checked to be the user's own
      * (`grabAttachableMedia`).
      */
@@ -33,6 +38,7 @@ export default async function insertUserMessage({
     session_id,
     workspace_id,
     text,
+    reply_to,
     media = [],
 }: Params): Promise<BotMessageWithAttachments> {
     const now = Date.now();
@@ -50,6 +56,7 @@ export default async function insertUserMessage({
                 author: "user",
                 text,
                 needs_you: 0,
+                reply_to_message_id: reply_to?.id || undefined,
             },
         ],
     });
@@ -80,8 +87,16 @@ export default async function insertUserMessage({
         author: "user",
         text,
         needs_you: 0,
+        reply_to_message_id: reply_to?.id || undefined,
         created_at: now,
         updated_at: now,
         attachments: media.map((file) => mediaToAttachment({ media: file })),
+        reply_to: reply_to
+            ? {
+                  id: Number(reply_to.id),
+                  author: reply_to.author == "bot" ? "bot" : "user",
+                  text: reply_to.text || "",
+              }
+            : null,
     };
 }

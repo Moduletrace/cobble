@@ -411,6 +411,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     options: [0, 1],
                     defaultValue: 0,
                 },
+                {
+                    fieldName: "reply_to_message_id",
+                    fieldDescription: `The message this one replies to, quoted above it. Not a foreign key, so deleting the quoted message only drops the quote`,
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {
@@ -420,6 +425,82 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_messages_session_id_created_at",
                     indexTableFields: ["session_id", "created_at"],
+                },
+                {
+                    indexName: "idx_bot_messages_reply_to_message_id",
+                    indexTableFields: ["reply_to_message_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_message_reactions",
+            tableDescription: `Emoji reactions on chat messages, one per user and emoji`,
+            fields: [
+                {
+                    fieldName: "message_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_messages",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_reaction_message_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user who reacted. Null for a bot's own reaction`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_reaction_user_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that reacted. Null for a user's reaction`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_reaction_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "emoji",
+                    fieldDescription: `One of BotMessageReactions`,
+                    dataType: "TEXT",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_reaction_per_message_user_emoji",
+                    constraintName: "A user reacts to a message once with the same emoji",
+                    constraintTableFields: [
+                        { value: "message_id" },
+                        { value: "user_id" },
+                        { value: "emoji" },
+                    ],
+                },
+                {
+                    alias: "one_reaction_per_message_bot_emoji",
+                    constraintName: "A bot reacts to a message once with the same emoji",
+                    constraintTableFields: [
+                        { value: "message_id" },
+                        { value: "bot_id" },
+                        { value: "emoji" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_message_reactions_message_id",
+                    indexTableFields: ["message_id"],
                 },
             ],
         },

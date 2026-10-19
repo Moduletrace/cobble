@@ -87,7 +87,7 @@ export default async function runBotTask({
         ];
 
         const tools = [
-            ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers }),
+            ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers, session_id }),
             ...(bot.kind == "coordinator"
                 ? [
                       createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),

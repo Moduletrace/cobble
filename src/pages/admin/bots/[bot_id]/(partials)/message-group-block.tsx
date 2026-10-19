@@ -10,7 +10,7 @@ type Props = {
 
 export default function MessageGroupBlock({ bot, group }: Props) {
     if (group.author === "user") {
-        return <UserMessageGroup group={group} />;
+        return <UserMessageGroup bot={bot} group={group} />;
     }
 
     return <BotMessageGroup bot={bot} group={group} />;

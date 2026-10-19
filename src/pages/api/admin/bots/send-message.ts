@@ -2,6 +2,7 @@ import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 import insertUserMessage from "@/src/functions/backend/db/bots/insert-user-message";
+import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import grabAttachableMedia from "@/src/functions/backend/db/bots/grab-attachable-media";
 import enqueueBotReply from "@/src/functions/backend/db/bots-queue/enqueue-bot-reply";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
@@ -47,7 +48,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             throw new AppError(`This user can only read records.`);
         }
 
-        const { bot_id, workspace_id, text, media_ids } = parseWithSchema({
+        const { bot_id, workspace_id, text, media_ids, reply_to_message_id } = parseWithSchema({
             schema: SendBotMessageRequestSchema,
             data: body,
         });
@@ -63,11 +64,32 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             rollover: true,
         });
 
+        /**
+         * The quoted message only has to be in this conversation, not in
+         * the session the message lands in: sending can roll over to a new
+         * one, or the thread may have moved on.
+         */
+        const reply_to = reply_to_message_id
+            ? await grabUserBotMessage({ user_id: user.id, message_id: reply_to_message_id }).catch(
+                  () => null,
+              )
+            : null;
+
+        if (
+            reply_to_message_id &&
+            (!reply_to ||
+                reply_to.bot_id != bot.id ||
+                (reply_to.workspace_id || null) != (conversation.workspace_id || null))
+        ) {
+            throw new AppError(`That message is no longer in this conversation.`);
+        }
+
         const message = await insertUserMessage({
             bot_id: bot.id,
             session_id: Number(session.id),
             workspace_id: conversation.workspace_id,
             text,
+            reply_to,
             media,
         });
 

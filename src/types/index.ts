@@ -26,7 +26,7 @@ import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
-import type { BotFace } from "../dict/bot-dict";
+import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type {
     CustomToolHttpMethod,
@@ -587,8 +587,39 @@ export type BotMessageAttachment = {
     thumbnail_url?: string;
 };
 
+/**
+ * An emoji reaction on a message, grouped by emoji.
+ */
+export type BotMessageReaction = {
+    emoji: BotMessageReactionEmoji;
+    count: number;
+    /**
+     * The session user reacted with it.
+     */
+    mine: boolean;
+};
+
+/**
+ * The message a reply quotes, as the thread shows it.
+ */
+export type BotMessageReply = {
+    id: number;
+    author: "bot" | "user";
+    text: string;
+};
+
 export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
     attachments?: BotMessageAttachment[];
+    reactions?: BotMessageReaction[];
+    reply_to?: BotMessageReply | null;
+};
+
+/**
+ * `server:bot-reaction` data: a message's reactions changed.
+ */
+export type BotMessageReactionData = {
+    message_id: number;
+    reactions: BotMessageReaction[];
 };
 
 export type BotHarnessOverviewPayload = {
@@ -877,6 +908,10 @@ export const WebSocketEvents = [
      * `WorkspaceRemovedData`)
      */
     "server:workspace-removed",
+    /**
+     * A message's emoji reactions changed (`data`: `BotMessageReactionData`)
+     */
+    "server:bot-reaction",
     /**
      * A running job took a step (`data`: `BotJobUpdateData`)
      */

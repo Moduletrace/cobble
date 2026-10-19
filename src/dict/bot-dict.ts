@@ -95,6 +95,39 @@ export const BotMessageAuthors = [
 
 export type BotMessageAuthor = (typeof BotMessageAuthors)[number]["value"];
 
+/**
+ * The emoji a message can be reacted with. Kept small and fixed, so the
+ * picker stays a row and every reaction reads the same everywhere.
+ */
+export const BotMessageReactions = [
+    {
+        title: "Like",
+        value: "👍",
+    },
+    {
+        title: "Love",
+        value: "❤️",
+    },
+    {
+        title: "Laugh",
+        value: "😂",
+    },
+    {
+        title: "Surprised",
+        value: "😮",
+    },
+    {
+        title: "Sad",
+        value: "😢",
+    },
+    {
+        title: "Celebrate",
+        value: "🎉",
+    },
+] as const;
+
+export type BotMessageReactionEmoji = (typeof BotMessageReactions)[number]["value"];
+
 export const BotTaskStatuses = [
     {
         title: "Active",
