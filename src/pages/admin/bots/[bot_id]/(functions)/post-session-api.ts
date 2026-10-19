@@ -5,7 +5,7 @@ type Params = {
     /**
      * Under `/api/admin/bots/`.
      */
-    path: "list-sessions" | "new-session" | "reopen-session";
+    path: "list-sessions" | "new-session" | "reopen-session" | "session-messages";
     body: Record<string, unknown>;
 };
 

@@ -48,10 +48,21 @@ describe("describeJobStep", () => {
                 tool_calls: [
                     { id: "a", name: "browser_navigate", arguments: "{}" },
                     { id: "b", name: "browser_click", arguments: "{}" },
-                    { id: "c", name: "some_mcp_tool", arguments: "{}" },
+                    { id: "c", name: "get_weather", arguments: "{}" },
                 ],
             })?.text,
-        ).toBe("Using the browser, Using some_mcp_tool");
+        ).toBe("Using the browser, Using get weather");
+    });
+
+    test("names an MCP server's tool in words", () => {
+        expect(
+            describeJobStep({
+                index: 0,
+                text: null,
+                candidate,
+                tool_calls: [{ id: "a", name: "exa_search__web_search_exa", arguments: "{}" }],
+            })?.text,
+        ).toBe("Using Exa search (web search exa)");
     });
 
     test("keeps the first line of a text-only turn, cut to one line", () => {

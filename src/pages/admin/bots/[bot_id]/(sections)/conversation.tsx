@@ -8,6 +8,8 @@ import useServerEvent from "@/src/hooks/use-server-event";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import useBotComputers from "../(hooks)/use-bot-computers";
 import useTaskProgress from "../(hooks)/use-task-progress";
+import useReplyProgress from "../(hooks)/use-reply-progress";
+import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
 import ConversationHeader from "../(partials)/conversation-header";
 import MessageThread from "../(partials)/message-thread";
 import Composer from "../(partials)/composer";
@@ -49,6 +51,20 @@ export default function Conversation() {
         bot_id: bot?.id || 0,
         session_id,
         task: pageProps?.bot_task || null,
+    });
+
+    const reply_progress = useReplyProgress({
+        bot_id: bot?.id || 0,
+        session_id,
+        last_message_id: messages[messages.length - 1]?.id || null,
+    });
+
+    const awaiting_reply = messages[messages.length - 1]?.author == "user";
+
+    useReplyCatchUp({
+        session_id,
+        awaiting_reply,
+        last_message_id: messages[messages.length - 1]?.id || null,
     });
 
     /**
@@ -107,6 +123,7 @@ export default function Conversation() {
                     bot={live_bot}
                     messages={messages}
                     progress={progress.text}
+                    reply_progress={reply_progress}
                     has_task={Boolean(progress.task_id)}
                 />
                 <Composer

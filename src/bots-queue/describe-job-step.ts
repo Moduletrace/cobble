@@ -57,5 +57,21 @@ function firstLine({ text }: { text: string | null }) {
 function toolLabel({ name }: { name: string }) {
     const prefix = Object.keys(JobStepToolPrefixLabels).find((p) => name.startsWith(p));
 
-    return JobStepToolLabels[name] || (prefix && JobStepToolPrefixLabels[prefix]) || `Using ${name}`;
+    return JobStepToolLabels[name] || (prefix && JobStepToolPrefixLabels[prefix]) || `Using ${readableToolName({ name })}`;
+}
+
+/**
+ * A tool name in words: `get_weather` reads "get weather", and an MCP
+ * server's `<slug>__<tool>` reads "Exa search (web search exa)".
+ */
+function readableToolName({ name }: { name: string }) {
+    const words = (part: string) => part.replace(/_+/g, " ").trim();
+    const [server, ...rest] = name.split("__");
+    const tool = words(rest.join(" "));
+
+    if (!tool) return words(name);
+
+    const server_words = words(server || "");
+
+    return `${server_words.charAt(0).toUpperCase()}${server_words.slice(1)} (${tool})`;
 }

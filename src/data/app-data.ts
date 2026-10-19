@@ -214,6 +214,16 @@ export const AppData = {
      */
     LiveRelayPollMs: 1500,
     /**
+     * While a reply is due in the open conversation, how often the page
+     * checks for new messages itself, in case a live push was missed (the
+     * socket was down) and the thinking row would otherwise stay up.
+     */
+    BotReplyCatchUpMs: 5000,
+    /**
+     * How many of a session's latest messages that check reads.
+     */
+    BotReplyCatchUpMessages: 20,
+    /**
      * How much of the conversation a bot sees when it replies.
      */
     BotReplyHistoryMessages: 40,
