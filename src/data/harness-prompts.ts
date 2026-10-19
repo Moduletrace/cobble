@@ -32,7 +32,7 @@ You are chatting with the user. Answer their latest messages directly and briefl
 /**
  * Added to the coordinator's chat prompt: it hands work to the crew.
  */
-export const CoordinatorReplyNote = `As the coordinator, hand work that fits a crew member's role to them with delegate_task. They post the result in their own conversation, so tell the user who is on it.`;
+export const CoordinatorReplyNote = `As the coordinator, hand work that fits a crew member's role to them with delegate_task. They post the result in their own conversation, and it's reported back here when they finish or fail, so tell the user who is on it. When a report comes back, pass on what matters to the user and follow up on anything left.`;
 
 /**
  * Added to a bot's prompt when it works through a queued task.

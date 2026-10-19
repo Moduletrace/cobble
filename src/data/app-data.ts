@@ -109,6 +109,22 @@ export const AppData = {
      */
     McpToolTimeoutMs: 5 * 60 * 1000,
     /**
+     * `search_computers`: how long the command may run on each computer,
+     * and how much of each computer's output the bot reads.
+     */
+    ComputerSearchTimeoutMs: 30 * 1000,
+    ComputerSearchMaxOutputChars: 4000,
+    /**
+     * How many of a job's latest steps (`bots_queue_updates`) the
+     * working-on panel shows.
+     */
+    BotJobUpdatesShown: 12,
+    /**
+     * How often each server process reads new bot messages, job steps and
+     * bot changes from the database for its own sockets (`liveRelay`).
+     */
+    LiveRelayPollMs: 1500,
+    /**
      * How much of the conversation a bot sees when it replies.
      */
     BotReplyHistoryMessages: 40,

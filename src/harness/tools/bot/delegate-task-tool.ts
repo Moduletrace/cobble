@@ -9,6 +9,10 @@ import type { HarnessTool } from "../../types";
 type Params = {
     user_id: number | string;
     /**
+     * The coordinator: the worker's result comes back to its conversation.
+     */
+    coordinator_id: number | string;
+    /**
      * The coordinator's name, shown in the worker's conversation.
      */
     coordinator_name: string;
@@ -26,11 +30,13 @@ type Args = {
 
 /**
  * Lets the coordinator hand a task to a worker bot. The worker runs it on
- * its own main computer (if it has one) and posts the result in its own
- * conversation, where a note says who asked.
+ * the computer it's on (if it has one) and posts the result in its own
+ * conversation, where a note says who asked; the result (or failure) is
+ * also reported back in the coordinator's conversation.
  */
 export default function delegateTaskTool({
     user_id,
+    coordinator_id,
     coordinator_name,
     workers,
 }: Params): HarnessTool<Args> {
@@ -40,7 +46,7 @@ export default function delegateTaskTool({
 
     return {
         name: "delegate_task",
-        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation. Write the instructions as a full brief: what to do, where, and how they'll know it's done. Crew: ${crew}.`,
+        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. Crew: ${crew}.`,
         schema: z.object({
             bot_id: z.number().int(),
             title: z.string().min(1).max(80),
@@ -61,6 +67,7 @@ export default function delegateTaskTool({
                 title: args.title,
                 instructions: args.instructions,
                 computer_id: computers[0]?.id || undefined,
+                requested_by_bot_id: coordinator_id,
             });
 
             await pushBotNotice({
@@ -71,7 +78,7 @@ export default function delegateTaskTool({
                 }),
             });
 
-            return `Task #${job_id} is with ${worker.name}. Their result will be in their conversation.`;
+            return `Task #${job_id} is with ${worker.name}. Their result will be in their conversation and reported back here.`;
         },
     };
 }

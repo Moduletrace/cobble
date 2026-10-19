@@ -4,13 +4,15 @@ import type {
 } from "@/db/types/db";
 import type { BotTaskWithSteps } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
+import grabBotJobUpdates from "../bots-queue/grab-bot-job-updates";
 
 type Params = {
     bot_id: number | string;
 };
 
 /**
- * The bot's most recent active task and its steps, for the working-on panel.
+ * The bot's most recent active task, its steps and what its job has done
+ * so far, for the working-on panel.
  */
 export default async function grabActiveBotTask({
     bot_id,
@@ -31,5 +33,9 @@ export default async function grabActiveBotTask({
         values: [task.id],
     });
 
-    return { ...task, steps: steps_res.payload || [] };
+    return {
+        ...task,
+        steps: steps_res.payload || [],
+        updates: await grabBotJobUpdates({ task_id: task.id }),
+    };
 }

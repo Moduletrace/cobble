@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
+import relayJobToRequester from "./relay-job-to-requester";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -11,7 +12,8 @@ type Params = {
 /**
  * Wraps up a job that is out of attempts: stamps `finished_at` (so it's
  * reported once), tells the user in the bot's conversation and sets the
- * bot to needs-you. Its task stays active, since the work isn't done.
+ * bot to needs-you. Its task stays active, since the work isn't done. A
+ * handed-over job's failure also goes to the bot that handed it over.
  */
 export default async function notifyBotJobFailed({
     job,
@@ -47,5 +49,11 @@ export default async function notifyBotJobFailed({
         status_line: "Waiting on you",
     });
 
-    return { message, bot };
+    const relay = await relayJobToRequester({
+        job,
+        text: failure_message || job.last_error || "",
+        failed: true,
+    });
+
+    return { message, bot, relay };
 }

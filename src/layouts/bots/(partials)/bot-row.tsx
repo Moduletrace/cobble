@@ -6,6 +6,7 @@ import { twMerge } from "tailwind-merge";
 import BotStone from "@/src/components/general/bot-stone";
 import type { BotWithLastMessage } from "@/src/types";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import messagePreview from "@/src/utils/message-preview";
 import relativeTime from "@/src/utils/relative-time";
 import UnreadDot from "./unread-dot";
 
@@ -24,7 +25,11 @@ type Props = {
  */
 export default function BotRow({ bot, selected, subtitle }: Props) {
     const hue = (bot.hue || null) as BotHue | null;
-    const snippet = subtitle ?? bot.last_message_text ?? bot.role ?? "";
+    const snippet =
+        subtitle ??
+        (bot.last_message_text ? messagePreview({ text: bot.last_message_text }) : null) ??
+        bot.role ??
+        "";
     const at = bot.last_message_at || bot.last_activity_at;
 
     return (

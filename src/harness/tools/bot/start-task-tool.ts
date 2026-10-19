@@ -7,7 +7,7 @@ type Params = {
     user_id: number | string;
     bot_id: number | string;
     /**
-     * The bot's computers, its main one first (`grabBotComputers`).
+     * The bot's computers, the current one first (`grabBotComputers`).
      */
     computers: BUN_SQLITE_COBBLE_COMPUTERS[];
     /**
@@ -40,7 +40,7 @@ export default function startTaskTool({
         name: "start_task",
         description: `Queue work that takes a while or needs a computer. It runs in the background and its result is posted in this chat. Write the instructions as a full brief for yourself: what to do, where, and how you'll know it's done. ${
             computers.length
-                ? `Computers you can use: ${listed}. Defaults to ${computers[0]!.id}.`
+                ? `Computers you can use: ${listed}. Defaults to ${computers[0]!.id}, the one you're on.`
                 : `You have no computer, so the task can't run commands or browse.`
         }`,
         schema: z.object({

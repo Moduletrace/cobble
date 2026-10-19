@@ -1,4 +1,5 @@
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
+import type { TextLoopStep } from "@/src/harness/text/run-text-loop";
 
 export type BotJobContext = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -21,6 +22,12 @@ export type BotJobContext = {
         progress?: string;
         checkpoint?: Record<string, unknown>;
     }) => Promise<boolean>;
+    /**
+     * Records a model turn as a step (`bots_queue_updates`), saves it as
+     * the job's progress and pushes it live. Pass it as the text loop's
+     * `onStep`. Best effort: a failed write never stops the job.
+     */
+    report: (step: TextLoopStep) => Promise<void>;
 };
 
 export type BotJobOutcome = {

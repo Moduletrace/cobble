@@ -6,6 +6,7 @@ import userAuth from "./functions/backend/auth/user-auth";
 import type { WebSocketSession } from "./websocket/types";
 import { logError, grabRequestIP } from "./functions/backend/logger";
 import botsQueue from "./bots-queue";
+import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 
 declare global {}
@@ -79,3 +80,4 @@ bunext.bunextLog.info(
 
 cron();
 botsQueue();
+liveRelay();

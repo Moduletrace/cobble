@@ -22,6 +22,17 @@ export const BotJobKinds = [
 export type BotJobKind = (typeof BotJobKinds)[number]["value"];
 
 /**
+ * A `bots_queue_updates` row: a model turn that called tools, or one that
+ * only wrote text.
+ */
+export const BotJobUpdateKinds = [
+    { title: "Tool", value: "tool" },
+    { title: "Note", value: "note" },
+] as const;
+
+export type BotJobUpdateKind = (typeof BotJobUpdateKinds)[number]["value"];
+
+/**
  * A reply job's title, and the bot's status line while it runs. The chat
  * shows a thinking row while a bot has it.
  */

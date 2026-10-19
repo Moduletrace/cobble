@@ -41,6 +41,11 @@ type Params = {
      * Milliseconds to hold the job back before it can be claimed.
      */
     delay?: number;
+    /**
+     * The user's bot handing this job over (the coordinator). It gets the
+     * result or failure in its own conversation (`relayJobToRequester`).
+     */
+    requested_by_bot_id?: number | string;
 };
 
 /**
@@ -60,10 +65,15 @@ export default async function enqueueBotJob({
     task_id,
     computer_id,
     delay,
+    requested_by_bot_id,
 }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });
 
     if (!bot?.id) {
+        throw new AppError(`Bot not found.`);
+    }
+
+    if (requested_by_bot_id && !(await grabUserBot({ bot_id: requested_by_bot_id, user_id }))?.id) {
         throw new AppError(`Bot not found.`);
     }
 
@@ -103,6 +113,7 @@ export default async function enqueueBotJob({
                 message_id: message_id ? Number(message_id) : undefined,
                 task_id: final_task_id ? Number(final_task_id) : undefined,
                 computer_id: computer_id ? Number(computer_id) : undefined,
+                requested_by_bot_id: requested_by_bot_id ? Number(requested_by_bot_id) : undefined,
             },
         ],
         delay,

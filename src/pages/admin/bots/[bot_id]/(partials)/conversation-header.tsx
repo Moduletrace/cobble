@@ -6,6 +6,7 @@ import BotStone from "@/src/components/general/bot-stone";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import { crewStatusSentence } from "@/src/utils/crew-status";
+import BotComputerSelect from "./bot-computer-select";
 import BotModelsModal from "./bot-models-modal";
 
 type Props = {
@@ -19,8 +20,9 @@ type Props = {
 
 /**
  * 64px header. The coordinator's status is the crew sentence. On the
- * right, the model button that opens the bot's models (the defaults on
- * the coordinator, for super admins).
+ * right, the computer the bot is on (`BotComputerSelect`), then the model
+ * button that opens the bot's models (the defaults on the coordinator,
+ * for super admins).
  */
 export default function ConversationHeader({ bot, bots, harnesses }: Props) {
     const status =
@@ -43,7 +45,10 @@ export default function ConversationHeader({ bot, bots, harnesses }: Props) {
                     {status}
                 </Span>
             </Stack>
-            <BotModelsModal key={bot.id} bot={bot} harnesses={harnesses} />
+            <Row className="ml-auto min-w-0 shrink gap-2! flex-nowrap justify-end">
+                <BotComputerSelect bot={bot} />
+                <BotModelsModal key={bot.id} bot={bot} harnesses={harnesses} />
+            </Row>
         </Row>
     );
 }

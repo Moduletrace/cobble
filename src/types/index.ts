@@ -4,6 +4,8 @@ import type {
     BUN_SQLITE_COBBLE_BOT_TASK_STEPS,
     BUN_SQLITE_COBBLE_BOT_TASKS,
     BUN_SQLITE_COBBLE_BOTS,
+    BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES,
+    BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_USER_TYPES,
     BUN_SQLITE_COBBLE_USERS,
@@ -49,6 +51,18 @@ export type BotWithLastMessage = BUN_SQLITE_COBBLE_BOTS & {
  */
 export type BotTaskWithSteps = BUN_SQLITE_COBBLE_BOT_TASKS & {
     steps: BUN_SQLITE_COBBLE_BOT_TASK_STEPS[];
+    /**
+     * What its newest job has done so far, oldest first (`grabBotJobUpdates`).
+     */
+    updates: BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES[];
+};
+
+/**
+ * `server:bot-job-update` data: a step a running job just took, with the
+ * task it's for (null for a reply).
+ */
+export type BotJobUpdateData = BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & {
+    task_id: number | null;
 };
 
 /**
@@ -60,6 +74,11 @@ export type BotUpdatedData = {
     face: BUN_SQLITE_COBBLE_BOTS["face"];
     status_line: string;
     task: BotTaskWithSteps | null;
+    /**
+     * The computer the bot is on, when the push knows it (a switch, or the
+     * live relay). Null means its main one.
+     */
+    computer_id?: number | null;
 };
 
 /**
@@ -255,6 +274,10 @@ export type PagePropsType = {
     bot?: BotWithLastMessage | null;
     bot_messages?: BotMessageWithAttachments[] | null;
     bot_task?: BotTaskWithSteps | null;
+    /**
+     * The open bot's computers, the one it's on first.
+     */
+    bot_computers?: BUN_SQLITE_COBBLE_COMPUTERS[] | null;
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;
@@ -420,6 +443,10 @@ export const WebSocketEvents = [
      * A bot's face or status line changed (`data`: `BotUpdatedData`)
      */
     "server:bot-updated",
+    /**
+     * A running job took a step (`data`: `BotJobUpdateData`)
+     */
+    "server:bot-job-update",
 ] as const;
 
 export type WebSocketDataType = {

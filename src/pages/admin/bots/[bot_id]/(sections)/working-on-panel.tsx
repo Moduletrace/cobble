@@ -4,13 +4,17 @@ import Span from "@moduletrace/twui/layout/Span";
 import H2 from "@moduletrace/twui/layout/H2";
 import { AppContext } from "@/src/pages/__root";
 import useServerEvent from "@/src/hooks/use-server-event";
-import type { BotUpdatedData } from "@/src/types";
+import { AppData } from "@/src/data/app-data";
+import type { BotJobUpdateData, BotUpdatedData } from "@/src/types";
 import TaskStepRow from "../(partials)/task-step-row";
 import OpenComputerButton from "../(partials)/open-computer-button";
 
 /**
  * 280px panel listing the steps the bot is taking, kept current by the
- * active task each `server:bot-updated` push carries. Hidden below 1280px.
+ * active task each `server:bot-updated` push carries. Without planned
+ * steps it shows what the task's job has done (`bots_queue_updates`), the
+ * newest as in progress, appended live from `server:bot-job-update`.
+ * Hidden below 1280px.
  */
 export default function WorkingOnPanel() {
     const { pageProps } = useContext(AppContext);
@@ -21,6 +25,17 @@ export default function WorkingOnPanel() {
         event: "server:bot-updated",
         onData: (data: BotUpdatedData) => {
             if (data.id == bot_id) setTask(data.task);
+        },
+    });
+
+    useServerEvent({
+        event: "server:bot-job-update",
+        onData: (data: BotJobUpdateData) => {
+            setTask((prev) =>
+                prev?.id && prev.id == data.task_id && !prev.updates.some((u) => u.id == data.id)
+                    ? { ...prev, updates: [...prev.updates, data].slice(-AppData.BotJobUpdatesShown) }
+                    : prev,
+            );
         },
     });
 
@@ -38,13 +53,21 @@ export default function WorkingOnPanel() {
                         {task.title}
                     </H2>
                     <Stack className="mt-4 gap-0! items-stretch">
-                        {task.steps.map((step) => (
-                            <TaskStepRow
-                                key={step.id}
-                                label={step.label || ""}
-                                state={step.state || "pending"}
-                            />
-                        ))}
+                        {task.steps.length
+                            ? task.steps.map((step) => (
+                                  <TaskStepRow
+                                      key={step.id}
+                                      label={step.label || ""}
+                                      state={step.state || "pending"}
+                                  />
+                              ))
+                            : task.updates.map((update, index) => (
+                                  <TaskStepRow
+                                      key={update.id}
+                                      label={update.text || ""}
+                                      state={index == task.updates.length - 1 ? "active" : "done"}
+                                  />
+                              ))}
                     </Stack>
                 </>
             ) : (

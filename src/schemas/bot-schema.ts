@@ -18,6 +18,13 @@ export const BotIdRequestSchema = z.object({
 
 export type BotIdRequest = z.infer<typeof BotIdRequestSchema>;
 
+export const SetBotComputerRequestSchema = z.object({
+    bot_id: z.coerce.number().int().positive("Pick a bot"),
+    computer_id: z.coerce.number().int().positive("Pick a computer"),
+});
+
+export type SetBotComputerRequest = z.infer<typeof SetBotComputerRequestSchema>;
+
 export const UploadBotAttachmentRequestSchema = z.object({
     /**
      * The file as a base64 data URL.

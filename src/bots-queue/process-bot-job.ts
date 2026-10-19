@@ -4,15 +4,19 @@ import setBotFace from "@/src/functions/backend/db/bots/set-bot-face";
 import completeBotJob from "@/src/functions/backend/db/bots-queue/complete-bot-job";
 import failBotJob from "@/src/functions/backend/db/bots-queue/fail-bot-job";
 import updateBotJob from "@/src/functions/backend/db/bots-queue/update-bot-job";
+import insertBotJobUpdate from "@/src/functions/backend/db/bots-queue/insert-bot-job-update";
 import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
 import { BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
 import BotJobFatalError from "./bot-job-fatal-error";
+import describeJobStep from "./describe-job-step";
+import pushToBotOwner from "./push-to-bot-owner";
 import pushBotNotice from "./push-bot-notice";
 import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
+import type { BotJobUpdateData } from "@/src/types";
 import type { BotJobContext, BotJobRunner } from "./types";
 
 /**
@@ -66,6 +70,28 @@ export default async function processBotJob({
         return held;
     };
 
+    const report: BotJobContext["report"] = async (step) => {
+        const described = describeJobStep(step);
+
+        if (!described || controller.signal.aborted) return;
+
+        try {
+            if (!(await update({ progress: described.text }))) return;
+
+            const row = await insertBotJobUpdate({ job_id, bot_id, ...described });
+
+            await pushToBotOwner({
+                bot_id,
+                data: {
+                    event: "server:bot-job-update",
+                    data: { ...row, task_id: job.task_id || null } satisfies BotJobUpdateData,
+                },
+            });
+        } catch (error) {
+            await logError({ title: `Bot job #${job_id} step not saved`, error }).catch(() => {});
+        }
+    };
+
     const heartbeat = setInterval(() => {
         update({}).catch(() => {});
     }, HEARTBEAT_MS);
@@ -91,6 +117,7 @@ export default async function processBotJob({
                 checkpoint: parseJobJson({ text: job.checkpoint }),
                 signal: controller.signal,
                 update,
+                report,
             });
         };
 

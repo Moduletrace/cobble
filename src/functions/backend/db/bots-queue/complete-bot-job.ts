@@ -4,6 +4,7 @@ import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
 import countOpenBotJobs from "./count-open-bot-jobs";
 import grabLockedBotJob from "./grab-locked-bot-job";
+import relayJobToRequester from "./relay-job-to-requester";
 
 type Params = {
     job_id: number | string;
@@ -27,8 +28,8 @@ type Params = {
  * Marks a job done, closes its task and sends the completion message back
  * to the user in the bot's conversation. Unless it has other jobs open,
  * the bot shows needs-you if asked, else done after a task and idle after
- * a reply. Throws if this handler no longer holds
- * the job.
+ * a reply. A handed-over job's result also goes to the bot that handed
+ * it over (`relay`). Throws if this handler no longer holds the job.
  */
 export default async function completeBotJob({
     job_id,
@@ -87,5 +88,7 @@ export default async function completeBotJob({
                 face: job.kind == "reply" ? "idle" : "done",
             });
 
-    return { message, bot };
+    const relay = silent ? null : await relayJobToRequester({ job, text: result });
+
+    return { message, bot, relay };
 }

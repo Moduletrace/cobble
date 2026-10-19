@@ -10,6 +10,7 @@ export const BunSQLiteTables = [
     "bot_tasks",
     "bot_task_steps",
     "bots_queue",
+    "bots_queue_updates",
     "workspaces",
     "workspace_bots",
     "bot_message_media",
@@ -193,6 +194,10 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      * Unix timestamp of the latest message, for rail ordering
      */
     last_activity_at?: number | "";
+    /** 
+     * The computer the bot works on now. Not a foreign key: null, or a computer it lost access to, means its main one
+     */
+    computer_id?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
@@ -292,6 +297,10 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
      */
     computer_id?: number | "";
     /** 
+     * The bot that handed this job over (the coordinator, through delegate_task). It gets the result or failure in its own conversation. Not a foreign key, so the job outlives it
+     */
+    requested_by_bot_id?: number | "";
+    /** 
      * Short label for the job
      */
     title?: string;
@@ -347,6 +356,41 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
      * The error from the last failed attempt.
      */
     last_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The job
+     */
+    bots_queue_id?: number | "";
+    /** 
+     * The bot doing the work (the job's), to read a bot's updates without a join
+     */
+    bot_id?: number | "";
+    /** 
+     * tool (the bot called tools) or note (it wrote something without calling one)
+     */
+    kind?: "tool" | "note" | "";
+    /** 
+     * The update in one line, e.g. "Using sandbox_execute_bash"
+     */
+    text?: string;
+    /** 
+     * JSON details: the step index, tool names, the model
+     */
+    metadata?: string;
 }
 
 export type BUN_SQLITE_COBBLE_WORKSPACES = {
@@ -792,4 +836,4 @@ export type BUN_SQLITE_COBBLE_ENVS = {
     expose_to_computers?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS

@@ -15,7 +15,7 @@ import {
 } from "@/src/dict/computer-dict";
 import { Harnesses } from "@/src/dict/harness-dict";
 import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
-import { BotJobKinds } from "@/src/dict/bot-queue-dict";
+import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms } from "@/src/dict/env-dict";
@@ -272,6 +272,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `Unix timestamp of the latest message, for rail ordering`,
                     dataType: "INTEGER",
                 },
+                {
+                    fieldName: "computer_id",
+                    fieldDescription: `The computer the bot works on now. Not a foreign key: null, or a computer it lost access to, means its main one`,
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {
@@ -449,6 +454,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                 },
                 {
+                    fieldName: "requested_by_bot_id",
+                    fieldDescription: `The bot that handed this job over (the coordinator, through delegate_task). It gets the result or failure in its own conversation. Not a foreign key, so the job outlives it`,
+                    dataType: "INTEGER",
+                },
+                {
                     fieldName: "title",
                     fieldDescription: `Short label for the job`,
                     dataType: "TEXT",
@@ -495,6 +505,58 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bots_queue_bot_id_status",
                     indexTableFields: ["bot_id", "status"],
+                },
+            ],
+        },
+        {
+            tableName: "bots_queue_updates",
+            tableDescription: `What a bot did while working through a queued job, one row per step, oldest first. Live in the working-on panel while the job runs; deleted with the job when it's pruned`,
+            fields: [
+                {
+                    fieldName: "bots_queue_id",
+                    fieldDescription: `The job`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots_queue",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bots_queue_update_job_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot doing the work (the job's), to read a bot's updates without a join`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bots_queue_update_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "kind",
+                    fieldDescription: `tool (the bot called tools) or note (it wrote something without calling one)`,
+                    dataType: "TEXT",
+                    options: BotJobUpdateKinds.map((k) => k.value),
+                },
+                {
+                    fieldName: "text",
+                    fieldDescription: `The update in one line, e.g. "Using sandbox_execute_bash"`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "metadata",
+                    fieldDescription: `JSON details: the step index, tool names, the model`,
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bots_queue_updates_job_created_at",
+                    indexTableFields: ["bots_queue_id", "created_at"],
                 },
             ],
         },

@@ -49,6 +49,7 @@ export default function BotModelsModal({ bot, harnesses: initial }: Props) {
             color="gray"
             size="small"
             disabled={!can_edit}
+            buttonContentProps={{ className: "min-w-0" }}
             className="max-w-full min-w-0 gap-2! flex-nowrap text-[13px] text-ink-secondary hover:text-ink"
         >
             <CpuAi size={16} aria-hidden className="shrink-0 -mt-0.5" />
@@ -61,7 +62,7 @@ export default function BotModelsModal({ bot, harnesses: initial }: Props) {
 
     if (!can_edit) {
         return (
-            <Stack className="ml-auto max-w-[40%] min-w-0 shrink">
+            <Stack className="max-w-[280px] min-w-0 shrink">
                 {target}
             </Stack>
         );
@@ -71,7 +72,7 @@ export default function BotModelsModal({ bot, harnesses: initial }: Props) {
         <Modal
             target={target}
             targetWrapperProps={{
-                className: "ml-auto max-w-[40%] min-w-0 shrink",
+                className: "max-w-[280px] min-w-0 shrink",
             }}
             open={open}
             setOpen={setOpen}

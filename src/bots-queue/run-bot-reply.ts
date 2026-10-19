@@ -3,9 +3,11 @@ import { AppData } from "@/src/data/app-data";
 import { ChatReplyNote, CoordinatorReplyNote } from "@/src/data/harness-prompts";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
+import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import botMessagesToHarness from "./bot-messages-to-harness";
+import composeComputersNote from "./compose-computers-note";
 import loadAttachmentParts from "./load-attachment-parts";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
@@ -16,7 +18,7 @@ type Params = BotJobContext & {
 /**
  * Answers the user in chat: the bot reads the recent conversation (and
  * the files of the latest messages, `loadAttachmentParts`) and
- * replies, with its chat tools (memory, instructions, start_task, and for
+ * replies, knowing its computers (`composeComputersNote`), with its chat tools (memory, instructions, start_task, and for
  * the coordinator delegate_task). Finishes silently when the last message
  * is already the bot's, i.e. an earlier reply answered everything.
  */
@@ -24,6 +26,7 @@ export default async function runBotReply({
     bot,
     job,
     signal,
+    report,
 }: Params): Promise<BotJobOutcome> {
     const history = await grabBotMessages({
         bot_id: bot.id,
@@ -35,11 +38,13 @@ export default async function runBotReply({
     }
 
     const prompt = await grabBotPrompt({ bot_id: bot.id, user_id: bot.user_id });
+    const computers = await grabBotComputers({ bot_id: bot.id, user_id: bot.user_id });
 
     const result = await runTextLoop({
         system: [
             prompt,
             ChatReplyNote,
+            composeComputersNote({ computers, is_coordinator: bot.kind == "coordinator" }),
             bot.kind == "coordinator" ? CoordinatorReplyNote : "",
             `Now: ${new Date().toUTCString()}.`,
         ]
@@ -52,11 +57,13 @@ export default async function runBotReply({
         tools: await grabBotChatTools({
             bot,
             user_id: bot.user_id,
+            computers,
             message_id: job.message_id || undefined,
         }),
         max_steps: AppData.BotReplyMaxToolSteps,
         bot_id: bot.id,
         signal,
+        onStep: report,
     });
 
     return { result: result.text };
