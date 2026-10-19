@@ -1,8 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import grabBots from "@/src/functions/backend/db/bots/grab-bots";
-import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
-import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
+import grabWorkspaceActivity from "@/src/functions/backend/db/workspaces/grab-workspace-activity";
 import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
 import grabWorkspaceComputers from "@/src/functions/backend/db/workspaces/grab-workspace-computers";
 import { AdminHomePath } from "@/src/dict/admin-sections-dict";
@@ -11,9 +9,9 @@ import type { PagePropsType, PageQueryObject } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 
 /**
- * A workspace's page: its details, crew, computers and models, with the
- * rail showing its crew. Only super admins and admins manage it; a member
- * opens its first bot instead. Its settings live under Settings.
+ * A workspace's dashboard: its picture, context, latest activity, bots and
+ * computers, all read-only. Editing lives under Settings. Only super admins
+ * and admins see it; a member opens its first bot instead.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const query: PageQueryObject = params.query;
@@ -61,19 +59,12 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         };
     }
 
-    const [
-        workspace_bots,
-        all_bots,
-        workspace_computers,
-        computers,
-        workspace_harness_overview,
-    ] = await Promise.all([
-        grabWorkspaceBots({ user_id: user.id, workspace_id }),
-        grabBots({ user_id: user.id }),
-        grabWorkspaceComputers({ workspace_id }),
-        grabUserComputers({ user_id: user.id }),
-        grabBotHarnessOverview({ workspace_id }).catch(() => null),
-    ]);
+    const [workspace_bots, workspace_computers, workspace_activity] =
+        await Promise.all([
+            grabWorkspaceBots({ user_id: user.id, workspace_id }),
+            grabWorkspaceComputers({ workspace_id }),
+            grabWorkspaceActivity({ user_id: user.id, workspace_id }),
+        ]);
 
     return {
         props: {
@@ -81,10 +72,8 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspace,
             bots: workspace_bots,
             workspace_bots,
-            all_bots,
             workspace_computers,
-            computers,
-            workspace_harness_overview,
+            workspace_activity,
         },
     };
 };

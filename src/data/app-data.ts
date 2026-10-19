@@ -221,6 +221,10 @@ export const AppData = {
      */
     RailSeeAllStones: 4,
     /**
+     * Recent sessions a workspace's dashboard shows.
+     */
+    WorkspaceActivityItems: 6,
+    /**
      * Tool turns a chat reply may take. Long work goes to a task instead.
      */
     BotReplyMaxToolSteps: 8,

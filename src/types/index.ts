@@ -83,6 +83,19 @@ export type WorkspaceWithActivity = BUN_SQLITE_COBBLE_WORKSPACES & {
 };
 
 /**
+ * One recent conversation in a workspace, for its dashboard: the user's
+ * session with the bot, and the bot it's with.
+ */
+export type WorkspaceActivityItem = BUN_SQLITE_COBBLE_BOT_SESSIONS & {
+    message_count: number;
+    last_message_text?: string | null;
+    bot_name?: string | null;
+    bot_image_media_id?: number | null;
+    bot_hue?: string | null;
+    bot_face?: string | null;
+};
+
+/**
  * A computer with its container's state, for lists and the Add flow.
  */
 export type ComputerWithStatus = BUN_SQLITE_COBBLE_COMPUTERS & {
@@ -392,6 +405,10 @@ export type PagePropsType = {
     all_bots?: BotWithLastMessage[] | null;
     workspace_computers?: ComputerWithStatus[] | null;
     computers?: ComputerWithStatus[] | null;
+    /**
+     * A workspace's dashboard: the user's latest sessions there.
+     */
+    workspace_activity?: WorkspaceActivityItem[] | null;
     /**
      * The computer a settings page manages, with its access.
      */

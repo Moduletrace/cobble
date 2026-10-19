@@ -1,10 +1,10 @@
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageModuleMetaFn } from "@moduletrace/bunext/types";
 import { SiteData } from "@/src/data/site-data";
-import WorkspaceOverview from "@/src/pages/admin/settings/workspaces/[workspace_id]/(sections)/workspace-overview";
+import WorkspaceDashboard from "./(sections)/workspace-dashboard";
 
 export default function WorkspacePage() {
-    return <WorkspaceOverview show_settings_link />;
+    return <WorkspaceDashboard />;
 }
 
 export const meta: BunextPageModuleMetaFn = async (params) => {
