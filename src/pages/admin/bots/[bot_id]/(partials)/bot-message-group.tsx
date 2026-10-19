@@ -5,7 +5,6 @@ import type { BotFace, BotHue } from "@/src/dict/bot-dict";
 import type { BotWithLastMessage } from "@/src/types";
 import type { MessageGroup } from "../(utils)/group-messages";
 import BotMessageLine from "./bot-message-line";
-import GroupTimestamp from "./group-timestamp";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -13,7 +12,8 @@ type Props = {
 };
 
 /**
- * Plain text, no bubble. A 28px stone sits on the group's first line only.
+ * Plain text, no bubble. A 28px stone sits on the group's first line only;
+ * the group's time sits beside the last message's play button.
  */
 export default function BotMessageGroup({ bot, group }: Props) {
     return (
@@ -26,15 +26,15 @@ export default function BotMessageGroup({ bot, group }: Props) {
                 className="-mt-1"
             />
             <Stack className="min-w-0 grow gap-1! items-start">
-                {group.messages.map((message) => (
+                {group.messages.map((message, index) => (
                     <BotMessageLine
                         key={message.id}
                         message_id={message.id || null}
                         text={message.text || ""}
                         needs_you={Boolean(message.needs_you)}
+                        at={index == group.messages.length - 1 ? group.at : undefined}
                     />
                 ))}
-                <GroupTimestamp at={group.at} />
             </Stack>
         </Row>
     );

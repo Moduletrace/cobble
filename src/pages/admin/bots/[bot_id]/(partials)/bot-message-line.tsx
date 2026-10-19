@@ -4,6 +4,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import linkComputerRefs from "@/src/utils/link-computer-refs";
 import { MessageMarkdownComponents } from "../(data)/message-markdown-components";
+import GroupTimestamp from "./group-timestamp";
 import NeedsYouChip from "./needs-you-chip";
 import SpeakMessageButton from "./speak-message-button";
 
@@ -11,15 +12,21 @@ type Props = {
     message_id?: number | null;
     text: string;
     needs_you?: boolean;
+    /**
+     * The group's time, on the last message only: shown beside its play
+     * button.
+     */
+    at?: number;
 };
 
 /**
  * One bot message, rendered from markdown (GFM; raw HTML is never
  * rendered). Computers it names (`computerRef`) show as buttons that
  * switch the bot to them. A play button under it reads it aloud,
- * disabled while the bot has no speech model.
+ * disabled while the bot has no speech model, with the group's time
+ * before it on the last message.
  */
-export default function BotMessageLine({ message_id, text, needs_you }: Props) {
+export default function BotMessageLine({ message_id, text, needs_you, at }: Props) {
     const can_speak = Boolean(message_id && text.trim());
 
     return (
@@ -32,9 +39,10 @@ export default function BotMessageLine({ message_id, text, needs_you }: Props) {
                     {linkComputerRefs({ text })}
                 </Markdown>
             </Stack>
-            {needs_you || can_speak ? (
+            {needs_you || can_speak || at ? (
                 <Row className="gap-2! items-center">
                     {needs_you ? <NeedsYouChip /> : null}
+                    {at ? <GroupTimestamp at={at} /> : null}
                     {can_speak ? (
                         <SpeakMessageButton message_id={message_id!} />
                     ) : null}
