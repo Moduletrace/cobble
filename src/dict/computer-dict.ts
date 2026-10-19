@@ -87,3 +87,34 @@ export const ComputerMcpExcludedTools = [
     "browser_gui_screenshot",
     "browser_gui_execute_action",
 ] as const;
+
+/**
+ * How the user can open a computer, each one of the AIO sandbox's own
+ * apps at `path` (relative to the computer's address). More of them
+ * (VNC, opencode, codex) can join later.
+ */
+export const ComputerViewModes = [
+    {
+        title: "Browser",
+        value: "browser",
+        path: "browser-ui",
+    },
+    {
+        title: "Terminal",
+        value: "terminal",
+        path: "terminal",
+    },
+    {
+        title: "Code",
+        value: "code",
+        path: "code-server/",
+    },
+] as const;
+
+export type ComputerViewMode = (typeof ComputerViewModes)[number]["value"];
+
+/**
+ * Where the app serves a computer to its owner's browser:
+ * `/computers/<id>/<path>`, proxied to the sandbox (`handleComputerProxy`).
+ */
+export const ComputerProxyPrefix = "/computers";

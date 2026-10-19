@@ -2,7 +2,18 @@ import { useState } from "react";
 import useServerEvent from "@/src/hooks/use-server-event";
 import type { BotUpdatedData } from "@/src/types";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
+import type { ComputerViewMode } from "@/src/dict/computer-dict";
 import setBotComputer from "../(functions)/set-bot-computer";
+
+/**
+ * The computer open in the viewer, in which mode, and whether the bot
+ * asked the user to take it over (the viewer then offers to hand it back).
+ */
+export type ComputerViewing = {
+    computer_id: number;
+    mode: ComputerViewMode;
+    take_over?: boolean;
+};
 
 export type BotComputers = {
     /**
@@ -15,6 +26,9 @@ export type BotComputers = {
     switching_id?: number;
     error?: string;
     switchComputer: (params: { computer_id: number }) => Promise<void>;
+    viewing?: ComputerViewing;
+    openComputer: (params: ComputerViewing) => void;
+    closeComputer: () => void;
 };
 
 type Params = {
@@ -25,12 +39,14 @@ type Params = {
 /**
  * Keeps the open bot's computers and switches the one it's on, in place:
  * no reload, the list comes back reordered. A switch made in another tab
- * arrives as `server:bot-updated` with the bot's `computer_id`.
+ * arrives as `server:bot-updated` with the bot's `computer_id`. Also holds
+ * the computer open in the viewer (`ComputerViewerModal`).
  */
 export default function useBotComputers({ bot_id, computers: initial }: Params): BotComputers {
     const [computers, setComputers] = useState(initial);
     const [switching_id, setSwitchingId] = useState<number>();
     const [error, setError] = useState<string>();
+    const [viewing, setViewing] = useState<ComputerViewing>();
 
     useServerEvent({
         event: "server:bot-updated",
@@ -66,5 +82,13 @@ export default function useBotComputers({ bot_id, computers: initial }: Params):
         setSwitchingId(undefined);
     };
 
-    return { computers, switching_id, error, switchComputer };
+    return {
+        computers,
+        switching_id,
+        error,
+        switchComputer,
+        viewing,
+        openComputer: (params) => setViewing(params),
+        closeComputer: () => setViewing(undefined),
+    };
 }

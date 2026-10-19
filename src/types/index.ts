@@ -277,6 +277,10 @@ export type PagePropsType = {
      * The open bot's computers, the one it's on first.
      */
     bot_computers?: BUN_SQLITE_COBBLE_COMPUTERS[] | null;
+    /**
+     * The open bot's active task and what its job has done so far.
+     */
+    bot_task?: BotTaskWithSteps | null;
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;

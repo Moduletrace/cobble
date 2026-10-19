@@ -42,3 +42,29 @@ export const BotReplyJobTitle = "Thinking";
  * The bot's status line while its job waits for a rate-limited model.
  */
 export const BotWaitingStatusLine = "Waiting for a free model";
+
+/**
+ * How a job step that called a tool reads in the chat's working row, by
+ * tool name. Tools not listed read "Using <name>".
+ */
+export const JobStepToolLabels: Record<string, string> = {
+    sandbox_execute_bash: "Running a command",
+    sandbox_execute_code: "Running code",
+    sandbox_read_file: "Reading a file",
+    sandbox_write_file: "Writing a file",
+    sandbox_file_operations: "Working with files",
+    search_computers: "Searching the computers",
+    ask_user_to_take_over: "Asking you to take over",
+    start_task: "Starting a task",
+    delegate_task: "Handing work to the crew",
+    assign_computer: "Changing computer access",
+    update_memory: "Updating memory",
+    update_instructions: "Updating instructions",
+};
+
+/**
+ * Labels for whole families of tools, by name prefix.
+ */
+export const JobStepToolPrefixLabels: Record<string, string> = {
+    browser_: "Using the browser",
+};

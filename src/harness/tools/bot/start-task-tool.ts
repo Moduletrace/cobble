@@ -60,7 +60,7 @@ export default function startTaskTool({
                 computer_id: computer_id || undefined,
             });
 
-            return `Task #${job_id} queued. Tell the user you're on it; the result will be posted here when it's done.`;
+            return `Task #${job_id} queued; you'll work on it yourself in the background. Tell the user in one sentence, in the first person, what you're doing (e.g. "I'm checking your inbox now. I'll report back when I'm done."); the result will be posted here when it's done.`;
         },
     };
 }

@@ -10,6 +10,7 @@ import type { WebSocketDataType } from "@/src/types";
 import { wsSendData } from "./(functions)/ws-send-data";
 import checkSessionAccess from "./(functions)/check-session-access";
 import logEvent from "@/src/functions/backend/logger";
+import { computerProxySocket } from "@/src/functions/server/computers/computer-proxy-socket";
 
 /**
  * The twui `useWebSocket` hook sends a raw keepalive string to keep the
@@ -27,6 +28,8 @@ function parseMessage(message: string | Buffer): WebSocketDataType | undefined {
 
 export const websocket = {
     open(ws: ServerWebSocket<WebSocketSession>) {
+        if (ws.data.proxy) return computerProxySocket.open(ws);
+
         const { user } = ws.data;
 
         joinRoom(ws, "public");
@@ -54,6 +57,8 @@ export const websocket = {
         ws: ServerWebSocket<WebSocketSession>,
         message: string | Buffer,
     ) {
+        if (ws.data.proxy) return computerProxySocket.message(ws, message);
+
         const data = parseMessage(message);
 
         if (!data) return;
@@ -73,6 +78,8 @@ export const websocket = {
     },
 
     close(ws: ServerWebSocket<WebSocketSession>) {
+        if (ws.data.proxy) return computerProxySocket.close(ws);
+
         leaveAllRooms(ws);
     },
 

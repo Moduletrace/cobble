@@ -1,5 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabBots from "@/src/functions/backend/db/bots/grab-bots";
+import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import markBotRead from "@/src/functions/backend/db/bots/mark-bot-read";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
@@ -40,13 +41,14 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
      * The header's models modal: a worker's own settings, or for the
      * coordinator the defaults it runs on (without the providers).
      */
-    const [bot_messages, bot_harness_overview, bot_computers] = await Promise.all([
+    const [bot_messages, bot_harness_overview, bot_computers, bot_task] = await Promise.all([
         grabBotMessages({ bot_id: bot.id }),
         (bot.kind == "coordinator"
             ? grabHarnessOverview().then(({ harnesses }) => ({ harnesses }))
             : grabBotHarnessOverview({ bot_id: bot.id })
         ).catch(() => null),
         grabBotComputers({ bot_id: bot.id, user_id: user.id }),
+        grabActiveBotTask({ bot_id: bot.id }),
     ]);
 
     return {
@@ -56,6 +58,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             bot_messages,
             bot_harness_overview,
             bot_computers,
+            bot_task,
         },
     };
 };

@@ -1,17 +1,35 @@
 import type { ComponentProps } from "react";
 import Link from "@moduletrace/twui/layout/Link";
-import { ComputerRefHrefPrefix } from "@/src/utils/link-computer-refs";
+import { ComputerViewModes, type ComputerViewMode } from "@/src/dict/computer-dict";
+import { ComputerRefHrefPrefix, TakeOverRefHrefPrefix } from "@/src/utils/link-computer-refs";
 import ComputerRefChip from "./computer-ref-chip";
+import TakeOverChip from "./take-over-chip";
 
 /**
  * A link in a bot message. A computer the bot named (`linkComputerRefs`)
- * becomes its switch button; anything else opens in a new tab.
+ * becomes its switch button, a take-over request a button that opens the
+ * computer; anything else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
     if (href?.startsWith(ComputerRefHrefPrefix)) {
         const computer_id = Number(href.slice(ComputerRefHrefPrefix.length));
 
         if (computer_id) return <ComputerRefChip computer_id={computer_id} />;
+    }
+
+    if (href?.startsWith(TakeOverRefHrefPrefix)) {
+        const [id, mode] = href.slice(TakeOverRefHrefPrefix.length).split("-");
+        const computer_id = Number(id);
+        const known = ComputerViewModes.some((m) => m.value == mode);
+
+        if (computer_id) {
+            return (
+                <TakeOverChip
+                    computer_id={computer_id}
+                    mode={(known ? mode : ComputerViewModes[0].value) as ComputerViewMode}
+                />
+            );
+        }
     }
 
     return (

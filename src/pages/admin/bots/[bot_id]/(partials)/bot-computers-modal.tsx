@@ -16,10 +16,11 @@ type Props = {
 /**
  * The header's computer icon, beside the model icon: opens what the bot's
  * computers are, the one it's on checked, and with more than one,
- * switches it.
+ * switches it. Each can be opened in the viewer.
  */
 export default function BotComputersModal({ bot }: Props) {
-    const { computers, switching_id, error, switchComputer } = useContext(BotComputersContext);
+    const { computers, switching_id, error, switchComputer, openComputer } =
+        useContext(BotComputersContext);
     const [open, setOpen] = useState(false);
 
     const current = computers[0];
@@ -48,7 +49,7 @@ export default function BotComputersModal({ bot }: Props) {
                     {can_switch ? `${name}'s computers` : `${name}'s computer`}
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    {`A computer is a sandbox ${name} works in: a shell, a browser and files of its own. Its tasks run on the checked one.`}
+                    {`A computer is a sandbox ${name} works in: a shell, a browser and files of its own. Its tasks run on the checked one. Open one to use it yourself.`}
                 </Span>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {can_switch
@@ -68,6 +69,10 @@ export default function BotComputersModal({ bot }: Props) {
                         current={index == 0}
                         onPick={async () => {
                             await switchComputer({ computer_id: computer.id || 0 });
+                        }}
+                        onOpen={() => {
+                            setOpen(false);
+                            openComputer({ computer_id: computer.id || 0, mode: "browser" });
                         }}
                     />
                 ))}

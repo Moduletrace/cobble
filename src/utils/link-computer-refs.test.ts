@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import computerRef from "./computer-ref";
 import linkComputerRefs from "./link-computer-refs";
+import takeOverRef from "./take-over-ref";
 
 describe("linkComputerRefs", () => {
     test("links every computer a message names", () => {
@@ -15,5 +16,13 @@ describe("linkComputerRefs", () => {
         const text = "See [computer:x], [link](url) and [computer:4](https://example.com)";
 
         expect(linkComputerRefs({ text })).toBe(text);
+    });
+
+    test("links take-over requests", () => {
+        expect(
+            linkComputerRefs({
+                text: `Please log in to Gmail. ${takeOverRef({ id: 3, mode: "browser" })}`,
+            }),
+        ).toBe("Please log in to Gmail. [take over](#take-over-3-browser)");
     });
 });

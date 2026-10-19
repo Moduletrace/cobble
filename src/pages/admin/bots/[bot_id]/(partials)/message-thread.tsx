@@ -7,14 +7,19 @@ import MessageGroupBlock from "./message-group-block";
 type Props = {
     bot: BotWithLastMessage;
     messages: BotMessageWithAttachments[];
+    /**
+     * The latest step of the bot's active task, shown while it works.
+     */
+    progress?: string | null;
 };
 
 /**
  * Bottom-anchored: the stack sits 24px above the composer rule and grows
  * upward. Empty space belongs at the top. New messages announce politely.
- * While the bot works on a reply, a thinking row sits under the last one.
+ * While the bot works on a reply or a task, a status row sits under the
+ * last one.
  */
-export default function MessageThread({ bot, messages }: Props) {
+export default function MessageThread({ bot, messages, progress }: Props) {
     const groups = groupMessages({ messages });
 
     return (
@@ -28,7 +33,7 @@ export default function MessageThread({ bot, messages }: Props) {
                 {groups.map((group) => (
                     <MessageGroupBlock key={group.key} bot={bot} group={group} />
                 ))}
-                <BotThinkingRow bot={bot} />
+                <BotThinkingRow bot={bot} progress={progress} />
             </Stack>
         </Stack>
     );

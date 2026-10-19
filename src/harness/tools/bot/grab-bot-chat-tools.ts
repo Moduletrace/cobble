@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import type { HarnessTool } from "../../types";
+import askToTakeOverTool from "../computer/ask-to-take-over-tool";
 import searchComputersTool from "../computer/search-computers-tool";
 import assignComputerTool from "./assign-computer-tool";
 import delegateTaskTool from "./delegate-task-tool";
@@ -19,12 +20,17 @@ type Params = {
      * The user message being answered.
      */
     message_id?: number | string;
+    /**
+     * Called when the bot asks the user to take over a computer.
+     */
+    onTakeOver?: (params: { ref: string }) => void;
 };
 
 /**
  * The tools a bot replies in chat with: its own (memory, instructions),
  * start_task for longer work, search_computers to find what's on its
- * computers, and for the coordinator delegate_task and assign_computer
+ * computers, ask_user_to_take_over when only the user can do something on
+ * one, and for the coordinator delegate_task and assign_computer
  * (which computers each crew member can use). Anything
  * else on a computer goes through a task, never mid-reply.
  */
@@ -33,6 +39,7 @@ export default async function grabBotChatTools({
     user_id,
     computers,
     message_id,
+    onTakeOver,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
@@ -43,7 +50,12 @@ export default async function grabBotChatTools({
             computers,
             message_id,
         }),
-        ...(computers.length ? [searchComputersTool({ bot_id, computers })] : []),
+        ...(computers.length
+            ? [
+                  searchComputersTool({ bot_id, computers }),
+                  askToTakeOverTool({ computers, onAsk: (params) => onTakeOver?.(params) }),
+              ]
+            : []),
     ];
 
     if (bot.kind != "coordinator") return tools;

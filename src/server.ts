@@ -8,6 +8,8 @@ import { logError, grabRequestIP } from "./functions/backend/logger";
 import botsQueue from "./bots-queue";
 import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
+import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
+import { ComputerProxyPrefix } from "./dict/computer-dict";
 
 declare global {}
 
@@ -30,6 +32,10 @@ const server = Bun.serve({
                 } catch {
                     return new Response("Not Found", { status: 404 });
                 }
+            }
+
+            if (url.pathname.startsWith(`${ComputerProxyPrefix}/`)) {
+                return await handleComputerProxy({ req, server });
             }
 
             if (url.pathname === WEBSOCKET_ENDPOINT) {
