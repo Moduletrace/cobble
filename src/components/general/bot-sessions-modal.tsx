@@ -40,7 +40,11 @@ export default function BotSessionsModal({
     target_wrapper_props,
 }: Props) {
     const [open, setOpen] = useState(false);
-    const sessions = useBotSessions({ bot_id: Number(bot.id), workspace_id, open });
+    const sessions = useBotSessions({
+        bot_id: Number(bot.id),
+        workspace_id,
+        open,
+    });
     const name = bot.name || "the bot";
 
     return (
@@ -49,18 +53,28 @@ export default function BotSessionsModal({
                 target ?? (
                     <HeaderIconButton
                         icon={History}
-                        title={has_other_unread ? "Sessions: new messages in another session" : "Sessions"}
+                        title={
+                            has_other_unread
+                                ? "Sessions: new messages in another session"
+                                : "Sessions"
+                        }
                     />
                 )
             }
-            targetWrapperProps={target_wrapper_props ?? { className: target ? "w-full" : "shrink-0" }}
+            targetWrapperProps={
+                target_wrapper_props ?? {
+                    className: target ? "w-full" : "shrink-0",
+                }
+            }
             open={open}
             setOpen={setOpen}
-            className="max-w-lg bg-paper p-6"
+            className="max-w-lg bg-paper p-6 xl:p-10 pt-14!"
         >
             <Row className="w-full gap-3! flex-nowrap items-start justify-between">
                 <Stack className="min-w-0 gap-1! items-stretch">
-                    <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">Sessions</H2>
+                    <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">
+                        Sessions
+                    </H2>
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">
                         {`Each session keeps ${name}'s context short. A new one starts with a summary of the last; reopen any to pick up where you left off.`}
                     </Span>
@@ -88,7 +102,10 @@ export default function BotSessionsModal({
                 wrapperWrapperProps={{ className: "mt-4" }}
             />
             {sessions.error ? (
-                <Span role="alert" className="mt-2 flex items-center gap-1.5 text-[13px] leading-[18px] text-ink">
+                <Span
+                    role="alert"
+                    className="mt-2 flex items-center gap-1.5 text-[13px] leading-[18px] text-ink"
+                >
                     <CircleAlert size={14} aria-hidden className="shrink-0" />
                     {sessions.error}
                 </Span>
@@ -100,12 +117,18 @@ export default function BotSessionsModal({
                         session={session}
                         loading={sessions.busy_id == session.id}
                         disabled={Boolean(sessions.busy_id)}
-                        onOpen={() => sessions.reopenSession({ session_id: Number(session.id) })}
+                        onOpen={() =>
+                            sessions.reopenSession({
+                                session_id: Number(session.id),
+                            })
+                        }
                     />
                 ))}
                 {sessions.sessions.length || sessions.loading ? null : (
                     <Span className="px-3 py-6 text-[13px] leading-[18px] text-ink-secondary">
-                        {sessions.query.trim() ? `No session matches "${sessions.query.trim()}".` : "No sessions yet."}
+                        {sessions.query.trim()
+                            ? `No session matches "${sessions.query.trim()}".`
+                            : "No sessions yet."}
                     </Span>
                 )}
             </Stack>
