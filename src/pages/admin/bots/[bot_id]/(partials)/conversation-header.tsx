@@ -14,7 +14,7 @@ import BotModelsModal from "./bot-models-modal";
 import BotProfileModal from "./bot-profile-modal";
 import BotSessionsModal from "./bot-sessions-modal";
 import NewSessionButton from "./new-session-button";
-import HeaderIconButton from "./header-icon-button";
+import HeaderIconButton from "@/src/components/general/header-icon-button";
 import HeaderMetaItem from "./header-meta-item";
 
 type Props = {

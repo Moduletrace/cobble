@@ -16,6 +16,10 @@ type Props = {
      * A nested record page's name, for its breadcrumb trail.
      */
     breadcrumb_title?: string;
+    /**
+     * Controls at the end of the pane header, e.g. a settings link.
+     */
+    action?: ReactNode;
 };
 
 /**
@@ -28,10 +32,15 @@ export default function SettingsShell({
     children,
     wide,
     breadcrumb_title,
+    action,
 }: Props) {
     return (
         <Stack className="grow min-w-0 h-full gap-0! items-stretch">
-            <SettingsPaneHeader title={title} description={description} />
+            <SettingsPaneHeader
+                title={title}
+                description={description}
+                action={action}
+            />
             <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch">
                 <Stack
                     className={twMerge(

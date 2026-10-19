@@ -14,7 +14,10 @@ type Props = {
      * Edits this computer; creates one when not given.
      */
     computer?: ComputerWithStatus;
-    onCancel: () => void;
+    /**
+     * Left out when the form is embedded in a settings page.
+     */
+    onCancel?: () => void;
     /**
      * Gets the new computer (still being set up) and the server's note.
      */

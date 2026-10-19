@@ -10,34 +10,48 @@ import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import SettingsGroup from "../../(partials)/settings-group";
 import SettingsList from "../../(partials)/settings-list";
 import SettingsStatus from "../../(partials)/settings-status";
-import ComputerEditModal from "../(partials)/computer-edit-modal";
 import ComputerSettingsRow from "../(partials)/computer-settings-row";
 
 type Status = { error?: boolean; success?: boolean; msg?: string };
 
 /**
  * Every computer the user has, main first, kept live: its state and
- * resources. Super admins create, edit (new resources restart it, its
- * files stay), retry and delete them.
+ * resources. A row opens that computer's settings page; super admins
+ * create, retry and delete them from here too.
  */
 export default function ComputersSettingsSection() {
     const { pageProps } = useContext(AppContext);
     const { openForm } = useContext(AddFlowContext);
-    const { computers, setComputers } = useLiveComputers({ computers: pageProps?.computers || [], include_new: true });
-    const [editing, setEditing] = useState<ComputerWithStatus>();
+    const { computers, setComputers } = useLiveComputers({
+        computers: pageProps?.computers || [],
+        include_new: true,
+    });
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<Status>();
 
-    const is_super_admin = isPassThroughUser({ user_types: pageProps?.user_types });
+    const is_super_admin = isPassThroughUser({
+        user_types: pageProps?.user_types,
+    });
 
     const merge = (fresh: ComputerWithStatus) =>
-        setComputers((prev) => prev.map((c) => (c.id == fresh.id ? { ...c, ...fresh } : c)));
+        setComputers((prev) =>
+            prev.map((c) => (c.id == fresh.id ? { ...c, ...fresh } : c)),
+        );
 
-    const run = async ({ path, computer_id }: { path: string; computer_id: number }) => {
+    const run = async ({
+        path,
+        computer_id,
+    }: {
+        path: string;
+        computer_id: number;
+    }) => {
         setBusy(true);
         setStatus(undefined);
 
-        const res = await postAdminApi<ComputerWithStatus>({ path, body: { computer_id } });
+        const res = await postAdminApi<ComputerWithStatus>({
+            path,
+            body: { computer_id },
+        });
 
         setBusy(false);
 
@@ -64,12 +78,24 @@ export default function ComputersSettingsSection() {
                         computer={computer}
                         is_super_admin={is_super_admin}
                         busy={busy}
-                        onEdit={() => setEditing(computer)}
-                        onRetry={() => run({ path: "computers/retry-computer", computer_id: Number(computer.id) })}
+                        onRetry={() =>
+                            run({
+                                path: "computers/retry-computer",
+                                computer_id: Number(computer.id),
+                            })
+                        }
                         onDelete={() => {
-                            if (!window.confirm(`Delete ${computer.name || "this computer"}? Its container goes; its files stay on disk.`)) return;
+                            if (
+                                !window.confirm(
+                                    `Delete ${computer.name || "this computer"}? Its container goes; its files stay on disk.`,
+                                )
+                            )
+                                return;
 
-                            run({ path: "computers/delete-computer", computer_id: Number(computer.id) });
+                            run({
+                                path: "computers/delete-computer",
+                                computer_id: Number(computer.id),
+                            });
                         }}
                     />
                 ))}
@@ -89,15 +115,6 @@ export default function ComputersSettingsSection() {
                 </Button>
             ) : null}
             <SettingsStatus status={status} />
-            <ComputerEditModal
-                computer={editing}
-                onClose={() => setEditing(undefined)}
-                onUpdated={({ computer, msg }) => {
-                    merge(computer);
-                    setEditing(undefined);
-                    setStatus({ success: true, msg });
-                }}
-            />
         </SettingsGroup>
     );
 }

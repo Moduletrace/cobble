@@ -37,6 +37,17 @@ export default function settingsRecordPageMeta({
             };
         }
 
+        if (kind == "computers") {
+            const computer = props?.computer;
+
+            return {
+                title: `${computer?.name || "Computer"} settings | ${SiteData["SiteName"]}`,
+                description:
+                    computer?.description ||
+                    `Manage this computer on ${SiteData["SiteName"]}.`,
+            };
+        }
+
         const person = props?.target_person;
         const name =
             [person?.first_name, person?.last_name].filter(Boolean).join(" ") ||

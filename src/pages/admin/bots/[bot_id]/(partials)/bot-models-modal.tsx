@@ -10,7 +10,7 @@ import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "@/src/pages/admin/settings/(partials)/bot-harness-form";
-import HeaderIconButton from "./header-icon-button";
+import HeaderIconButton from "@/src/components/general/header-icon-button";
 
 type Props = {
     bot: BotWithLastMessage;

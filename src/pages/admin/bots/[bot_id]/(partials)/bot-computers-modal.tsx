@@ -7,7 +7,7 @@ import { Monitor } from "lucide-react";
 import type { BotWithLastMessage } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputerOption from "./bot-computer-option";
-import HeaderIconButton from "./header-icon-button";
+import HeaderIconButton from "@/src/components/general/header-icon-button";
 
 type Props = {
     bot: BotWithLastMessage;

@@ -392,6 +392,12 @@ export type PagePropsType = {
     all_bots?: BotWithLastMessage[] | null;
     workspace_computers?: ComputerWithStatus[] | null;
     computers?: ComputerWithStatus[] | null;
+    /**
+     * The computer a settings page manages, with its access.
+     */
+    computer?: ComputerWithStatus | null;
+    computer_bots?: BUN_SQLITE_COBBLE_BOTS[] | null;
+    computer_workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] | null;
     workspace_harness_overview?: BotHarnessOverviewPayload | null;
     /**
      * The workspaces a bot works in, with what it has for each alone.
@@ -815,6 +821,7 @@ export type PageQueryObject = {
     user_id?: string;
     bot_id?: string;
     workspace_id?: string;
+    computer_id?: string;
     event_id?: string;
     user_type?: UserType;
 };

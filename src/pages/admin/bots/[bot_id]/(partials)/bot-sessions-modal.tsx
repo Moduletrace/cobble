@@ -11,7 +11,7 @@ import type { BotWithLastMessage } from "@/src/types";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
 import useBotSessions from "../(hooks)/use-bot-sessions";
 import BotSessionRow from "./bot-session-row";
-import HeaderIconButton from "./header-icon-button";
+import HeaderIconButton from "@/src/components/general/header-icon-button";
 
 type Props = {
     bot: BotWithLastMessage;

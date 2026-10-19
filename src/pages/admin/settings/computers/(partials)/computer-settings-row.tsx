@@ -9,36 +9,54 @@ type Props = {
     computer: ComputerWithStatus;
     is_super_admin: boolean;
     busy?: boolean;
-    onEdit: () => void;
     onRetry: () => void;
     onDelete: () => void;
 };
 
 /**
- * One computer: its name, state and resources, then (super admins) Edit,
- * Retry when its setup failed, and Delete (never the main one).
+ * One computer: its name, state and resources. The title opens its
+ * settings page; super admins can retry a failed setup and delete a
+ * sandbox.
  */
-export default function ComputerSettingsRow({ computer, is_super_admin, busy, onEdit, onRetry, onDelete }: Props) {
+export default function ComputerSettingsRow({
+    computer,
+    is_super_admin,
+    busy,
+    onRetry,
+    onDelete,
+}: Props) {
     const name = computer.name || `Computer ${computer.id}`;
     const busy_here = busy || computer.status == "creating";
 
     return (
         <SettingsListRow
             avatar={<ComputerIconTile />}
+            href={`/admin/settings/computers/${computer.id}`}
             title={name}
             badge={computer.kind == "main" ? "Main" : undefined}
-            subtitle={[computerStatusLabel({ computer }), computerResourcesLabel({ computer }), computer.description]
+            subtitle={[
+                computerStatusLabel({ computer }),
+                computerResourcesLabel({ computer }),
+                computer.description,
+            ]
                 .filter(Boolean)
                 .join(" · ")}
         >
-            {is_super_admin ? (
-                <SettingsRowAction title={`Edit ${name}`} label="Edit" disabled={busy_here} onClick={onEdit} />
-            ) : null}
             {is_super_admin && computer.status == "failed" ? (
-                <SettingsRowAction title={`Set ${name} up again`} label="Retry" disabled={busy} onClick={onRetry} />
+                <SettingsRowAction
+                    title={`Set ${name} up again`}
+                    label="Retry"
+                    disabled={busy}
+                    onClick={onRetry}
+                />
             ) : null}
             {is_super_admin && computer.kind != "main" ? (
-                <SettingsRowAction title={`Delete ${name}; its files are kept`} label="Delete" disabled={busy} onClick={onDelete} />
+                <SettingsRowAction
+                    title={`Delete ${name}; its files are kept`}
+                    label="Delete"
+                    disabled={busy_here}
+                    onClick={onDelete}
+                />
             ) : null}
         </SettingsListRow>
     );

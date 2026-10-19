@@ -14,6 +14,11 @@ describe("parseSettingsRecordPath", () => {
         expect(
             parseSettingsRecordPath({ pathname: "/admin/settings/users/8" }),
         ).toEqual({ kind: "users", id: "8" });
+        expect(
+            parseSettingsRecordPath({
+                pathname: "/admin/settings/computers/2",
+            }),
+        ).toEqual({ kind: "computers", id: "2" });
     });
 
     test("ignores settings list pages and other paths", () => {

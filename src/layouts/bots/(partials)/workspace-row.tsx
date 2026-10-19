@@ -1,12 +1,9 @@
-import { useContext } from "react";
 import Link from "@moduletrace/twui/layout/Link";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import { twMerge } from "tailwind-merge";
-import { AppContext } from "@/src/pages/__root";
 import type { WorkspaceWithActivity } from "@/src/types";
-import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 
 type Props = {
     workspace: WorkspaceWithActivity;
@@ -18,14 +15,9 @@ type Props = {
  * hue, so unread is said in words beside the description.
  */
 export default function WorkspaceRow({ workspace, selected }: Props) {
-    const { pageProps } = useContext(AppContext);
-    const href = canManageCrew({ user_types: pageProps?.user_types })
-        ? `/admin/settings/workspaces/${workspace.id}`
-        : `/admin/workspaces/${workspace.id}`;
-
     return (
         <Link
-            href={href}
+            href={`/admin/workspaces/${workspace.id}`}
             aria-current={selected ? "page" : undefined}
             title={workspace.name}
             className={twMerge(

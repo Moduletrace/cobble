@@ -49,7 +49,7 @@ export default function AddWorkspaceForm({ onCancel }: Props) {
             await setProfileImage({ target: "workspace", id: workspace_id, data_url: image.data_url }).catch(() => null);
         }
 
-        window.location.href = `/admin/settings/workspaces/${workspace_id}`;
+        window.location.href = `/admin/workspaces/${workspace_id}`;
     };
 
     return (

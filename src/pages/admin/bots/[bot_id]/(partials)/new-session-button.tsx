@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MessageSquarePlus } from "lucide-react";
 import postSessionApi from "../(functions)/post-session-api";
-import HeaderIconButton from "./header-icon-button";
+import HeaderIconButton from "@/src/components/general/header-icon-button";
 
 type Props = {
     bot_id: number;

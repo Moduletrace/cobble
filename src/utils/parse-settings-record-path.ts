@@ -1,4 +1,8 @@
-export type SettingsRecordKind = "bots" | "workspaces" | "users";
+export type SettingsRecordKind =
+    | "bots"
+    | "workspaces"
+    | "users"
+    | "computers";
 
 export type SettingsRecordPath = {
     kind: SettingsRecordKind;
@@ -21,7 +25,9 @@ export default function parseSettingsRecordPath({
 
     const match = pathname
         .replace(/\/$/, "")
-        .match(/^\/admin\/settings\/(bots|workspaces|users)\/([^/]+)$/);
+        .match(
+            /^\/admin\/settings\/(bots|workspaces|users|computers)\/([^/]+)$/,
+        );
 
     if (!match) return null;
 

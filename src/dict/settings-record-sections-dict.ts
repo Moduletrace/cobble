@@ -28,6 +28,7 @@ export const SettingsRecordBack: Record<
     bots: { title: "All bots", href: "/admin/settings/bots" },
     workspaces: { title: "All workspaces", href: "/admin/settings/workspaces" },
     users: { title: "All users", href: "/admin/settings/users" },
+    computers: { title: "All computers", href: "/admin/settings/computers" },
 };
 
 export const SettingsRecordSections: Record<
@@ -53,6 +54,13 @@ export const SettingsRecordSections: Record<
     users: [
         { title: "Overview", url: "#overview", Icon: Info },
         { title: "Edit", url: "#edit", Icon: Pencil },
+        { title: "Danger zone", url: "#danger", Icon: CircleAlert },
+    ],
+    computers: [
+        { title: "Overview", url: "#overview", Icon: Info },
+        { title: "Details", url: "#details", Icon: Pencil },
+        { title: "Bots", url: "#bots", Icon: Bot },
+        { title: "Workspaces", url: "#workspaces", Icon: Layers },
         { title: "Danger zone", url: "#danger", Icon: CircleAlert },
     ],
 };

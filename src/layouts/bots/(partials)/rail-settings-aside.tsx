@@ -1,6 +1,7 @@
 import { useContext, type ReactNode } from "react";
 import Divider from "@moduletrace/twui/layout/Divider";
 import BotAvatar from "@/src/components/general/bot-avatar";
+import ComputerIconTile from "@/src/components/general/computer-icon-tile";
 import UserAvatar from "@/src/components/general/user-avatar";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import { UserTypes } from "@/src/dict/user-types-dict";
@@ -10,8 +11,11 @@ import {
     SettingsRecordSections,
 } from "@/src/dict/settings-record-sections-dict";
 import { AppContext } from "@/src/pages/__root";
+import computerResourcesLabel from "@/src/utils/computer-resources-label";
+import computerStatusLabel from "@/src/utils/computer-status-label";
 import parseSettingsRecordPath from "@/src/utils/parse-settings-record-path";
 import parseUserTypes from "@/src/utils/parse-user-types";
+import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import RailBackLink from "./rail-back-link";
 import RailSettingsLink from "./rail-settings-link";
 import RailSettingsList from "./rail-settings-list";
@@ -35,11 +39,22 @@ export default function RailSettingsAside({ pathname }: Props) {
     }
 
     const back = SettingsRecordBack[record.kind];
+    const is_super_admin = isPassThroughUser({
+        user_types: pageProps?.user_types,
+    });
     const sections = SettingsRecordSections[record.kind].filter((section) => {
         if (
             record.kind == "bots" &&
             section.url == "#delete" &&
             pageProps?.bot?.kind == "coordinator"
+        ) {
+            return false;
+        }
+
+        if (
+            record.kind == "computers" &&
+            !is_super_admin &&
+            (section.url == "#details" || section.url == "#danger")
         ) {
             return false;
         }
@@ -89,7 +104,7 @@ export default function RailSettingsAside({ pathname }: Props) {
         avatar = (
             <WorkspaceAvatar image_media_id={workspace.image_media_id} />
         );
-    } else {
+    } else if (record.kind == "users") {
         const person = pageProps?.target_person;
 
         if (!person?.id) return <RailSettingsList pathname={pathname} />;
@@ -108,6 +123,17 @@ export default function RailSettingsAside({ pathname }: Props) {
             `User ${person.id}`;
         subtitle = types || person.email || "User";
         avatar = <UserAvatar person={person} size="md" />;
+    } else {
+        const computer = pageProps?.computer;
+
+        if (!computer?.id) return <RailSettingsList pathname={pathname} />;
+
+        title = computer.name || `Computer ${computer.id}`;
+        subtitle = [
+            computerStatusLabel({ computer }),
+            computerResourcesLabel({ computer }),
+        ].join(" · ");
+        avatar = <ComputerIconTile />;
     }
 
     return (
