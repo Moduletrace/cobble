@@ -118,6 +118,7 @@ export default function Composer({ bot, workspace_id, onSent }: Props) {
                             className:
                                 "p-0! outline-0! border-0! bg-transparent! dark:bg-transparent! rounded-none",
                         }}
+                        autoFocus
                     />
                     <ComposerSendButton
                         disabled={!can_send}
