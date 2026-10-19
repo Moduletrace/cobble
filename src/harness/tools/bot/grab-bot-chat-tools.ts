@@ -127,7 +127,10 @@ export default async function grabBotChatTools({
             await Promise.all(
                 workers.map(async (worker) => [
                     worker.id || 0,
-                    await grabBotComputers({ bot_id: worker.id || 0 }),
+                    await grabBotComputers({
+                        bot_id: worker.id || 0,
+                        include_workspace_computers: false,
+                    }),
                 ]),
             ),
         );

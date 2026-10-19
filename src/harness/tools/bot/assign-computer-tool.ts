@@ -28,9 +28,10 @@ type Args = {
 };
 
 /**
- * Lets the coordinator give a crew member access to one of the user's
- * computers in its own chat (`bot_computers`), or take it away. In a
- * workspace, bots use the workspace's computers instead.
+ * Lets the coordinator give a crew member direct access to one of the
+ * user's computers (`bot_computers`), or take it away. The computers of
+ * the workspaces a bot is attached to are its own too, in its own chat as
+ * well as in the workspace.
  */
 export default function assignComputerTool({
     user_id,
@@ -76,7 +77,7 @@ export default function assignComputerTool({
 
             await removeBotFromComputer({ user_id, bot_id: worker.id, computer_id: computer.id });
 
-            return `${worker.name} can't use ${ref} in its own chat any more. In a workspace it still uses the workspace's computers.`;
+            return `${worker.name} can't use ${ref} directly any more. A workspace it's attached to may still give it.`;
         },
     };
 }

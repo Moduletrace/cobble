@@ -10,13 +10,13 @@ const db = new Database(":memory:");
 
 beforeAll(() => {
     db.run(`CREATE TABLE bots (id INTEGER PRIMARY KEY, kind TEXT)`);
-    db.run(`CREATE TABLE workspaces (id INTEGER PRIMARY KEY)`);
+    db.run(`CREATE TABLE workspaces (id INTEGER PRIMARY KEY, archived INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE bot_users (bot_id INTEGER, user_id INTEGER)`);
     db.run(`CREATE TABLE workspace_users (workspace_id INTEGER, user_id INTEGER)`);
     db.run(`CREATE TABLE workspace_bots (workspace_id INTEGER, bot_id INTEGER)`);
     db.run(`INSERT INTO bots VALUES (1, 'coordinator'), (2, 'worker'), (3, 'worker')`);
-    db.run(`INSERT INTO workspaces VALUES (10), (11)`);
-    db.run(`INSERT INTO bot_users VALUES (2, 7), (1, 7)`);
+    db.run(`INSERT INTO workspaces VALUES (10, 0), (11, 0)`);
+    db.run(`INSERT INTO bot_users VALUES (2, 7), (1, 7), (3, 9)`);
     db.run(`INSERT INTO workspace_users VALUES (11, 7)`);
     db.run(`INSERT INTO workspace_bots VALUES (11, 3)`);
     db.run(`CREATE TABLE computers (id INTEGER PRIMARY KEY)`);
@@ -46,6 +46,7 @@ describe("chatBotsSql", () => {
     test("a member only with workers assigned to them, even if the coordinator was", () => {
         expect(ids({ table: "bots", alias: "b", condition: chatBotsSql({ role: "member", user_id: 7 }) })).toEqual([2]);
         expect(ids({ table: "bots", alias: "b", condition: chatBotsSql({ role: "member", user_id: 8 }) })).toEqual([]);
+        expect(ids({ table: "bots", alias: "b", condition: chatBotsSql({ role: "member", user_id: 9 }) })).toEqual([3]);
     });
 });
 
@@ -71,5 +72,9 @@ describe("computersSql", () => {
         expect(ids({ table: "computers", alias: "c", condition: computersSql({ role: "admin", user_id: 5 }) })).toEqual([20, 21, 22, 23]);
         expect(ids({ table: "computers", alias: "c", condition: computersSql({ role: "member", user_id: 7 }) })).toEqual([21, 22]);
         expect(ids({ table: "computers", alias: "c", condition: computersSql({ role: "member", user_id: 8 }) })).toEqual([]);
+    });
+
+    test("a member sees the computers of the workspaces their assigned workers are in", () => {
+        expect(ids({ table: "computers", alias: "c", condition: computersSql({ role: "member", user_id: 9 }) })).toEqual([21]);
     });
 });
