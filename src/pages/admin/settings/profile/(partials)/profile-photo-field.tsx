@@ -32,12 +32,7 @@ export default function ProfilePhotoField({
 
     return (
         <Row className="w-full gap-4! flex-nowrap items-center">
-            <UserAvatar
-                src={preview_src}
-                initials={initials}
-                alt="Your photo"
-                size="lg"
-            />
+            <UserAvatar src={preview_src} initials={initials} alt="Your photo" size="lg" />
             <Stack className="gap-2! min-w-0">
                 <Row className="gap-2!">
                     <Button

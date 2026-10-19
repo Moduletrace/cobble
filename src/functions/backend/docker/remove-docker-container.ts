@@ -1,3 +1,4 @@
+import { AppData } from "@/src/data/app-data";
 import dockerRequest from "./docker-request";
 
 type Params = {
@@ -8,10 +9,17 @@ type Params = {
 };
 
 /**
- * Stops and removes a container. Its bind-mounted files stay on the host.
- * A container docker doesn't have is already gone.
+ * Stops a container (killed after `AppData.ComputerStopTimeoutSeconds`),
+ * then removes it. Its bind-mounted files stay on the host. A container
+ * docker doesn't have is already gone.
  */
 export default async function removeDockerContainer({ container }: Params) {
+    await dockerRequest({
+        method: "POST",
+        path: `/containers/${encodeURIComponent(container)}/stop`,
+        query: { t: AppData.ComputerStopTimeoutSeconds },
+    });
+
     const res = await dockerRequest({
         method: "DELETE",
         path: `/containers/${encodeURIComponent(container)}`,

@@ -8,10 +8,10 @@ import {
     filterAssignableUserTypes,
     isPassThroughUser,
 } from "./";
-import {
-    ALL_USER_TYPES,
-    makeUserTypes,
-} from "./user-type-assignment.test-fixtures";
+import { UserTypes } from "@/src/dict/user-types-dict";
+import { makeUserTypes } from "./user-type-assignment.test-fixtures";
+
+const ALL_USER_TYPES = UserTypes.map((type) => type.value);
 
 describe("isPassThroughUser", () => {
     test("super_admin is pass-through", () => {
@@ -19,7 +19,7 @@ describe("isPassThroughUser", () => {
     });
 
     test("regular types are not pass-through", () => {
-        for (const type of ["admin", "president", "secretary"]) {
+        for (const type of ["admin", "member", "read_only"]) {
             expect(
                 isPassThroughUser({ user_types: makeUserTypes(type) }),
             ).toBe(false);
@@ -45,7 +45,7 @@ describe("canListUsers / canCreateUser / canManageUserTypes", () => {
     });
 
     test("non-admin types fail", () => {
-        for (const type of ["auditor", "president", "secretary", "read_only"]) {
+        for (const type of ["member", "read_only", "revoked"]) {
             expect(
                 canListUsers({ user_types: makeUserTypes(type) }),
             ).toBe(false);
@@ -63,7 +63,7 @@ describe("canUpdateUser", () => {
     test("actors may update their own record", () => {
         expect(
             canUpdateUser({
-                actor_user_types: makeUserTypes("auditor"),
+                actor_user_types: makeUserTypes("member"),
                 actor_user_id: 5,
                 target_user_id: 5,
             }),
@@ -108,7 +108,7 @@ describe("canUpdateUser", () => {
     test("non-admin actors cannot update others", () => {
         expect(
             canUpdateUser({
-                actor_user_types: makeUserTypes("auditor"),
+                actor_user_types: makeUserTypes("member"),
                 actor_user_id: 1,
                 target_user_id: 2,
                 update_fields: ["first_name"],
@@ -155,7 +155,7 @@ describe("canRevokeUser", () => {
         expect(
             canRevokeUser({
                 user_types: makeUserTypes("admin"),
-                target_user_types: makeUserTypes("president"),
+                target_user_types: makeUserTypes("super_admin"),
             }),
         ).toBe(false);
     });
@@ -175,17 +175,12 @@ describe("filterAssignableUserTypes", () => {
             actor_user_types: makeUserTypes("admin"),
             user_types: ALL_USER_TYPES,
         });
-        expect(assignable).toContain("auditor");
-        expect(assignable).toContain("read_only");
-        expect(assignable).not.toContain("admin");
-        expect(assignable).not.toContain("super_admin");
-        expect(assignable).not.toContain("president");
-        expect(assignable).not.toContain("secretary");
+        expect(assignable).toEqual(["member", "read_only", "revoked"]);
     });
 
-    test("secretary can assign nothing", () => {
+    test("a member can assign nothing", () => {
         const assignable = filterAssignableUserTypes({
-            actor_user_types: makeUserTypes("secretary"),
+            actor_user_types: makeUserTypes("member"),
             user_types: ALL_USER_TYPES,
         });
         expect(assignable).toHaveLength(0);

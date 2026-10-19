@@ -2,6 +2,7 @@ import Link from "@moduletrace/twui/layout/Link";
 import Span from "@moduletrace/twui/layout/Span";
 import { ArrowLeft } from "lucide-react";
 import { AdminHomePath } from "@/src/dict/admin-sections-dict";
+import { SiteData } from "@/src/data/site-data";
 
 type Props = {
     title?: string;
@@ -12,7 +13,10 @@ type Props = {
  * Top of the rail on settings and workspace pages, returning to the
  * conversations. Same 48px row as a bot.
  */
-export default function RailBackLink({ title = "Back to bots", href = AdminHomePath }: Props) {
+export default function RailBackLink({
+    title = `Back to ${SiteData["SiteSlug"]}`,
+    href = AdminHomePath,
+}: Props) {
     return (
         <Link
             href={href}
@@ -22,7 +26,9 @@ export default function RailBackLink({ title = "Back to bots", href = AdminHomeP
             <Span className="size-8 shrink-0 flex items-center justify-center mx-auto lg:mx-0">
                 <ArrowLeft size={18} aria-hidden />
             </Span>
-            <Span className="hidden lg:inline text-sm font-bold leading-5 text-ink">{title}</Span>
+            <Span className="hidden lg:inline text-sm font-bold leading-5 text-ink">
+                {title}
+            </Span>
         </Link>
     );
 }

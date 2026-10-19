@@ -1,29 +1,33 @@
 import type { UserType, UserTypeAssignmentMatrixType } from "../types";
 
+/**
+ * Every user type on this install. A user needs at least one to sign in.
+ */
 export const UserTypes = [
     {
         value: "super_admin",
+        title: "Super admin",
+        description: "Runs the install: models, environment, computers and users. The first account.",
     },
     {
         value: "admin",
+        title: "Admin",
+        description: "Adds and manages members.",
     },
     {
-        value: "auditor",
-    },
-    {
-        value: "president",
-    },
-    {
-        value: "vice_president",
-    },
-    {
-        value: "secretary",
-    },
-    {
-        value: "revoked",
+        value: "member",
+        title: "Member",
+        description: "Has their own crew, workspaces and main computer.",
     },
     {
         value: "read_only",
+        title: "Read only",
+        description: "Can look around, but can't change anything.",
+    },
+    {
+        value: "revoked",
+        title: "Revoked",
+        description: "Can't sign in. Their crew and files are kept.",
     },
 ] as const;
 
@@ -58,36 +62,24 @@ export const UserTypeAssignmentMatrix: UserTypeAssignmentMatrixType = {
     admin: {
         allowed_actors: [],
     },
-    president: {
-        allowed_actors: [],
-    },
-    vice_president: {
-        allowed_actors: [],
-    },
-    secretary: {
-        allowed_actors: [],
-    },
-    auditor: {
-        allowed_actors: ["admin"],
+    member: {
+        allowed_actors: {
+            admin: {
+                excluded_targets: ["super_admin", "admin"],
+            },
+        },
     },
     read_only: {
         allowed_actors: {
             admin: {
-                excluded_targets: ["super_admin"],
+                excluded_targets: ["super_admin", "admin"],
             },
         },
     },
     revoked: {
         allowed_actors: {
             admin: {
-                allowed_targets: ["read_only"],
-                excluded_targets: [
-                    "super_admin",
-                    "admin",
-                    "president",
-                    "vice_president",
-                    "secretary",
-                ],
+                excluded_targets: ["super_admin", "admin"],
             },
         },
     },
@@ -98,36 +90,24 @@ export const UserTypeDeletionMatrix: UserTypeAssignmentMatrixType = {
     admin: {
         allowed_actors: [],
     },
-    president: {
-        allowed_actors: [],
-    },
-    vice_president: {
-        allowed_actors: [],
-    },
-    secretary: {
-        allowed_actors: [],
-    },
-    auditor: {
-        allowed_actors: ["admin"],
+    member: {
+        allowed_actors: {
+            admin: {
+                excluded_targets: ["super_admin", "admin"],
+            },
+        },
     },
     read_only: {
         allowed_actors: {
             admin: {
-                excluded_targets: ["super_admin"],
+                excluded_targets: ["super_admin", "admin"],
             },
         },
     },
     revoked: {
         allowed_actors: {
             admin: {
-                allowed_targets: ["read_only"],
-                excluded_targets: [
-                    "super_admin",
-                    "admin",
-                    "president",
-                    "vice_president",
-                    "secretary",
-                ],
+                excluded_targets: ["super_admin", "admin"],
             },
         },
     },

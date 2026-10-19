@@ -60,8 +60,8 @@ describe("checkUserAccess", () => {
     test("includes match with OR semantics", () => {
         expect(
             checkUserAccess({
-                user_types: makeUserTypes("president"),
-                includes: ["admin", "president"],
+                user_types: makeUserTypes("member"),
+                includes: ["admin", "member"],
             }).success,
         ).toBe(true);
     });

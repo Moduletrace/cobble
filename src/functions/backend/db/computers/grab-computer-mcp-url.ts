@@ -3,30 +3,39 @@ import type {
     BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_CONTAINERS,
 } from "@/db/types/db";
-import parseJobJson from "@/src/bots-queue/parse-job-json";
 import { AppData } from "@/src/data/app-data";
-import { ComputerMcpPath } from "@/src/dict/computer-dict";
+import { ComputerMcpPath, type ContainerStatus } from "@/src/dict/computer-dict";
 import grabEnv from "../envs/grab-env";
+import pickReachableAddress from "./pick-reachable-address";
+import refreshComputerContainer from "./refresh-computer-container";
 
 type Params = {
     computer_id: number | string;
 };
 
-type ComputerRow = Pick<BUN_SQLITE_COBBLE_COMPUTERS, "id" | "name" | "kind"> &
-    Pick<BUN_SQLITE_COBBLE_CONTAINERS, "hostname" | "port" | "metadata">;
+type ComputerRow = Pick<BUN_SQLITE_COBBLE_COMPUTERS, "name" | "kind"> &
+    Pick<BUN_SQLITE_COBBLE_CONTAINERS, "id" | "docker_id" | "status" | "hostname" | "ip_address" | "port">;
+
+export type ComputerAddress =
+    | { ready: true; url: string; base_url: string; name: string }
+    | { ready: false; status: ContainerStatus; name: string };
 
 /**
- * Where a computer's MCP server answers. In order: the container's
- * `metadata.mcp_url`, `MAIN_COMPUTER_URL` for the main computer (an app
- * setting, `grabEnv`: for a server outside docker, e.g.
- * `http://localhost:8170`), else its docker hostname and port. `base_url`
- * is the same address without `/mcp`, for the sandbox's REST API. Null
- * when the computer has no container.
+ * Where a computer's MCP server answers: `MAIN_COMPUTER_URL` for the
+ * main computer (an app setting, `grabEnv`: for a server outside docker,
+ * e.g. `http://localhost:8170`), else its docker hostname and port, or
+ * its IP address on the network when the hostname can't be reached (a
+ * dev server outside docker, `pickReachableAddress`). `base_url` is the
+ * same address without `/mcp`, for the sandbox's REST API. Only a
+ * computer whose health check passed (`running`) is reached; any other
+ * state is read again from docker first, since it may have come back
+ * since the last sync, and returned as `ready: false`. Null when the
+ * computer has no container.
  */
-export default async function grabComputerMcpUrl({ computer_id }: Params) {
+export default async function grabComputerMcpUrl({ computer_id }: Params): Promise<ComputerAddress | null> {
     const row = (
         await BunSQLite.sql<ComputerRow>({
-            sql: `SELECT co.id, co.name, co.kind, c.hostname, c.port, c.metadata
+            sql: `SELECT co.name, co.kind, c.id, c.docker_id, c.status, c.hostname, c.ip_address, c.port
                 FROM computers co JOIN containers c ON c.id = co.container_id
                 WHERE co.id = ? LIMIT 1`,
             values: [computer_id],
@@ -35,23 +44,37 @@ export default async function grabComputerMcpUrl({ computer_id }: Params) {
 
     if (!row?.hostname) return null;
 
-    const metadata = parseJobJson({ text: row.metadata }) || {};
-
-    if (typeof metadata.mcp_url == "string" && metadata.mcp_url) {
-        return {
-            url: metadata.mcp_url,
-            base_url: metadata.mcp_url.replace(/\/mcp\/?$/, ""),
-            name: row.name || "",
-        };
-    }
+    const name = row.name || "";
 
     const main_override = row.kind == "main"
         ? (await grabEnv({ key: "MAIN_COMPUTER_URL" }))?.trim()
         : undefined;
 
-    const base = main_override
-        ? main_override.replace(/\/+$/, "")
-        : `http://${row.hostname}:${row.port || AppData.ComputerPort}`;
+    if (main_override) {
+        const base_url = main_override.replace(/\/+$/, "");
+        return { ready: true, url: `${base_url}${ComputerMcpPath}`, base_url, name };
+    }
 
-    return { url: `${base}${ComputerMcpPath}`, base_url: base, name: row.name || "" };
+    let status = (row.status || "unknown") as ContainerStatus;
+    let ip_address: string | null | undefined = row.ip_address;
+
+    if (status != "running" && status != "creating" && status != "failed") {
+        const refreshed = await refreshComputerContainer({ computer_id, container: row });
+
+        if (refreshed) ({ status, ip_address } = refreshed);
+    }
+
+    if (status != "running") return { ready: false, status, name };
+
+    const port = row.port || AppData.ComputerPort;
+
+    const base_url = await pickReachableAddress({
+        key: `computer:${computer_id}`,
+        candidates: [
+            `http://${row.hostname}:${port}`,
+            ...(ip_address ? [`http://${ip_address}:${port}`] : []),
+        ],
+    });
+
+    return { ready: true, url: `${base_url}${ComputerMcpPath}`, base_url, name };
 }

@@ -17,6 +17,15 @@ type Params = {
      * `main` only for the owner's one main computer (`ensureMainComputer`).
      */
     kind?: ComputerKind;
+    /**
+     * CPU cores its container may use. Defaults to `AppData.ComputerDefaultCpus`.
+     */
+    cpus?: number;
+    /**
+     * Its container's memory limit in MB. Defaults to
+     * `AppData.ComputerDefaultMemoryMb`.
+     */
+    memory_mb?: number;
 };
 
 /**
@@ -24,7 +33,8 @@ type Params = {
  * (`<AppData.ComputerContainerPrefix>-<id>`), then sets the container up
  * in the background (`provisionComputer`). Returns the computer at once,
  * still `creating`, and the setup to await when the caller must (a CLI
- * script). The main computer of a server that reaches it at
+ * script). Its resources (`cpus`, `memory_mb`) are saved on the computer
+ * and applied to its container whenever it is set up. The main computer of a server that reaches it at
  * `MAIN_COMPUTER_URL` (a dev server) gets no container of its own.
  */
 export default async function createComputer({
@@ -32,6 +42,8 @@ export default async function createComputer({
     name,
     description,
     kind = "sandbox",
+    cpus = AppData.ComputerDefaultCpus,
+    memory_mb = AppData.ComputerDefaultMemoryMb,
 }: Params) {
     const external = kind == "main" && Boolean((await grabEnv({ key: "MAIN_COMPUTER_URL" }))?.trim());
 
@@ -70,6 +82,8 @@ export default async function createComputer({
                 name,
                 description: description || undefined,
                 kind,
+                cpus,
+                memory_mb,
             },
         ],
     });

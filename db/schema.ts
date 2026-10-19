@@ -894,6 +894,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
+                    fieldName: "ip_address",
+                    fieldDescription: `Its IP address on the network, tried when the hostname can't be reached (a dev server outside docker)`,
+                    dataType: "TEXT",
+                },
+                {
                     fieldName: "port",
                     fieldDescription: `Port the service listens on inside the container`,
                     dataType: "INTEGER",
@@ -959,6 +964,16 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "description",
                     dataType: "TEXT",
+                },
+                {
+                    fieldName: "cpus",
+                    fieldDescription: `CPU cores the container may use (docker NanoCpus), set when the computer is created`,
+                    dataType: "REAL",
+                },
+                {
+                    fieldName: "memory_mb",
+                    fieldDescription: `Memory limit of the container in MB, set when the computer is created`,
+                    dataType: "INTEGER",
                 },
             ],
             indexes: [

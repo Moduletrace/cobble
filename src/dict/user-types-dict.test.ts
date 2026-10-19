@@ -19,6 +19,7 @@ describe("UserTypes dict", () => {
         const required = [
             "super_admin",
             "admin",
+            "member",
             "revoked",
             "read_only",
         ] as const;
@@ -48,28 +49,18 @@ describe("Assignment matrices", () => {
         ).toBeUndefined();
     });
 
-    test("elevated types are pass-through only", () => {
-        const elevated = [
-            "admin",
-            "president",
-            "vice_president",
-            "secretary",
-        ] as const;
-        for (const type of elevated) {
-            const entry = UserTypeAssignmentMatrix[type];
-            expect(Array.isArray(entry.allowed_actors)).toBe(true);
-            expect((entry.allowed_actors as string[]).length).toBe(0);
-        }
+    test("admin is granted by pass-through actors only", () => {
+        const entry = UserTypeAssignmentMatrix["admin"];
+        expect(Array.isArray(entry.allowed_actors)).toBe(true);
+        expect((entry.allowed_actors as string[]).length).toBe(0);
     });
 
-    test("admin can manage auditor but not another admin", () => {
-        expect(
-            UserTypeAssignmentMatrix["auditor"].allowed_actors,
-        ).toContain("admin");
-
-        expect(
-            (UserTypeAssignmentMatrix["admin"].allowed_actors as string[])
-                .length,
-        ).toBe(0);
+    test("admin manages member types, never on admins or the super admin", () => {
+        for (const type of ["member", "read_only", "revoked"] as const) {
+            for (const matrix of [UserTypeAssignmentMatrix, UserTypeDeletionMatrix]) {
+                const rules = (matrix[type].allowed_actors as Record<string, { excluded_targets?: string[] }>).admin;
+                expect(rules?.excluded_targets).toEqual(["super_admin", "admin"]);
+            }
+        }
     });
 });

@@ -577,6 +577,10 @@ export type BUN_SQLITE_COBBLE_CONTAINERS = {
      */
     hostname?: string;
     /** 
+     * Its IP address on the network, tried when the hostname can't be reached (a dev server outside docker)
+     */
+    ip_address?: string;
+    /** 
      * Port the service listens on inside the container
      */
     port?: number | "";
@@ -621,6 +625,14 @@ export type BUN_SQLITE_COBBLE_COMPUTERS = {
      */
     kind?: "main" | "sandbox" | "";
     description?: string;
+    /** 
+     * CPU cores the container may use (docker NanoCpus), set when the computer is created
+     */
+    cpus?: number | "";
+    /** 
+     * Memory limit of the container in MB, set when the computer is created
+     */
+    memory_mb?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOT_COMPUTERS = {

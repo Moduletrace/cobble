@@ -1,7 +1,5 @@
 import { useContext, useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
-import Span from "@moduletrace/twui/layout/Span";
-import Stack from "@moduletrace/twui/layout/Stack";
 import { Plus } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
 import type { ComputerWithStatus } from "@/src/types";
@@ -9,8 +7,9 @@ import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import { AddFlowContext } from "@/src/layouts/bots/(data)/add-flow-context";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group";
+import SettingsList from "@/src/pages/admin/settings/(partials)/settings-list";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
-import useLiveComputers from "../(hooks)/use-live-computers";
+import useLiveComputers from "@/src/hooks/use-live-computers";
 import InlineAddSelect from "./inline-add-select";
 import WorkspaceComputerRow from "./workspace-computer-row";
 
@@ -77,7 +76,10 @@ export default function WorkspaceComputersGroup({ workspace_id, computers: initi
             title="Computers"
             description="Bots here work on these. Their tasks run on the default one unless they pick another."
         >
-            <Stack className="w-full py-1 gap-0! items-stretch rounded-default border border-solid border-hairline bg-surface">
+            <SettingsList
+                is_empty={!computers.length}
+                empty="No computers yet. Bots here can chat, but tasks that need a computer can't run."
+            >
                 {computers.map((computer) => (
                     <WorkspaceComputerRow
                         key={computer.id}
@@ -95,12 +97,7 @@ export default function WorkspaceComputersGroup({ workspace_id, computers: initi
                         }}
                     />
                 ))}
-                {computers.length ? null : (
-                    <Span className="px-4 py-4 text-[13px] leading-[18px] text-ink-secondary">
-                        No computers yet. Bots here can chat, but tasks that need a computer can't run.
-                    </Span>
-                )}
-            </Stack>
+            </SettingsList>
             <InlineAddSelect
                 id="workspace-add-computer"
                 noun="computer"

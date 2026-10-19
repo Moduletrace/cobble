@@ -1,5 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_COBBLE_CONTAINERS } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_COMPUTERS, BUN_SQLITE_COBBLE_CONTAINERS } from "@/db/types/db";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import { AppData } from "@/src/data/app-data";
 import createComputerContainer from "@/src/functions/backend/docker/create-computer-container";
@@ -17,15 +17,18 @@ type Params = {
 
 /**
  * Sets up a computer's container: prepares its home directory, pulls the
- * sandbox image and starts the container, then records it (`containers`:
- * docker id, state, and where to reach it outside docker). A failure is
+ * sandbox image and starts the container with the computer's resources
+ * (`cpus`, `memory_mb`, else the `AppData` defaults), then records it (`containers`:
+ * docker id, state, and its IP address on the network). A failure is
  * recorded as `failed` with its reason, which the computer lists show. The
  * owner's tabs hear about it either way. Never throws.
  */
 export default async function provisionComputer({ computer_id, fresh }: Params) {
     const row = (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_CONTAINERS>({
-            sql: `SELECT co.* FROM containers co JOIN computers c ON c.container_id = co.id WHERE c.id = ? LIMIT 1`,
+        await BunSQLite.sql<
+            BUN_SQLITE_COBBLE_CONTAINERS & Pick<BUN_SQLITE_COBBLE_COMPUTERS, "cpus" | "memory_mb">
+        >({
+            sql: `SELECT co.*, c.cpus, c.memory_mb FROM containers co JOIN computers c ON c.container_id = co.id WHERE c.id = ? LIMIT 1`,
             values: [computer_id],
         })
     ).payload?.[0];
@@ -41,26 +44,28 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
         });
 
         const data_dir = await prepareComputerDataDir({ computer_id, fresh });
-        const created = await createComputerContainer({ computer_id, name: row.name, data_dir });
+        const created = await createComputerContainer({
+            computer_id,
+            name: row.name,
+            data_dir,
+            cpus: Number(row.cpus) || AppData.ComputerDefaultCpus,
+            memory_mb: Number(row.memory_mb) || AppData.ComputerDefaultMemoryMb,
+        });
 
         const { error: _error, mcp_url: _mcp_url, ...kept } = metadata;
 
         await BunSQLite.sql({
-            sql: `UPDATE containers SET docker_id = ?, image = ?, network = ?, hostname = ?, port = ?,
-                status = ?, metadata = ?, last_seen_at = ?, updated_at = ? WHERE id = ?`,
+            sql: `UPDATE containers SET docker_id = ?, image = ?, network = ?, hostname = ?, ip_address = ?,
+                port = ?, status = ?, metadata = ?, last_seen_at = ?, updated_at = ? WHERE id = ?`,
             values: [
                 created.docker_id,
                 AppData.ComputerImage,
                 created.network,
                 row.name,
+                created.ip_address,
                 AppData.ComputerPort,
                 created.status,
-                JSON.stringify({
-                    ...kept,
-                    data_dir,
-                    host_dir: created.host_dir,
-                    ...(created.mcp_url ? { mcp_url: created.mcp_url } : {}),
-                }),
+                JSON.stringify({ ...kept, data_dir, host_dir: created.host_dir }),
                 Date.now(),
                 Date.now(),
                 row.id,

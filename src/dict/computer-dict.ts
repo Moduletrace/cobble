@@ -20,8 +20,11 @@ export const MainComputerName = "Main computer";
 
 /**
  * Docker container state as reported by `docker inspect` (`State.Status`),
- * plus `creating` while the app sets it up, `failed` when that didn't
- * work, and `unknown` for a record that hasn't been inspected yet.
+ * with `running` narrowed by its health check: `starting` until it first
+ * passes, `unhealthy` once it keeps failing. Plus `creating` while the app
+ * sets it up (until the health check passes), `failed` when that didn't
+ * work, and `unknown` for a record that hasn't been inspected yet. Only a
+ * `running` computer is reached.
  */
 export const ContainerStatuses = [
     {
@@ -37,8 +40,16 @@ export const ContainerStatuses = [
         value: "created",
     },
     {
+        title: "Starting",
+        value: "starting",
+    },
+    {
         title: "Running",
         value: "running",
+    },
+    {
+        title: "Unhealthy",
+        value: "unhealthy",
     },
     {
         title: "Paused",

@@ -13,6 +13,7 @@ import { AppContext } from "@/src/pages/__root";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import { useContext } from "react";
 import dayjs from "dayjs";
+import UserAvatar from "@/src/components/general/user-avatar";
 
 type Props = {
     person: BUN_SQLITE_COBBLE_USERS_JOIN;
@@ -54,6 +55,7 @@ export default function PeopleListCard({ person }: Props) {
         >
             <Row className="w-full justify-between">
                 <Row>
+                    <UserAvatar person={person} size="md" />
                     <Img
                         alt={`${person_name}`}
                         src={
@@ -77,10 +79,7 @@ export default function PeopleListCard({ person }: Props) {
                                 size={14}
                                 className="opacity-50"
                             />
-                            <Span
-                                variant="faded"
-                                className="text-xs"
-                            >
+                            <Span variant="faded" className="text-xs">
                                 {date_created.toString()}
                             </Span>
                         </Row>

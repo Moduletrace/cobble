@@ -23,7 +23,8 @@ type Props = {
  */
 export default function ComputerViewerModal({ bot }: Props) {
     const { pageProps } = useContext(AppContext);
-    const { computers, viewing, closeComputer } = useContext(BotComputersContext);
+    const { computers, viewing, closeComputer } =
+        useContext(BotComputersContext);
     const [handing_back, setHandingBack] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -57,7 +58,7 @@ export default function ComputerViewerModal({ bot }: Props) {
             setOpen={(open) => {
                 if (!open) closeComputer();
             }}
-            className="max-w-[1280px] h-[90vh] p-0 bg-paper flex flex-col overflow-hidden"
+            className="max-w-[95vw]! h-[90vh] p-0 bg-paper flex flex-col overflow-hidden"
         >
             <Row className="w-full gap-3! flex-nowrap items-center pl-5 pr-14 py-3 border-0 border-b border-solid border-hairline">
                 <Stack className="min-w-0 gap-0! items-start">
@@ -82,7 +83,10 @@ export default function ComputerViewerModal({ bot }: Props) {
                             {`Hand back to ${bot_name}`}
                         </Button>
                         {error ? (
-                            <Span role="alert" className="text-[13px] leading-[18px] text-ink-secondary">
+                            <Span
+                                role="alert"
+                                className="text-[13px] leading-[18px] text-ink-secondary"
+                            >
                                 {error}
                             </Span>
                         ) : null}

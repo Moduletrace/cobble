@@ -1,11 +1,17 @@
 import {
+    Bot,
     CpuAi,
     KeyRound,
+    Layers,
+    Monitor,
+    Users,
     SlidersHorizontal,
     UserRound,
     Variable,
     type LucideIcon,
 } from "lucide-react";
+import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
+import canListUsers from "@/src/utils/rbac/can-list-users";
 
 export type SettingsPage = {
     title: string;
@@ -15,7 +21,13 @@ export type SettingsPage = {
      * Shown and served to super admins only.
      */
     super_admin_only?: boolean;
+    /**
+     * Who sees it, when that's an RBAC rule rather than super admins only.
+     */
+    can_view?: (params: { user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null }) => boolean;
 };
+
+export const SettingsComputersPath = "/admin/settings/computers";
 
 /**
  * The `/admin/settings/*` sub pages, listed in the rail on every settings
@@ -32,6 +44,15 @@ export const SettingsPages: SettingsPage[] = [
         title: "Change password",
         url: "/admin/settings/change-password",
         Icon: KeyRound,
+    },
+    { title: "Bots", url: "/admin/settings/bots", Icon: Bot },
+    { title: "Workspaces", url: "/admin/settings/workspaces", Icon: Layers },
+    { title: "Computers", url: SettingsComputersPath, Icon: Monitor },
+    {
+        title: "Users",
+        url: "/admin/settings/users",
+        Icon: Users,
+        can_view: canListUsers,
     },
     {
         title: "Models",

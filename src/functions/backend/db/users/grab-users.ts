@@ -29,21 +29,22 @@ export default async function grabUsers(
         sql += `SELECT\n`;
         sql += `    u.*,\n`;
         sql += `    ut_agg.user_types,\n`;
-        sql += `    m.id AS profile_media_id\n`;
+        /**
+         * Their profile photo only: other primary media (a bot's picture)
+         * must not stand in for it.
+         */
+        sql += `    (\n`;
+        sql += `        SELECT m.id FROM media m\n`;
+        sql += `        JOIN media_paradigms mp ON mp.media_id = m.id AND mp.media_paradigm = 'user-profile-image'\n`;
+        sql += `        WHERE m.user_id = u.id AND m.is_primary = 1\n`;
+        sql += `        ORDER BY m.id DESC LIMIT 1\n`;
+        sql += `    ) AS profile_media_id\n`;
         sql += `FROM users u\n`;
         sql += `LEFT JOIN (\n`;
         sql += `    SELECT user_id, GROUP_CONCAT(DISTINCT user_type) AS user_types\n`;
         sql += `    FROM user_types\n`;
         sql += `    GROUP BY user_id\n`;
         sql += `) ut_agg ON u.id = ut_agg.user_id\n`;
-        sql += `LEFT JOIN media m ON (\n`;
-        sql += `    u.id = m.user_id\n`;
-        sql += `    AND m.is_primary = 1\n`;
-        sql += `)\n`;
-        sql += `LEFT JOIN media_paradigms mp ON (\n`;
-        sql += `    m.id = mp.media_id\n`;
-        sql += `    AND mp.media_paradigm = 'user-profile-image'\n`;
-        sql += `)\n`;
         sql += `WHERE COALESCE(u.archived, 0) <> 1\n`;
 
         const target_user_id = params?.user_id || query?.user_id;

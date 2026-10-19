@@ -1,6 +1,7 @@
 import { useContext, useRef, useState, type ReactNode } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { AppContext } from "@/src/pages/__root";
+import { SettingsComputersPath } from "@/src/dict/settings-pages-dict";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import { AddFlowContext } from "../(data)/add-flow-context";
 import { AddChoices, type AddKind } from "../(dict)/add-choices-dict";
@@ -118,7 +119,12 @@ export default function AddFlow({ children }: Props) {
                     <AddComputerForm
                         onCancel={close}
                         onCreated={({ msg, linked }) => {
-                            if (linked && pageProps?.url?.pathname == `/admin/workspaces/${workspace?.id}`) {
+                            const pathname = pageProps?.url?.pathname;
+
+                            if (
+                                (linked && pathname == `/admin/workspaces/${workspace?.id}`) ||
+                                pathname == SettingsComputersPath
+                            ) {
                                 window.location.reload();
                                 return;
                             }

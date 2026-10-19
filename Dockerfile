@@ -5,6 +5,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
+# Everything that must survive an update lives on the /data volume:
+# the database, media, computers' home directories
+ENV DATA_DIR=/data
+ENV DB_DIR=/data/db
 ENV BUN_FEATURE_FLAG_DISABLE_STREAMING_INSTALL=1
 
 WORKDIR /app

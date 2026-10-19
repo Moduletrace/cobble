@@ -1,13 +1,16 @@
 import { AppData } from "@/src/data/app-data";
-import { ComputerMcpPath } from "@/src/dict/computer-dict";
 import dockerRequest from "./docker-request";
 import ensureDockerNetwork from "./ensure-docker-network";
-import grabAppContainer from "./grab-app-container";
-import grabFreePort from "./grab-free-port";
-import inspectDockerContainer from "./inspect-docker-container";
+
 import pullDockerImage from "./pull-docker-image";
 import removeDockerContainer from "./remove-docker-container";
 import resolveHostPath from "./resolve-host-path";
+import waitForHealthyContainer from "./wait-for-healthy-container";
+
+/**
+ * Docker takes health check durations in nanoseconds.
+ */
+const seconds = (value: number) => value * 1e9;
 
 type Params = {
     computer_id: number;
@@ -19,22 +22,36 @@ type Params = {
      * The computer's home directory as this app sees it.
      */
     data_dir: string;
+    /**
+     * CPU cores the container may use.
+     */
+    cpus: number;
+    /**
+     * The container's memory limit in MB.
+     */
+    memory_mb: number;
 };
 
 /**
- * Creates and starts an AIO sandbox container for a computer
- * (`AppData.ComputerImage`) on the computers' network, with its home
- * directory bind-mounted from `data_dir` and restarted with docker. A
- * container left by an earlier try is replaced. When the app runs outside
- * docker, the sandbox is also published on a localhost port, returned as
- * `mcp_url`'s host.
+ * Creates and starts (the API's `docker run`) an AIO sandbox container
+ * for a computer (`AppData.ComputerImage`), attached to the computers'
+ * network (created first when missing), with its home directory
+ * bind-mounted from `data_dir`, limited to `cpus` and `memory_mb`, with a
+ * health check (`AppData.ComputerHealthcheck`), and restarted with
+ * docker. A container left by an earlier try is stopped and replaced.
+ * Resolves once the health check passes, with its IP address on the network, which a dev
+ * server outside docker reaches it at, since it can't resolve the
+ * hostname.
  */
-export default async function createComputerContainer({ computer_id, name, data_dir }: Params) {
+export default async function createComputerContainer({
+    computer_id,
+    name,
+    data_dir,
+    cpus,
+    memory_mb,
+}: Params) {
     const network = await ensureDockerNetwork();
-    const in_docker = Boolean(await grabAppContainer());
     const host_dir = await resolveHostPath({ local_path: data_dir });
-    const port_key = `${AppData.ComputerPort}/tcp`;
-    const host_port = in_docker ? undefined : grabFreePort();
 
     await pullDockerImage({ image: AppData.ComputerImage });
     await removeDockerContainer({ container: name });
@@ -49,18 +66,25 @@ export default async function createComputerContainer({ computer_id, name, data_
             Labels: {
                 [`${AppData.DockerNetworkName}.computer_id`]: String(computer_id),
             },
-            ExposedPorts: { [port_key]: {} },
+            ExposedPorts: { [`${AppData.ComputerPort}/tcp`]: {} },
+            Healthcheck: {
+                Test: [
+                    "CMD-SHELL",
+                    `curl -fs -o /dev/null http://localhost:${AppData.ComputerPort}/v1/sandbox && ([ "$DISABLE_BROWSER" = "true" ] || nc -z localhost "$BROWSER_REMOTE_DEBUGGING_PORT") || exit 1`,
+                ],
+                Interval: seconds(AppData.ComputerHealthcheck.IntervalSeconds),
+                Timeout: seconds(AppData.ComputerHealthcheck.TimeoutSeconds),
+                StartPeriod: seconds(AppData.ComputerHealthcheck.StartPeriodSeconds),
+                Retries: AppData.ComputerHealthcheck.Retries,
+            },
             HostConfig: {
                 Binds: [`${host_dir}:${AppData.ComputerHomeDir}`],
                 NetworkMode: network,
                 RestartPolicy: { Name: "unless-stopped" },
                 SecurityOpt: ["seccomp=unconfined"],
                 ShmSize: AppData.ComputerShmBytes,
-                Memory: AppData.ComputerMemoryBytes,
-                NanoCpus: AppData.ComputerCpus * 1e9,
-                PortBindings: host_port
-                    ? { [port_key]: [{ HostIp: "127.0.0.1", HostPort: String(host_port) }] }
-                    : undefined,
+                Memory: memory_mb * 1024 * 1024,
+                NanoCpus: Math.round(cpus * 1e9),
             },
             NetworkingConfig: {
                 EndpointsConfig: { [network]: { Aliases: [name] } },
@@ -81,13 +105,13 @@ export default async function createComputerContainer({ computer_id, name, data_
         throw new Error(`Couldn't start the container: ${started.message}`);
     }
 
-    const state = await inspectDockerContainer({ container: created.data.Id });
+    const state = await waitForHealthyContainer({ container: created.data.Id });
 
     return {
         docker_id: created.data.Id,
         network,
-        status: state?.status || "unknown",
+        status: state.status,
         host_dir,
-        mcp_url: host_port ? `http://127.0.0.1:${host_port}${ComputerMcpPath}` : undefined,
+        ip_address: state.ip_address,
     };
 }

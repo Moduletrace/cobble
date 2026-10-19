@@ -1,6 +1,7 @@
 import { ComputerMcpExcludedTools } from "@/src/dict/computer-dict";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
+import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import grabMcpTools from "../../mcp/grab-mcp-tools";
@@ -56,6 +57,10 @@ export default async function openComputerTools({
 
     if (!target) {
         throw new Error(`Computer #${computer_id} has no container to connect to.`);
+    }
+
+    if (!target.ready) {
+        throw new Error(computerNotReadyMessage(target));
     }
 
     const envs = await grabComputerEnvs({ computer_id, workspace_id });

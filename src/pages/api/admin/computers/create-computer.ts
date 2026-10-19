@@ -42,13 +42,19 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<ComputerWithStatus
             throw new AppError(`Only a super admin can do that.`);
         }
 
-        const { name, description, workspace_id } = parseWithSchema({ schema: CreateComputerRequestSchema, data: body });
+        const { name, description, cpus, memory_mb, workspace_id } = parseWithSchema({ schema: CreateComputerRequestSchema, data: body });
 
         if (workspace_id && !(await grabUserWorkspace({ workspace_id, user_id: user.id }))?.id) {
             throw new AppError(`Workspace not found.`);
         }
 
-        const { computer_id } = await createComputer({ user_id: user.id, name, description });
+        const { computer_id } = await createComputer({
+            user_id: user.id,
+            name,
+            description,
+            cpus,
+            memory_mb,
+        });
 
         if (workspace_id) {
             await addComputerToWorkspace({ user_id: user.id, workspace_id, computer_id });

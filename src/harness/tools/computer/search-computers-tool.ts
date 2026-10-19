@@ -4,6 +4,7 @@ import { AppData } from "@/src/data/app-data";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerRef from "@/src/utils/computer-ref";
+import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import redactSecrets from "@/src/utils/redact-secrets";
 import type { HarnessTool } from "../../types";
 import runComputerCommand from "./run-computer-command";
@@ -48,6 +49,8 @@ export default function searchComputersTool({
                         const target = await grabComputerMcpUrl({ computer_id: computer.id || 0 });
 
                         if (!target) return `${label}\nNot reachable: it has no container.`;
+
+                        if (!target.ready) return `${label}\nNot reachable: ${computerNotReadyMessage(target)}`;
 
                         const [result, envs] = await Promise.all([
                             runComputerCommand({

@@ -20,7 +20,7 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
-DEPLOY_NAME="bunext-sqlite"
+DEPLOY_NAME="cobble"
 SOURCE_PATH="${SOURCE_DIRECTORY:-$(read_env_var SOURCE_DIRECTORY)}"
 SERVER_IP="${DEPLOY_SERVER_IP:-$(read_env_var DEPLOY_SERVER_IP)}"
 SSH_USER="${SSH_USER:-$(read_env_var SSH_USER)}"
@@ -60,17 +60,6 @@ set -euo pipefail
 DEPLOY_NAME="$1"
 
 cd "/docker/$DEPLOY_NAME"
-docker build -t "$DEPLOY_NAME" .
-
-docker rm -f "$DEPLOY_NAME" 2>/dev/null || true
-
-docker run --name "$DEPLOY_NAME" -d \
-  --network cloudflare \
-  -v "/data/$DEPLOY_NAME/.data:/data" \
-  --cpus 1 --memory 1g \
-  --env-file "/docker/$DEPLOY_NAME/.env" \
-  --restart unless-stopped \
-  "$DEPLOY_NAME:latest"
-
-docker image prune -f
+COBBLE_DATA_DIR="/data/$DEPLOY_NAME/.data" COBBLE_EXTRA_NETWORK=cloudflare \
+  ./deploy/run-app-container.sh
 EOF

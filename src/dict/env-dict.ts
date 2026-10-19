@@ -70,6 +70,7 @@ export const ProcessOnlyEnvKeys = [
     "ENCRYPTION_SALT",
     "PORT",
     "DATA_DIR",
+    "DB_DIR",
     "MAIN_SERVER",
 ] as const;
 

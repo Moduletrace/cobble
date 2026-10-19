@@ -10,6 +10,7 @@ import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import { ComputerProxyPrefix } from "./dict/computer-dict";
+import ensureDockerNetwork from "./functions/backend/docker/ensure-docker-network";
 
 declare global {}
 
@@ -20,6 +21,18 @@ const port = process.env.PORT || 7227;
 
 await enableForeignKeys();
 await bunext.bunextInit();
+
+/**
+ * Computers are docker containers on this network, so the app doesn't
+ * start without docker.
+ */
+try {
+    await ensureDockerNetwork();
+} catch (error) {
+    await logError({ title: "Docker isn't available", error }).catch(() => {});
+    console.error(`Can't start without docker: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+}
 
 const server = Bun.serve({
     async fetch(req, server) {

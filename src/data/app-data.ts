@@ -27,9 +27,9 @@ export const AppData = {
     PasswordMaxLength: 128,
     PasswordAttemptLimit: 10,
     /**
-     * Docker network shared by the app and every computer. The app creates
-     * it when it sets up its first computer and joins it when it runs in
-     * docker.
+     * Docker network shared by the app and every computer. The app makes
+     * sure it exists on startup and before it creates a container, and
+     * joins it when it runs in docker.
      */
     DockerNetworkName: SiteData["SiteSlug"],
     /**
@@ -52,10 +52,43 @@ export const AppData = {
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
     /**
+     * Resources a new computer's container gets, saved on the computer
+     * (`cpus`, `memory_mb`) when it is created.
+     */
+    ComputerDefaultCpus: 1,
+    ComputerDefaultMemoryMb: 2048,
+    ComputerMinCpus: 0.25,
+    ComputerMaxCpus: 64,
+    ComputerMinMemoryMb: 512,
+    /**
+     * Docker's health check on every computer container: the sandbox's API
+     * on `ComputerPort` and its browser answer. A new computer stays
+     * `creating` until it passes, for at most `ComputerHealthyTimeoutMs`,
+     * checked every `ComputerHealthPollMs`.
+     */
+    ComputerHealthcheck: {
+        IntervalSeconds: 5,
+        TimeoutSeconds: 5,
+        StartPeriodSeconds: 120,
+        Retries: 3,
+    },
+    ComputerHealthyTimeoutMs: 5 * 60 * 1000,
+    ComputerHealthPollMs: 2000,
+    /**
+     * How long docker gives a computer's container to stop before it is
+     * killed, when it is removed or recreated.
+     */
+    ComputerStopTimeoutSeconds: 10,
+    /**
+     * A computer is reached at its hostname, else its IP address. Each
+     * address gets this long to answer, and the one that did is reused
+     * for `ComputerAddressCacheMs`.
+     */
+    ComputerReachTimeoutMs: 2000,
+    ComputerAddressCacheMs: 60 * 1000,
+    /**
      * Per computer container.
      */
-    ComputerMemoryBytes: 4 * 1024 * 1024 * 1024,
-    ComputerCpus: 2,
     ComputerShmBytes: 2 * 1024 * 1024 * 1024,
     /**
      * The docker engine API, reached over its unix socket.
