@@ -48,6 +48,7 @@ export default function WorkspaceDashboard() {
             />
             <WorkspaceComputersListGroup
                 computers={pageProps?.workspace_computers || []}
+                linked={can_manage}
             />
         </SettingsShell>
     );

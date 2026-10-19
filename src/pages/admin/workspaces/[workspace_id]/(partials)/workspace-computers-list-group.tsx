@@ -8,13 +8,17 @@ type Props = {
      * The computers linked to the workspace, its default first.
      */
     computers: ComputerWithStatus[];
+    /**
+     * Whether the viewer can open each computer's settings page.
+     */
+    linked: boolean;
 };
 
 /**
  * The computers bots work on here, with their state. Display only:
  * computers are linked and set up under Settings.
  */
-export default function WorkspaceComputersListGroup({ computers }: Props) {
+export default function WorkspaceComputersListGroup({ computers, linked }: Props) {
     return (
         <SettingsGroup
             id="computers"
@@ -30,6 +34,7 @@ export default function WorkspaceComputersListGroup({ computers }: Props) {
                         key={computer.id}
                         computer={computer}
                         is_default={index == 0}
+                        linked={linked}
                     />
                 ))}
             </SettingsList>

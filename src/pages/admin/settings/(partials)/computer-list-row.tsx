@@ -17,6 +17,10 @@ type Props = {
      * What can be done with it, after the open button.
      */
     children?: ReactNode;
+    /**
+     * Link the title to its settings page. Off for people who can't open it.
+     */
+    linked?: boolean;
 };
 
 /**
@@ -24,14 +28,14 @@ type Props = {
  * settings page from the title. Every list uses it, so the row behaves the
  * same, and the open button shows it in the viewer over the page.
  */
-export default function ComputerListRow({ computer, badge, subtitle, children }: Props) {
+export default function ComputerListRow({ computer, badge, subtitle, children, linked = true }: Props) {
     const name = computer.name || `Computer ${computer.id}`;
     const ready = computer.status == "running";
 
     return (
         <SettingsListRow
             avatar={<ComputerIconTile />}
-            href={`/admin/settings/computers/${computer.id}`}
+            href={linked ? `/admin/settings/computers/${computer.id}` : undefined}
             title={name}
             badge={badge}
             subtitle={

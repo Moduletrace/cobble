@@ -29,7 +29,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             redirect: {
                 destination: canManageCrew({ user_types })
                     ? `/admin/settings/workspaces/${query.workspace_id}`
-                    : "/admin/bots",
+                    : `/admin/workspaces/${query.workspace_id}`,
             },
         };
     }
