@@ -1133,6 +1133,15 @@ export type BUN_SQLITE_COBBLE_CUSTOM_TOOLS = {
     all_bots?: 0 | 1 | "";
     enabled?: 0 | 1 | "";
     /** 
+     * How its last run went (a bot's call or a try). Reset to untested when it's edited
+     */
+    status?: "untested" | "ok" | "error" | "";
+    last_error?: string;
+    /** 
+     * Unix ms of its last run
+     */
+    last_checked_at?: number | "";
+    /** 
      * Who created it. Not a foreign key: it belongs to the install
      */
     user_id?: number | "";

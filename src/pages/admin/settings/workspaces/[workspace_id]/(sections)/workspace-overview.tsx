@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import EmptyContent from "@moduletrace/twui/elements/EmptyContent";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
+import ExtensionsGroup from "../../../(partials)/extensions-group";
 import SettingsSectionHeading from "../../../(partials)/settings-section-heading";
 import SettingsShell from "../../../(partials)/settings-shell";
 import WorkspaceBotsGroup from "../(partials)/workspace-bots-group";
@@ -12,7 +13,8 @@ import WorkspaceImageGroup from "../(partials)/workspace-image-group";
 import WorkspaceModels from "../(partials)/workspace-models";
 
 /**
- * A workspace's settings: its picture, context, bots, computers and models,
+ * A workspace's settings: its picture, context, bots, computers, tools
+ * and MCP servers, and models,
  * then deleting it. Super admins and admins manage it; a member with no
  * bots sees an empty note.
  */
@@ -61,6 +63,12 @@ export default function WorkspaceOverview() {
                 workspace_id={workspace_id}
                 computers={pageProps?.workspace_computers || []}
                 all_computers={pageProps?.computers || []}
+            />
+            <ExtensionsGroup
+                owner={{ workspace_id }}
+                owner_name={name}
+                description="Every bot working here gets these, the coordinator too, on top of its own, only while it works here."
+                initial={pageProps?.workspace_extensions}
             />
             {harnesses?.length ? (
                 <>

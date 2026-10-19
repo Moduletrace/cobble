@@ -3,6 +3,7 @@ import { AppContext } from "@/src/pages/__root";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import type { BotWithLastMessage } from "@/src/types";
 import BotHarnessForm from "../../../(partials)/bot-harness-form";
+import ExtensionsGroup from "../../../(partials)/extensions-group";
 import SettingsSectionHeading from "../../../(partials)/settings-section-heading";
 import SettingsShell from "../../../(partials)/settings-shell";
 import BotComputersGroup from "../(partials)/bot-computers-group";
@@ -13,7 +14,7 @@ import BotWorkspacesGroup from "../(partials)/bot-workspaces-group";
 
 /**
  * One bot's settings: overview, details, models, workspaces, computers,
- * and deleting a worker. The same page shows the bot's information and
+ * tools and MCP servers, and deleting a worker. The same page shows the bot's information and
  * edits it.
  */
 export default function BotSettingsSection() {
@@ -69,6 +70,12 @@ export default function BotSettingsSection() {
                 bot={bot}
                 computers={pageProps?.bot_computers || []}
                 all_computers={pageProps?.computers || []}
+            />
+            <ExtensionsGroup
+                owner={{ bot_id: bot.id }}
+                owner_name={name}
+                description="What it can use besides its own tools, everywhere it works. A workspace's own come on top while it works there."
+                initial={pageProps?.bot_extensions}
             />
             {is_coordinator ? null : <BotDeleteGroup bot={bot} />}
         </SettingsShell>

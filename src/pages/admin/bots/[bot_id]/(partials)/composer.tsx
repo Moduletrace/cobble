@@ -3,6 +3,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Textarea from "@moduletrace/twui/form/Textarea";
 import type {
+    BotExtensionsPayload,
     BotMessageWithAttachments,
     BotWithLastMessage,
 } from "@/src/types";
@@ -12,6 +13,7 @@ import useComposerDraft from "../(hooks)/use-composer-draft";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerSendButton from "./composer-send-button";
+import ComposerTools from "./composer-tools";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -19,6 +21,10 @@ type Props = {
      * The workspace the conversation is in, if any.
      */
     workspace_id?: number | null;
+    /**
+     * Its MCP servers and tools, listed under the input.
+     */
+    extensions?: BotExtensionsPayload | null;
     onSent: (params: { message: BotMessageWithAttachments }) => void;
 };
 
@@ -26,9 +32,10 @@ type Props = {
  * Enter sends, Shift+Enter adds a line. Grows to five lines, then scrolls.
  * Its top rule lines up with the rail's user-row rule; picked files sit
  * just above it. Files can also be pasted or dropped in. Unsent text is
- * kept per conversation across reloads, with its uploaded files.
+ * kept per conversation across reloads, with its uploaded files. The
+ * bot's MCP servers and tools are listed under the input.
  */
-export default function Composer({ bot, workspace_id, onSent }: Props) {
+export default function Composer({ bot, workspace_id, extensions, onSent }: Props) {
     const { text, setText } = useComposerDraft({ bot_id: bot.id, workspace_id });
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
@@ -128,6 +135,7 @@ export default function Composer({ bot, workspace_id, onSent }: Props) {
                         onClick={send}
                     />
                 </Row>
+                <ComposerTools bot={bot} workspace_id={workspace_id} initial={extensions} />
             </Stack>
         </Stack>
     );

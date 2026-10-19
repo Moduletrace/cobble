@@ -12,6 +12,7 @@ import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { CustomToolsOverviewPayload, PublicCustomTool } from "@/src/types";
 import { DefaultToolConfigs, DefaultToolParameters } from "../(data)/tool-defaults";
 import CustomToolKindFields, { type ToolConfigs } from "./custom-tool-kind-fields";
+import CustomToolTestPanel from "./custom-tool-test-panel";
 
 type Props = {
     /**
@@ -25,7 +26,8 @@ type Props = {
 /**
  * Adds or edits a custom tool (super admins): the name and description
  * the model reads, its arguments as a JSON schema, and what it does (an
- * HTTP request, a script, or a prompt).
+ * HTTP request, a script, or a prompt). Test runs the form as it is,
+ * saved or not, with sample arguments.
  */
 export default function CustomToolModal({ tool, onSaved, onCancel }: Props) {
     const [name, setName] = useState(tool?.name || "");
@@ -44,6 +46,17 @@ export default function CustomToolModal({ tool, onSaved, onCancel }: Props) {
     const [error, setError] = useState<string>();
 
     const id = `tool-${tool?.id || "new"}`;
+
+    /**
+     * The tool as the form has it, for a test that saves nothing.
+     */
+    const draft = () => {
+        try {
+            return { draft: { parameters: JSON.parse(parameters), kind, config: configs[kind] } };
+        } catch {
+            return "The arguments schema isn't valid JSON.";
+        }
+    };
 
     const submit = async () => {
         if (loading) return;
@@ -133,10 +146,11 @@ export default function CustomToolModal({ tool, onSaved, onCancel }: Props) {
                     changeHandler={(value) => setKind(String(value) as CustomToolKind)}
                 />
                 <CustomToolKindFields key={kind} id={id} kind={kind} configs={configs} onChange={setConfigs} />
+            <CustomToolTestPanel target={draft} />
                 <Checkbox title="On" label="On: bots get it" checked={enabled} changeHandler={setEnabled} />
                 <Checkbox
                     title="Every bot"
-                    label="Every bot, the coordinator included"
+                    label="Every bot by default: every bot now and every new one, the coordinator included. Each can still drop it."
                     checked={all_bots}
                     changeHandler={setAllBots}
                 />

@@ -27,16 +27,17 @@ const Tables = {
 
 /**
  * The enabled MCP servers or custom tools a bot gets on one run: those
- * for every bot, those attached to the bot, and in a workspace those
- * attached to the workspace.
+ * attached to the bot, and in a workspace those attached to the
+ * workspace. "Every bot" only decides what a bot is given (now and when
+ * it's created, `attachToAllBots`, `attachDefaultExtensions`); one it
+ * dropped stays dropped.
  */
 export default function botExtensionsSql({ kind, bot_id, workspace_id }: Params) {
     const { table, bot_link, workspace_link, column } = Tables[kind];
 
     return {
         sql: `SELECT x.* FROM ${table} x WHERE x.enabled = 1 AND (
-            x.all_bots = 1
-            OR x.id IN (SELECT ${column} FROM ${bot_link} WHERE bot_id = ?)
+            x.id IN (SELECT ${column} FROM ${bot_link} WHERE bot_id = ?)
             ${workspace_id ? `OR x.id IN (SELECT ${column} FROM ${workspace_link} WHERE workspace_id = ?)` : ""}
         ) ORDER BY x.id ASC`,
         values: workspace_id ? [Number(bot_id), Number(workspace_id)] : [Number(bot_id)],

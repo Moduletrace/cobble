@@ -2,6 +2,7 @@ import type { PagePropsType, PageQueryObject } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
+import grabWorkspaceExtensionsOverview from "@/src/functions/backend/db/extensions/grab-workspace-extensions-overview";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
@@ -9,8 +10,8 @@ import grabWorkspaceComputers from "@/src/functions/backend/db/workspaces/grab-w
 import grabCrewSettingsServerProps from "../../(functions)/grab-crew-settings-server-props";
 
 /**
- * One workspace's settings: its picture, details, bots, computers and
- * models. For super admins and admins.
+ * One workspace's settings: its picture, details, bots, computers, tools
+ * and MCP servers, and models. For super admins and admins.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const settings = await grabCrewSettingsServerProps(params);
@@ -41,12 +42,14 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         workspace_computers,
         computers,
         workspace_harness_overview,
+        workspace_extensions,
     ] = await Promise.all([
         grabWorkspaceBots({ user_id, workspace_id }),
         grabBots({ user_id }),
         grabWorkspaceComputers({ workspace_id }),
         grabUserComputers({ user_id }),
         grabBotHarnessOverview({ workspace_id }).catch(() => null),
+        grabWorkspaceExtensionsOverview({ user_id, workspace_id }),
     ]);
 
     return {
@@ -60,6 +63,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspace_computers,
             computers,
             workspace_harness_overview,
+            workspace_extensions,
         },
     };
 };

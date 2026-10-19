@@ -23,6 +23,19 @@ export const CustomToolKinds = [
 
 export type CustomToolKind = (typeof CustomToolKinds)[number]["value"];
 
+/**
+ * How a tool's last run went (a bot's call or a try from its settings):
+ * `ok`, `error` (see its `last_error`), or `untested` before its first run
+ * and after it's edited. Bad arguments from a bot don't count.
+ */
+export const CustomToolStatuses = [
+    { title: "Not run yet", value: "untested" },
+    { title: "Worked", value: "ok" },
+    { title: "Failed", value: "error" },
+] as const;
+
+export type CustomToolStatus = (typeof CustomToolStatuses)[number]["value"];
+
 export const CustomToolHttpMethods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 
 export type CustomToolHttpMethod = (typeof CustomToolHttpMethods)[number];

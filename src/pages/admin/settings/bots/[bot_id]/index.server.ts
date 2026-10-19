@@ -4,6 +4,7 @@ import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabUserBot from "@/src/functions/backend/db/bots/grab-user-bot";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
+import grabBotExtensionsOverview from "@/src/functions/backend/db/extensions/grab-bot-extensions-overview";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness-overview";
 import grabBotWorkspaces from "@/src/functions/backend/db/workspaces/grab-bot-workspaces";
@@ -11,7 +12,8 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import grabCrewSettingsServerProps from "../../(functions)/grab-crew-settings-server-props";
 
 /**
- * One bot's settings: its details, models, workspaces and computers. For
+ * One bot's settings: its details, models, workspaces, computers, tools
+ * and MCP servers. For
  * super admins and admins; the coordinator is the super admin's alone.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
@@ -35,6 +37,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         all_computers,
         bot_computer_rows,
         bot_harness_overview,
+        bot_extensions,
     ] = await Promise.all([
         grabBots({ user_id }),
         grabUserWorkspaces({ user_id }),
@@ -45,6 +48,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             ? grabHarnessOverview().then(({ harnesses }) => ({ harnesses }))
             : grabBotHarnessOverview({ bot_id: bot.id })
         ).catch(() => null),
+        grabBotExtensionsOverview({ user_id, bot_id: bot.id }),
     ]);
 
     const bot_computers = bot_computer_rows
@@ -65,6 +69,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             bot_computers,
             computers: all_computers,
             bot_harness_overview,
+            bot_extensions,
         },
     };
 };

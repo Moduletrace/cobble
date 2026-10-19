@@ -24,8 +24,9 @@ type Props<T> = {
 };
 
 /**
- * Who gets an MCP server or tool: every bot (super admins only), or the
- * bots and workspaces picked here. A workspace gives it to every bot in
+ * Who gets an MCP server or tool: the bots and workspaces picked here.
+ * "Every bot" (super admins only) gives it to every bot now and every new
+ * one; each can still drop it. A workspace gives it to every bot in
  * it, there.
  */
 export default function ExtensionAccessModal<T extends { [k: string]: any }>({
@@ -77,47 +78,43 @@ export default function ExtensionAccessModal<T extends { [k: string]: any }>({
                 {targets.can_edit ? (
                     <Checkbox
                         title="Every bot"
-                        label="Every bot, the coordinator included"
+                        label="Every bot by default: every bot now and every new one, the coordinator included. Each can still drop it."
                         checked={all_bots}
                         changeHandler={setAllBots}
                     />
                 ) : access.all_bots ? (
-                    <Checkbox title="Every bot" label="Every bot (only a super admin changes this)" checked readOnly />
+                    <Checkbox title="Every bot" label="Every bot by default (only a super admin changes this)" checked readOnly />
                 ) : null}
-                {all_bots ? null : (
-                    <>
-                        <SearchSelect
-                            id={`${path}-${id}-bots`}
-                            title="Bots"
-                            label="Bots"
-                            showLabel
-                            multiple
-                            placeholder="Pick the bots that get it"
-                            options={targets.bots.map((bot) => ({
-                                value: String(bot.id),
-                                title: bot.role ? `${bot.name} (${bot.role})` : bot.name,
-                            }))}
-                            defaultValues={bot_ids.map(String)}
-                            info="They get it everywhere they work."
-                            changeHandler={(value) => setBotIds(ids(value))}
-                        />
-                        <SearchSelect
-                            id={`${path}-${id}-workspaces`}
-                            title="Workspaces"
-                            label="Workspaces"
-                            showLabel
-                            multiple
-                            placeholder="Pick the workspaces that get it"
-                            options={targets.workspaces.map((workspace) => ({
-                                value: String(workspace.id),
-                                title: workspace.name,
-                            }))}
-                            defaultValues={workspace_ids.map(String)}
-                            info="Every bot in these gets it, there."
-                            changeHandler={(value) => setWorkspaceIds(ids(value))}
-                        />
-                    </>
-                )}
+                <SearchSelect
+                    id={`${path}-${id}-bots`}
+                    title="Bots"
+                    label="Bots"
+                    showLabel
+                    multiple
+                    placeholder="Pick the bots that get it"
+                    options={targets.bots.map((bot) => ({
+                        value: String(bot.id),
+                        title: bot.role ? `${bot.name} (${bot.role})` : bot.name,
+                    }))}
+                    defaultValues={bot_ids.map(String)}
+                    info="They get it everywhere they work."
+                    changeHandler={(value) => setBotIds(ids(value))}
+                />
+                <SearchSelect
+                    id={`${path}-${id}-workspaces`}
+                    title="Workspaces"
+                    label="Workspaces"
+                    showLabel
+                    multiple
+                    placeholder="Pick the workspaces that get it"
+                    options={targets.workspaces.map((workspace) => ({
+                        value: String(workspace.id),
+                        title: workspace.name,
+                    }))}
+                    defaultValues={workspace_ids.map(String)}
+                    info="Every bot in these gets it, there."
+                    changeHandler={(value) => setWorkspaceIds(ids(value))}
+                />
                 <AddFormActions submit_label="Save" loading={loading} error={error} onCancel={onCancel} />
             </Form>
         </AddModalShell>

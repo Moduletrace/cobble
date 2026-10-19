@@ -2,6 +2,7 @@ import type { PagePropsType } from "@/src/types";
 import grabBots from "../bots/grab-bots";
 import grabActiveBotTask from "../bots/grab-active-bot-task";
 import grabBotMessages from "../bots/grab-bot-messages";
+import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overview";
 import grabBotComputers from "../computers/grab-bot-computers";
 import grabBotHarnessOverview from "../harness/grab-bot-harness-overview";
 import grabHarnessOverview from "../harness/grab-harness-overview";
@@ -23,7 +24,8 @@ type Params = {
  * The page props of a conversation (`/admin/bots/<id>` or
  * `/admin/workspaces/<id>/bots/<id>`): the rail's crew (the workspace's
  * in a workspace) and workspaces, the bot, its active session (marked
- * read) and its messages, its models, computers and active task there.
+ * read) and its messages, its models, computers, tools and MCP servers
+ * and active task there.
  * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationProps({
@@ -62,7 +64,7 @@ export default async function grabConversationProps({
      * workspace the workspace's own models come first, so what runs now
      * shows its pick.
      */
-    const [bot_messages, bot_harness_overview, bot_computers, bot_task] = await Promise.all([
+    const [bot_messages, bot_harness_overview, bot_computers, bot_task, bot_extensions] = await Promise.all([
         grabBotMessages({ session_id: session.id! }),
         (bot.kind == "coordinator" && !scope
             ? grabHarnessOverview().then(({ harnesses }) => ({ harnesses }))
@@ -73,6 +75,7 @@ export default async function grabConversationProps({
         ).catch(() => null),
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabActiveBotTask({ bot_id: bot.id, session_id: session.id }),
+        grabBotExtensionsOverview({ user_id, bot_id: bot.id, workspace_id: scope }),
     ]);
 
     return {
@@ -85,5 +88,6 @@ export default async function grabConversationProps({
         bot_harness_overview,
         bot_computers,
         bot_task,
+        bot_extensions,
     };
 }

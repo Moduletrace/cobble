@@ -5,9 +5,11 @@ import IconTile from "@/src/components/general/icon-tile";
 import { CustomToolKinds } from "@/src/dict/custom-tool-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { CustomToolsOverviewPayload, ExtensionTargets, PublicCustomTool } from "@/src/types";
+import ExtensionStatusLine from "../../(partials)/extension-status-line";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
+import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import CustomToolModal from "./custom-tool-modal";
 import CustomToolTryModal from "./custom-tool-try-modal";
@@ -16,14 +18,19 @@ type Props = {
     tool: PublicCustomTool;
     targets: ExtensionTargets;
     onChanged: (overview: CustomToolsOverviewPayload, msg: string) => void;
+    /**
+     * New page data that shouldn't close what's open (a try's result).
+     */
+    onRefreshed: (overview: CustomToolsOverviewPayload) => void;
     onError: (msg: string) => void;
 };
 
 /**
- * One custom tool: its name, kind and who gets it. Edit, Access and Try
- * open in a modal.
+ * One custom tool: its name, kind and who gets it, and under it how its
+ * last run went (a bot's call or a try). Edit, Access and Try open in a
+ * modal.
  */
-export default function CustomToolRow({ tool, targets, onChanged, onError }: Props) {
+export default function CustomToolRow({ tool, targets, onChanged, onRefreshed, onError }: Props) {
     const [open, setOpen] = useState<"edit" | "access" | "try">();
     const [busy, setBusy] = useState(false);
 
@@ -47,6 +54,14 @@ export default function CustomToolRow({ tool, targets, onChanged, onError }: Pro
         if (res.success && res.singleRes) onChanged(res.singleRes, res.msg || "Deleted.");
         else onError(res.msg || "Couldn't delete the tool.");
     };
+
+    const when = tool.last_checked_at ? ` · ${checkedAgo({ at: tool.last_checked_at })}` : "";
+    const status =
+        tool.status == "ok"
+            ? { text: `Last run worked${when}` }
+            : tool.status == "error"
+              ? { text: `Last run failed${when}`, error: tool.last_error }
+              : { text: targets.can_edit ? "Not run yet: Try it to check it works." : "Not run yet." };
 
     return (
         <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
@@ -78,6 +93,7 @@ export default function CustomToolRow({ tool, targets, onChanged, onError }: Pro
                     <SettingsRowAction title={`Delete ${tool.name}`} label="Delete" disabled={busy} onClick={remove} />
                 ) : null}
             </SettingsListRow>
+            <ExtensionStatusLine state={tool.status} {...status} />
             {open == "edit" ? (
                 <CustomToolModal tool={tool} onSaved={saved} onCancel={() => setOpen(undefined)} />
             ) : null}
@@ -92,7 +108,7 @@ export default function CustomToolRow({ tool, targets, onChanged, onError }: Pro
                     onCancel={() => setOpen(undefined)}
                 />
             ) : null}
-            {open == "try" ? <CustomToolTryModal tool={tool} onClose={() => setOpen(undefined)} /> : null}
+            {open == "try" ? <CustomToolTryModal tool={tool} onTried={onRefreshed} onClose={() => setOpen(undefined)} /> : null}
         </Stack>
     );
 }

@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS, BunSQLiteTables } from "@/db/types/db";
 import { CoordinatorBotName } from "@/src/dict/bot-dict";
 import { CoordinatorSystemPrompt } from "@/src/data/coordinator-system-prompt";
+import attachDefaultExtensions from "../extensions/attach-default-extensions";
 
 type Params = {
     /**
@@ -65,6 +66,8 @@ export default async function ensureCoordinatorBot({ user_id }: Params) {
     if (!res.success || !bot_id) {
         throw new Error(`Couldn't create the coordinator: ${res.msg}`);
     }
+
+    await attachDefaultExtensions({ bot_id });
 
     return bot_id;
 }

@@ -32,6 +32,7 @@ import type {
     CustomToolHttpMethod,
     CustomToolKind,
     CustomToolScriptLanguage,
+    CustomToolStatus,
 } from "../dict/custom-tool-dict";
 
 export type User = {
@@ -421,6 +422,9 @@ export type CustomToolRecord = {
     parameters: Record<string, unknown>;
     all_bots: boolean;
     enabled: boolean;
+    status: CustomToolStatus;
+    last_error: string;
+    last_checked_at: number | null;
 } & (
     | { kind: "http"; config: CustomToolHttpConfig }
     | { kind: "script"; config: CustomToolScriptConfig }
@@ -453,6 +457,9 @@ export type PublicCustomTool = {
     description: string;
     kind: CustomToolKind;
     enabled: boolean;
+    status: CustomToolStatus;
+    last_error: string;
+    last_checked_at: number | null;
     access: ExtensionAccess;
     parameters?: Record<string, unknown>;
     config?: CustomToolHttpConfig | CustomToolScriptConfig | CustomToolPromptConfig;
@@ -471,6 +478,38 @@ export type ExtensionTargets = {
     can_edit: boolean;
 };
 
+/**
+ * One MCP server or tool a bot has, as its settings page and its chat's
+ * composer show it.
+ */
+export type BotExtension = {
+    kind: "mcp" | "tool";
+    id: number;
+    name: string;
+    description: string;
+    /**
+     * One line on what it is, e.g. "HTTP request" or "Remote · 12 tools".
+     */
+    detail: string;
+    state: "ok" | "error" | "untested";
+    enabled: boolean;
+    /**
+     * `bot`: given to the bot, removable. `workspace`: the workspace's,
+     * only while it works there.
+     */
+    source: "bot" | "workspace";
+};
+
+/**
+ * A bot's MCP servers and tools, and what can be added. Only super admins
+ * and admins (the super admin alone for the coordinator) manage them.
+ */
+export type BotExtensionsPayload = {
+    attached: BotExtension[];
+    addable: { kind: "mcp" | "tool"; id: number; name: string }[];
+    can_manage: boolean;
+};
+
 export type McpServersOverviewPayload = ExtensionTargets & {
     servers: PublicMcpServer[];
 };
@@ -480,10 +519,25 @@ export type CustomToolsOverviewPayload = ExtensionTargets & {
 };
 
 /**
+ * What testing an MCP server's form returned: its tools, or why it didn't
+ * connect.
+ */
+export type McpServerTestPayload = {
+    ok: boolean;
+    tools: McpToolInfo[];
+    error?: string;
+};
+
+/**
  * What trying a custom tool returned, as a bot would read it.
  */
 export type CustomToolTestPayload = {
     output: string;
+    ok: boolean;
+    /**
+     * The page data, with the tool's new status.
+     */
+    overview: CustomToolsOverviewPayload;
 };
 
 export type EnvsOverviewPayload = {
@@ -600,6 +654,8 @@ export type PagePropsType = {
     envs_overview?: EnvsOverviewPayload | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
+    bot_extensions?: BotExtensionsPayload | null;
+    workspace_extensions?: BotExtensionsPayload | null;
     envs?: {
         GOOGLE_CLIENT_ID?: string;
         R2_PUBLIC_DOMAIN?: string;

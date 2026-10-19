@@ -5,13 +5,12 @@ type Params = {
 };
 
 /**
- * Who gets an MCP server or tool, in a few words: "Every bot",
- * "2 bots · 1 workspace", or "No bots yet".
+ * Who gets an MCP server or tool, in a few words: "2 bots · 1 workspace",
+ * "Every bot by default · 5 bots", or "No bots yet".
  */
 export default function extensionAccessLabel({ access }: Params) {
-    if (access.all_bots) return "Every bot";
-
     const parts = [
+        access.all_bots ? "Every bot by default" : "",
         access.bot_ids.length ? `${access.bot_ids.length} ${access.bot_ids.length == 1 ? "bot" : "bots"}` : "",
         access.workspace_ids.length
             ? `${access.workspace_ids.length} ${access.workspace_ids.length == 1 ? "workspace" : "workspaces"}`

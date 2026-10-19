@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import assertCrewManager from "../access/assert-crew-manager";
+import attachToAllBots from "./attach-to-all-bots";
 import { ExtensionTables, type ExtensionKind } from "./extension-tables";
 
 type Params = {
@@ -18,13 +19,18 @@ type Params = {
 /**
  * Attaches an MCP server or tool to exactly these bots and workspaces, for
  * super admins and admins. An admin never sees the coordinator, so its
- * attachment is kept as it is; only a super admin sets "all bots".
+ * attachment is kept as it is; only a super admin sets "every bot", which
+ * when turned on gives it to every bot (`attachToAllBots`) and every new
+ * one. Turning it off takes it from no one.
  */
 export default async function setExtensionAccess({ user_id, kind, id, bot_ids, workspace_ids, all_bots }: Params) {
     const role = await assertCrewManager({ user_id });
     const { table, bot_link, workspace_link, column, label } = ExtensionTables[kind];
 
-    const found = await BunSQLite.sql<{ id: number }>({ sql: `SELECT id FROM ${table} WHERE id = ?`, values: [id] });
+    const found = await BunSQLite.sql<{ id: number; all_bots: number }>({
+        sql: `SELECT id, all_bots FROM ${table} WHERE id = ?`,
+        values: [id],
+    });
 
     if (!found.payload?.[0]) throw new AppError(`That ${label} doesn't exist.`);
 
@@ -55,5 +61,7 @@ export default async function setExtensionAccess({ user_id, kind, id, bot_ids, w
             sql: `UPDATE ${table} SET all_bots = ?, updated_at = ? WHERE id = ?`,
             values: [all_bots ? 1 : 0, now, id],
         });
+
+        if (all_bots && found.payload?.[0]?.all_bots != 1) await attachToAllBots({ kind, id });
     }
 }

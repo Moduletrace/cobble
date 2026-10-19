@@ -1,3 +1,4 @@
+import recordCustomToolRun from "@/src/functions/backend/db/extensions/record-custom-tool-run";
 import type { CustomToolRecord } from "@/src/types";
 import redactSecrets from "@/src/utils/redact-secrets";
 import type { HarnessTool } from "../../types";
@@ -19,12 +20,18 @@ type Params = {
     computer_id?: number | string | null;
     bot_id?: number | string;
     workspace_id?: number | string | null;
+    /**
+     * Saves how each run went on the tool. Off for a draft being tried.
+     */
+    record?: boolean;
 };
 
 /**
  * A custom tool as a harness tool: its name, description and JSON schema
  * as the model sees them, and `run` dispatching on its kind (an HTTP
- * request, a script on the computer, or a prompt). Null for a script tool
+ * request, a script on the computer, or a prompt). How each run went is
+ * saved on the tool (`recordCustomToolRun`); bad arguments and cancelled
+ * runs aren't the tool's fault and don't count. Null for a script tool
  * when the run has no computer.
  */
 export default function buildCustomTool({
@@ -33,6 +40,7 @@ export default function buildCustomTool({
     computer_id,
     bot_id,
     workspace_id,
+    record = true,
 }: Params): HarnessTool<Record<string, unknown>> | null {
     if (tool.kind == "script" && !computer_id) return null;
 
@@ -58,11 +66,22 @@ export default function buildCustomTool({
                 : tool.description,
         parameters: tool.parameters,
         run: async ({ args, signal }) => {
+            checkRequiredArgs({ parameters: tool.parameters, args });
+
             try {
-                checkRequiredArgs({ parameters: tool.parameters, args });
-                return redact(await call({ args, signal }));
+                const result = redact(await call({ args, signal }));
+                if (record) await recordCustomToolRun({ custom_tool_id: tool.id });
+                return result;
             } catch (error: unknown) {
                 if (error instanceof Error) error.message = redact(error.message);
+
+                if (record && !signal.aborted) {
+                    await recordCustomToolRun({
+                        custom_tool_id: tool.id,
+                        error: error instanceof Error ? error.message : redact(String(error)),
+                    });
+                }
+
                 throw error;
             }
         },

@@ -37,7 +37,7 @@ export default function ToolsSettingsSection() {
     return (
         <SettingsGroup
             title="Tools"
-            description="An API call, a script on the bot's computer, or a prompt. A tool goes to the bots and workspaces it's attached to, or to every bot."
+            description="An API call, a script on the bot's computer, or a prompt. A tool goes to the bots and workspaces it's attached to (give one to a bot on its settings page or in its chat); one set to every bot goes to every bot by default."
         >
             {adding ? (
                 <CustomToolModal
@@ -55,6 +55,7 @@ export default function ToolsSettingsSection() {
                         tool={tool}
                         targets={overview}
                         onChanged={changed}
+                        onRefreshed={setOverview}
                         onError={failed}
                     />
                 ))}

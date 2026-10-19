@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_BOTS, BunSQLiteTables } from "@/db/types/db";
 import type { BotHue } from "@/src/dict/bot-dict";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
+import attachDefaultExtensions from "../extensions/attach-default-extensions";
 
 type Params = {
     /**
@@ -52,6 +53,8 @@ export default async function createBot({ user_id, name, role, hue, system_promp
     if (!res.success || !bot_id) {
         throw new Error(`Couldn't add the bot: ${res.msg}`);
     }
+
+    await attachDefaultExtensions({ bot_id });
 
     return Number(bot_id);
 }

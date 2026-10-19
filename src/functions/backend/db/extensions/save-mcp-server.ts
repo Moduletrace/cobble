@@ -1,4 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
+import attachToAllBots from "./attach-to-all-bots";
 import type { BUN_SQLITE_COBBLE_MCP_SERVERS, BunSQLiteTables } from "@/db/types/db";
 import { stopStdioMcpServer } from "@/src/harness/mcp/mcp-stdio-pool";
 import type { SaveMcpServerRequest } from "@/src/schemas/extension-schema";
@@ -47,6 +48,8 @@ export default async function saveMcpServer({ user_id, data }: Params) {
 
         if (!res.success) throw new Error(`Couldn't save the MCP server: ${res.msg}`);
 
+        if (data.all_bots && !server.all_bots) await attachToAllBots({ kind: "mcp", id: server.id });
+
         return server.id;
     }
 
@@ -66,6 +69,8 @@ export default async function saveMcpServer({ user_id, data }: Params) {
     const id = res.singleRes?.id || res.postInsertReturn?.insertId;
 
     if (!res.success || !id) throw new Error(`Couldn't add the MCP server: ${res.msg}`);
+
+    if (data.all_bots) await attachToAllBots({ kind: "mcp", id: Number(id) });
 
     return Number(id);
 }

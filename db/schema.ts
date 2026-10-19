@@ -21,7 +21,7 @@ import { AppData } from "@/src/data/app-data";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms } from "@/src/dict/env-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
-import { CustomToolKinds } from "@/src/dict/custom-tool-dict";
+import { CustomToolKinds, CustomToolStatuses } from "@/src/dict/custom-tool-dict";
 
 const schema: BUN_SQLITE_DatabaseSchemaType = {
     tables: [
@@ -1826,6 +1826,22 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                     options: [0, 1],
                     defaultValue: 1,
+                },
+                {
+                    fieldName: "status",
+                    fieldDescription: `How its last run went (a bot's call or a try). Reset to untested when it's edited`,
+                    dataType: "TEXT",
+                    options: CustomToolStatuses.map((s) => s.value),
+                    defaultValue: "untested",
+                },
+                {
+                    fieldName: "last_error",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "last_checked_at",
+                    fieldDescription: `Unix ms of its last run`,
+                    dataType: "INTEGER",
                 },
                 {
                     fieldName: "user_id",

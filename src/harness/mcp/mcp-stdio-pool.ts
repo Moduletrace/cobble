@@ -1,12 +1,9 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { AppData } from "@/src/data/app-data";
-import { SiteData } from "@/src/data/site-data";
 import type { McpServerRecord } from "@/src/types";
-import grabMcpDir from "./grab-mcp-dir";
 import grabMcpStdioEnv from "./grab-mcp-stdio-env";
-import hostShell from "./host-shell";
-import runMcpSetup from "./run-mcp-setup";
+import startStdioMcpClient from "./start-stdio-mcp-client";
 
 type Entry = {
     /**
@@ -31,11 +28,9 @@ type Params = {
 };
 
 /**
- * A connected client for a stdio MCP server, started on first use (after
- * its setup, `runMcpSetup`) with the host's shell in its directory, and
- * kept running for later calls until it's idle for `AppData.McpStdioIdleMs`,
- * its configuration changes, or it exits. Its stderr's last lines explain
- * a failed start.
+ * A connected client for a stdio MCP server, started on first use
+ * (`startStdioMcpClient`) and kept running for later calls until it's idle for `AppData.McpStdioIdleMs`,
+ * its configuration changes, or it exits.
  */
 export default async function grabStdioMcpClient({ server, envs }: Params): Promise<Client> {
     const env = grabMcpStdioEnv({ server, envs });
@@ -77,24 +72,9 @@ export function stopStdioMcpServer({ server_id }: { server_id: number }) {
 }
 
 async function start({ server, env, entry }: { server: McpServerRecord; env: Record<string, string>; entry: Entry }) {
-    await runMcpSetup({ server, env });
-
-    const transport = new StdioClientTransport({
-        command: hostShell(),
-        args: ["-c", server.command],
-        cwd: await grabMcpDir({ server_id: server.id }),
-        env,
-        stderr: "pipe",
-    });
-    let stderr = "";
-
-    transport.stderr?.on("data", (chunk: Buffer) => {
-        stderr = `${stderr}${chunk.toString()}`.slice(-4000);
-    });
+    const { client, transport } = await startStdioMcpClient({ server, env });
 
     entry.transport = transport;
-
-    const client = new Client({ name: SiteData["SiteSlug"], version: "1.0.0" });
 
     client.onclose = () => {
         if (pool.get(server.id) == entry) {
@@ -102,17 +82,6 @@ async function start({ server, env, entry }: { server: McpServerRecord; env: Rec
             clearTimeout(entry.timer);
         }
     };
-
-    try {
-        await client.connect(transport, { timeout: AppData.McpConnectTimeoutMs * 4 });
-    } catch (error) {
-        await client.close().catch(() => {});
-        throw new Error(
-            `Couldn't start ${server.name}: ${error instanceof Error ? error.message : String(error)}${
-                stderr.trim() ? `\n${stderr.trim().slice(-2000)}` : ""
-            }`,
-        );
-    }
 
     return client;
 }

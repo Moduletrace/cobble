@@ -34,6 +34,9 @@ export default async function grabToolsOverview({ user_id }: Params): Promise<Cu
                 description: tool.description,
                 kind: tool.kind,
                 enabled: tool.enabled,
+                status: tool.status,
+                last_error: tool.last_error,
+                last_checked_at: tool.last_checked_at,
                 access: { all_bots: tool.all_bots, ...access(tool.id) },
                 ...(targets.can_edit ? { parameters: tool.parameters, config: tool.config } : {}),
             };

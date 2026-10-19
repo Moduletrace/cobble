@@ -7,11 +7,13 @@ import Input from "@moduletrace/twui/form/Input";
 import Select from "@moduletrace/twui/form/Select";
 import CodeEditor from "@/src/components/general/code-editor";
 import Button from "@moduletrace/twui/layout/Button";
+import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { McpTransports, type McpTransport } from "@/src/dict/mcp-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
-import type { McpServersOverviewPayload, PublicMcpServer } from "@/src/types";
+import type { McpServersOverviewPayload, McpServerTestPayload, PublicMcpServer } from "@/src/types";
+import SettingsStatus from "../../(partials)/settings-status";
 import parseTemplateLines, { templateLines } from "@/src/utils/parse-template-lines";
 import McpToolToggle from "./mcp-tool-toggle";
 
@@ -33,8 +35,9 @@ type Props = {
  * Adds or edits an MCP server (super admins): a remote one by URL and
  * headers, or a stdio one by the command that starts it on this server,
  * the setup that installs what it needs, and the env it gets. Values can
- * use `{{env.KEY}}`. Saving connects and lists its tools; each can be
- * left out.
+ * use `{{env.KEY}}`. Test connection checks the form as it is, saved or
+ * not, and lists its tools, so they can be left out before saving; saving
+ * connects again.
  */
 export default function McpServerModal({ server, busy, onReinstall, onSaved, onCancel }: Props) {
     const [name, setName] = useState(server?.name || "");
@@ -50,8 +53,49 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
     const [all_bots, setAllBots] = useState(server?.access.all_bots ?? false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
+    const [tools, setTools] = useState(server?.tools || []);
+    const [testing, setTesting] = useState(false);
+    const [test, setTest] = useState<{ ok: boolean; msg: string; error?: string }>();
 
     const id = `mcp-${server?.id || "new"}`;
+
+    const body = () => ({
+        mcp_server_id: server?.id,
+        name,
+        description,
+        transport,
+        url,
+        headers: parseTemplateLines({ text: headers, separator: ":" }),
+        command,
+        setup_command,
+        env: parseTemplateLines({ text: env, separator: "=" }),
+        excluded_tools: excluded,
+        enabled,
+        all_bots,
+    });
+
+    /**
+     * Connects as the form is now, saved or not, and shows its tools.
+     */
+    const runTest = async () => {
+        if (testing) return;
+
+        setTesting(true);
+        setTest(undefined);
+
+        const res = await postAdminApi<McpServerTestPayload>({ path: "mcps/test-mcp", body: body() });
+
+        setTesting(false);
+
+        if (!res.success || !res.singleRes) {
+            setTest({ ok: false, msg: res.msg || "Couldn't test it." });
+            return;
+        }
+
+        if (res.singleRes.ok) setTools(res.singleRes.tools);
+
+        setTest({ ok: res.singleRes.ok, msg: res.msg || "", error: res.singleRes.error });
+    };
 
     const submit = async () => {
         if (loading) return;
@@ -62,20 +106,7 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
 
         const res = await postAdminApi<McpServersOverviewPayload>({
             path: "mcps/save-mcp",
-            body: {
-                mcp_server_id: server?.id,
-                name,
-                description,
-                transport,
-                url,
-                headers: parseTemplateLines({ text: headers, separator: ":" }),
-                command,
-                setup_command,
-                env: parseTemplateLines({ text: env, separator: "=" }),
-                excluded_tools: excluded,
-                enabled,
-                all_bots,
-            },
+            body: body(),
         });
 
         setLoading(false);
@@ -175,31 +206,47 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
                             info="One KEY=value per line: the only envs it gets, besides PATH and HOME."
                             onChange={(value) => setEnv(value)}
                         />
-                        {server?.id && onReinstall ? (
-                            <Button
-                                title="Run the setup command again"
-                                type="button"
-                                variant="outlined"
-                                color="gray"
-                                size="small"
-                                className="self-start"
-                                disabled={busy || loading}
-                                onClick={onReinstall}
-                            >
-                                Reinstall
-                            </Button>
-                        ) : null}
                     </>
                 )}
-                {server?.status == "error" && server.last_error ? (
+                <Row className="gap-2! items-center">
+                    <Button
+                        title="Connect as the form is now, without saving"
+                        type="button"
+                        variant="outlined"
+                        color="gray"
+                        size="small"
+                        loading={testing}
+                        disabled={testing || loading || busy}
+                        onClick={runTest}
+                    >
+                        Test connection
+                    </Button>
+                    {transport == "stdio" && server?.id && onReinstall ? (
+                        <Button
+                            title="Run the setup command again"
+                            type="button"
+                            variant="ghost"
+                            color="gray"
+                            size="small"
+                            disabled={testing || loading || busy}
+                            onClick={onReinstall}
+                        >
+                            Reinstall
+                        </Button>
+                    ) : null}
+                </Row>
+                {test ? (
+                    <SettingsStatus status={test.ok ? { success: true, msg: test.msg } : { error: true, msg: test.msg }} />
+                ) : null}
+                {test?.error || (!test && server?.status == "error" && server.last_error) ? (
                     <Span className="text-[13px] leading-[18px] text-ink whitespace-pre-wrap break-words">
-                        {server.last_error}
+                        {test?.error || server?.last_error}
                     </Span>
                 ) : null}
-                {server?.tools.length ? (
+                {tools.length ? (
                     <Stack className="gap-2! items-stretch">
                         <Span className="text-[13px] font-bold leading-5 text-ink">Tools bots get</Span>
-                        {server.tools.map((tool) => (
+                        {tools.map((tool) => (
                             <McpToolToggle
                                 key={tool.name}
                                 tool={tool}
@@ -216,7 +263,7 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
                 <Checkbox title="On" label="On: bots get its tools" checked={enabled} changeHandler={setEnabled} />
                 <Checkbox
                     title="Every bot"
-                    label="Every bot, the coordinator included"
+                    label="Every bot by default: every bot now and every new one, the coordinator included. Each can still drop it."
                     checked={all_bots}
                     changeHandler={setAllBots}
                 />

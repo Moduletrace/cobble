@@ -37,7 +37,7 @@ export default function McpsSettingsSection() {
     return (
         <SettingsGroup
             title="MCP servers"
-            description="A server's tools go to the bots and workspaces it's attached to, or to every bot. Bots only connect when they call one."
+            description="A server's tools go to the bots and workspaces it's attached to (give one to a bot on its settings page or in its chat); one set to every bot goes to every bot by default. Bots only connect when they call one."
         >
             {adding ? (
                 <McpServerModal

@@ -5,9 +5,11 @@ import IconTile from "@/src/components/general/icon-tile";
 import { McpTransports } from "@/src/dict/mcp-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { ExtensionTargets, McpServersOverviewPayload, PublicMcpServer } from "@/src/types";
+import ExtensionStatusLine from "../../(partials)/extension-status-line";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
+import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import McpServerModal from "./mcp-server-modal";
 
@@ -19,8 +21,9 @@ type Props = {
 };
 
 /**
- * One MCP server: how it's reached, whether it connected, and who gets
- * it. Edit and Access open in a modal.
+ * One MCP server: how it's reached and who gets it, and under it whether
+ * it connected (when it was last checked, and why it failed). Edit and
+ * Access open in a modal.
  */
 export default function McpServerRow({ server, targets, onChanged, onError }: Props) {
     const [open, setOpen] = useState<"edit" | "access">();
@@ -42,12 +45,14 @@ export default function McpServerRow({ server, targets, onChanged, onError }: Pr
         onChanged(overview, msg);
     };
 
+    const tools = `${server.tools.length} ${server.tools.length == 1 ? "tool" : "tools"}`;
+    const when = server.last_synced_at ? ` · checked ${checkedAgo({ at: server.last_synced_at })}` : "";
     const status =
         server.status == "ok"
-            ? `${server.tools.length} ${server.tools.length == 1 ? "tool" : "tools"}`
+            ? { text: `Connected · ${tools}${when}` }
             : server.status == "error"
-              ? `Error: ${server.last_error}`
-              : "Not connected yet";
+              ? { text: `Couldn't connect${when}`, error: server.last_error }
+              : { text: server.enabled ? "Not connected yet: Refresh to connect." : "Not connected yet." };
 
     return (
         <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
@@ -57,7 +62,6 @@ export default function McpServerRow({ server, targets, onChanged, onError }: Pr
                 badge={server.enabled ? undefined : "Off"}
                 subtitle={[
                     McpTransports.find((t) => t.value == server.transport)?.title,
-                    status,
                     extensionAccessLabel({ access: server.access }),
                 ]
                     .filter(Boolean)
@@ -100,6 +104,7 @@ export default function McpServerRow({ server, targets, onChanged, onError }: Pr
                     />
                 ) : null}
             </SettingsListRow>
+            <ExtensionStatusLine state={server.status} {...status} />
             {open == "edit" ? (
                 <McpServerModal
                     server={server}

@@ -112,6 +112,7 @@ export default function Conversation() {
                 <Composer
                     bot={bot}
                     workspace_id={workspace_id}
+                    extensions={pageProps?.bot_extensions}
                     onSent={({ message }) => {
                         if (startsNewSession(message) && message.session_id != session_id) {
                             setSessionId(Number(message.session_id));

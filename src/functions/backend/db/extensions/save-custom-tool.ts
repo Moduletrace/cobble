@@ -1,4 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
+import attachToAllBots from "./attach-to-all-bots";
 import type { BUN_SQLITE_COBBLE_CUSTOM_TOOLS, BunSQLiteTables } from "@/db/types/db";
 import type { SaveCustomToolRequest } from "@/src/schemas/extension-schema";
 import AppError from "@/src/utils/app-error";
@@ -33,6 +34,11 @@ export default async function saveCustomTool({ user_id, data }: Params) {
         config: JSON.stringify(data.config),
         enabled: data.enabled ? 1 : 0,
         all_bots: data.all_bots ? 1 : 0,
+        /**
+         * Whatever its last run showed was about the old version.
+         */
+        status: "untested",
+        last_error: "",
     } as const;
 
     if (data.custom_tool_id) {
@@ -45,6 +51,8 @@ export default async function saveCustomTool({ user_id, data }: Params) {
 
         if (!res.success) throw new Error(`Couldn't save the tool: ${res.msg}`);
 
+        if (data.all_bots && !tool.all_bots) await attachToAllBots({ kind: "tool", id: tool.id });
+
         return tool.id;
     }
 
@@ -56,6 +64,8 @@ export default async function saveCustomTool({ user_id, data }: Params) {
     const id = res.singleRes?.id || res.postInsertReturn?.insertId;
 
     if (!res.success || !id) throw new Error(`Couldn't add the tool: ${res.msg}`);
+
+    if (data.all_bots) await attachToAllBots({ kind: "tool", id: Number(id) });
 
     return Number(id);
 }

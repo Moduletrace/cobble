@@ -20,30 +20,42 @@ const TemplateMap = z
 
 const TimeoutMs = z.coerce.number().int().min(1000).max(AppData.CustomToolMaxTimeoutMs).optional();
 
-export const SaveMcpServerRequestSchema = z
-    .object({
-        mcp_server_id: Id.optional(),
-        name: z.string().trim().min(1, "Enter a name").max(80),
-        description: z.string().trim().max(1000).default(""),
-        transport: z.enum(McpTransports.map((t) => t.value) as [McpTransport, ...McpTransport[]]),
-        url: z.string().trim().max(2000).default(""),
-        headers: TemplateMap,
-        command: z.string().trim().max(4000).default(""),
-        setup_command: z.string().trim().max(8000).default(""),
-        env: TemplateMap,
-        excluded_tools: z.array(z.string().max(200)).max(500).default([]),
-        enabled: z.boolean().default(true),
-        all_bots: z.boolean().default(false),
-    })
-    .superRefine((value, ctx) => {
-        if (value.transport == "remote" && !/^(https?:\/\/|\{\{\s*env\.)/.test(value.url)) {
-            ctx.addIssue({ code: "custom", path: ["url"], message: "Enter the server's http(s) URL." });
-        }
+const McpServerFields = z.object({
+    mcp_server_id: Id.optional(),
+    name: z.string().trim().min(1, "Enter a name").max(80),
+    description: z.string().trim().max(1000).default(""),
+    transport: z.enum(McpTransports.map((t) => t.value) as [McpTransport, ...McpTransport[]]),
+    url: z.string().trim().max(2000).default(""),
+    headers: TemplateMap,
+    command: z.string().trim().max(4000).default(""),
+    setup_command: z.string().trim().max(8000).default(""),
+    env: TemplateMap,
+    excluded_tools: z.array(z.string().max(200)).max(500).default([]),
+    enabled: z.boolean().default(true),
+    all_bots: z.boolean().default(false),
+});
 
-        if (value.transport == "stdio" && !value.command) {
-            ctx.addIssue({ code: "custom", path: ["command"], message: "Enter the command that starts the server." });
-        }
-    });
+function checkMcpServerReach(
+    value: { transport: McpTransport; url: string; command: string },
+    ctx: z.RefinementCtx,
+) {
+    if (value.transport == "remote" && !/^(https?:\/\/|\{\{\s*env\.)/.test(value.url)) {
+        ctx.addIssue({ code: "custom", path: ["url"], message: "Enter the server's http(s) URL." });
+    }
+
+    if (value.transport == "stdio" && !value.command) {
+        ctx.addIssue({ code: "custom", path: ["command"], message: "Enter the command that starts the server." });
+    }
+}
+
+export const SaveMcpServerRequestSchema = McpServerFields.superRefine(checkMcpServerReach);
+
+/**
+ * A server as the form has it, saved or not: a name isn't needed yet.
+ */
+export const TestMcpServerRequestSchema = McpServerFields.extend({
+    name: z.string().trim().max(80).default(""),
+}).superRefine(checkMcpServerReach);
 
 export const McpServerIdRequestSchema = z.object({
     mcp_server_id: Id,
@@ -61,6 +73,22 @@ export const SetExtensionAccessRequestSchema = z.object({
     bot_ids: Ids,
     workspace_ids: Ids,
     all_bots: z.boolean().optional(),
+});
+
+export const SetBotExtensionRequestSchema = z.object({
+    bot_id: Id,
+    kind: z.enum(["mcp", "tool"]),
+    id: Id,
+    /**
+     * The workspace the bot is seen in, for the list that comes back.
+     */
+    workspace_id: Id.nullable().optional(),
+});
+
+export const SetWorkspaceExtensionRequestSchema = z.object({
+    workspace_id: Id,
+    kind: z.enum(["mcp", "tool"]),
+    id: Id,
 });
 
 /**
@@ -121,14 +149,28 @@ export const CustomToolIdRequestSchema = z.object({
     custom_tool_id: Id,
 });
 
-export const TestCustomToolRequestSchema = z.object({
-    custom_tool_id: Id,
-    args: z.record(z.string(), z.unknown()).default({}),
-    /**
-     * Where a script tool runs. The main computer when not given.
-     */
-    computer_id: Id.optional(),
-});
+/**
+ * A tool as its form has it, saved or not: only what runs it.
+ */
+const DraftCustomTool = z.object({ parameters: ToolParameters }).and(ToolConfig);
+
+/**
+ * Tries a saved tool (`custom_tool_id`, the run counts as its last) or the
+ * one in the form (`draft`, nothing saved).
+ */
+export const TestCustomToolRequestSchema = z
+    .object({
+        custom_tool_id: Id.optional(),
+        draft: DraftCustomTool.optional(),
+        args: z.record(z.string(), z.unknown()).default({}),
+        /**
+         * Where a script tool runs. The main computer when not given.
+         */
+        computer_id: Id.optional(),
+    })
+    .refine((value) => value.custom_tool_id || value.draft, { message: "Pick a tool to try." });
 
 export type SaveMcpServerRequest = z.infer<typeof SaveMcpServerRequestSchema>;
 export type SaveCustomToolRequest = z.infer<typeof SaveCustomToolRequestSchema>;
+export type TestMcpServerRequest = z.infer<typeof TestMcpServerRequestSchema>;
+export type DraftCustomTool = z.infer<typeof DraftCustomTool>;

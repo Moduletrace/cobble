@@ -15,7 +15,7 @@ export default function LoginForm() {
 
     return (
         <LoginShell status={status}>
-            <GoogleAuthSection {...init} />
+            {/* <GoogleAuthSection {...init} /> */}
             <Form
                 className="w-full flex items-center justify-center relative gap-4"
                 onSubmit={() => {
