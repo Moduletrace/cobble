@@ -232,13 +232,17 @@ export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
      */
     workspace_id?: number | "";
     /** 
-     * From the first user message
+     * Written by the bot from the session's first exchange
      */
     title?: string;
     /** 
-     * What happened in the session (markdown), written by the bot when the next one starts and carried into it
+     * What happened in the session (markdown), written by the bot and refreshed as it goes, then carried into the next one
      */
     summary?: string;
+    /** 
+     * How many of the session's messages the summary covers, so a stale one is rewritten before it's carried into the next session
+     */
+    summary_message_count?: number | "";
     /** 
      * The session this one carries on from (its summary goes into the prompt). Not a foreign key
      */

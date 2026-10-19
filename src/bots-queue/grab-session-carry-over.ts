@@ -14,8 +14,10 @@ type Params = {
 
 /**
  * The previous session's summary for a session's prompt (markdown), or ""
- * when it doesn't carry on from one. The summary is written the first
- * time it's needed and kept on that session.
+ * when it doesn't carry on from one. The summary written as the session
+ * went covers only its first exchange, so a closed session whose summary
+ * is stale (it covers fewer messages than the session ended with) is
+ * summarized again from its latest messages, and kept.
  */
 export default async function grabSessionCarryOver({
     session_id,
@@ -24,8 +26,10 @@ export default async function grabSessionCarryOver({
     signal,
 }: Params) {
     const previous = (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-            sql: `SELECT p.* FROM bot_sessions s JOIN bot_sessions p ON p.id = s.previous_session_id
+        await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS & { message_count: number }>({
+            sql: `SELECT p.*,
+                    (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = p.id) AS message_count
+                FROM bot_sessions s JOIN bot_sessions p ON p.id = s.previous_session_id
                 WHERE s.id = ? AND p.bot_id = s.bot_id LIMIT 1`,
             values: [session_id],
         })
@@ -33,7 +37,12 @@ export default async function grabSessionCarryOver({
 
     if (!previous?.id) return "";
 
-    if (previous.summary?.trim()) {
+    const message_count = Number(previous.message_count) || 0;
+
+    if (
+        previous.summary?.trim() &&
+        Number(previous.summary_message_count) >= message_count
+    ) {
         return `${PreviousSessionNote}\n\n${previous.summary.trim()}`;
     }
 
@@ -56,15 +65,26 @@ export default async function grabSessionCarryOver({
         bot_id,
         workspace_id,
         signal,
+    }).catch((error: unknown) => {
+        if (signal?.aborted) throw error;
+        return null;
     });
 
-    const summary = (result.text || "").trim().slice(0, AppData.BotSessionSummaryMaxChars);
+    const summary = (result?.text || "").trim().slice(0, AppData.BotSessionSummaryMaxChars);
 
-    if (!summary) return "";
+    /**
+     * A model that can't rewrite it now must not lose what the earlier
+     * one already said.
+     */
+    if (!summary) {
+        return previous.summary?.trim()
+            ? `${PreviousSessionNote}\n\n${previous.summary.trim()}`
+            : "";
+    }
 
     await BunSQLite.sql({
-        sql: `UPDATE bot_sessions SET summary = ?, updated_at = ? WHERE id = ?`,
-        values: [summary, Date.now(), previous.id],
+        sql: `UPDATE bot_sessions SET summary = ?, summary_message_count = ?, updated_at = ? WHERE id = ?`,
+        values: [summary, message_count, Date.now(), previous.id],
     });
 
     return `${PreviousSessionNote}\n\n${summary}`;

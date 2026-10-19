@@ -165,6 +165,16 @@ export type BotJobUpdateData = BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & {
 };
 
 /**
+ * `server:bot-session` data: one of the user's conversation sessions was
+ * started, named or otherwise changed.
+ */
+export type BotSessionChangedData = {
+    session_id: number;
+    bot_id: number;
+    workspace_id: number | null;
+};
+
+/**
  * `server:bot-created` data: a bot the user can now see, the workspaces
  * it's in, and whether it belongs in their own chat list (the main rail).
  */
@@ -812,6 +822,11 @@ export const WebSocketEvents = [
      * `bot_messages` row)
      */
     "server:bot-message",
+    /**
+     * A session in one of the user's bot conversations started, was named
+     * or otherwise changed (`data`: `BotSessionChangedData`)
+     */
+    "server:bot-session",
     /**
      * A bot joined the crew or one of the user's workspaces (`data`:
      * `BotCreatedData`)

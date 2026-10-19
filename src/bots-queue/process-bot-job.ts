@@ -22,6 +22,8 @@ import pushBotNotice from "./push-bot-notice";
 import grabJobUserId from "@/src/functions/backend/db/bots-queue/grab-job-user-id";
 import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
+import nameBotSession from "./name-bot-session";
+import pushBotSession from "./push-bot-session";
 import type { BotJobUpdateData } from "@/src/types";
 import type { BotJobContext, BotJobRunner } from "./types";
 
@@ -160,16 +162,48 @@ export default async function processBotJob({
 
         if (controller.signal.aborted) return;
 
-        await pushBotNotice({
-            bot_id,
-            ...(await completeBotJob({
-                job_id,
-                worker,
-                result: outcome.result,
-                needs_you: outcome.needs_you,
-                silent: outcome.silent,
-            })),
+        const completion = await completeBotJob({
+            job_id,
+            worker,
+            result: outcome.result,
+            needs_you: outcome.needs_you,
+            silent: outcome.silent,
         });
+
+        await pushBotNotice({ bot_id, ...completion });
+
+        /**
+         * Once the first exchange is sent, the bot names the session and
+         * previews it. After the reply is pushed, so it never waits on it;
+         * a model that can't answer now leaves the session for the next
+         * reply to name.
+         */
+        if (job.kind == "reply" && completion.message && job.session_id) {
+            const session_id = Number(job.session_id);
+
+            /**
+             * No job signal: the job is already complete, so its heartbeat
+             * no longer holds a lock and would abort this naming turn.
+             */
+            const named = await nameBotSession({
+                session_id,
+                bot_id,
+                workspace_id: job.workspace_id,
+            }).catch(async (error: unknown) => {
+                await logError({ title: `Bot session #${session_id} not named`, error }).catch(
+                    () => {},
+                );
+                return false;
+            });
+
+            if (named) {
+                await pushBotSession({
+                    session_id,
+                    bot_id,
+                    workspace_id: job.workspace_id,
+                });
+            }
+        }
     } catch (error: unknown) {
         if (controller.signal.aborted) return;
 

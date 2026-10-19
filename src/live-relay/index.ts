@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import { logError } from "@/src/functions/backend/logger";
 import grabConnectedUserIds from "@/src/websocket/(functions)/grab-connected-user-ids";
 import relayChangedBots from "./relay-changed-bots";
+import relayChangedSessions from "./relay-changed-sessions";
 import relayCreatedBots from "./relay-created-bots";
 import relayCreatedWorkspaces from "./relay-created-workspaces";
 import relayNewBotMessages from "./relay-new-bot-messages";
@@ -32,6 +33,7 @@ export default async function liveRelay() {
         message_id: await latest("bot_messages"),
         update_id: await latest("bots_queue_updates"),
         bots_at: Date.now(),
+        sessions_at: Date.now(),
     };
 
     let running = false;
@@ -58,6 +60,12 @@ export default async function liveRelay() {
             await relayCreatedWorkspaces({ since: bots_since, users });
             await relayChangedBots({ since: bots_since, users });
             cursor.bots_at = now;
+
+            await relayChangedSessions({
+                since: cursor.sessions_at - AppData.LiveRelayPollMs,
+                users,
+            });
+            cursor.sessions_at = now;
         } catch (error) {
             await logError({ title: `Live relay failed`, error }).catch(() => {});
         } finally {

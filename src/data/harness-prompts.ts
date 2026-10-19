@@ -62,8 +62,20 @@ export const WorkspaceLearningNote = `# Learning in this workspace
 update_memory and update_instructions save to this workspace by default: what you learn here applies here. What you learn about the user that holds outside this workspace goes in your memory of them (update_memory, scope "user"). Save to your core memory or instructions (scope "core") only when the user asks for it to apply in every workspace, or when it's plainly about how you work everywhere, not about this workspace. Your core memory is shared with every user you work for, so nothing about this user goes there. When something learned here looks useful everywhere, suggest saving it and do it once the user agrees.`;
 
 /**
+ * Asks the text model for a session's name and summary, written once the
+ * first exchange is in. The title labels it in the rail and the sessions
+ * list; the summary previews it and is carried into the next session.
+ */
+export const SessionNamePrompt = `Name and summarize this conversation from its first exchange. Answer with a JSON object only, no markdown fence and no other text:
+{"title": "...", "summary": "..."}
+
+- title: what the conversation is about, at most 60 characters, no quotes and no trailing period. Say what the user wanted, not that it is a conversation.
+- summary: what the user wanted and what was done so far. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
+
+/**
  * Asks the text model for a closed session's summary, carried into the
- * next session's prompt.
+ * next session's prompt. Used when the session's own summary is stale
+ * (it covers fewer messages than the session now has).
  */
 export const SessionSummaryPrompt = `Summarize this conversation for whoever picks it up next: what the user wanted, what was done, decisions made, open questions and anything still in progress. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
 

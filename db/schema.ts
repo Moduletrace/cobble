@@ -305,13 +305,18 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "title",
-                    fieldDescription: `From the first user message`,
+                    fieldDescription: `Written by the bot from the session's first exchange`,
                     dataType: "TEXT",
                 },
                 {
                     fieldName: "summary",
-                    fieldDescription: `What happened in the session (markdown), written by the bot when the next one starts and carried into it`,
+                    fieldDescription: `What happened in the session (markdown), written by the bot and refreshed as it goes, then carried into the next one`,
                     dataType: "TEXT",
+                },
+                {
+                    fieldName: "summary_message_count",
+                    fieldDescription: `How many of the session's messages the summary covers, so a stale one is rewritten before it's carried into the next session`,
+                    dataType: "INTEGER",
                 },
                 {
                     fieldName: "previous_session_id",

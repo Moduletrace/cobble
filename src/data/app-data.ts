@@ -239,6 +239,12 @@ export const AppData = {
     BotSessionSummaryMessages: 80,
     BotSessionSummaryMaxChars: 4000,
     /**
+     * The first messages of a session the bot reads to name and summarize
+     * it once the first reply is in, and how long its title may be.
+     */
+    BotSessionNameMessages: 4,
+    BotSessionTitleMaxChars: 80,
+    /**
      * Sessions listed per page in a conversation's sessions modal.
      */
     BotSessionsPageSize: 30,

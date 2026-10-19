@@ -71,7 +71,7 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
                 />
             ) : null}
 
-            {has_tools ? (
+            {has_tools && computers.length ? (
                 <Span className="-mr-2 opacity-40">
                     <Dot size={20} />
                 </Span>

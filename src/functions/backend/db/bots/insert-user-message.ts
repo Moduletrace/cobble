@@ -24,8 +24,9 @@ type Params = {
 
 /**
  * Appends a user message (and its files) to a session and bumps its
- * activity. The first one titles the session. Callers must check the bot
- * and session belong to the session user first.
+ * activity. The session is named later, from its first exchange with the
+ * bot (`nameBotSession`). Callers must check the bot and session belong to
+ * the session user first.
  */
 export default async function insertUserMessage({
     bot_id,
@@ -66,13 +67,9 @@ export default async function insertUserMessage({
         });
     }
 
-    const title = (text || media[0]?.title || "").replace(/\s+/g, " ").trim().slice(0, 80);
-
     await BunSQLite.sql({
-        sql: `UPDATE bot_sessions SET last_activity_at = ?,
-            title = CASE WHEN COALESCE(title, '') = '' THEN ? ELSE title END
-            WHERE id = ?`,
-        values: [now, title, session_id],
+        sql: `UPDATE bot_sessions SET last_activity_at = ? WHERE id = ?`,
+        values: [now, session_id],
     });
 
     return {
