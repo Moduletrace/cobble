@@ -59,6 +59,6 @@ export default async function submitUserForm({
     } else if (existing_full?.id) {
         window.location.reload();
     } else {
-        window.location.pathname = `/admin/people/${res.singleRes.id}`;
+        window.location.pathname = `/admin/settings/users/${res.singleRes.id}`;
     }
 }

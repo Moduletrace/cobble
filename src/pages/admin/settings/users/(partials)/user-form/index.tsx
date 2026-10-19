@@ -5,7 +5,7 @@ import { UneditableUserTypes } from "@/src/dict/user-types-dict";
 import type { UserFormObject } from "@/src/types";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 import parseUserTypes from "@/src/utils/parse-user-types";
-import submitUserForm from "../../(functions)/submit-user-form";
+import submitUserForm from "@/src/pages/admin/settings/users/(functions)/submit-user-form";
 import UserFormName from "./user-form-name";
 import UserFormAction from "./user-form-action";
 import UserFormEmail from "./user-form-email";

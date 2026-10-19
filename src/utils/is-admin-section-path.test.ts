@@ -14,9 +14,8 @@ describe("isAdminSectionPath", () => {
         );
     });
 
-    test("rejects the admin root, closed sections and lookalikes", () => {
+    test("rejects the admin root, unknown sections and lookalikes", () => {
         expect(isAdminSectionPath({ pathname: "/admin" })).toBe(false);
-        expect(isAdminSectionPath({ pathname: "/admin/people" })).toBe(false);
         expect(isAdminSectionPath({ pathname: "/admin/backups" })).toBe(false);
         expect(isAdminSectionPath({ pathname: "/admin/botsx" })).toBe(false);
     });

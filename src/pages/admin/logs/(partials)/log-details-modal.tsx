@@ -45,7 +45,7 @@ export default function LogDetailsModal({
         {
             label: "User",
             value: log.user_id ? (
-                <Link href={`/admin/people/${log.user_id}`}>
+                <Link href={`/admin/settings/users/${log.user_id}`}>
                     {user_name || "User"} #{log.user_id}
                 </Link>
             ) : (

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
-import UserForm from "@/src/pages/admin/people/create/(partials)/user-form";
+import UserForm from "../../(partials)/user-form";
 import SettingsGroup from "../../../(partials)/settings-group";
 import SettingsStatus from "../../../(partials)/settings-status";
 

@@ -1,6 +1,6 @@
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
-import UserForm from "@/src/pages/admin/people/create/(partials)/user-form";
+import UserForm from "./user-form";
 
 type Props = {
     open: boolean;
