@@ -6,6 +6,11 @@ export const AppData = {
      * Shared with twui's `ColorSchemeSelector`, so it must stay `theme`.
      */
     ThemeStorageKey: "theme",
+    /**
+     * Prefix of the composer's unsent drafts in `localStorage`, one per
+     * bot and workspace.
+     */
+    ComposerDraftStorageKey: `${SiteData["SiteSlug"]}_composer_draft`,
     ServerHealthMessage: "Server Running Well",
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,

@@ -5,6 +5,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import { X } from "lucide-react";
 import type { PendingAttachment } from "../(hooks)/use-composer-attachments";
 import AttachmentIcon from "./attachment-icon";
+import ComposerAttachmentPreview from "./composer-attachment-preview";
 
 type Props = Omit<PendingAttachment, "key"> & {
     onRemove: () => void;
@@ -12,15 +13,23 @@ type Props = Omit<PendingAttachment, "key"> & {
 
 /**
  * A file waiting to go with the next message: uploading, ready, or failed
- * (with why, on hover). Removable until sent.
+ * (with why, on hover). Removable until sent. An image shows a
+ * small preview in place of its icon.
  */
 export default function ComposerAttachmentChip({
     name,
     status,
     attachment,
     error,
+    preview_url,
     onRemove,
 }: Props) {
+    const image_src =
+        preview_url ||
+        (attachment?.media_type == "image"
+            ? attachment.thumbnail_url || attachment.url
+            : undefined);
+
     return (
         <Row
             title={status == "failed" ? `${name}: ${error}` : name}
@@ -28,6 +37,8 @@ export default function ComposerAttachmentChip({
         >
             {status == "uploading" ? (
                 <Loading size="smaller" />
+            ) : image_src ? (
+                <ComposerAttachmentPreview src={image_src} />
             ) : (
                 <AttachmentIcon media_type={attachment?.media_type} />
             )}

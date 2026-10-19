@@ -22,6 +22,7 @@ export default function ComposerAttachments({ pending, onRemove }: Props) {
                     status={item.status}
                     attachment={item.attachment}
                     error={item.error}
+                    preview_url={item.preview_url}
                     onRemove={() => onRemove({ key: item.key })}
                 />
             ))}

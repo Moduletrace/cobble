@@ -8,6 +8,7 @@ import type {
 } from "@/src/types";
 import sendBotMessage from "../(functions)/send-bot-message";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
+import useComposerDraft from "../(hooks)/use-composer-draft";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerSendButton from "./composer-send-button";
@@ -24,13 +25,14 @@ type Props = {
 /**
  * Enter sends, Shift+Enter adds a line. Grows to five lines, then scrolls.
  * Its top rule lines up with the rail's user-row rule; picked files sit
- * just above it. Files can also be pasted or dropped in.
+ * just above it. Files can also be pasted or dropped in. Unsent text is
+ * kept per conversation across reloads, with its uploaded files.
  */
 export default function Composer({ bot, workspace_id, onSent }: Props) {
-    const [text, setText] = useState("");
+    const { text, setText } = useComposerDraft({ bot_id: bot.id, workspace_id });
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
-    const files = useComposerAttachments();
+    const files = useComposerAttachments({ bot_id: bot.id, workspace_id });
 
     const can_send =
         Boolean(text.trim() || files.media_ids.length) &&
