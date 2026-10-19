@@ -30,7 +30,7 @@ describe("modelServesHarness", () => {
         ).toBe(true);
     });
 
-    test("transcription takes speech-to-text or audio-hearing chat models", () => {
+    test("transcription takes speech-to-text models only", () => {
         expect(
             modelServesHarness({
                 model: {
@@ -46,7 +46,7 @@ describe("modelServesHarness", () => {
                 model: { ...chat, input_modalities: ["text", "audio"] },
                 harness: "transcription",
             }),
-        ).toBe(true);
+        ).toBe(false);
         expect(
             modelServesHarness({ model: chat, harness: "transcription" }),
         ).toBe(false);

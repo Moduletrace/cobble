@@ -14,7 +14,8 @@ type Props = {
 
 /**
  * One harness: its provider, then its model (narrowed to that provider),
- * whether it falls back to the automatic picks, whether it's on, and its
+ * whether it falls back to the automatic picks (for a harness that has
+ * them), whether it's on, and its
  * voice for speech. On a bot's page the provider select can also use the
  * default, which hides the rest.
  */
@@ -31,7 +32,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
         ? "turned off"
         : harness.default?.current
           ? `${harness.default.current.name} on ${harness.default.current.provider_name}`
-          : "nothing available";
+          : "not available";
 
     return (
         <SettingsGroup title={harness.title} description={harness.description}>
@@ -60,6 +61,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     models={models}
                     model_id={value.model_id}
                     provider_name={provider?.name}
+                    automatic={harness.automatic}
                     onChange={(model_id) => onChange({ ...value, model_id, voice: undefined })}
                 />
             )}
@@ -68,7 +70,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
             ) : (
                 <HarnessCurrentModel harness={harness} />
             )}
-            {!value.inherit && value.model_id ? (
+            {!value.inherit && value.model_id && harness.automatic ? (
                 <Checkbox
                     title="Fall back to the automatic picks if this model fails"
                     label={`Fall back to the automatic picks${provider ? ` on ${provider.name}` : ""} if this model fails`}

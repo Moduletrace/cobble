@@ -107,3 +107,20 @@ export const UploadBotAttachmentRequestSchema = z.object({
 });
 
 export type UploadBotAttachmentRequest = z.infer<typeof UploadBotAttachmentRequestSchema>;
+
+export const TranscribeVoiceRequestSchema = z.object({
+    bot_id: z.coerce.number().int().positive("Pick a bot"),
+    workspace_id: WorkspaceIdField,
+    /**
+     * The recording as a base64 data URL.
+     */
+    data_url: z.string().startsWith("data:audio/", "Send the recording as an audio data URL"),
+});
+
+export type TranscribeVoiceRequest = z.infer<typeof TranscribeVoiceRequestSchema>;
+
+export const SpeakBotMessageRequestSchema = z.object({
+    message_id: z.coerce.number().int().positive("Pick a message"),
+});
+
+export type SpeakBotMessageRequest = z.infer<typeof SpeakBotMessageRequestSchema>;

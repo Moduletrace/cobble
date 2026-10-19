@@ -6,6 +6,7 @@ import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overvie
 import grabBotComputers from "../computers/grab-bot-computers";
 import grabBotHarnessOverview from "../harness/grab-bot-harness-overview";
 import grabHarnessOverview from "../harness/grab-harness-overview";
+import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import grabUserWorkspaces from "../workspaces/grab-user-workspaces";
 import ensureBotSession from "./ensure-bot-session";
 import grabUserConversation from "./grab-user-conversation";
@@ -25,7 +26,8 @@ type Params = {
  * `/admin/workspaces/<id>/bots/<id>`): the rail's crew (the workspace's
  * in a workspace) and workspaces, the bot, its active session (marked
  * read) and its messages, its models, computers, tools and MCP servers
- * and active task there.
+ * and active task there, and whether its mic and read-aloud have a model
+ * to run on.
  * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationProps({
@@ -64,7 +66,7 @@ export default async function grabConversationProps({
      * workspace the workspace's own models come first, so what runs now
      * shows its pick.
      */
-    const [bot_messages, bot_harness_overview, bot_computers, bot_task, bot_extensions] = await Promise.all([
+    const [bot_messages, bot_harness_overview, bot_computers, bot_task, bot_extensions, transcription, speech] = await Promise.all([
         grabBotMessages({ session_id: session.id! }),
         (bot.kind == "coordinator" && !scope
             ? grabHarnessOverview().then(({ harnesses }) => ({ harnesses }))
@@ -76,6 +78,8 @@ export default async function grabConversationProps({
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabActiveBotTask({ bot_id: bot.id, session_id: session.id }),
         grabBotExtensionsOverview({ user_id, bot_id: bot.id, workspace_id: scope }),
+        hasHarnessModel({ harness: "transcription", bot_id: bot.id, workspace_id: scope }),
+        hasHarnessModel({ harness: "speech", bot_id: bot.id, workspace_id: scope }),
     ]);
 
     return {
@@ -89,5 +93,15 @@ export default async function grabConversationProps({
         bot_computers,
         bot_task,
         bot_extensions,
+        bot_voice: { transcription, speech },
     };
+}
+
+/**
+ * Whether the harness is on and has a model to run on for the bot there.
+ */
+async function hasHarnessModel(params: Parameters<typeof resolveHarnessCandidates>[0]) {
+    return await resolveHarnessCandidates(params)
+        .then((candidates) => candidates.length > 0)
+        .catch(() => false);
 }

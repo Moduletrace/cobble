@@ -13,7 +13,8 @@ type Params = {
  * Whether a model can do a harness's job:
  * - text: reads and writes text, and calls tools (bots work through tools)
  * - vision: reads images, writes text
- * - transcription: a speech-to-text model, or a chat model that hears audio
+ * - transcription: a speech-to-text model (never a chat model that hears
+ *   audio: free ones often drop it)
  * - speech: a text-to-speech model
  * - image: makes images
  */
@@ -31,10 +32,7 @@ export default function modelServesHarness({ model, harness }: Params) {
             return input.has("image") && output.has("text");
 
         case "transcription":
-            return (
-                output.has("transcription") ||
-                (input.has("audio") && output.has("text"))
-            );
+            return output.has("transcription");
 
         case "speech":
             return output.has("speech");

@@ -6,10 +6,12 @@ import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import useLiveBots from "@/src/hooks/use-live-bots";
 import useServerEvent from "@/src/hooks/use-server-event";
 import { BotComputersContext } from "../(data)/bot-computers-context";
+import { SpeakMessageContext } from "../(data)/speak-message-context";
 import useBotComputers from "../(hooks)/use-bot-computers";
 import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
 import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
+import useSpeakMessage from "../(hooks)/use-speak-message";
 import ConversationHeader from "../(partials)/conversation-header";
 import MessageThread from "../(partials)/message-thread";
 import Composer from "../(partials)/composer";
@@ -21,7 +23,8 @@ import ComputerViewerModal from "../(partials)/computer-viewer-modal";
  * bot's conversation, on its own or in a workspace (`pageProps.workspace`).
  * The bot's computers are shared with the header's modal and the computer
  * buttons in the thread, so a switch from either shows in both; either
- * can open one in the viewer.
+ * can open one in the viewer. Bot messages can be read aloud, one at a
+ * time.
  */
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
@@ -46,6 +49,8 @@ export default function Conversation() {
         workspace_id,
         computers: pageProps?.bot_computers || [],
     });
+
+    const speak = useSpeakMessage({ enabled: Boolean(pageProps?.bot_voice?.speech) });
 
     const progress = useTaskProgress({
         bot_id: bot?.id || 0,
@@ -112,40 +117,43 @@ export default function Conversation() {
 
     return (
         <BotComputersContext.Provider value={bot_computers}>
-            <Stack className="grow min-w-0 h-full gap-0! items-stretch">
-                <ConversationHeader
-                    bot={live_bot}
-                    workspace={workspace}
-                    has_other_unread={has_other_unread}
-                    harnesses={pageProps?.bot_harness_overview?.harnesses}
-                />
-                <MessageThread
-                    bot={live_bot}
-                    messages={messages}
-                    progress={progress.text}
-                    reply_progress={reply_progress}
-                    has_task={Boolean(progress.task_id)}
-                />
-                <Composer
-                    bot={bot}
-                    workspace_id={workspace_id}
-                    extensions={pageProps?.bot_extensions}
-                    onSent={({ message }) => {
-                        if (startsNewSession(message) && message.session_id != session_id) {
-                            setSessionId(Number(message.session_id));
-                            setMessages([message]);
-                            return;
-                        }
-
-                        setMessages((prev) =>
-                            prev.some((m) => m.id == message.id)
-                                ? prev
-                                : [...prev, message],
-                        );
-                    }}
-                />
-            </Stack>
-            <ComputerViewerModal bot={live_bot} />
+            <SpeakMessageContext.Provider value={speak}>
+                <Stack className="grow min-w-0 h-full gap-0! items-stretch">
+                    <ConversationHeader
+                        bot={live_bot}
+                        workspace={workspace}
+                        has_other_unread={has_other_unread}
+                        harnesses={pageProps?.bot_harness_overview?.harnesses}
+                    />
+                    <MessageThread
+                        bot={live_bot}
+                        messages={messages}
+                        progress={progress.text}
+                        reply_progress={reply_progress}
+                        has_task={Boolean(progress.task_id)}
+                    />
+                    <Composer
+                        bot={bot}
+                        workspace_id={workspace_id}
+                        extensions={pageProps?.bot_extensions}
+                        voice={pageProps?.bot_voice}
+                        onSent={({ message }) => {
+                            if (startsNewSession(message) && message.session_id != session_id) {
+                                setSessionId(Number(message.session_id));
+                                setMessages([message]);
+                                return;
+                            }
+    
+                            setMessages((prev) =>
+                                prev.some((m) => m.id == message.id)
+                                    ? prev
+                                    : [...prev, message],
+                            );
+                        }}
+                    />
+                </Stack>
+                <ComputerViewerModal bot={live_bot} />
+            </SpeakMessageContext.Provider>
         </BotComputersContext.Provider>
     );
 }

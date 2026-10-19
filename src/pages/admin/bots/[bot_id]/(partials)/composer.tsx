@@ -2,20 +2,25 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Textarea from "@moduletrace/twui/form/Textarea";
+import P from "@moduletrace/twui/layout/P";
 import type {
     BotExtensionsPayload,
     BotMessageWithAttachments,
+    BotVoicePayload,
     BotWithLastMessage,
 } from "@/src/types";
 import sendBotMessage from "../(functions)/send-bot-message";
+import transcribeVoice from "../(functions)/transcribe-voice";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
 import useComposerDraft from "../(hooks)/use-composer-draft";
 import useAutoGrowTextarea from "../(hooks)/use-auto-grow-textarea";
+import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
+import ComposerVoiceButton from "./composer-voice-button";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -27,6 +32,10 @@ type Props = {
      * Its MCP servers and tools, listed under the input.
      */
     extensions?: BotExtensionsPayload | null;
+    /**
+     * The dictation mic is disabled while transcription has no model.
+     */
+    voice?: BotVoicePayload | null;
     onSent: (params: { message: BotMessageWithAttachments }) => void;
 };
 
@@ -36,9 +45,10 @@ type Props = {
  * just above it. A click anywhere on the row focuses the input. Files can
  * also be pasted or dropped in. Unsent text is kept per conversation
  * across reloads, with its uploaded files. The bot's MCP servers and tools
- * are listed under the input.
+ * are listed under the input. The mic dictates: what's said is written
+ * into the input at the cursor, to edit before sending.
  */
-export default function Composer({ bot, workspace_id, extensions, onSent }: Props) {
+export default function Composer({ bot, workspace_id, extensions, voice, onSent }: Props) {
     const { text, setText } = useComposerDraft({ bot_id: bot.id, workspace_id });
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
@@ -48,11 +58,51 @@ export default function Composer({ bot, workspace_id, extensions, onSent }: Prop
 
     useAutoGrowTextarea({ ref: input_ref, value: text });
 
+    const recorder = useVoiceRecorder({
+        onRecorded: async ({ audio }) => {
+            if (!bot.id) return;
+
+            const res = await transcribeVoice({ bot_id: bot.id, workspace_id, audio });
+
+            if (!res.success || !res.singleRes?.text) {
+                recorder.setError(res.msg || "Couldn't write that out");
+                return;
+            }
+
+            insertText({ insert: res.singleRes.text });
+        },
+    });
+
     const can_send =
         Boolean(text.trim() || files.media_ids.length) &&
         !sending &&
         !files.uploading &&
+        recorder.state == "idle" &&
         online;
+
+    /**
+     * Puts dictated text at the cursor (or the end), spaced from what's
+     * around it, and leaves the cursor after it.
+     */
+    function insertText({ insert }: { insert: string }) {
+        const el = input_ref.current;
+        const start = el ? el.selectionStart : text.length;
+        const end = el ? el.selectionEnd : text.length;
+        const before = text.slice(0, start);
+        const after = text.slice(end);
+        const piece =
+            (before && !/\s$/.test(before) ? " " : "") +
+            insert +
+            (after && !/^\s/.test(after) ? " " : "");
+        const cursor = before.length + piece.length;
+
+        setText(before + piece + after);
+
+        requestAnimationFrame(() => {
+            input_ref.current?.focus();
+            input_ref.current?.setSelectionRange(cursor, cursor);
+        });
+    }
 
     async function send() {
         if (!can_send || !bot.id) return;
@@ -149,12 +199,28 @@ export default function Composer({ bot, workspace_id, extensions, onSent }: Prop
                         }}
                         autoFocus
                     />
+                    {recorder.supported ? (
+                        <ComposerVoiceButton
+                            state={recorder.state}
+                            elapsed_ms={recorder.elapsed_ms}
+                            error={recorder.error}
+                            unavailable={!voice?.transcription}
+                            disabled={!online}
+                            onStart={recorder.start}
+                            onStop={recorder.stop}
+                        />
+                    ) : null}
                     <ComposerSendButton
                         disabled={!can_send}
                         loading={sending || files.uploading}
                         onClick={send}
                     />
                 </Row>
+                {recorder.error ? (
+                    <P role="alert" className="w-full max-w-container mx-auto px-3 md:px-6 -mt-5 pb-3 text-xs text-ink-secondary">
+                        {recorder.error}
+                    </P>
+                ) : null}
                 <ComposerTools bot={bot} workspace_id={workspace_id} initial={extensions} />
             </Stack>
         </Stack>

@@ -29,6 +29,7 @@ export default function BotMessageGroup({ bot, group }: Props) {
                 {group.messages.map((message) => (
                     <BotMessageLine
                         key={message.id}
+                        message_id={message.id || null}
                         text={message.text || ""}
                         needs_you={Boolean(message.needs_you)}
                     />

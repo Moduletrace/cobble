@@ -55,6 +55,7 @@ export default async function grabHarnessOverviewItem({
         title: meta.title,
         description: meta.description,
         required: meta.required,
+        automatic: meta.automatic,
         model_id: setting.model_id,
         provider_id: setting.provider_id,
         providers,

@@ -8,8 +8,6 @@ export const ReadImagePrompt = `Describe this image for someone who can't see it
 - For a screenshot, name the app or page, its state, and every control a user could click.
 - Don't guess at what you can't see. Plain text only, no preamble.`;
 
-export const TranscribeAudioPrompt = `Transcribe this audio exactly as spoken, in the language spoken. Output only the transcript: no preamble, no notes, no timestamps.`;
-
 /**
  * Added to the text model's prompt when a message part was read by another
  * harness, so it knows it is working from a description.

@@ -22,8 +22,10 @@ type Params = {
 };
 
 /**
- * Reads text aloud with the speech harness. Uses the voice picked in the
- * speech setting when the model has it, else the model's first voice.
+ * Reads text aloud with the speech harness, as a stream that can play
+ * while the rest is still being made. Falls back to the next model only
+ * until one answers. Uses the voice picked in the speech setting when the
+ * model has it, else the model's first voice.
  */
 export default async function speakText({
     text,

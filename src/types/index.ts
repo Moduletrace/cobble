@@ -277,6 +277,11 @@ export type HarnessOverview = {
     title: string;
     description: string;
     required: boolean;
+    /**
+     * Picks a free model itself when none is picked. Otherwise it isn't
+     * available until one is.
+     */
+    automatic: boolean;
     model_id?: number;
     /**
      * The provider the harness is limited to; undefined: any.
@@ -599,6 +604,11 @@ export type DbBackup = {
     size: number;
 };
 
+export type BotVoicePayload = {
+    transcription: boolean;
+    speech: boolean;
+};
+
 export type PagePropsType = {
     user?: User | null;
     user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
@@ -678,6 +688,11 @@ export type PagePropsType = {
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
     bot_extensions?: BotExtensionsPayload | null;
+    /**
+     * Whether the open conversation's mic (transcription) and read-aloud
+     * (speech) are turned on for the bot there.
+     */
+    bot_voice?: BotVoicePayload | null;
     workspace_extensions?: BotExtensionsPayload | null;
     envs?: {
         GOOGLE_CLIENT_ID?: string;

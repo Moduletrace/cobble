@@ -2,6 +2,7 @@ import { AppData } from "@/src/data/app-data";
 import {
     AutoModelRouterSlugs,
     AutoModelVendorPreference,
+    Harnesses,
     SmallModelPattern,
     SpecialistModelPattern,
     type HarnessKind,
@@ -26,13 +27,16 @@ type Params<T extends HarnessCatalogModel> = {
  * 3. routers such as `openrouter/free`, last
  *
  * Within a group, benchmarked models come first by intelligence index,
- * then the rest: full-size before small variants, newest first.
+ * then the rest: full-size before small variants, newest first. None for
+ * a harness that isn't `automatic` (transcription, speech).
  */
 export default function rankAutoModels<T extends HarnessCatalogModel>({
     models,
     harness,
     now = Date.now(),
 }: Params<T>): T[] {
+    if (!Harnesses.find((h) => h.value == harness)?.automatic) return [];
+
     const ranked = models
         .filter(
             (model) =>
@@ -50,23 +54,12 @@ export default function rankAutoModels<T extends HarnessCatalogModel>({
     return ranked
         .sort(
             (a, b) =>
-                (harness == "transcription"
-                    ? Number(!isSpeechToText(a.model)) -
-                      Number(!isSpeechToText(b.model))
-                    : 0) ||
                 a.tier - b.tier ||
                 compareInTier(a.model, b.model),
         )
         .map((entry) => entry.model);
 }
 
-/**
- * Dedicated speech-to-text models transcribe before chat models that hear
- * audio: some free chat endpoints list audio input but drop it.
- */
-function isSpeechToText(model: HarnessCatalogModel) {
-    return model.output_modalities.includes("transcription");
-}
 
 const OtherTier = AutoModelVendorPreference.length;
 const RouterTier = OtherTier + 1;

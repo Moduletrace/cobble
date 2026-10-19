@@ -174,8 +174,12 @@ export type HarnessSpeakParams = {
     signal: AbortSignal;
 };
 
-export type HarnessAudioOutput = {
-    data: Uint8Array;
+/**
+ * Speech as the provider sends it: the stream starts once the provider
+ * answers, so it can play while the rest is still being made.
+ */
+export type HarnessAudioStream = {
+    stream: ReadableStream<Uint8Array>;
     media_type: string;
 };
 
@@ -206,7 +210,7 @@ export type HarnessImageOutput = {
 export type HarnessAdapter = {
     chat: (params: HarnessChatParams) => Promise<HarnessChatResult>;
     transcribe: (params: HarnessTranscribeParams) => Promise<{ text: string }>;
-    speak: (params: HarnessSpeakParams) => Promise<HarnessAudioOutput>;
+    speak: (params: HarnessSpeakParams) => Promise<HarnessAudioStream>;
     generateImage: (
         params: HarnessImageParams,
     ) => Promise<{ images: HarnessImageOutput[] }>;

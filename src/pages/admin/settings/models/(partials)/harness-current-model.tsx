@@ -21,7 +21,9 @@ export default function HarnessCurrentModel({ harness }: Props) {
             }`
           : harness.required
             ? "Nothing to run on yet: no provider has a usable key."
-            : "No free model can do this right now. Pick one to turn it on.";
+            : !harness.automatic
+              ? "Not available until a model is picked."
+              : "No free model can do this right now. Pick one to turn it on.";
 
     return (
         <Span className="text-[13px] leading-[18px] text-ink-secondary">

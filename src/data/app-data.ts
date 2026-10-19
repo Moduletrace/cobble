@@ -288,6 +288,14 @@ export const AppData = {
      */
     BotReplyAttachmentMessages: 4,
     /**
+     * Longest dictation the composer records before it stops on its own.
+     */
+    ComposerVoiceMaxMs: 5 * 60 * 1000,
+    /**
+     * Most of a bot message read aloud; the rest is cut.
+     */
+    SpeechMaxChars: 4000,
+    /**
      * Largest picture a bot or a workspace can have.
      */
     ProfileImageMaxBytes: 5 * 1024 * 1024,

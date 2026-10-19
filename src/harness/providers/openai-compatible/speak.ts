@@ -1,8 +1,10 @@
 import type { HarnessAdapter } from "../../types";
+import HarnessError from "../../harness-error";
 import providerRequest from "./provider-request";
 
 /**
- * `POST /audio/speech`. Returns the audio bytes.
+ * `POST /audio/speech`. Resolves once the provider answers, with its
+ * audio as a stream (providers send it in chunks as it's made).
  */
 const speak: HarnessAdapter["speak"] = async ({
     candidate,
@@ -24,8 +26,16 @@ const speak: HarnessAdapter["speak"] = async ({
         candidate_key: candidate.key,
     });
 
+    if (!res.body) {
+        throw new HarnessError({
+            message: `The model returned no audio.`,
+            retryable: true,
+            candidate_key: candidate.key,
+        });
+    }
+
     return {
-        data: new Uint8Array(await res.arrayBuffer()),
+        stream: res.body,
         media_type:
             res.headers.get("content-type")?.split(";")[0] ||
             `audio/${format == "mp3" ? "mpeg" : format}`,

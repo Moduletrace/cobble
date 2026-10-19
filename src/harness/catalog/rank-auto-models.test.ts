@@ -106,28 +106,24 @@ describe("rankAutoModels", () => {
             "google/gemma-4-31b-it:free",
             "openrouter/free",
         ]);
-        expect(
-            slugs(rankAutoModels({ models: live, harness: "transcription" })),
-        ).toEqual(["thinkingmachines/inkling-small:free"]);
-        expect(rankAutoModels({ models: live, harness: "speech" })).toEqual(
-            [],
-        );
     });
 
-    test("puts speech-to-text models ahead of chat models that hear audio", () => {
-        const ranked = rankAutoModels({
-            models: [
-                model("deepseek/omni", { input_modalities: ["text", "audio"] }),
-                model("acme/scribe", {
-                    input_modalities: ["audio"],
-                    output_modalities: ["transcription"],
-                    supports_tools: false,
-                }),
-            ],
-            harness: "transcription",
-        });
+    test("never picks for transcription or speech", () => {
+        const models = [
+            model("deepseek/omni", { input_modalities: ["text", "audio"] }),
+            model("acme/scribe", {
+                input_modalities: ["audio"],
+                output_modalities: ["transcription"],
+                supports_tools: false,
+            }),
+            model("acme/voice", {
+                output_modalities: ["speech"],
+                supports_tools: false,
+            }),
+        ];
 
-        expect(slugs(ranked)).toEqual(["acme/scribe", "deepseek/omni"]);
+        expect(rankAutoModels({ models, harness: "transcription" })).toEqual([]);
+        expect(rankAutoModels({ models, harness: "speech" })).toEqual([]);
     });
 
     test("drops retired and unscored small models from other vendors", () => {

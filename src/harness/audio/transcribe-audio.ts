@@ -1,17 +1,10 @@
 import { AppData } from "@/src/data/app-data";
-import { TranscribeAudioPrompt } from "@/src/data/harness-prompts";
 import AppError from "@/src/utils/app-error";
 import HarnessError from "../harness-error";
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
 import type { HarnessAudioInput } from "../types";
-import looksLikeMissingAudio from "./looks-like-missing-audio";
-
-/**
- * A chat model that drops audio is skipped this long.
- */
-const MissingAudioCooldownMs = 60 * 60 * 1000;
 
 type Params = {
     audio: HarnessAudioInput;
@@ -31,9 +24,8 @@ type Params = {
 };
 
 /**
- * Turns speech into text with the transcription harness. Speech-to-text
- * models get the file at `/audio/transcriptions`; chat models that hear
- * audio are asked for a verbatim transcript.
+ * Turns speech into text with the transcription harness: its
+ * speech-to-text model gets the file at `/audio/transcriptions`.
  */
 export default async function transcribeAudio({
     audio,
@@ -62,54 +54,17 @@ export default async function transcribeAudio({
                 kind: candidate.provider.kind,
             });
 
-            const is_speech_to_text =
-                candidate.model.output_modalities.includes("transcription");
-
-            const text = is_speech_to_text
-                ? (
-                      await adapter.transcribe({
-                          candidate,
-                          audio,
-                          language,
-                          signal: final_signal,
-                      })
-                  ).text
-                : (
-                      await adapter.chat({
-                          candidate,
-                          messages: [
-                              {
-                                  role: "user",
-                                  content: [
-                                      { type: "text", text: TranscribeAudioPrompt },
-                                      {
-                                          type: "audio",
-                                          data: Buffer.from(audio.data).toString(
-                                              "base64",
-                                          ),
-                                          format: audio.format,
-                                      },
-                                  ],
-                              },
-                          ],
-                          temperature: 0,
-                          signal: final_signal,
-                      })
-                  ).text;
+            const { text } = await adapter.transcribe({
+                candidate,
+                audio,
+                language,
+                signal: final_signal,
+            });
 
             if (text === null || text === undefined) {
                 throw new HarnessError({
                     message: `The model returned no transcript.`,
                     retryable: true,
-                    candidate_key: candidate.key,
-                });
-            }
-
-            if (!is_speech_to_text && looksLikeMissingAudio({ text })) {
-                throw new HarnessError({
-                    message: `${candidate.model.name || candidate.model.slug} didn't get the audio.`,
-                    retryable: true,
-                    retry_at: Date.now() + MissingAudioCooldownMs,
                     candidate_key: candidate.key,
                 });
             }
