@@ -1,7 +1,11 @@
 import { useState } from "react";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import useServerEvent from "@/src/hooks/use-server-event";
-import type { WorkspaceCreatedData, WorkspaceWithActivity } from "@/src/types";
+import type {
+    WorkspaceCreatedData,
+    WorkspaceRemovedData,
+    WorkspaceWithActivity,
+} from "@/src/types";
 
 type Params = {
     workspaces: WorkspaceWithActivity[];
@@ -33,6 +37,12 @@ export default function useLiveWorkspaces({ workspaces, open_workspace_id }: Par
                 return [...prev.slice(0, at), data.workspace, ...prev.slice(at)];
             });
         },
+    });
+
+    useServerEvent({
+        event: "server:workspace-removed",
+        onData: (data: WorkspaceRemovedData) =>
+            setLive((prev) => prev.filter((workspace) => workspace.id != data.workspace_id)),
     });
 
     useServerEvent({

@@ -96,7 +96,7 @@ export default function createBotTool({
 
             const where = target?.name ? ` and joins ${target.name}` : "";
 
-            return `${args.name} is on the crew (bot #${bot_id})${where}.${target ? "" : " It has no workspace yet: put it in one with add_bot_to_workspace, or give it a computer with assign_computer."}`;
+            return `${args.name} is on the crew (bot #${bot_id})${where}.${target ? "" : " It has no workspace yet: put it in one with add_bot_to_workspace, or give it a computer with assign_computer."} assign_computer, add_bot_to_workspace and delegate_task take #${bot_id} right away, in this same reply.`;
         },
     };
 }

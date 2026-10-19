@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
+import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import addBotToComputer from "@/src/functions/backend/db/computers/add-bot-to-computer";
 import removeBotFromComputer from "@/src/functions/backend/db/computers/remove-bot-from-computer";
 import computerRef from "@/src/utils/computer-ref";
@@ -57,11 +58,16 @@ export default function assignComputerTool({
             access: z.enum(["grant", "revoke"]),
         }),
         run: async ({ args }) => {
-            const worker = workers.find((bot) => bot.id == args.bot_id);
+            const fresh = await grabCrewWorkers();
+            const worker = fresh.find((bot) => bot.id == args.bot_id);
             const computer = computers.find((c) => c.id == args.computer_id);
 
             if (!worker?.id) {
-                throw new Error(`No crew member has id ${args.bot_id}.`);
+                throw new Error(
+                    `No crew member has id ${args.bot_id}. Crew: ${fresh
+                        .map((bot) => `${bot.id}: ${bot.name}`)
+                        .join("; ") || "none"}.`,
+                );
             }
 
             if (!computer?.id) {

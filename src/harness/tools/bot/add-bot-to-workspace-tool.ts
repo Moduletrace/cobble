@@ -2,7 +2,9 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import pushBotCreated from "@/src/bots-queue/push-bot-created";
+import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
+import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -44,16 +46,24 @@ export default function addBotToWorkspaceTool({
             workspace_id: z.number().int(),
         }),
         run: async ({ args }) => {
-            const worker = workers.find((bot) => bot.id == args.bot_id);
-            const workspace = workspaces.find((w) => w.id == args.workspace_id);
+            const fresh = await grabCrewWorkers();
+            const live = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
+            const worker = fresh.find((bot) => bot.id == args.bot_id);
+            const workspace = live.find((w) => w.id == args.workspace_id);
 
             if (!worker?.id) {
-                throw new Error(`No crew member has id ${args.bot_id}. Crew: ${crew || "none"}.`);
+                throw new Error(
+                    `No crew member has id ${args.bot_id}. Crew: ${fresh
+                        .map((bot) => `${bot.id}: ${bot.name}`)
+                        .join("; ") || "none"}.`,
+                );
             }
 
             if (!workspace?.id) {
                 throw new Error(
-                    `No workspace has id ${args.workspace_id}. Workspaces: ${list || "none"}.`,
+                    `No workspace has id ${args.workspace_id}. Workspaces: ${
+                        live.map((w) => `${w.id}: ${w.name}`).join("; ") || "none"
+                    }.`,
                 );
             }
 

@@ -19,6 +19,11 @@ type Params = {
      * live relay). Null means its main one.
      */
     computer_id?: number | null;
+    /**
+     * The workspaces the bot is in now, for a membership change: a
+     * workspace's crew drops a bot that's no longer in it.
+     */
+    workspace_ids?: number[];
 };
 
 /**
@@ -26,7 +31,13 @@ type Params = {
  * (`grabBotAudience`), each with their own face, status line and active
  * task with it, never another user's.
  */
-export default async function pushBotUpdated({ bot_id, user_id, users, computer_id }: Params) {
+export default async function pushBotUpdated({
+    bot_id,
+    user_id,
+    users,
+    computer_id,
+    workspace_ids,
+}: Params) {
     if (!bot_id) return;
 
     const audience = user_id ? [user_id] : await grabBotAudience({ bot_id });
@@ -42,6 +53,7 @@ export default async function pushBotUpdated({ bot_id, user_id, users, computer_
                     id: Number(bot_id),
                     ...(await grabBotFace({ bot_id, user_id: viewer_id })),
                     ...(computer_id !== undefined ? { computer_id: computer_id || null } : {}),
+                    ...(workspace_ids !== undefined ? { workspace_ids } : {}),
                     task: await grabActiveBotTask({ bot_id, user_id: viewer_id }),
                 },
             },

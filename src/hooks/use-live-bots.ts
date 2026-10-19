@@ -63,13 +63,25 @@ export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: 
     useServerEvent({
         event: "server:bot-updated",
         onData: (data: BotUpdatedData) =>
-            setLive((prev) =>
-                prev.map((bot) =>
+            setLive((prev) => {
+                /**
+                 * A membership change says which workspaces the bot is in
+                 * now; a workspace's crew drops it when it left.
+                 */
+                if (
+                    workspace_id &&
+                    data.workspace_ids &&
+                    !data.workspace_ids.includes(Number(workspace_id))
+                ) {
+                    return prev.filter((bot) => bot.id != data.id);
+                }
+
+                return prev.map((bot) =>
                     bot.id == data.id
                         ? { ...bot, face: data.face, status_line: data.status_line }
                         : bot,
-                ),
-            ),
+                );
+            }),
     });
 
     useServerEvent({

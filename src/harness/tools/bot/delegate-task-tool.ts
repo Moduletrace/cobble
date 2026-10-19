@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import insertBotMessage from "@/src/functions/backend/db/bots/insert-bot-message";
+import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 import type { HarnessTool } from "../../types";
@@ -65,10 +66,15 @@ export default function delegateTaskTool({
             instructions: z.string().min(1).max(8000),
         }),
         run: async ({ args }) => {
-            const worker = workers.find((bot) => bot.id == args.bot_id);
+            const fresh = await grabCrewWorkers({ workspace_id });
+            const worker = fresh.find((bot) => bot.id == args.bot_id);
 
             if (!worker?.id) {
-                throw new Error(`No crew member has id ${args.bot_id}. Crew: ${crew}.`);
+                throw new Error(
+                    `No crew member has id ${args.bot_id}. Crew: ${fresh
+                        .map((bot) => `${bot.id}: ${bot.name}`)
+                        .join("; ") || "none"}.`,
+                );
             }
 
             const computers = await grabBotComputers({ bot_id: worker.id, workspace_id });

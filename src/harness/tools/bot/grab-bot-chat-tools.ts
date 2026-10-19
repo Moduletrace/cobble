@@ -1,6 +1,6 @@
-import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
+import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import type { HarnessTool } from "../../types";
 import askToTakeOverTool from "../computer/ask-to-take-over-tool";
 import searchComputersTool from "../computer/search-computers-tool";
@@ -9,7 +9,13 @@ import assignComputerTool from "./assign-computer-tool";
 import createBotTool from "./create-bot-tool";
 import createWorkspaceTool from "./create-workspace-tool";
 import delegateTaskTool from "./delegate-task-tool";
+import deleteBotTool from "./delete-bot-tool";
+import deleteWorkspaceTool from "./delete-workspace-tool";
+import findBotTool from "./find-bot-tool";
+import findWorkspaceTool from "./find-workspace-tool";
 import grabBotTools from "./grab-bot-tools";
+import removeBotFromWorkspaceTool from "./remove-bot-from-workspace-tool";
+import updateBotTool from "./update-bot-tool";
 import updateWorkspaceTool from "./update-workspace-tool";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
@@ -49,10 +55,13 @@ type Params = {
  * for the coordinator (the super admin's alone) create_workspace and
  * update_workspace (a workspace and its shared context), create_bot to
  * grow the crew, delegate_task to every worker (the workspace's in a
- * workspace) plus, in its own chat, add_bot_to_workspace and
- * assign_computer (which workspace and which computers each crew member
- * gets) or, in a workspace, set_bot_workspace_instructions. Anything else
- * on a computer goes through a task, never mid-reply.
+ * workspace) plus, in its own chat, find_bot and find_workspace,
+ * add_bot_to_workspace and remove_bot_from_workspace, assign_computer,
+ * update_bot, delete_bot and delete_workspace (which workspace, which
+ * computers, and which name, role and core instructions each crew member
+ * gets, and what goes) or, in a workspace,
+ * set_bot_workspace_instructions. Anything else on a computer goes through
+ * a task, never mid-reply.
  */
 export default async function grabBotChatTools({
     bot,
@@ -93,16 +102,28 @@ export default async function grabBotChatTools({
 
     tools.push(createBotTool({ user_id, workspaces, workspace_id }));
 
-    const workers =
-        (
-            await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
-                sql: workspace_id
-                    ? `SELECT b.* FROM bots b JOIN workspace_bots wb ON wb.bot_id = b.id AND wb.workspace_id = ?
-                        WHERE b.kind = 'worker' ORDER BY b.id ASC`
-                    : `SELECT * FROM bots WHERE kind = 'worker' ORDER BY id ASC`,
-                values: workspace_id ? [workspace_id] : [],
-            })
-        ).payload || [];
+    const workers = await grabCrewWorkers({ workspace_id });
+
+    if (workspace_id) {
+        if (!workers.length) return tools;
+
+        tools.push(delegateTaskTool({
+            user_id,
+            coordinator_id: bot_id,
+            session_id,
+            workspace_id,
+            coordinator_name: bot.name || "The coordinator",
+            workers,
+        }));
+        tools.push(setWorkspaceInstructionsTool({ user_id, workspace_id, workers }));
+        return tools;
+    }
+
+    tools.push(findBotTool(), findWorkspaceTool({ user_id }));
+
+    if (workspaces.length) {
+        tools.push(deleteWorkspaceTool({ user_id, workspaces }));
+    }
 
     if (!workers.length) return tools;
 
@@ -117,10 +138,7 @@ export default async function grabBotChatTools({
         }),
     );
 
-    if (workspace_id) {
-        tools.push(setWorkspaceInstructionsTool({ user_id, workspace_id, workers }));
-        return tools;
-    }
+    tools.push(updateBotTool({ user_id, workers }), deleteBotTool({ user_id, workers }));
 
     if (computers.length) {
         const access = Object.fromEntries(
@@ -139,7 +157,10 @@ export default async function grabBotChatTools({
     }
 
     if (workspaces.length) {
-        tools.push(addBotToWorkspaceTool({ user_id, workers, workspaces }));
+        tools.push(
+            addBotToWorkspaceTool({ user_id, workers, workspaces }),
+            removeBotFromWorkspaceTool({ user_id, workers, workspaces }),
+        );
     }
 
     return tools;

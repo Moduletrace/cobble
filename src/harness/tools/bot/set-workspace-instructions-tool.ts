@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
+import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import updateWorkspaceBot from "@/src/functions/backend/db/workspaces/update-workspace-bot";
 import type { HarnessTool } from "../../types";
 
@@ -37,10 +38,15 @@ export default function setWorkspaceInstructionsTool({
             instructions: z.string().trim().max(AppData.PromptMaxLength),
         }),
         run: async ({ args }) => {
-            const worker = workers.find((bot) => bot.id == args.bot_id);
+            const fresh = await grabCrewWorkers({ workspace_id });
+            const worker = fresh.find((bot) => bot.id == args.bot_id);
 
             if (!worker?.id) {
-                throw new Error(`No crew member here has id ${args.bot_id}. Crew here: ${crew}.`);
+                throw new Error(
+                    `No crew member here has id ${args.bot_id}. Crew here: ${fresh
+                        .map((bot) => `${bot.id}: ${bot.name}`)
+                        .join("; ") || "none"}.`,
+                );
             }
 
             await updateWorkspaceBot({

@@ -1,4 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
+import pushWorkspaceRemoved from "@/src/bots-queue/push-workspace-removed";
+import grabWorkspaceAudience from "@/src/functions/backend/db/access/grab-workspace-audience";
 import deleteWorkspace from "@/src/functions/backend/db/workspaces/delete-workspace";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { WorkspaceIdRequestSchema } from "@/src/schemas/workspace-schema";
@@ -33,7 +35,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
 
         const { workspace_id } = parseWithSchema({ schema: WorkspaceIdRequestSchema, data: body });
 
+        /**
+         * Read before the delete: its links go with it, so who saw it
+         * can't be worked out afterwards.
+         */
+        const audience = await grabWorkspaceAudience({ workspace_id });
+
         const workspace = await deleteWorkspace({ user_id: user.id, workspace_id });
+
+        pushWorkspaceRemoved({ workspace_id, user_ids: audience });
 
         await logEvent({
             title: "Workspace deleted",

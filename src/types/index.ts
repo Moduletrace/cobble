@@ -193,6 +193,13 @@ export type WorkspaceCreatedData = {
 };
 
 /**
+ * `server:workspace-removed` data: the workspace that was deleted.
+ */
+export type WorkspaceRemovedData = {
+    workspace_id: number;
+};
+
+/**
  * `server:bot-removed` data: the bot that was deleted.
  */
 export type BotRemovedData = {
@@ -213,6 +220,11 @@ export type BotUpdatedData = {
      * live relay). Null means its main one.
      */
     computer_id?: number | null;
+    /**
+     * The workspaces the bot is in, when the push read them (a membership
+     * change). A workspace's crew drops a bot that's no longer in it.
+     */
+    workspace_ids?: number[];
 };
 
 /**
@@ -845,6 +857,11 @@ export const WebSocketEvents = [
      * `WorkspaceCreatedData`)
      */
     "server:workspace-created",
+    /**
+     * A workspace the user could see was deleted (`data`:
+     * `WorkspaceRemovedData`)
+     */
+    "server:workspace-removed",
     /**
      * A running job took a step (`data`: `BotJobUpdateData`)
      */
