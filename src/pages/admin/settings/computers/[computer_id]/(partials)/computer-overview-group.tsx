@@ -1,13 +1,11 @@
-import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { ExternalLink } from "lucide-react";
 import ComputerIconTile from "@/src/components/general/computer-icon-tile";
+import ComputerOpenButton from "@/src/components/general/computer-open-button";
 import type { ComputerWithStatus } from "@/src/types";
 import computerResourcesLabel from "@/src/utils/computer-resources-label";
 import computerStatusLabel from "@/src/utils/computer-status-label";
-import computerViewUrl from "@/src/utils/computer-view-url";
 import SettingsGroup from "../../../(partials)/settings-group";
 
 type Props = {
@@ -16,7 +14,7 @@ type Props = {
 
 /**
  * The computer at a glance: its state, resources and what it's for, and a
- * way to open it in the browser.
+ * way to open it in the viewer.
  */
 export default function ComputerOverviewGroup({ computer }: Props) {
     const name = computer.name || `Computer ${computer.id}`;
@@ -51,31 +49,20 @@ export default function ComputerOverviewGroup({ computer }: Props) {
                             .join(" · ")}
                     </Span>
                 </Stack>
-                <Button
+                <ComputerOpenButton
+                    computer_id={Number(computer.id)}
+                    name={name}
+                    label="Open"
                     title={
                         ready
-                            ? `Open ${name} in the browser`
+                            ? `Open ${name}`
                             : `${name} isn't running yet`
                     }
-                    type="button"
                     variant="outlined"
                     color="gray"
                     size="small"
-                    href={
-                        ready
-                            ? computerViewUrl({
-                                  computer_id: Number(computer.id),
-                                  mode: "browser",
-                              })
-                            : undefined
-                    }
-                    target="_blank"
                     disabled={!ready}
-                    beforeIcon={<ExternalLink size={14} aria-hidden />}
-                    className="shrink-0"
-                >
-                    Open
-                </Button>
+                />
             </Row>
         </SettingsGroup>
     );

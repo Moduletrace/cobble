@@ -1,8 +1,5 @@
-import ComputerIconTile from "@/src/components/general/computer-icon-tile";
 import type { ComputerWithStatus } from "@/src/types";
-import computerResourcesLabel from "@/src/utils/computer-resources-label";
-import computerStatusLabel from "@/src/utils/computer-status-label";
-import SettingsListRow from "../../(partials)/settings-list-row";
+import ComputerListRow from "../../(partials)/computer-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
 
 type Props = {
@@ -29,18 +26,9 @@ export default function ComputerSettingsRow({
     const busy_here = busy || computer.status == "creating";
 
     return (
-        <SettingsListRow
-            avatar={<ComputerIconTile />}
-            href={`/admin/settings/computers/${computer.id}`}
-            title={name}
+        <ComputerListRow
+            computer={computer}
             badge={computer.kind == "main" ? "Main" : undefined}
-            subtitle={[
-                computerStatusLabel({ computer }),
-                computerResourcesLabel({ computer }),
-                computer.description,
-            ]
-                .filter(Boolean)
-                .join(" · ")}
         >
             {is_super_admin && computer.status == "failed" ? (
                 <SettingsRowAction
@@ -58,6 +46,6 @@ export default function ComputerSettingsRow({
                     onClick={onDelete}
                 />
             ) : null}
-        </SettingsListRow>
+        </ComputerListRow>
     );
 }

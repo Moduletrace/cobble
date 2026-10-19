@@ -1,8 +1,6 @@
-import ComputerIconTile from "@/src/components/general/computer-icon-tile";
-import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
-import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
 import type { ComputerWithStatus } from "@/src/types";
-import computerStatusLabel from "@/src/utils/computer-status-label";
+import ComputerListRow from "@/src/pages/admin/settings/(partials)/computer-list-row";
+import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
 
 type Props = {
     computer: ComputerWithStatus;
@@ -32,11 +30,9 @@ export default function WorkspaceComputerRow({
     const name = computer.name || `Computer ${computer.id}`;
 
     return (
-        <SettingsListRow
-            avatar={<ComputerIconTile />}
-            title={name}
+        <ComputerListRow
+            computer={computer}
             badge={is_default ? "Default" : undefined}
-            subtitle={`${computerStatusLabel({ computer })}${computer.description ? ` · ${computer.description}` : ""}`}
         >
             {is_default ? null : (
                 <SettingsRowAction title={`Make ${name} the default`} label="Make default" disabled={busy} onClick={onMakeDefault} />
@@ -48,6 +44,6 @@ export default function WorkspaceComputerRow({
             {is_super_admin && computer.kind != "main" ? (
                 <SettingsRowAction title={`Delete ${name}; its files are kept`} label="Delete" disabled={busy} onClick={onDelete} />
             ) : null}
-        </SettingsListRow>
+        </ComputerListRow>
     );
 }

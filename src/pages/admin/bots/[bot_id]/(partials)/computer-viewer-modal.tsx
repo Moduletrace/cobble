@@ -1,12 +1,9 @@
 import { useContext, useState } from "react";
 import { AppContext } from "@/src/pages/__root";
-import Modal from "@moduletrace/twui/elements/Modal";
 import Button from "@moduletrace/twui/layout/Button";
-import H2 from "@moduletrace/twui/layout/H2";
-import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import ComputerView from "@/src/components/general/computer-view";
+import SharedComputerViewerModal from "@/src/components/general/computer-viewer-modal";
 import type { BotWithLastMessage } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import sendBotMessage from "../(functions)/send-bot-message";
@@ -53,26 +50,20 @@ export default function ComputerViewerModal({ bot }: Props) {
     };
 
     return (
-        <Modal
+        <SharedComputerViewerModal
             open
-            setOpen={(open) => {
-                if (!open) closeComputer();
-            }}
-            className="max-w-[95vw]! h-[90vh] p-0 bg-paper flex flex-col overflow-hidden"
-        >
-            <Row className="w-full gap-3! flex-nowrap items-center pl-5 pr-14 py-3 border-0 border-b border-solid border-hairline">
-                <Stack className="min-w-0 gap-0! items-start">
-                    <H2 className="text-base! leading-6! tracking-normal! font-bold text-ink truncate w-full">
-                        {name}
-                    </H2>
-                    {viewing.take_over ? (
-                        <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                            {`${bot_name} asked you to take over. Hand it back when you're done.`}
-                        </Span>
-                    ) : null}
-                </Stack>
-                {viewing.take_over ? (
-                    <Stack className="ml-auto shrink-0 gap-1! items-end">
+            onClose={closeComputer}
+            computer_id={Number(computer.id)}
+            name={name}
+            default_mode={viewing.mode}
+            note={
+                viewing.take_over
+                    ? `${bot_name} asked you to take over. Hand it back when you're done.`
+                    : undefined
+            }
+            action={
+                viewing.take_over ? (
+                    <>
                         <Button
                             type="button"
                             size="small"
@@ -90,16 +81,9 @@ export default function ComputerViewerModal({ bot }: Props) {
                                 {error}
                             </Span>
                         ) : null}
-                    </Stack>
-                ) : null}
-            </Row>
-            <ComputerView
-                key={`${computer.id}-${viewing.mode}`}
-                computer_id={computer.id}
-                name={name}
-                default_mode={viewing.mode}
-                className="grow"
-            />
-        </Modal>
+                    </>
+                ) : undefined
+            }
+        />
     );
 }

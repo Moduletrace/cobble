@@ -1,7 +1,5 @@
-import ComputerIconTile from "@/src/components/general/computer-icon-tile";
-import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
+import ComputerListRow from "@/src/pages/admin/settings/(partials)/computer-list-row";
 import type { ComputerWithStatus } from "@/src/types";
-import computerStatusLabel from "@/src/utils/computer-status-label";
 
 type Props = {
     computer: ComputerWithStatus;
@@ -9,17 +7,9 @@ type Props = {
 };
 
 /**
- * A computer in the workspace dashboard: its state and what it's for.
+ * A computer in the workspace dashboard: its state, resources and what
+ * it's for, opening its settings page.
  */
 export default function WorkspaceDashboardComputerRow({ computer, is_default }: Props) {
-    const name = computer.name || `Computer ${computer.id}`;
-
-    return (
-        <SettingsListRow
-            avatar={<ComputerIconTile />}
-            title={name}
-            badge={is_default ? "Default" : undefined}
-            subtitle={`${computerStatusLabel({ computer })}${computer.description ? ` · ${computer.description}` : ""}`}
-        />
-    );
+    return <ComputerListRow computer={computer} badge={is_default ? "Default" : undefined} />;
 }
