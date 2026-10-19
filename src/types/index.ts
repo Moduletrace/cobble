@@ -125,6 +125,16 @@ export type BotJobUpdateData = BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & {
 };
 
 /**
+ * `server:bot-created` data: a bot the user can now see, the workspaces
+ * it's in, and whether it belongs in their own chat list (the main rail).
+ */
+export type BotCreatedData = {
+    bot: BotWithLastMessage;
+    workspace_ids: number[];
+    in_own_chat: boolean;
+};
+
+/**
  * `server:bot-updated` data: the bot's new face and status line, and its
  * active task (null when there is none).
  */
@@ -535,6 +545,11 @@ export const WebSocketEvents = [
      * `bot_messages` row)
      */
     "server:bot-message",
+    /**
+     * A bot joined the crew or one of the user's workspaces (`data`:
+     * `BotCreatedData`)
+     */
+    "server:bot-created",
     /**
      * A bot's face or status line changed (`data`: `BotUpdatedData`)
      */

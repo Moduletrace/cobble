@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import { logError } from "@/src/functions/backend/logger";
 import grabConnectedUserIds from "@/src/websocket/(functions)/grab-connected-user-ids";
 import relayChangedBots from "./relay-changed-bots";
+import relayCreatedBots from "./relay-created-bots";
 import relayNewBotMessages from "./relay-new-bot-messages";
 import relayNewJobUpdates from "./relay-new-job-updates";
 import type { LiveRelayCursor } from "./types";
@@ -50,7 +51,10 @@ export default async function liveRelay() {
              * Overlap one interval, so a change written in the same
              * millisecond as the last look isn't missed.
              */
-            await relayChangedBots({ since: cursor.bots_at - AppData.LiveRelayPollMs, users });
+            const bots_since = cursor.bots_at - AppData.LiveRelayPollMs;
+
+            await relayCreatedBots({ since: bots_since, users });
+            await relayChangedBots({ since: bots_since, users });
             cursor.bots_at = now;
         } catch (error) {
             await logError({ title: `Live relay failed`, error }).catch(() => {});

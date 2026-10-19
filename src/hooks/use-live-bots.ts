@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
-import type { BotUpdatedData, BotWithLastMessage } from "@/src/types";
+import type { BotCreatedData, BotUpdatedData, BotWithLastMessage } from "@/src/types";
 import useServerEvent from "./use-server-event";
 
 type Params = {
@@ -22,6 +22,32 @@ type Params = {
  */
 export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: Params) {
     const [live, setLive] = useState(bots);
+
+    useServerEvent({
+        event: "server:bot-created",
+        onData: (data: BotCreatedData) => {
+            /**
+             * In a workspace only its own crew is listed; outside one, the
+             * bots in the user's own chat (a member doesn't get a bot that
+             * only joined a workspace).
+             */
+            const here = workspace_id
+                ? data.workspace_ids.includes(Number(workspace_id))
+                : data.in_own_chat;
+
+            if (!here) return;
+
+            setLive((prev) => {
+                if (prev.some((bot) => bot.id == data.bot.id)) return prev;
+
+                /** The coordinator stays pinned first; a new worker is the latest. */
+                const first_worker = prev.findIndex((bot) => bot.kind != "coordinator");
+                const at = first_worker < 0 ? prev.length : first_worker;
+
+                return [...prev.slice(0, at), data.bot, ...prev.slice(at)];
+            });
+        },
+    });
 
     useServerEvent({
         event: "server:bot-updated",

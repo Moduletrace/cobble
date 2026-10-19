@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
+import pushBotCreated from "@/src/bots-queue/push-bot-created";
 import createBot from "@/src/functions/backend/db/bots/create-bot";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
 import pickFreeHue from "@/src/utils/pick-free-hue";
@@ -79,6 +80,18 @@ export default function createBotTool({
 
             if (target?.id) {
                 await addBotToWorkspace({ user_id, workspace_id: target.id, bot_id });
+            }
+
+            const created =
+                (
+                    await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
+                        sql: `SELECT * FROM bots WHERE id = ?`,
+                        values: [bot_id],
+                    })
+                ).payload?.[0] || null;
+
+            if (created) {
+                await pushBotCreated({ bot: created });
             }
 
             const where = target?.name ? ` and joins ${target.name}` : "";

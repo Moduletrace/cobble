@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
+import pushBotCreated from "@/src/bots-queue/push-bot-created";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
 import type { HarnessTool } from "../../types";
 
@@ -73,6 +74,8 @@ export default function addBotToWorkspaceTool({
                 workspace_id: workspace.id,
                 bot_id: worker.id,
             });
+
+            await pushBotCreated({ bot: worker });
 
             return `${worker.name} joined ${workspace.name}.`;
         },
