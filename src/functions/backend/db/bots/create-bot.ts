@@ -42,8 +42,6 @@ export default async function createBot({ user_id, name, role, hue, system_promp
                 kind: "worker",
                 hue,
                 role: role || undefined,
-                face: "idle",
-                status_line: "",
                 system_prompt,
             },
         ],

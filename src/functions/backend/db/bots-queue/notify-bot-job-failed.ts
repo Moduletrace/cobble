@@ -4,6 +4,8 @@ import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
 import relayJobToRequester from "./relay-job-to-requester";
 import jobSessionId from "./job-session-id";
+import grabJobUserId from "./grab-job-user-id";
+import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -13,7 +15,7 @@ type Params = {
 /**
  * Wraps up a job that is out of attempts: stamps `finished_at` (so it's
  * reported once), tells the user in the bot's conversation and sets the
- * bot to needs-you. Its task stays active, since the work isn't done. A
+ * bot to needs-you for that user. Its task stays active, since the work isn't done. A
  * handed-over job's failure also goes to the bot that handed it over.
  */
 export default async function notifyBotJobFailed({
@@ -46,11 +48,16 @@ export default async function notifyBotJobFailed({
         needs_you: true,
     });
 
-    const bot = await setBotFace({
-        bot_id: job.bot_id,
-        face: "needs-you",
-        status_line: "Waiting on you",
-    });
+    const user_id = await grabJobUserId({ job });
+
+    const bot = user_id
+        ? await setBotFace({
+              bot_id: job.bot_id,
+              user_id,
+              face: "needs-you",
+              status_line: BotNeedsYouStatusLine,
+          })
+        : null;
 
     const relay = await relayJobToRequester({
         job,

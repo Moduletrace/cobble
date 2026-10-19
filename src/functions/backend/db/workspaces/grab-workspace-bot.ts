@@ -1,11 +1,12 @@
+import type { BotWithFace } from "@/src/types";
 import type {
-    BUN_SQLITE_COBBLE_BOTS,
     BUN_SQLITE_COBBLE_WORKSPACE_BOTS,
     BUN_SQLITE_COBBLE_WORKSPACES,
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import workspaceBotsSql from "@/src/utils/crew-access/workspace-bots-sql";
 import workspacesSql from "@/src/utils/crew-access/workspaces-sql";
+import botFaceSql from "@/src/utils/bot-face-sql";
 import grabCrewRole from "../access/grab-crew-role";
 
 type Params = {
@@ -16,7 +17,10 @@ type Params = {
 
 export type WorkspaceBotMembership = {
     workspace: BUN_SQLITE_COBBLE_WORKSPACES;
-    bot: BUN_SQLITE_COBBLE_BOTS;
+    /**
+     * With the user's own face (`botFaceSql`).
+     */
+    bot: BotWithFace;
     /**
      * Its `workspace_bots` row. Null for the coordinator, which works in
      * every workspace without one until it's given instructions there.
@@ -47,11 +51,12 @@ export default async function grabWorkspaceBot({
     if (!workspace?.id) return null;
 
     const bot_access = workspaceBotsSql({ role, workspace_id: workspace.id });
+    const face = botFaceSql({ user_id });
 
     const bot = (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
-            sql: `SELECT b.* FROM bots b WHERE b.id = ? AND ${bot_access.sql} LIMIT 1`,
-            values: [bot_id, ...bot_access.values],
+        await BunSQLite.sql<BotWithFace>({
+            sql: `SELECT b.*, ${face.sql} FROM bots b WHERE b.id = ? AND ${bot_access.sql} LIMIT 1`,
+            values: [...face.values, bot_id, ...bot_access.values],
         })
     ).payload?.[0];
 

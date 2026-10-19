@@ -1,6 +1,6 @@
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import pushBotNotice from "@/src/bots-queue/push-bot-notice";
+import pushBotUpdated from "@/src/bots-queue/push-bot-updated";
 import setBotComputer from "@/src/functions/backend/db/computers/set-bot-computer";
 import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
 import setWorkspaceComputer from "@/src/functions/backend/db/workspaces/set-workspace-computer";
@@ -54,15 +54,7 @@ export const handler: BunextAPIRouteHandler<
                   user_id: user.id,
               });
 
-        await pushBotNotice({
-            bot_id: bot.id || 0,
-            bot: {
-                id: bot.id,
-                face: bot.face,
-                status_line: bot.status_line,
-                computer_id: computer.id,
-            },
-        });
+        await pushBotUpdated({ bot_id: bot.id || 0, computer_id: computer.id || null });
 
         await logEvent({
             title: "Bot computer switched",

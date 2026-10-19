@@ -14,6 +14,7 @@ import BotJobFatalError from "./bot-job-fatal-error";
 import describeJobStep from "./describe-job-step";
 import pushToSessionUser from "./push-to-session-user";
 import pushBotNotice from "./push-bot-notice";
+import grabJobUserId from "@/src/functions/backend/db/bots-queue/grab-job-user-id";
 import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
 import type { BotJobUpdateData } from "@/src/types";
@@ -58,6 +59,17 @@ export default async function processBotJob({
 
     const job_id = job.id;
     const bot_id = job.bot_id;
+
+    /**
+     * Its face changes only for the user it works for.
+     */
+    const user_id = await grabJobUserId({ job }).catch(() => null);
+
+    const setFace = async (face: Omit<Parameters<typeof setBotFace>[0], "bot_id" | "user_id">) => {
+        if (!user_id) return;
+
+        await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
+    };
     const controller = new AbortController();
 
     const update: BotJobContext["update"] = async (params) => {
@@ -106,13 +118,9 @@ export default async function processBotJob({
          * its computer.
          */
         const run = async () => {
-            await pushBotNotice({
-                bot_id,
-                bot: await setBotFace({
-                    bot_id,
-                    face: "working",
-                    status_line: job.kind == "reply" ? BotReplyJobTitle : BotTaskStatusLine,
-                }),
+            await setFace({
+                face: "working",
+                status_line: job.kind == "reply" ? BotReplyJobTitle : BotTaskStatusLine,
             });
 
             return await runner({
@@ -159,14 +167,7 @@ export default async function processBotJob({
                 refund: true,
             });
 
-            await pushBotNotice({
-                bot_id,
-                bot: await setBotFace({
-                    bot_id,
-                    face: "asleep",
-                    status_line: BotWaitingStatusLine,
-                }),
-            });
+            await setFace({ face: "asleep", status_line: BotWaitingStatusLine });
             return;
         }
 

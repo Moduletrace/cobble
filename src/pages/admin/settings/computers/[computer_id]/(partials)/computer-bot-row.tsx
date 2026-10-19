@@ -1,11 +1,11 @@
 import BotAvatar from "@/src/components/general/bot-avatar";
-import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
+import type { BotWithFace } from "@/src/types";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
 import SettingsListRow from "../../../(partials)/settings-list-row";
 import SettingsRowAction from "../../../(partials)/settings-row-action";
 
 type Props = {
-    bot: BUN_SQLITE_COBBLE_BOTS;
+    bot: BotWithFace;
     /**
      * The bot's settings page, when the actor may open it.
      */

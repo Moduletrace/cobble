@@ -55,8 +55,6 @@ export default async function ensureCoordinatorBot({ user_id }: Params) {
                 user_id: Number(user_id),
                 name: CoordinatorBotName,
                 kind: "coordinator",
-                face: "idle",
-                status_line: "",
                 system_prompt: CoordinatorSystemPrompt,
             },
         ],

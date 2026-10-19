@@ -1,5 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { CronJobWithNames } from "@/src/types";
+import botFaceSql from "@/src/utils/bot-face-sql";
 
 type Params = {
     user_id: number | string;
@@ -14,10 +15,12 @@ type Params = {
 };
 
 /**
- * The user's schedules with their bot and workspace names, the next to
+ * The user's schedules with their bot (its face as the user sees it) and
+ * workspace names, the next to
  * run first and paused ones last.
  */
 export default async function grabCronJobs({ user_id, bot_id, cron_job_id }: Params): Promise<CronJobWithNames[]> {
+    const face = botFaceSql({ user_id, prefix: "bot_" });
     const where = [`c.user_id = ?`];
     const values: (number | string)[] = [user_id];
 
@@ -32,14 +35,14 @@ export default async function grabCronJobs({ user_id, bot_id, cron_job_id }: Par
     }
 
     const res = await BunSQLite.sql<CronJobWithNames>({
-        sql: `SELECT c.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.face AS bot_face,
+        sql: `SELECT c.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, ${face.sql},
                 b.image_media_id AS bot_image_media_id, w.name AS workspace_name
             FROM cron_jobs c
             JOIN bots b ON b.id = c.bot_id
             LEFT JOIN workspaces w ON w.id = c.workspace_id
             WHERE ${where.join(" AND ")}
             ORDER BY c.enabled DESC, c.next_run_at IS NULL, c.next_run_at ASC, c.id ASC`,
-        values,
+        values: [...face.values, ...values],
     });
 
     return res.payload || [];

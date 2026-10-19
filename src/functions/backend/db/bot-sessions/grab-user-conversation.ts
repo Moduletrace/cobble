@@ -1,4 +1,5 @@
-import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
+import type { BotWithFace } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import grabChatBot from "../bots/grab-chat-bot";
 import grabWorkspaceBot from "../workspaces/grab-workspace-bot";
@@ -13,7 +14,10 @@ type Params = {
 };
 
 export type UserConversation = {
-    bot: BUN_SQLITE_COBBLE_BOTS & { id: number };
+    /**
+     * With the user's own face.
+     */
+    bot: BotWithFace & { id: number };
     workspace: BUN_SQLITE_COBBLE_WORKSPACES | null;
     workspace_id: number | null;
 };

@@ -26,6 +26,7 @@ import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
+import type { BotFace } from "../dict/bot-dict";
 
 export type User = {
     id: number;
@@ -43,10 +44,20 @@ export type User = {
 };
 
 /**
+ * A bot row with its face and status line as the user it's for sees them
+ * (`botFaceSql`). Faces are per user, so a bot row read without one has
+ * neither.
+ */
+export type BotWithFace = BUN_SQLITE_COBBLE_BOTS & {
+    face?: BotFace;
+    status_line?: string;
+};
+
+/**
  * A bot row plus its conversation (in its own chat or one workspace):
  * unread, latest activity and latest message, for the rail.
  */
-export type BotWithLastMessage = BUN_SQLITE_COBBLE_BOTS & {
+export type BotWithLastMessage = BotWithFace & {
     unread?: number | null;
     last_activity_at?: number | null;
     last_message_text?: string | null;
@@ -169,7 +180,7 @@ export type BotRemovedData = {
  */
 export type BotUpdatedData = {
     id: number;
-    face: BUN_SQLITE_COBBLE_BOTS["face"];
+    face: BotFace;
     status_line: string;
     task: BotTaskWithSteps | null;
     /**
@@ -413,7 +424,7 @@ export type PagePropsType = {
      * The computer a settings page manages, with its access.
      */
     computer?: ComputerWithStatus | null;
-    computer_bots?: BUN_SQLITE_COBBLE_BOTS[] | null;
+    computer_bots?: BotWithFace[] | null;
     computer_workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] | null;
     workspace_harness_overview?: BotHarnessOverviewPayload | null;
     /**

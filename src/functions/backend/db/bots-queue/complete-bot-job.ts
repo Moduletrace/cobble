@@ -1,11 +1,13 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
+import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
 import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
 import countOpenBotJobs from "./count-open-bot-jobs";
 import grabLockedBotJob from "./grab-locked-bot-job";
 import relayJobToRequester from "./relay-job-to-requester";
 import jobSessionId from "./job-session-id";
+import grabJobUserId from "./grab-job-user-id";
 
 type Params = {
     job_id: number | string;
@@ -27,9 +29,9 @@ type Params = {
 
 /**
  * Marks a job done, closes its task and sends the completion message back
- * to the user in the bot's conversation. Unless it has other jobs open,
- * the bot shows needs-you if asked, else done after a task and idle after
- * a reply. A handed-over job's result also goes to the bot that handed
+ * to the user in the bot's conversation. Unless it has other jobs open
+ * for that user, the bot shows that user needs-you if asked, else done
+ * after a task and idle after a reply; nobody else's face changes. A handed-over job's result also goes to the bot that handed
  * it over (`relay`). Throws if this handler no longer holds the job.
  */
 export default async function completeBotJob({
@@ -78,18 +80,24 @@ export default async function completeBotJob({
               needs_you,
           });
 
-    const bot = needs_you
-        ? await setBotFace({
-              bot_id: job.bot_id,
-              face: "needs-you",
-              status_line: "Waiting on you",
-          })
-        : (await countOpenBotJobs({ bot_id: job.bot_id }))
-          ? null
-          : await setBotFace({
+    const user_id = await grabJobUserId({ job });
+
+    const bot = !user_id
+        ? null
+        : needs_you
+          ? await setBotFace({
                 bot_id: job.bot_id,
-                face: job.kind == "reply" ? "idle" : "done",
-            });
+                user_id,
+                face: "needs-you",
+                status_line: BotNeedsYouStatusLine,
+            })
+          : (await countOpenBotJobs({ bot_id: job.bot_id, user_id }))
+            ? null
+            : await setBotFace({
+                  bot_id: job.bot_id,
+                  user_id,
+                  face: job.kind == "reply" ? "idle" : "done",
+              });
 
     const relay = silent ? null : await relayJobToRequester({ job, text: result });
 

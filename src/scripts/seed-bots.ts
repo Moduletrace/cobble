@@ -13,6 +13,7 @@ import type {
     BotMessageAuthor,
     BotTaskStepState,
 } from "@/src/dict/bot-dict";
+import setBotFace from "@/src/functions/backend/db/bots/set-bot-face";
 import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 
@@ -205,10 +206,7 @@ async function insertBot({
     if (!bot.hue) {
         const coordinator_id = await ensureCoordinatorBot({ user_id });
 
-        await BunSQLite.sql({
-            sql: `UPDATE bots SET face = ?, status_line = ? WHERE id = ?`,
-            values: [bot.face, bot.status_line, coordinator_id],
-        });
+        await setBotFace({ bot_id: coordinator_id, user_id, face: bot.face, status_line: bot.status_line });
 
         await insertMessages({ user_id, bot_id: coordinator_id, bot, now, last_ago });
 
@@ -225,8 +223,6 @@ async function insertBot({
                 kind: bot.hue ? "worker" : "coordinator",
                 hue: bot.hue || undefined,
                 role: bot.role || undefined,
-                face: bot.face,
-                status_line: bot.status_line,
             },
         ],
     });
@@ -245,6 +241,8 @@ async function insertBot({
         sql: `INSERT OR IGNORE INTO bot_users (created_at, updated_at, bot_id, user_id) VALUES (?, ?, ?, ?)`,
         values: [now, now, bot_id, user_id],
     });
+
+    await setBotFace({ bot_id, user_id, face: bot.face, status_line: bot.status_line });
 
     const session_id = await insertMessages({ user_id, bot_id, bot, now, last_ago });
 

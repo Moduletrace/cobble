@@ -46,6 +46,11 @@ export const BotReplyJobTitle = "Thinking";
 export const BotTaskStatusLine = "Working on a task";
 
 /**
+ * The status line while a bot waits on the user its job is for.
+ */
+export const BotNeedsYouStatusLine = "Waiting on you";
+
+/**
  * The bot's status line while its job waits for a rate-limited model.
  */
 export const BotWaitingStatusLine = "Waiting for a free model";

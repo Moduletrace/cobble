@@ -2,6 +2,7 @@ import type { BotWithLastMessage } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import chatBotsSql from "@/src/utils/crew-access/chat-bots-sql";
 import workspaceBotsSql from "@/src/utils/crew-access/workspace-bots-sql";
+import botFaceSql from "@/src/utils/bot-face-sql";
 import grabCrewRole from "../access/grab-crew-role";
 
 type Params = {
@@ -18,8 +19,8 @@ type Params = {
  * The bots a user chats with, for the rail: in their own chat
  * (`chatBotsSql`) or in one workspace (`workspaceBotsSql`). The
  * coordinator is pinned first, then workers by latest activity. Each row
- * carries the user's own conversation there: its unread flag, latest
- * activity and latest message.
+ * carries the user's own face (`botFaceSql`) and conversation there: its
+ * unread flag, latest activity and latest message.
  */
 export default async function grabBots({
     user_id,
@@ -29,10 +30,13 @@ export default async function grabBots({
     const role = await grabCrewRole({ user_id });
     const access = scope ? workspaceBotsSql({ role, workspace_id: scope }) : chatBotsSql({ role, user_id });
 
+    const face = botFaceSql({ user_id });
+
     let sql = ``;
 
     sql += `SELECT\n`;
     sql += `    b.*,\n`;
+    sql += `    ${face.sql},\n`;
     sql += `    COALESCE(t.unread, 0) AS unread,\n`;
     sql += `    t.last_activity_at AS last_activity_at,\n`;
     sql += `    lm.text AS last_message_text,\n`;
@@ -55,7 +59,7 @@ export default async function grabBots({
 
     const res = await BunSQLite.sql<BotWithLastMessage>({
         sql,
-        values: [scope, user_id, scope, user_id, ...access.values],
+        values: [...face.values, scope, user_id, scope, user_id, ...access.values],
     });
 
     return res.payload || [];

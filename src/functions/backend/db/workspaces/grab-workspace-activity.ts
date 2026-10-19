@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { AppData } from "@/src/data/app-data";
 import type { WorkspaceActivityItem } from "@/src/types";
+import botFaceSql from "@/src/utils/bot-face-sql";
 
 type Params = {
     user_id: number | string;
@@ -9,19 +10,21 @@ type Params = {
 
 /**
  * The user's latest conversations in a workspace, most recent first, each
- * with the bot it's with, its message count and latest message. Empty
+ * with the bot it's with (its face as the user sees it), its message count and latest message. Empty
  * sessions are left out unless active.
  */
 export default async function grabWorkspaceActivity({
     user_id,
     workspace_id,
 }: Params): Promise<WorkspaceActivityItem[]> {
+    const face = botFaceSql({ user_id, prefix: "bot_" });
+
     const res = await BunSQLite.sql<WorkspaceActivityItem>({
         sql: `SELECT s.*,
                 b.name AS bot_name,
                 b.image_media_id AS bot_image_media_id,
                 b.hue AS bot_hue,
-                b.face AS bot_face,
+                ${face.sql},
                 (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = s.id) AS message_count,
                 (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text
             FROM bot_sessions s
@@ -33,7 +36,7 @@ export default async function grabWorkspaceActivity({
             ))
             ORDER BY COALESCE(s.last_activity_at, s.created_at) DESC, s.id DESC
             LIMIT ?`,
-        values: [workspace_id, user_id, AppData.WorkspaceActivityItems],
+        values: [...face.values, workspace_id, user_id, AppData.WorkspaceActivityItems],
     });
 
     return res.payload || [];

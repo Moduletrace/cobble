@@ -234,18 +234,6 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
-                    fieldName: "face",
-                    fieldDescription: `The bot's status, shown as its face`,
-                    dataType: "TEXT",
-                    options: BotFaces.map((bf) => bf.value),
-                    defaultValue: "idle",
-                },
-                {
-                    fieldName: "status_line",
-                    fieldDescription: `Short status sentence, e.g. "Waiting on you"`,
-                    dataType: "TEXT",
-                },
-                {
                     fieldName: "system_prompt",
                     fieldDescription: `The bot's core instructions, in markdown. The bot can rewrite it`,
                     dataType: "TEXT",
@@ -1061,6 +1049,66 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_user_memories_user_id",
                     indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_user_faces",
+            tableDescription: `A bot's face (its status) and status line as one user sees it, set by the bot's jobs in that user's conversations. No row means idle. Other users never see it, so "needs you" only shows to the user it's for`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_user_face_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_user_face_user_fk",
+                    },
+                },
+                {
+                    fieldName: "face",
+                    fieldDescription: `The bot's status for this user, shown as its face`,
+                    dataType: "TEXT",
+                    options: BotFaces.map((bf) => bf.value),
+                    defaultValue: "idle",
+                },
+                {
+                    fieldName: "status_line",
+                    fieldDescription: `Short status sentence, e.g. "Waiting on you"`,
+                    dataType: "TEXT",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_face_per_bot_user",
+                    constraintName: "A bot has one face per user",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_user_faces_user_id",
+                    indexTableFields: ["user_id"],
+                },
+                {
+                    indexName: "idx_bot_user_faces_updated_at",
+                    indexTableFields: ["updated_at"],
                 },
             ],
         },

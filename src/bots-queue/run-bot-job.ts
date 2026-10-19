@@ -1,7 +1,5 @@
-import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_COBBLE_BOT_SESSIONS } from "@/db/types/db";
 import grabBotById from "@/src/functions/backend/db/bots/grab-bot-by-id";
-import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
+import grabJobUserId from "@/src/functions/backend/db/bots-queue/grab-job-user-id";
 import HarnessError from "@/src/harness/harness-error";
 import BotJobFatalError from "./bot-job-fatal-error";
 import runBotReply from "./run-bot-reply";
@@ -26,19 +24,13 @@ const runBotJob: BotJobRunner = async (context) => {
         throw new BotJobFatalError(`The bot for this job no longer exists.`);
     }
 
-    const session = (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-            sql: `SELECT user_id FROM bot_sessions WHERE id = ? LIMIT 1`,
-            values: [jobSessionId({ job })],
-        })
-    ).payload?.[0];
+    const user_id = await grabJobUserId({ job });
 
-    if (!session?.user_id) {
+    if (!user_id) {
         throw new BotJobFatalError(`The conversation for this job no longer exists.`);
     }
 
     const owned = { ...bot, id: bot.id };
-    const user_id = session.user_id;
 
     try {
         return job.kind == "reply"

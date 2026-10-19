@@ -1,15 +1,20 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
+import type { BotWithFace } from "@/src/types";
+import botFaceSql from "@/src/utils/bot-face-sql";
 import type {
-    BUN_SQLITE_COBBLE_BOTS,
     BUN_SQLITE_COBBLE_WORKSPACES,
 } from "@/db/types/db";
 
 type Params = {
     computer_id: number | string;
+    /**
+     * Whose faces the bots show.
+     */
+    user_id: number | string;
 };
 
 export type ComputerAccess = {
-    bots: BUN_SQLITE_COBBLE_BOTS[];
+    bots: BotWithFace[];
     workspaces: BUN_SQLITE_COBBLE_WORKSPACES[];
 };
 
@@ -20,14 +25,17 @@ export type ComputerAccess = {
  */
 export default async function grabComputerAccess({
     computer_id,
+    user_id,
 }: Params): Promise<ComputerAccess> {
+    const face = botFaceSql({ user_id });
+
     const [bots, workspaces] = await Promise.all([
-        BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
-            sql: `SELECT b.* FROM bots b
+        BunSQLite.sql<BotWithFace>({
+            sql: `SELECT b.*, ${face.sql} FROM bots b
                 JOIN bot_computers bc ON bc.bot_id = b.id
                 WHERE bc.computer_id = ?
                 ORDER BY b.kind = 'coordinator' DESC, b.name COLLATE NOCASE ASC, b.id ASC`,
-            values: [computer_id],
+            values: [...face.values, computer_id],
         }),
         BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACES>({
             sql: `SELECT w.* FROM workspaces w

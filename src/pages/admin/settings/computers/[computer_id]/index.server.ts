@@ -45,7 +45,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         ),
         grabBots({ user_id }),
         grabUserWorkspaces({ user_id }),
-        grabComputerAccess({ computer_id: allowed.id }),
+        grabComputerAccess({ computer_id: allowed.id, user_id }),
     ]);
 
     return {
