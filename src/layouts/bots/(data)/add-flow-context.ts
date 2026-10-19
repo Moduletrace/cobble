@@ -11,6 +11,11 @@ export type AddFlow = {
      * a workspace page's "New computer").
      */
     openForm: (params: { kind: AddKind }) => void;
+    /**
+     * Opens the link-bots modal of the workspace being viewed (the
+     * workspace rail's "+"), whose "New bot" opens the bot form over it.
+     */
+    openLinkBots: () => void;
 };
 
 /**
@@ -19,4 +24,5 @@ export type AddFlow = {
 export const AddFlowContext = React.createContext<AddFlow>({
     openAdd: () => {},
     openForm: () => {},
+    openLinkBots: () => {},
 });

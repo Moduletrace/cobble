@@ -11,6 +11,7 @@ import AddComputerForm from "./add-computer-form";
 import AddModalShell from "./add-modal-shell";
 import AddNotice from "./add-notice";
 import AddWorkspaceForm from "./add-workspace-form";
+import LinkBotsModal from "./link-bots-modal";
 
 type Props = {
     children: ReactNode;
@@ -25,12 +26,13 @@ type Props = {
 export default function AddFlow({ children }: Props) {
     const { pageProps } = useContext(AppContext);
     const [choosing, setChoosing] = useState(false);
+    const [linking, setLinking] = useState(false);
     const [form, setForm] = useState<AddKind | null>(null);
     const [notice, setNotice] = useState<string>();
     /**
      * twui closes every open modal on Escape. While a form is open over the
-     * Add modal, the Add modal is remounted open instead, so only the form
-     * closes.
+     * Add modal (or the link-bots modal), that modal is remounted open
+     * instead, so only the form closes.
      */
     const form_ref = useRef<AddKind | null>(null);
     const [chooser_key, setChooserKey] = useState(0);
@@ -49,25 +51,32 @@ export default function AddFlow({ children }: Props) {
         setForm(kind);
     };
 
+    /**
+     * Closes a modal the forms open over, unless a form is open on top.
+     */
+    const underForm = (setter: (open: boolean) => void) => (open: boolean) => {
+        if (!open && form_ref.current) {
+            setChooserKey((prev) => prev + 1);
+            return;
+        }
+
+        setter(open);
+    };
+
     const close = () => {
         form_ref.current = null;
         setForm(null);
     };
 
     return (
-        <AddFlowContext.Provider value={{ openAdd: () => setChoosing(true), openForm }}>
+        <AddFlowContext.Provider
+            value={{ openAdd: () => setChoosing(true), openForm, openLinkBots: () => setLinking(true) }}
+        >
             {children}
             <AddModalShell
                 key={chooser_key}
                 open={choosing}
-                setOpen={(open) => {
-                    if (!open && form_ref.current) {
-                        setChooserKey((prev) => prev + 1);
-                        return;
-                    }
-
-                    setChoosing(open);
-                }}
+                setOpen={underForm(setChoosing)}
                 title="Add"
                 description={
                     workspace?.id
@@ -85,6 +94,16 @@ export default function AddFlow({ children }: Props) {
                     ))}
                 </Stack>
             </AddModalShell>
+            {workspace?.id ? (
+                <LinkBotsModal
+                    key={`link-${chooser_key}`}
+                    open={linking}
+                    setOpen={underForm(setLinking)}
+                    workspace_id={Number(workspace.id)}
+                    workspace_name={workspace.name}
+                    onNewBot={() => openForm({ kind: "bot" })}
+                />
+            ) : null}
             <AddModalShell
                 open={form == "bot"}
                 setOpen={(open) => !open && close()}

@@ -1,3 +1,6 @@
+import BunSQLite from "@moduletrace/bun-sqlite";
+import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
+import pushBotCreated from "@/src/bots-queue/push-bot-created";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
 import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
@@ -14,7 +17,8 @@ import type {
 
 /**
  * Puts one of the session user's bots in one of their workspaces. Returns
- * the workspace's crew.
+ * the workspace's crew, and pushes the bot to everyone who now sees it
+ * there.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<WorkspaceBot>> = async ({ req, body }) => {
     try {
@@ -35,6 +39,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<WorkspaceBot>> = a
         const { workspace_id, bot_id } = parseWithSchema({ schema: WorkspaceBotRequestSchema, data: body });
 
         await addBotToWorkspace({ user_id: user.id, workspace_id, bot_id });
+
+        const bot = (
+            await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
+                sql: `SELECT * FROM bots WHERE id = ? LIMIT 1`,
+                values: [bot_id],
+            })
+        ).payload?.[0];
+
+        if (bot) await pushBotCreated({ bot });
 
         return {
             success: true,

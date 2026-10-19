@@ -27,7 +27,7 @@ type Props = {
  * workspace's context. The coordinator is reached from the main rail.
  */
 export default function RailWorkspaceList({ workspace, bots, selected_id, on_workspace_page }: Props) {
-    const { openForm } = useContext(AddFlowContext);
+    const { openLinkBots } = useContext(AddFlowContext);
     const workers = bots.filter((bot) => bot.kind !== "coordinator");
     const base = `/admin/workspaces/${workspace.id}`;
 
@@ -40,7 +40,7 @@ export default function RailWorkspaceList({ workspace, bots, selected_id, on_wor
             <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
             <WorkspaceRow workspace={{ ...workspace, unread: 0 }} selected={on_workspace_page} />
             <RailBotsSection
-                action={<RailSectionAddButton title="Add a bot to this workspace" onClick={() => openForm({ kind: "bot" })} />}
+                action={<RailSectionAddButton title="Add bots to this workspace" onClick={openLinkBots} />}
                 title="Workspace bots"
                 workers={workers}
                 selected_id={on_workspace_page ? undefined : selected_id}
