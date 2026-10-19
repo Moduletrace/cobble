@@ -19,7 +19,7 @@ export default function MessageActions({ message }: Props) {
     if (!message.id) return null;
 
     return (
-        <Row className="gap-1.5! items-center">
+        <Row className="gap-3! items-center">
             <MessageActionButton
                 title="Reply"
                 aria_label="Reply to this message"

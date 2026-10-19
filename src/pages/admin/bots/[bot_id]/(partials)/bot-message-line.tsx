@@ -38,7 +38,10 @@ export default function BotMessageLine({ message, bot_name, at }: Props) {
     return (
         <Stack className="w-full min-w-0 gap-1.5! items-start max-w-full">
             {message.reply_to ? (
-                <MessageReplyQuote reply_to={message.reply_to} bot_name={bot_name} />
+                <MessageReplyQuote
+                    reply_to={message.reply_to}
+                    bot_name={bot_name}
+                />
             ) : null}
             <Stack className="w-full gap-2.5! items-start break-words">
                 <Markdown
@@ -55,10 +58,12 @@ export default function BotMessageLine({ message, bot_name, at }: Props) {
                     onReact={onReact}
                 />
             ) : null}
-            <Row className="gap-2! items-center">
+            <Row className="gap-3! items-center">
                 {message.needs_you ? <NeedsYouChip /> : null}
                 {at ? <GroupTimestamp at={at} /> : null}
-                {can_speak ? <SpeakMessageButton message_id={Number(message.id)} /> : null}
+                {can_speak ? (
+                    <SpeakMessageButton message_id={Number(message.id)} />
+                ) : null}
                 <MessageActions message={message} />
             </Row>
         </Stack>
