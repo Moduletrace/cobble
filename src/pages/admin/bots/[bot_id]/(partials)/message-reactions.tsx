@@ -6,11 +6,15 @@ import MessageReactionChip from "./message-reaction-chip";
 type Props = {
     message_id: number;
     reactions?: BotMessageReaction[];
-    onReact: (params: { message_id: number; emoji: BotMessageReactionEmoji }) => void;
+    /**
+     * Left out where the reactions only show (the user's own messages).
+     */
+    onReact?: (params: { message_id: number; emoji: BotMessageReactionEmoji }) => void;
 };
 
 /**
- * The reactions a message has, one chip per emoji, each toggleable.
+ * The reactions a message has, one chip per emoji, each toggleable when
+ * `onReact` is given.
  */
 export default function MessageReactions({ message_id, reactions, onReact }: Props) {
     if (!reactions?.length) return null;
@@ -23,7 +27,7 @@ export default function MessageReactions({ message_id, reactions, onReact }: Pro
                     emoji={reaction.emoji}
                     count={reaction.count}
                     mine={reaction.mine}
-                    onToggle={() => onReact({ message_id, emoji: reaction.emoji })}
+                    onToggle={onReact ? () => onReact({ message_id, emoji: reaction.emoji }) : undefined}
                 />
             ))}
         </Row>

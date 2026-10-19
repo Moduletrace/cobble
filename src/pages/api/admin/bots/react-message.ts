@@ -10,8 +10,8 @@ import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 
 /**
- * Adds or takes back one of the fixed emoji reactions on a message in the
- * session user's own conversation, and pushes the message's fresh
+ * Adds or takes back one of the fixed emoji reactions on a bot message in
+ * the session user's own conversation, and pushes the message's fresh
  * reactions to their other open tabs.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, body }) => {
@@ -36,6 +36,11 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
         });
 
         const message = await grabUserBotMessage({ user_id: user.id, message_id });
+
+        if (message.author == "user") {
+            throw new AppError(`You can only react to the bot's messages.`);
+        }
+
         const reactions = await toggleMessageReaction({
             message_id: Number(message.id),
             user_id: user.id,

@@ -1,8 +1,5 @@
-import { useContext } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageWithAttachments } from "@/src/types";
-import { BotMessageActionsContext } from "../(data)/message-actions-context";
-import MessageActions from "./message-actions";
 import MessageAttachments from "./message-attachments";
 import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
@@ -15,11 +12,10 @@ type Props = {
 
 /**
  * One user message: the quoted message it answers, its files, then its
- * text (a file-only message has no bubble), its reactions and actions.
+ * text (a file-only message has no bubble) and the bot's reactions to it.
+ * The user doesn't reply to or react to their own messages.
  */
 export default function UserMessage({ message, bot_name }: Props) {
-    const { onReact } = useContext(BotMessageActionsContext);
-
     return (
         <Stack className="w-full min-w-0 max-w-full items-end gap-1.5!">
             {message.reply_to ? (
@@ -35,10 +31,8 @@ export default function UserMessage({ message, bot_name }: Props) {
                 <MessageReactions
                     message_id={message.id}
                     reactions={message.reactions}
-                    onReact={onReact}
                 />
             ) : null}
-            <MessageActions message={message} />
         </Stack>
     );
 }
