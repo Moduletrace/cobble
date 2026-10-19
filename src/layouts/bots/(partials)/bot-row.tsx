@@ -27,7 +27,8 @@ type Props = {
 /**
  * 48px rail row. Status is the face and the subtitle (the bot's status
  * line while it has one): no badges, spinners or state dots.
- * Selected is ink at 5%, never a hue.
+ * The selected background (ink at 5%, never a hue) is painted by
+ * RailBotCard, which also holds the sessions.
  */
 export default function BotRow({ bot, href, selected, subtitle }: Props) {
     const hue = (bot.hue || null) as BotHue | null;
@@ -48,7 +49,7 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
                 "flex shrink-0 h-12 items-center gap-3 rounded-default px-1 @rail:px-3 border-0 leading-normal",
                 "hover:opacity-100 hover:bg-sunken transition-colors duration-[var(--m-fast)]",
                 "focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
-                selected && "bg-ink/5 hover:bg-ink/5",
+                selected && "hover:bg-transparent hover:dark:bg-transparent",
             )}
         >
             <BotAvatar image_media_id={bot.image_media_id} hue={hue} face={(bot.face || "idle") as BotFace} />

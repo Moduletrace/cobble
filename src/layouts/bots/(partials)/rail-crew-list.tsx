@@ -4,6 +4,7 @@ import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import type { BotWithLastMessage, WorkspaceWithActivity } from "@/src/types";
 import CoordinatorRow from "./coordinator-row";
+import RailBotCard from "./rail-bot-card";
 import RailBotSessions from "./rail-bot-sessions";
 import RailBotsSection from "./rail-bots-section";
 import RailSectionAddButton from "./rail-section-add-button";
@@ -28,7 +29,7 @@ export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
     return (
         <>
             {coordinator ? (
-                <>
+                <RailBotCard selected={coordinator.id === selected_id}>
                     <CoordinatorRow
                         bot={coordinator}
                         bots={bots}
@@ -37,7 +38,7 @@ export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
                     {coordinator.id === selected_id ? (
                         <RailBotSessions key={coordinator.id} bot={coordinator} />
                     ) : null}
-                </>
+                </RailBotCard>
             ) : null}
             <RailBotsSection
                 action={<RailSectionAddButton title="Add a bot" onClick={() => openForm({ kind: "bot" })} />}

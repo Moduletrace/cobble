@@ -30,15 +30,21 @@ export default function RailBotSessions({ bot, workspace_id }: Props) {
 
     return (
         <Stack className="hidden @rail:flex w-full shrink-0 flex-col gap-0! items-stretch pb-1">
-            {shown.map((session) => (
-                <RailBotSessionRow
-                    key={session.id}
-                    session={session}
-                    loading={sessions.busy_id == session.id}
-                    disabled={Boolean(sessions.busy_id)}
-                    onOpen={() => sessions.reopenSession({ session_id: Number(session.id) })}
+            <Stack className="relative w-full flex-col gap-0! items-stretch">
+                <Span
+                    aria-hidden
+                    className="pointer-events-none absolute left-7 -translate-x-1/2 -top-2 bottom-0 w-px bg-hairline"
                 />
-            ))}
+                {shown.map((session) => (
+                    <RailBotSessionRow
+                        key={session.id}
+                        session={session}
+                        loading={sessions.busy_id == session.id}
+                        disabled={Boolean(sessions.busy_id)}
+                        onOpen={() => sessions.reopenSession({ session_id: Number(session.id) })}
+                    />
+                ))}
+            </Stack>
             {sessions.sessions.length > AppData.RailRecentSessions ? (
                 <BotSessionsModal
                     bot={bot}

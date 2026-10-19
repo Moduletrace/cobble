@@ -32,7 +32,7 @@ export default function RailBotSessionRow({ session, loading, disabled, onOpen }
             buttonContentProps={{ className: "w-full min-w-0 flex-nowrap" }}
             className={twMerge(
                 "w-full h-8 shrink-0 justify-start! items-center! gap-2! rounded-default px-2! @rail:pl-14! text-left text-ink dark:text-ink hover:bg-ink/5 hover:dark:bg-ink/5 focus-visible:ring-2 focus-visible:ring-ink",
-                active && "bg-sunken hover:bg-sunken hover:dark:bg-sunken opacity-100!",
+                active && "bg-transparent hover:bg-transparent hover:dark:bg-transparent opacity-100!",
             )}
         >
             <Span
