@@ -12,18 +12,29 @@ type Props = {
      * The latest step of the bot's active task.
      */
     progress?: string | null;
+    /**
+     * The thread's last message is the user's, so a reply is due here.
+     */
+    awaiting_reply?: boolean;
+    /**
+     * This session has an active task.
+     */
+    has_task?: boolean;
 };
 
 /**
  * Under the last message while the bot is working on a reply or a task
  * (or waiting for a model to come back), so slow work doesn't look like
- * none. A task shows its latest step, else its title.
+ * none. A task shows its latest step. The bot's face is shared by
+ * everyone who sees it, so the row only shows for work in this
+ * conversation: a reply while the user has the last word, or its own
+ * task.
  */
-export default function BotThinkingRow({ bot, progress }: Props) {
+export default function BotThinkingRow({ bot, progress, awaiting_reply, has_task }: Props) {
     const name = bot.name || "The bot";
-    const thinking = bot.face == "working" && bot.status_line == BotReplyJobTitle;
-    const working = bot.face == "working" && !thinking;
-    const waiting = bot.face == "asleep" && bot.status_line == BotWaitingStatusLine;
+    const thinking = bot.face == "working" && bot.status_line == BotReplyJobTitle && Boolean(awaiting_reply);
+    const working = bot.face == "working" && bot.status_line != BotReplyJobTitle && Boolean(has_task);
+    const waiting = bot.face == "asleep" && bot.status_line == BotWaitingStatusLine && Boolean(awaiting_reply || has_task);
 
     if (!thinking && !working && !waiting) return null;
 
@@ -32,7 +43,7 @@ export default function BotThinkingRow({ bot, progress }: Props) {
         : working
           ? `${name} is working…`
           : `${BotWaitingStatusLine}…`;
-    const detail = working ? progress || bot.status_line : null;
+    const detail = working ? progress : null;
 
     return (
         <Row role="status" className="w-full gap-3! flex-nowrap items-center">

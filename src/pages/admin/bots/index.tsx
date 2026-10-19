@@ -1,11 +1,13 @@
 import type { BunextPageModuleMeta } from "@moduletrace/bunext/types";
 import { SiteData } from "@/src/data/site-data";
+import NoBotsSection from "./(sections)/no-bots-section";
 
 /**
- * Never rendered: `index.server.ts` always redirects to the coordinator.
+ * Only rendered for a user who reaches no bot yet: `index.server.ts`
+ * otherwise redirects to a conversation.
  */
 export default function BotsPage() {
-    return null;
+    return <NoBotsSection />;
 }
 
 export const meta: BunextPageModuleMeta = {

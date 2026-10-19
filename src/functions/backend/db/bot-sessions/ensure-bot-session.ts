@@ -6,6 +6,10 @@ import grabActiveBotSession from "./grab-active-bot-session";
 import startBotSession from "./start-bot-session";
 
 type Params = {
+    /**
+     * The user the conversation is with.
+     */
+    user_id: number | string;
     bot_id: number | string;
     workspace_id?: number | string | null;
     /**
@@ -17,16 +21,17 @@ type Params = {
 };
 
 /**
- * The conversation's active session, started first when there is none
+ * The user's conversation's active session, started first when there is none
  * (carrying on from its latest closed one) or, with `rollover`, when the
  * active one is full.
  */
 export default async function ensureBotSession({
+    user_id,
     bot_id,
     workspace_id,
     rollover,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_SESSIONS> {
-    const active = await grabActiveBotSession({ bot_id, workspace_id });
+    const active = await grabActiveBotSession({ user_id, bot_id, workspace_id });
 
     if (active?.id) {
         if (!rollover) return active;
@@ -43,18 +48,19 @@ export default async function ensureBotSession({
 
         return count < AppData.BotSessionMaxMessages
             ? active
-            : await startBotSession({ bot_id, workspace_id });
+            : await startBotSession({ user_id, bot_id, workspace_id });
     }
 
     const latest = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-            sql: `SELECT id FROM bot_sessions WHERE bot_id = ? AND workspace_id IS ?
+            sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ?
                 ORDER BY last_activity_at DESC, id DESC LIMIT 1`,
-            values: [bot_id, workspace_id ? Number(workspace_id) : null],
+            values: [user_id, bot_id, workspace_id ? Number(workspace_id) : null],
         })
     ).payload?.[0];
 
     return await createBotSession({
+        user_id,
         bot_id,
         workspace_id,
         previous_session_id: latest?.id || null,

@@ -24,7 +24,7 @@ type Params = {
  * `/admin/workspaces/<id>/bots/<id>`): the rail's crew (the workspace's
  * in a workspace) and workspaces, the bot, its active session (marked
  * read) and its messages, its models, computers and active task there.
- * Null when the bot isn't the user's or isn't in the workspace.
+ * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationProps({
     user_id,
@@ -38,7 +38,7 @@ export default async function grabConversationProps({
     if (!conversation) return null;
 
     const scope = conversation.workspace_id;
-    const session = await ensureBotSession({ bot_id: conversation.bot.id, workspace_id: scope });
+    const session = await ensureBotSession({ user_id, bot_id: conversation.bot.id, workspace_id: scope });
 
     if (session.unread) {
         await markBotSessionRead({ session_id: session.id!, user_id });
@@ -71,7 +71,7 @@ export default async function grabConversationProps({
                   workspace_id: scope || undefined,
               })
         ).catch(() => null),
-        grabBotComputers({ bot_id: bot.id, user_id, workspace_id: scope }),
+        grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabActiveBotTask({ bot_id: bot.id, session_id: session.id }),
     ]);
 

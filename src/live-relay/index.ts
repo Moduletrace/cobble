@@ -10,8 +10,8 @@ import type { LiveRelayCursor } from "./types";
 /**
  * Keeps this process's sockets current with work done anywhere: every
  * `AppData.LiveRelayPollMs` it reads new bot messages, new job steps and
- * changed bots from the database and pushes them to their owners'
- * sockets here. The process that did the work pushes at once
+ * changed bots from the database and pushes them to the sockets here
+ * of the users they're for. The process that did the work pushes at once
  * (`pushBotNotice`); this catches the rest, e.g. a job run by another
  * server on the same database. Clients ignore what they already have.
  * Runs in every server process, ungated.

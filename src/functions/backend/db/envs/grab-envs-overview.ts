@@ -8,25 +8,25 @@ import type { EnvsOverviewPayload } from "@/src/types";
 import grabAllEnvs from "./grab-all-envs";
 
 type Params = {
+    /**
+     * The super admin looking: workspaces and computers belong to the
+     * install, so they see every one.
+     */
     user_id: number;
 };
 
 /**
- * The Environment settings page: where envs can be set (general, the
- * user's workspaces and computers), every env (secret values left out),
+ * The Environment settings page: where envs can be set (general, every
+ * workspace and computer), every env (secret values left out),
  * and the app settings with where each comes from.
  */
-export default async function grabEnvsOverview({
-    user_id,
-}: Params): Promise<EnvsOverviewPayload> {
+export default async function grabEnvsOverview(_params: Params): Promise<EnvsOverviewPayload> {
     const [workspaces, computers, envs] = await Promise.all([
         BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACES>({
-            sql: `SELECT id, name, archived FROM workspaces WHERE user_id = ? ORDER BY archived ASC, id ASC`,
-            values: [user_id],
+            sql: `SELECT id, name, archived FROM workspaces ORDER BY archived ASC, id ASC`,
         }),
         BunSQLite.sql<BUN_SQLITE_COBBLE_COMPUTERS>({
-            sql: `SELECT id, name, kind FROM computers WHERE user_id = ? ORDER BY kind = 'main' DESC, id ASC`,
-            values: [user_id],
+            sql: `SELECT id, name, kind FROM computers ORDER BY kind = 'main' DESC, id ASC`,
         }),
         grabAllEnvs(),
     ]);

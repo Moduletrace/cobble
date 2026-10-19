@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
@@ -8,6 +8,8 @@ import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
 import type { BotWithLastMessage } from "@/src/types";
 import BotForm from "@/src/layouts/bots/(partials)/bot-form";
+import { AppContext } from "@/src/pages/__root";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -15,11 +17,26 @@ type Props = {
 
 /**
  * The header's avatar: opens the bot's profile (picture, name, job,
- * colour, instructions) to edit.
+ * colour, instructions) to edit, for super admins and admins. Everyone
+ * else sees the avatar alone.
  */
 export default function BotProfileModal({ bot }: Props) {
+    const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
     const name = bot.name || "This bot";
+
+    const avatar = (
+        <BotAvatar
+            image_media_id={bot.image_media_id}
+            hue={(bot.hue || null) as BotHue | null}
+            face={(bot.face || "idle") as BotFace}
+            size={40}
+        />
+    );
+
+    if (!canManageCrew({ user_types: pageProps?.user_types })) {
+        return <Stack className="shrink-0">{avatar}</Stack>;
+    }
 
     return (
         <Modal
@@ -32,12 +49,7 @@ export default function BotProfileModal({ bot }: Props) {
                     aria-label={`Edit ${name}`}
                     className="shrink-0 p-0! rounded-default hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
                 >
-                    <BotAvatar
-                        image_media_id={bot.image_media_id}
-                        hue={(bot.hue || null) as BotHue | null}
-                        face={(bot.face || "idle") as BotFace}
-                        size={40}
-                    />
+                    {avatar}
                 </Button>
             }
             targetWrapperProps={{ className: "shrink-0" }}

@@ -10,9 +10,12 @@ import createComputer from "./create-computer";
 import provisionComputer from "./provision-computer";
 
 type Params = {
+    /**
+     * Who it's created by when it's missing (the super admin).
+     */
     user_id: number | string;
     /**
-     * The owner's coordinator (from `ensureCoordinatorBot`). It always has
+     * The coordinator (from `ensureCoordinatorBot`). It always has
      * access to the main computer.
      */
     coordinator_id: number | string;
@@ -24,7 +27,7 @@ type Params = {
 };
 
 /**
- * Returns the id of the user's main computer, creating it first if
+ * Returns the id of the install's one main computer, creating it first if
  * missing (`createComputer`, which sets its container up in the
  * background), and makes sure the coordinator has access to it. A main
  * computer recorded before the app managed containers (no docker id, no
@@ -44,7 +47,6 @@ export default async function ensureMainComputer({
             table: "computers",
             query: {
                 query: {
-                    user_id: { value: user_id },
                     kind: { value: "main" },
                 },
                 order: { field: "id", strategy: "ASC" },

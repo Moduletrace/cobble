@@ -8,6 +8,14 @@ import type {
 export type BUN_SQLITE_COBBLE_USERS_JOIN = BUN_SQLITE_COBBLE_USERS & {
     user_types?: string;
     profile_media_id?: number;
+    /**
+     * The workers assigned to them (`bot_users`), comma separated.
+     */
+    bot_ids?: string | null;
+    /**
+     * The workspaces they were added to (`workspace_users`), comma separated.
+     */
+    workspace_ids?: string | null;
 };
 
 export type BUN_SQLITE_COBBLE_MEDIA_PARADIGMS_JOIN =

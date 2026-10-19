@@ -115,7 +115,7 @@ export default async function enqueueBotJob({
     }
 
     if (computer_id) {
-        const computers = await grabBotComputers({ bot_id: bot.id, user_id, workspace_id });
+        const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
 
         if (!computers.some((c) => String(c.id) == String(computer_id))) {
             throw new AppError(`This bot has no access to that computer.`);

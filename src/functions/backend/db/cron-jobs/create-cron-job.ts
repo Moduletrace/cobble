@@ -49,8 +49,8 @@ export default async function createCronJob({
     const count = Number(
         (
             await BunSQLite.sql<{ n: number }>({
-                sql: `SELECT COUNT(*) AS n FROM cron_jobs WHERE bot_id = ?`,
-                values: [bot_id_num],
+                sql: `SELECT COUNT(*) AS n FROM cron_jobs WHERE bot_id = ? AND user_id = ?`,
+                values: [bot_id_num, user_id],
             })
         ).payload?.[0]?.n || 0,
     );
@@ -64,7 +64,6 @@ export default async function createCronJob({
     if (computer_id) {
         const computers = await grabBotComputers({
             bot_id: bot_id_num,
-            user_id,
             workspace_id: conversation.workspace_id,
         });
 

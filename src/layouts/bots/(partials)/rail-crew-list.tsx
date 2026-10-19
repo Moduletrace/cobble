@@ -1,5 +1,7 @@
 import { useContext } from "react";
 import { AddFlowContext } from "../(data)/add-flow-context";
+import { AppContext } from "@/src/pages/__root";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import type { BotWithLastMessage, WorkspaceWithActivity } from "@/src/types";
 import CoordinatorRow from "./coordinator-row";
 import RailBotsSection from "./rail-bots-section";
@@ -18,6 +20,7 @@ type Props = {
  */
 export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
     const { openForm } = useContext(AddFlowContext);
+    const { pageProps } = useContext(AppContext);
     const coordinator = bots.find((bot) => bot.kind === "coordinator");
     const workers = bots.filter((bot) => bot.kind !== "coordinator");
 
@@ -36,7 +39,11 @@ export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
                 workers={workers}
                 selected_id={selected_id}
                 hrefFor={(bot) => `/admin/bots/${bot.id}`}
-                empty="No bots yet. Add one for a job you hand out often."
+                empty={
+                    canManageCrew({ user_types: pageProps?.user_types })
+                        ? "No bots yet. Add one for a job you hand out often."
+                        : "No bots for you yet. An admin assigns them."
+                }
             />
             <RailWorkspacesSection workspaces={workspaces} />
         </>

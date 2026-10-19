@@ -20,7 +20,11 @@ import withTakeOverRefs from "./with-take-over-refs";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
 type Params = BotJobContext & {
-    bot: BUN_SQLITE_COBBLE_BOTS & { id: number; user_id: number };
+    bot: BUN_SQLITE_COBBLE_BOTS & { id: number };
+    /**
+     * The user whose conversation the job is in.
+     */
+    user_id: number;
 };
 
 /**
@@ -35,6 +39,7 @@ type Params = BotJobContext & {
  */
 export default async function runBotReply({
     bot,
+    user_id,
     job,
     signal,
     report,
@@ -51,8 +56,8 @@ export default async function runBotReply({
         return { result: "", silent: true };
     }
 
-    const prompt = await grabBotPrompt({ bot_id: bot.id, user_id: bot.user_id, workspace_id });
-    const computers = await grabBotComputers({ bot_id: bot.id, user_id: bot.user_id, workspace_id });
+    const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
+    const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
 
     /**
      * A summary that can't be written now (no model free) is left out
@@ -69,7 +74,7 @@ export default async function runBotReply({
 
     const tools = await grabBotChatTools({
         bot,
-        user_id: bot.user_id,
+        user_id,
         computers,
         session_id,
         workspace_id,

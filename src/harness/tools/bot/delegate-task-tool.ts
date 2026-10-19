@@ -71,8 +71,8 @@ export default function delegateTaskTool({
                 throw new Error(`No crew member has id ${args.bot_id}. Crew: ${crew}.`);
             }
 
-            const computers = await grabBotComputers({ bot_id: worker.id, user_id, workspace_id });
-            const worker_session = await ensureBotSession({ bot_id: worker.id, workspace_id });
+            const computers = await grabBotComputers({ bot_id: worker.id, workspace_id });
+            const worker_session = await ensureBotSession({ user_id, bot_id: worker.id, workspace_id });
 
             const job_id = await enqueueBotJob({
                 user_id,

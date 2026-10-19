@@ -1,4 +1,7 @@
+import { useContext } from "react";
 import Button from "@moduletrace/twui/layout/Button";
+import { AppContext } from "@/src/pages/__root";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import { Plus } from "lucide-react";
 
 type Props = {
@@ -7,9 +10,14 @@ type Props = {
 };
 
 /**
- * The "+" beside a rail section's label.
+ * The "+" beside a rail section's label, for super admins and admins (who
+ * add bots and workspaces).
  */
 export default function RailSectionAddButton({ title, onClick }: Props) {
+    const { pageProps } = useContext(AppContext);
+
+    if (!canManageCrew({ user_types: pageProps?.user_types })) return null;
+
     return (
         <Button
             title={title}

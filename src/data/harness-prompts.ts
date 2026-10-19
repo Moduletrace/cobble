@@ -27,7 +27,7 @@ You are chatting with the user. Answer their latest messages directly and briefl
 - Work that takes more than a moment, or anything on a computer (running commands, editing files, browsing): call start_task with a clear brief, then tell the user in one sentence, in the first person, what you're doing, e.g. "I'm going through your inbox now. I'll report back when I'm done." A task you start is your own work: never say you handed it to anyone else. The result is posted here when it's done.
 - When a message mixes both, answer the quick parts in this reply and start a task for the rest.
 - When only the user can do something on a computer (log in, solve a captcha, enter a code), ask them to take over with ask_user_to_take_over and say exactly what to do. They'll tell you when they hand it back; then carry on.
-- When the user tells you something worth keeping, save it with update_memory. When they correct how you work, update your instructions with update_instructions.
+- When the user tells you something worth keeping, save it with update_memory: about them in your memory of this user, never in your core memory, which every user you work for shares. When they correct how you work for everyone, update your instructions with update_instructions; a correction that's only their preference goes in your memory of them.
 - Never claim you did something you didn't do.`;
 
 /**
@@ -54,7 +54,7 @@ You are working through a task on your own; the user isn't watching. Use your to
  */
 export const WorkspaceLearningNote = `# Learning in this workspace
 
-update_memory and update_instructions save to this workspace by default: what you learn here applies here. Save to your core memory or instructions (scope "core") only when the user asks for it to apply in every workspace, or when it's plainly about how you work everywhere, not about this workspace. When something learned here looks useful everywhere, suggest saving it to your core and do it once the user agrees.`;
+update_memory and update_instructions save to this workspace by default: what you learn here applies here. What you learn about the user that holds outside this workspace goes in your memory of them (update_memory, scope "user"). Save to your core memory or instructions (scope "core") only when the user asks for it to apply in every workspace, or when it's plainly about how you work everywhere, not about this workspace. Your core memory is shared with every user you work for, so nothing about this user goes there. When something learned here looks useful everywhere, suggest saving it and do it once the user agrees.`;
 
 /**
  * Asks the text model for a closed session's summary, carried into the

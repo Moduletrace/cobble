@@ -26,6 +26,12 @@ export const SaveUserRequestSchema = z
      * A new profile photo as a base64 data URL; left out keeps theirs.
      */
     image: z.string().startsWith("data:image/", "Pick an image").nullish(),
+    /**
+     * Every worker assigned to them and every workspace they're in,
+     * replacing the old lists. Left out: unchanged.
+     */
+    bot_ids: z.array(z.coerce.number().int().positive()).optional(),
+    workspace_ids: z.array(z.coerce.number().int().positive()).optional(),
     })
     .refine((data) => data.password == data.confirm_password, {
         message: "The passwords don't match",

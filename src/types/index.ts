@@ -329,6 +329,12 @@ export type PagePropsType = {
     user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     person?: BUN_SQLITE_COBBLE_USERS_JOIN | null;
     persons?: BUN_SQLITE_COBBLE_USERS_JOIN[] | null;
+    /**
+     * Every worker and workspace, to pick what a user reaches
+     * (`grabCrewOptions`).
+     */
+    crew_bots?: BUN_SQLITE_COBBLE_BOTS[] | null;
+    crew_workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] | null;
     bots?: BotWithLastMessage[] | null;
     bot?: BotWithLastMessage | null;
     bot_messages?: BotMessageWithAttachments[] | null;
@@ -755,6 +761,8 @@ export type AdminFetchParams<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = {
 
 export type UserFormObject = BUN_SQLITE_COBBLE_USERS & {
     user_types?: UserType[];
+    bot_ids?: number[];
+    workspace_ids?: number[];
     password?: string;
     confirm_password?: string;
 };

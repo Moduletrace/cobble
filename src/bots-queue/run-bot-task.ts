@@ -14,7 +14,11 @@ import withTakeOverRefs from "./with-take-over-refs";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
 type Params = BotJobContext & {
-    bot: { id: number; user_id: number };
+    bot: { id: number };
+    /**
+     * The user whose conversation the job is in.
+     */
+    user_id: number;
 };
 
 /**
@@ -28,6 +32,7 @@ type Params = BotJobContext & {
  */
 export default async function runBotTask({
     bot,
+    user_id,
     job,
     params,
     signal,
@@ -46,8 +51,8 @@ export default async function runBotTask({
 
     try {
         const session_id = await jobSessionId({ job });
-        const prompt = await grabBotPrompt({ bot_id: bot.id, user_id: bot.user_id, workspace_id });
-        const computers = await grabBotComputers({ bot_id: bot.id, user_id: bot.user_id, workspace_id });
+        const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
+        const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
         const carry_over = await grabSessionCarryOver({
             session_id,
             bot_id: bot.id,
@@ -97,7 +102,7 @@ export default async function runBotTask({
                 },
             ],
             tools: [
-                ...grabBotTools({ user_id: bot.user_id, bot_id: bot.id, workspace_id, computers }),
+                ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers }),
                 ...(computers.length
                     ? [
                           searchComputersTool({ computers, workspace_id }),

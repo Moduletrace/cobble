@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import canListUsers from "@/src/utils/rbac/can-list-users";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 
 export type SettingsPage = {
     title: string;
@@ -45,9 +46,9 @@ export const SettingsPages: SettingsPage[] = [
         url: "/admin/settings/change-password",
         Icon: KeyRound,
     },
-    { title: "Bots", url: "/admin/settings/bots", Icon: Bot },
-    { title: "Workspaces", url: "/admin/settings/workspaces", Icon: Layers },
-    { title: "Computers", url: SettingsComputersPath, Icon: Monitor },
+    { title: "Bots", url: "/admin/settings/bots", Icon: Bot, can_view: canManageCrew },
+    { title: "Workspaces", url: "/admin/settings/workspaces", Icon: Layers, can_view: canManageCrew },
+    { title: "Computers", url: SettingsComputersPath, Icon: Monitor, can_view: canManageCrew },
     {
         title: "Users",
         url: "/admin/settings/users",

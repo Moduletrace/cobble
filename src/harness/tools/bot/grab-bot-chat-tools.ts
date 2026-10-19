@@ -43,8 +43,8 @@ type Params = {
  * in a workspace switching its default computer), start_task for longer
  * work, search_computers to find what's on its computers,
  * ask_user_to_take_over when only the user can do something on one, and
- * for the coordinator delegate_task (to the workspace's crew in a
- * workspace) plus, in its own chat, assign_computer (which computers each
+ * for the coordinator (the super admin's alone) delegate_task to every
+ * worker (the workspace's in a workspace) plus, in its own chat, assign_computer (which computers each
  * crew member can use) or, in a workspace, set_bot_workspace_instructions.
  * Anything else on a computer goes through a task, never mid-reply.
  */
@@ -88,9 +88,9 @@ export default async function grabBotChatTools({
             await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
                 sql: workspace_id
                     ? `SELECT b.* FROM bots b JOIN workspace_bots wb ON wb.bot_id = b.id AND wb.workspace_id = ?
-                        WHERE b.user_id = ? AND b.kind = 'worker' ORDER BY b.id ASC`
-                    : `SELECT * FROM bots WHERE user_id = ? AND kind = 'worker' ORDER BY id ASC`,
-                values: workspace_id ? [workspace_id, user_id] : [user_id],
+                        WHERE b.kind = 'worker' ORDER BY b.id ASC`
+                    : `SELECT * FROM bots WHERE kind = 'worker' ORDER BY id ASC`,
+                values: workspace_id ? [workspace_id] : [],
             })
         ).payload || [];
 
@@ -117,7 +117,7 @@ export default async function grabBotChatTools({
             await Promise.all(
                 workers.map(async (worker) => [
                     worker.id || 0,
-                    await grabBotComputers({ bot_id: worker.id || 0, user_id }),
+                    await grabBotComputers({ bot_id: worker.id || 0 }),
                 ]),
             ),
         );

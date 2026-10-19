@@ -208,15 +208,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             fields: [
                 {
                     fieldName: "user_id",
-                    fieldDescription: `Bot owner`,
+                    fieldDescription: `Who created the bot. Not a foreign key, and not access: bots belong to the install, reached through \`bot_users\` and \`workspace_users\``,
                     dataType: "INTEGER",
-                    foreignKey: {
-                        cascadeDelete: true,
-                        destinationTableName: "users",
-                        destinationTableColumnName: "id",
-                        destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "bot_user_fk",
-                    },
                 },
                 {
                     fieldName: "name",
@@ -259,7 +252,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "memory",
-                    fieldDescription: `What the bot must always remember, in markdown. The bot keeps it up to date`,
+                    fieldDescription: `What the bot must always remember, in markdown, the same for every user it works with: never about one user (that's \`bot_user_memories\`). The bot keeps it up to date`,
                     dataType: "TEXT",
                 },
                 {
@@ -282,8 +275,20 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "bot_sessions",
-            tableDescription: `A stretch of one conversation: a bot in its own chat (no workspace) or in one workspace. Only the active session's messages go to the model; closed ones can be searched and reopened`,
+            tableDescription: `A stretch of one user's conversation with a bot: in its own chat (no workspace) or in one workspace. Every user has their own. Only the active session's messages go to the model; closed ones can be searched and reopened`,
             fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user the conversation is with: only they see it, and the bot's runs in it work for them`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_session_user_fk",
+                    },
+                },
                 {
                     fieldName: "bot_id",
                     fieldDescription: `The bot`,
@@ -350,6 +355,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_sessions_workspace_id",
                     indexTableFields: ["workspace_id"],
+                },
+                {
+                    indexName: "idx_bot_sessions_user_id",
+                    indexTableFields: ["user_id", "bot_id", "workspace_id", "status"],
                 },
             ],
         },
@@ -825,15 +834,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             fields: [
                 {
                     fieldName: "user_id",
-                    fieldDescription: `Workspace owner`,
+                    fieldDescription: `Who created the workspace. Not a foreign key, and not access: workspaces belong to the install, reached through \`workspace_users\``,
                     dataType: "INTEGER",
-                    foreignKey: {
-                        cascadeDelete: true,
-                        destinationTableName: "users",
-                        destinationTableColumnName: "id",
-                        destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "workspace_user_fk",
-                    },
                 },
                 {
                     fieldName: "name",
@@ -922,6 +924,143 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_workspace_bots_bot_id",
                     indexTableFields: ["bot_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_users",
+            tableDescription: `Users added to a workspace (by a super admin or admin): they chat with every worker in it there`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_users_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_users_user_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_user_per_workspace",
+                    constraintName: "A user joins a workspace once",
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_users_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_users",
+            tableDescription: `Worker bots assigned to a user (by a super admin or admin): the user chats with the bot in its own chat. Nobody but the super admin reaches the coordinator`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_users_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_users_user_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_user_per_bot",
+                    constraintName: "A bot is assigned to a user once",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_users_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_user_memories",
+            tableDescription: `What a bot remembers about one user (markdown). Only that user's runs see it, the way a workspace's memory stays in the workspace`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_user_memory_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_user_memory_user_fk",
+                    },
+                },
+                {
+                    fieldName: "memory",
+                    fieldDescription: `What the bot must remember about this user (markdown), after its core memory. The bot keeps it up to date`,
+                    dataType: "TEXT",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_memory_per_bot_user",
+                    constraintName: "A bot has one memory per user",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_user_memories_user_id",
+                    indexTableFields: ["user_id"],
                 },
             ],
         },
@@ -1039,15 +1178,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             fields: [
                 {
                     fieldName: "user_id",
-                    fieldDescription: `Computer owner`,
+                    fieldDescription: `Who created the computer. Not a foreign key, and not access: computers belong to the install, reached through the bots that use them`,
                     dataType: "INTEGER",
-                    foreignKey: {
-                        cascadeDelete: true,
-                        destinationTableName: "users",
-                        destinationTableColumnName: "id",
-                        destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "computer_user_fk",
-                    },
                 },
                 {
                     fieldName: "container_id",

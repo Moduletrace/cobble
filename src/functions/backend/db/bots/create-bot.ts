@@ -2,8 +2,12 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS, BunSQLiteTables } from "@/db/types/db";
 import type { BotHue } from "@/src/dict/bot-dict";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
+    /**
+     * Who creates it (a super admin or admin). Bots belong to the install.
+     */
     user_id: number | string;
     name: string;
     role?: string;
@@ -15,11 +19,15 @@ type Params = {
 };
 
 /**
- * Adds a worker bot to the user's crew and returns its id. It has no
+ * Adds a worker bot to the install and returns its id. Nobody but super
+ * admins and admins reaches it until it's assigned to a user or added to
+ * a workspace. It has no
  * computer of its own until it's given one; in a workspace it uses the
  * workspace's.
  */
 export default async function createBot({ user_id, name, role, hue, system_prompt }: Params) {
+    await assertCrewManager({ user_id });
+
     assertPromptLength({ label: "Instructions", text: system_prompt });
 
     const res = await BunSQLite.insert<

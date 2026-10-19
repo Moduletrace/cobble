@@ -1,10 +1,10 @@
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
-import grabSettingsServerProps from "../(functions)/grab-settings-server-props";
+import grabCrewSettingsServerProps from "../(functions)/grab-crew-settings-server-props";
 
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
-    const settings = await grabSettingsServerProps(params);
+    const settings = await grabCrewSettingsServerProps(params);
 
     if (!settings.props?.person?.id) return settings;
 

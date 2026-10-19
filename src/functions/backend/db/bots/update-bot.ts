@@ -3,6 +3,7 @@ import type { BotHue } from "@/src/dict/bot-dict";
 import AppError from "@/src/utils/app-error";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
 import grabUserBot from "./grab-user-bot";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -19,6 +20,8 @@ type Params = {
  * change. Returns the saved bot.
  */
 export default async function updateBot({ user_id, bot_id, name, role, hue, system_prompt }: Params) {
+    await assertCrewManager({ user_id });
+
     assertPromptLength({ label: "Instructions", text: system_prompt });
 
     const bot = await grabUserBot({ bot_id, user_id });

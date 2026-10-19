@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserComputer from "../computers/grab-user-computer";
 import grabUserWorkspace from "./grab-user-workspace";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -19,6 +20,8 @@ export default async function addComputerToWorkspace({
     workspace_id,
     computer_id,
 }: Params) {
+    await assertCrewManager({ user_id });
+
     const computer = await grabUserComputer({ computer_id, user_id });
     const workspace = await grabUserWorkspace({ workspace_id, user_id });
 

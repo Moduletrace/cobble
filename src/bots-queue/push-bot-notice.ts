@@ -2,8 +2,8 @@ import type {
     BUN_SQLITE_COBBLE_BOT_MESSAGES,
     BUN_SQLITE_COBBLE_BOTS,
 } from "@/db/types/db";
-import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
-import pushToBotOwner from "./push-to-bot-owner";
+import pushBotUpdated from "./push-bot-updated";
+import pushToSessionUser from "./push-to-session-user";
 
 type Params = {
     bot_id: number | string;
@@ -17,32 +17,27 @@ type Params = {
 };
 
 /**
- * Pushes a new bot message and/or face change to the owner's open tabs.
- * A face change carries the bot's active task, for the working-on panel.
- * A relayed report goes to the conversation it was posted in.
+ * Pushes a new bot message to the open tabs of the user whose
+ * conversation it's in, and a face change to everyone who sees the bot
+ * (`pushBotUpdated`, each with their own active task). A relayed report
+ * goes to the conversation it was posted in.
  */
 export default async function pushBotNotice({ bot_id, message, bot, relay }: Params) {
     if (message) {
-        await pushToBotOwner({
-            bot_id,
+        await pushToSessionUser({
+            session_id: message.session_id,
             data: { event: "server:bot-message", data: message },
         });
     }
 
     if (relay) {
-        await pushToBotOwner({
-            bot_id: relay.bot_id,
+        await pushToSessionUser({
+            session_id: relay.message.session_id,
             data: { event: "server:bot-message", data: relay.message },
         });
     }
 
     if (bot) {
-        await pushToBotOwner({
-            bot_id,
-            data: {
-                event: "server:bot-updated",
-                data: { ...bot, task: await grabActiveBotTask({ bot_id }) },
-            },
-        });
+        await pushBotUpdated({ bot: { ...bot, id: bot.id || Number(bot_id) } });
     }
 }

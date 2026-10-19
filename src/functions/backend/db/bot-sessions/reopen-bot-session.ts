@@ -29,15 +29,15 @@ export default async function reopenBotSession({
     const workspace_id = session.workspace_id || null;
 
     await BunSQLite.sql({
-        sql: `DELETE FROM bot_sessions WHERE bot_id = ? AND workspace_id IS ? AND status = 'active'
+        sql: `DELETE FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND status = 'active'
             AND NOT EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = bot_sessions.id)`,
-        values: [session.bot_id!, workspace_id],
+        values: [session.user_id!, session.bot_id!, workspace_id],
     });
 
     await BunSQLite.sql({
         sql: `UPDATE bot_sessions SET status = 'closed', unread = 0, updated_at = ?
-            WHERE bot_id = ? AND workspace_id IS ? AND status = 'active'`,
-        values: [now, session.bot_id!, workspace_id],
+            WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND status = 'active'`,
+        values: [now, session.user_id!, session.bot_id!, workspace_id],
     });
 
     await BunSQLite.sql({

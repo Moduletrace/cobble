@@ -4,6 +4,10 @@ import createBotSession from "./create-bot-session";
 import grabActiveBotSession from "./grab-active-bot-session";
 
 type Params = {
+    /**
+     * The user the conversation is with.
+     */
+    user_id: number | string;
     bot_id: number | string;
     workspace_id?: number | string | null;
 };
@@ -14,10 +18,11 @@ type Params = {
  * An active session with no messages yet is kept as it is.
  */
 export default async function startBotSession({
+    user_id,
     bot_id,
     workspace_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_SESSIONS> {
-    const active = await grabActiveBotSession({ bot_id, workspace_id });
+    const active = await grabActiveBotSession({ user_id, bot_id, workspace_id });
 
     if (active?.id) {
         const has_messages = (
@@ -36,6 +41,7 @@ export default async function startBotSession({
     }
 
     return await createBotSession({
+        user_id,
         bot_id,
         workspace_id,
         previous_session_id: active?.id || null,

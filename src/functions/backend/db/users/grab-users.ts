@@ -29,6 +29,8 @@ export default async function grabUsers(
         sql += `SELECT\n`;
         sql += `    u.*,\n`;
         sql += `    ut_agg.user_types,\n`;
+        sql += `    (SELECT GROUP_CONCAT(bot_id) FROM bot_users WHERE user_id = u.id) AS bot_ids,\n`;
+        sql += `    (SELECT GROUP_CONCAT(workspace_id) FROM workspace_users WHERE user_id = u.id) AS workspace_ids,\n`;
         /**
          * Their profile photo only: other primary media (a bot's picture)
          * must not stand in for it.

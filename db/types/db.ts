@@ -15,6 +15,9 @@ export const BunSQLiteTables = [
     "cron_jobs",
     "workspaces",
     "workspace_bots",
+    "workspace_users",
+    "bot_users",
+    "bot_user_memories",
     "bot_message_media",
     "containers",
     "computers",
@@ -160,7 +163,7 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      */
     updated_at?: number | "";
     /** 
-     * Bot owner
+     * Who created the bot. Not a foreign key, and not access: bots belong to the install, reached through `bot_users` and `workspace_users`
      */
     user_id?: number | "";
     name?: string;
@@ -189,7 +192,7 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      */
     system_prompt?: string;
     /** 
-     * What the bot must always remember, in markdown. The bot keeps it up to date
+     * What the bot must always remember, in markdown, the same for every user it works with: never about one user (that's `bot_user_memories`). The bot keeps it up to date
      */
     memory?: string;
     /** 
@@ -215,6 +218,10 @@ export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
      * The time when the record was updated. (Unix Timestamp)
      */
     updated_at?: number | "";
+    /** 
+     * The user the conversation is with: only they see it, and the bot's runs in it work for them
+     */
+    user_id?: number | "";
     /** 
      * The bot
      */
@@ -543,7 +550,7 @@ export type BUN_SQLITE_COBBLE_WORKSPACES = {
      */
     updated_at?: number | "";
     /** 
-     * Workspace owner
+     * Who created the workspace. Not a foreign key, and not access: workspaces belong to the install, reached through `workspace_users`
      */
     user_id?: number | "";
     name?: string;
@@ -584,6 +591,61 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_BOTS = {
     system_prompt?: string;
     /** 
      * What the bot must remember in this workspace (markdown), after its core memory
+     */
+    memory?: string;
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_USERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    workspace_id?: number | "";
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_USERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_USER_MEMORIES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    user_id?: number | "";
+    /** 
+     * What the bot must remember about this user (markdown), after its core memory. The bot keeps it up to date
      */
     memory?: string;
 }
@@ -675,7 +737,7 @@ export type BUN_SQLITE_COBBLE_COMPUTERS = {
      */
     updated_at?: number | "";
     /** 
-     * Computer owner
+     * Who created the computer. Not a foreign key, and not access: computers belong to the install, reached through the bots that use them
      */
     user_id?: number | "";
     /** 
@@ -1040,4 +1102,4 @@ export type BUN_SQLITE_COBBLE_ENVS = {
     expose_to_computers?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS

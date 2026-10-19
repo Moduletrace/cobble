@@ -19,8 +19,8 @@ type Params = {
 /**
  * Reports a handed-over job back to the bot that handed it over
  * (`requested_by_bot_id`, the coordinator): a message in the conversation
- * it was handed over from (the active session there, which may have moved
- * on since), with the worker's report, flagged needs-you when the job
+ * it was handed over from (that user's active session there, which may
+ * have moved on since), with the worker's report, flagged needs-you when the job
  * failed. Returns the message for the live push, or null when nobody
  * handed the job over.
  */
@@ -48,14 +48,16 @@ export default async function relayJobToRequester({ job, text, failed }: Params)
     const requested_from = job.requested_by_session_id
         ? (
               await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-                  sql: `SELECT workspace_id FROM bot_sessions WHERE id = ? AND bot_id = ? LIMIT 1`,
+                  sql: `SELECT user_id, workspace_id FROM bot_sessions WHERE id = ? AND bot_id = ? LIMIT 1`,
                   values: [job.requested_by_session_id, requester.id],
               })
           ).payload?.[0]
         : null;
 
-    const workspace_id = requested_from ? requested_from.workspace_id || null : job.workspace_id || null;
-    const session = await ensureBotSession({ bot_id: requester.id, workspace_id });
+    if (!requested_from?.user_id) return null;
+
+    const workspace_id = requested_from.workspace_id || null;
+    const session = await ensureBotSession({ user_id: requested_from.user_id, bot_id: requester.id, workspace_id });
 
     const name = worker?.name || "A crew member";
     const title = job.title || "the job";

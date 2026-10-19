@@ -22,7 +22,7 @@ export default async function setBotComputer({ bot_id, user_id, computer_id }: P
         throw new AppError(`Bot not found.`);
     }
 
-    const computers = await grabBotComputers({ bot_id: bot.id, user_id });
+    const computers = await grabBotComputers({ bot_id: bot.id });
     const computer = computers.find((c) => String(c.id) == String(computer_id));
 
     if (!computer?.id) {

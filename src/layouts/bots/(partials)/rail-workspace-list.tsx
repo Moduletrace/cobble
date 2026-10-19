@@ -51,7 +51,7 @@ export default function RailWorkspaceList({ workspace, bots, selected_id, on_wor
                 workers={workers}
                 selected_id={on_workspace_page ? undefined : selected_id}
                 hrefFor={(bot) => `${base}/bots/${bot.id}`}
-                empty="No bots here yet. Add one, or put an existing bot in from the workspace's page."
+                empty="No bots here yet."
             />
         </>
     );

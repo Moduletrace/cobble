@@ -6,7 +6,8 @@ describe("composeBotPrompt", () => {
         expect(
             composeBotPrompt({
                 system_prompt: "# You are Scout\n\nFind things.",
-                memory: "- The user prefers short replies.",
+                memory: "- Cite sources.",
+                user_memory: "- The user prefers short replies.",
                 workspace: {
                     name: "Launch",
                     description: "The spring launch.",
@@ -22,7 +23,8 @@ describe("composeBotPrompt", () => {
                 "# You are Scout\n\nFind things.",
                 `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe spring launch.\n\nShip by Friday.`,
                 "# Your instructions in Launch\n\nOwn the changelog.",
-                "# Memory\n\n- The user prefers short replies.",
+                "# Memory\n\n- Cite sources.",
+                "# Memory about the user\n\n- The user prefers short replies.",
                 "# Memory in Launch\n\n- Marketing signs off on copy.",
             ].join("\n\n"),
         );
@@ -33,6 +35,7 @@ describe("composeBotPrompt", () => {
             composeBotPrompt({
                 system_prompt: "Core.",
                 memory: "   ",
+                user_memory: "",
                 workspace_bot: { system_prompt: "Ignored." },
             }),
         ).toBe("Core.");

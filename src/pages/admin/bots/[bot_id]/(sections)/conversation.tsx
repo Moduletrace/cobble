@@ -106,7 +106,8 @@ export default function Conversation() {
                 <MessageThread
                     bot={live_bot}
                     messages={messages}
-                    progress={progress}
+                    progress={progress.text}
+                    has_task={Boolean(progress.task_id)}
                 />
                 <Composer
                     bot={bot}

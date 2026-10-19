@@ -27,9 +27,10 @@ function fromTask({ task }: { task: BotTaskWithSteps | null }): Progress {
 }
 
 /**
- * The latest step of the open bot's active task (a `bots_queue_updates`
- * row's text), kept current from `server:bot-job-update`. Starts over when
- * `server:bot-updated` brings a different task, or none.
+ * The open session's active task and its latest step (a
+ * `bots_queue_updates` row's text), kept current from
+ * `server:bot-job-update`. Starts over when `server:bot-updated` brings a
+ * different task, or none.
  */
 export default function useTaskProgress({ bot_id, session_id, task }: Params) {
     const [progress, setProgress] = useState<Progress>(() => fromTask({ task }));
@@ -49,11 +50,15 @@ export default function useTaskProgress({ bot_id, session_id, task }: Params) {
         onData: (data: BotUpdatedData) => {
             if (data.id != bot_id) return;
 
-            setProgress((prev) =>
-                (data.task?.id || null) == prev.task_id ? prev : fromTask({ task: data.task }),
-            );
+            /**
+             * The user's active task with the bot may be in another of
+             * their conversations with it.
+             */
+            const task = data.task && (!session_id || data.task.session_id == session_id) ? data.task : null;
+
+            setProgress((prev) => ((task?.id || null) == prev.task_id ? prev : fromTask({ task })));
         },
     });
 
-    return progress.text;
+    return progress;
 }

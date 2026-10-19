@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserBot from "../bots/grab-user-bot";
 import grabUserComputer from "./grab-user-computer";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -18,6 +19,8 @@ export default async function addBotToComputer({
     bot_id,
     computer_id,
 }: Params) {
+    await assertCrewManager({ user_id });
+
     const bot = await grabUserBot({ bot_id, user_id });
     const computer = await grabUserComputer({ computer_id, user_id });
 

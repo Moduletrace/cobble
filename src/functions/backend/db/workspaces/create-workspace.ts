@@ -4,8 +4,13 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
+    /**
+     * Who creates it (a super admin or admin). Workspaces belong to the
+     * install.
+     */
     user_id: number | string;
     name: string;
     description?: string;
@@ -13,7 +18,8 @@ type Params = {
 };
 
 /**
- * Creates a workspace owned by the user and returns its id.
+ * Creates a workspace and returns its id. Members reach it once they're
+ * added to it (`workspace_users`).
  */
 export default async function createWorkspace({
     user_id,
@@ -21,6 +27,8 @@ export default async function createWorkspace({
     description,
     system_prompt,
 }: Params) {
+    await assertCrewManager({ user_id });
+
     assertPromptLength({ label: "System prompt", text: system_prompt });
 
     const res = await BunSQLite.insert<

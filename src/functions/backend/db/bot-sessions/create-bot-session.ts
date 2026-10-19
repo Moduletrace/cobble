@@ -5,6 +5,10 @@ import type {
 import BunSQLite from "@moduletrace/bun-sqlite";
 
 type Params = {
+    /**
+     * The user the conversation is with.
+     */
+    user_id: number | string;
     bot_id: number | string;
     workspace_id?: number | string | null;
     /**
@@ -14,10 +18,11 @@ type Params = {
 };
 
 /**
- * Starts an active session in a conversation. Callers close the old one
+ * Starts an active session in a user's conversation. Callers close the old one
  * first (`startBotSession`).
  */
 export default async function createBotSession({
+    user_id,
     bot_id,
     workspace_id,
     previous_session_id,
@@ -25,6 +30,7 @@ export default async function createBotSession({
     const now = Date.now();
 
     const row: BUN_SQLITE_COBBLE_BOT_SESSIONS = {
+        user_id: Number(user_id),
         bot_id: Number(bot_id),
         workspace_id: workspace_id ? Number(workspace_id) : undefined,
         previous_session_id: previous_session_id || undefined,

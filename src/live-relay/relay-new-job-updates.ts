@@ -9,15 +9,16 @@ type Params = {
 
 /**
  * Pushes `server:bot-job-update` for every job step newer than `after_id`
- * to its owner's sockets on this process. Returns the newest id read.
+ * to the sockets on this process of the user whose conversation the job
+ * is in. Returns the newest id read.
  */
 export default async function relayNewJobUpdates({ after_id, users }: Params) {
     const rows =
         (
             await BunSQLite.sql<BotJobUpdateData & { user_id: number }>({
-                sql: `SELECT u.*, q.task_id, q.session_id, b.user_id FROM bots_queue_updates u
+                sql: `SELECT u.*, q.task_id, q.session_id, s.user_id FROM bots_queue_updates u
                     JOIN bots_queue q ON q.id = u.bots_queue_id
-                    JOIN bots b ON b.id = u.bot_id
+                    JOIN bot_sessions s ON s.id = q.session_id
                     WHERE u.id > ? ORDER BY u.id ASC LIMIT 500`,
                 values: [after_id],
             })

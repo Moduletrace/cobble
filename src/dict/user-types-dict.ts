@@ -7,17 +7,17 @@ export const UserTypes = [
     {
         value: "super_admin",
         title: "Super admin",
-        description: "Runs the install: models, environment, computers and users. The first account.",
+        description: "Runs the install: the coordinator, models, environment, computers and users. The first account.",
     },
     {
         value: "admin",
         title: "Admin",
-        description: "Adds and manages members.",
+        description: "Manages members, bots and workspaces, and picks which bots and workspaces each member reaches.",
     },
     {
         value: "member",
         title: "Member",
-        description: "Has their own crew, workspaces and main computer.",
+        description: "Chats with the bots assigned to them and in the workspaces they were added to.",
     },
     {
         value: "read_only",
@@ -27,7 +27,7 @@ export const UserTypes = [
     {
         value: "revoked",
         title: "Revoked",
-        description: "Can't sign in. Their crew and files are kept.",
+        description: "Can't sign in. Their conversations and files are kept.",
     },
 ] as const;
 

@@ -7,6 +7,7 @@ import { CpuAi } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "./bot-harness-form";
 import HeaderIconButton from "./header-icon-button";
@@ -24,8 +25,9 @@ type Props = {
 /**
  * The header's model icon: opens every model the bot uses (text, media
  * reading, transcription, speech, images) in the Models settings form. On
- * the coordinator that form is the defaults, for super admins only;
- * everyone else gets the icon disabled, its title saying why.
+ * the coordinator that form is the defaults, for super admins only; a
+ * worker's (or a workspace's) models are for super admins and admins.
+ * Everyone else gets the icon disabled, its title saying why.
  */
 export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -35,9 +37,9 @@ export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: P
 
     const in_workspace = Boolean(workspace?.id);
     const is_coordinator = bot.kind == "coordinator" && !in_workspace;
-    const can_edit =
-        !is_coordinator ||
-        isPassThroughUser({ user_types: pageProps?.user_types });
+    const can_edit = is_coordinator
+        ? isPassThroughUser({ user_types: pageProps?.user_types })
+        : canManageCrew({ user_types: pageProps?.user_types });
     const name = bot.name || "This bot";
 
     const target = (
@@ -50,7 +52,9 @@ export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: P
                         : is_coordinator
                         ? "Change the default models"
                         : `Change ${name}'s models`
-                    : `${name} uses the default models. A super admin can change them in Settings, under Models.`
+                    : is_coordinator
+                    ? `${name} uses the default models. A super admin can change them in Settings, under Models.`
+                    : `An admin can change the models ${name} uses.`
             }
             disabled={!can_edit}
         />

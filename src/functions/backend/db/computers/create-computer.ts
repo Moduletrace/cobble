@@ -10,11 +10,14 @@ import grabEnv from "../envs/grab-env";
 import provisionComputer from "./provision-computer";
 
 type Params = {
+    /**
+     * Who creates it. Computers belong to the install.
+     */
     user_id: number | string;
     name: string;
     description?: string;
     /**
-     * `main` only for the owner's one main computer (`ensureMainComputer`).
+     * `main` only for the install's one main computer (`ensureMainComputer`).
      */
     kind?: ComputerKind;
     /**
@@ -29,7 +32,7 @@ type Params = {
 };
 
 /**
- * Records a new computer for the user and its container
+ * Records a new computer and its container
  * (`<AppData.ComputerContainerPrefix>-<id>`), then sets the container up
  * in the background (`provisionComputer`). Returns the computer at once,
  * still `creating`, and the setup to await when the caller must (a CLI

@@ -39,6 +39,7 @@ export const handler: BunextAPIRouteHandler<
         return {
             success: true,
             payload: await grabBotSessions({
+                user_id: user.id,
                 bot_id: conversation.bot.id,
                 workspace_id: conversation.workspace_id,
                 query,

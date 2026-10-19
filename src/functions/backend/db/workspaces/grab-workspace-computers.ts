@@ -16,7 +16,7 @@ export default async function grabWorkspaceComputers({
     const res = await BunSQLite.sql<ComputerWithStatus & { metadata?: string | null }>({
         sql: `SELECT c.*, co.status AS status, co.metadata AS metadata FROM computers c
             JOIN workspace_computers wc ON wc.computer_id = c.id AND wc.workspace_id = ?
-            JOIN workspaces w ON w.id = wc.workspace_id AND w.user_id = c.user_id
+            JOIN workspaces w ON w.id = wc.workspace_id
             LEFT JOIN containers co ON co.id = c.container_id
             ORDER BY c.id = w.computer_id DESC, wc.id ASC`,
         values: [workspace_id],

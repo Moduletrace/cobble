@@ -1,7 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_COBBLE_CONTAINERS } from "@/db/types/db";
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
-import removeDockerContainer from "@/src/functions/backend/docker/remove-docker-container";
 import AppError from "@/src/utils/app-error";
 import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
 import parseUserTypes from "@/src/utils/parse-user-types";
@@ -21,11 +19,12 @@ type Params = {
 };
 
 /**
- * Deletes a user with everything that's theirs (bots, workspaces,
- * conversations, computers, user types, password, media and its files):
- * their computers' containers are removed first, their home directories
- * stay on disk. Their audit log entries stay too. The super admin can't be
- * deleted, and nobody deletes themselves.
+ * Deletes a user with everything that's theirs (their conversations,
+ * routines, access, what bots remember about them, user types, password,
+ * media and its files). Bots, workspaces and computers belong to the
+ * install and stay, pictures they uploaded for them too. Their audit log
+ * entries stay as well. The super admin can't be deleted, and nobody
+ * deletes themselves.
  */
 export default async function deleteUser({ actor_user_id, actor_user_types, user_id }: Params) {
     if (String(actor_user_id) == String(user_id)) {
@@ -48,24 +47,12 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
         throw new AppError(`You can't delete ${user.first_name || "this user"}.`);
     }
 
-    const containers =
-        (
-            await BunSQLite.sql<BUN_SQLITE_COBBLE_CONTAINERS>({
-                sql: `SELECT co.* FROM containers co JOIN computers c ON c.container_id = co.id WHERE c.user_id = ?`,
-                values: [user.id],
-            })
-        ).payload || [];
-
-    for (const container of containers) {
-        if (container.docker_id || container.name) {
-            await removeDockerContainer({ container: container.docker_id || container.name! });
-        }
-    }
-
     const media_ids =
         (
             await BunSQLite.sql<{ id: number }>({
-                sql: `SELECT id FROM media WHERE user_id = ?`,
+                sql: `SELECT id FROM media WHERE user_id = ?
+                    AND id NOT IN (SELECT image_media_id FROM bots WHERE image_media_id IS NOT NULL)
+                    AND id NOT IN (SELECT image_media_id FROM workspaces WHERE image_media_id IS NOT NULL)`,
                 values: [user.id],
             })
         ).payload?.map((media) => media.id) || [];
@@ -85,13 +72,6 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
      */
     for (const table of ["user_types", "user_passwords", "sso_login_codes"]) {
         await BunSQLite.sql({ sql: `DELETE FROM ${table} WHERE user_id = ?`, values: [user.id] });
-    }
-
-    if (containers.length) {
-        await BunSQLite.sql({
-            sql: `DELETE FROM containers WHERE id IN (${containers.map(() => "?").join(", ")})`,
-            values: containers.map((container) => container.id!),
-        });
     }
 
     return user;

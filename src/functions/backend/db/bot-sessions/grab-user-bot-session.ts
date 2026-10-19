@@ -7,15 +7,14 @@ type Params = {
 };
 
 /**
- * A session only if its bot belongs to the given owner.
+ * A session only if it's the given user's own.
  */
 export default async function grabUserBotSession({
     session_id,
     user_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_SESSIONS | null> {
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-        sql: `SELECT s.* FROM bot_sessions s JOIN bots b ON b.id = s.bot_id
-            WHERE s.id = ? AND b.user_id = ? LIMIT 1`,
+        sql: `SELECT s.* FROM bot_sessions s WHERE s.id = ? AND s.user_id = ? LIMIT 1`,
         values: [session_id, user_id],
     });
 

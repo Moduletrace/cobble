@@ -3,15 +3,17 @@ import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import type { PagePropsType, PageQueryObject } from "@/src/types";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 
 /**
- * A worker bot's model settings. The coordinator always uses the defaults,
- * so its page goes back to its conversation.
+ * A worker bot's model settings, for super admins and admins. The
+ * coordinator always uses the defaults, so its page (and anyone else's)
+ * goes back to the conversation.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const query: PageQueryObject = params.query;
-    const { user } = await userAuth({ req: params.req });
+    const { user, user_types } = await userAuth({ req: params.req });
 
     if (!user?.id) {
         return { redirect: { destination: "/auth/login" } };
@@ -24,7 +26,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         return { redirect: { destination: "/admin/bots" } };
     }
 
-    if (bot.kind == "coordinator") {
+    if (bot.kind == "coordinator" || !canManageCrew({ user_types })) {
         return { redirect: { destination: `/admin/bots/${bot.id}` } };
     }
 

@@ -1,10 +1,12 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import type { ComputerWithStatus } from "@/src/types";
+import computersSql from "@/src/utils/crew-access/computers-sql";
+import grabCrewRole from "../access/grab-crew-role";
 
 type Params = {
     /**
-     * Every computer of this owner, main first.
+     * Every computer this user sees (`computersSql`), main first.
      */
     user_id?: number | string;
     /**
@@ -22,14 +24,18 @@ export default async function grabUserComputers({
 }: Params): Promise<ComputerWithStatus[]> {
     if (!user_id && !computer_id) return [];
 
+    const access = computer_id
+        ? { sql: `c.id = ?`, values: [Number(computer_id)] }
+        : computersSql({ role: await grabCrewRole({ user_id: user_id! }), user_id: user_id! });
+
     const rows =
         (
             await BunSQLite.sql<ComputerWithStatus & { metadata?: string | null }>({
                 sql: `SELECT c.*, co.status AS status, co.metadata AS metadata FROM computers c
                     LEFT JOIN containers co ON co.id = c.container_id
-                    WHERE ${computer_id ? `c.id = ?` : `c.user_id = ?`}
+                    WHERE ${access.sql}
                     ORDER BY c.kind = 'main' DESC, c.id ASC`,
-                values: [computer_id || user_id!],
+                values: access.values,
             })
         ).payload || [];
 

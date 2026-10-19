@@ -1,10 +1,9 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
-import ensureMainComputer from "@/src/functions/backend/db/computers/ensure-main-computer";
+import setUserAccess from "@/src/functions/backend/db/access/set-user-access";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
 import saveUser from "@/src/functions/backend/db/users/save-user";
 import setUserProfileImage from "@/src/functions/backend/db/users/set-user-profile-image";
-import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
+import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { SaveUserRequestSchema } from "@/src/schemas/user-schema";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 import AppError from "@/src/utils/app-error";
@@ -22,8 +21,10 @@ import type {
 /**
  * Creates a user (`canCreateUser`) or updates one (`canUpdateUser`):
  * name, email, username, password, user types (each checked against the
- * assignment matrix) and, when one is sent, their profile photo. A new user gets their coordinator and main computer
- * straight away, as at signup. Returns the user.
+ * assignment matrix), when one is sent their profile photo, and when sent
+ * the workers assigned to them and the workspaces they're in
+ * (`setUserAccess`). Whoever may create or update users manages the crew
+ * too (super admins and admins). Returns the user.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_USERS_JOIN>> = async ({ req, body }) => {
     try {
@@ -64,21 +65,8 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_
             await setUserProfileImage({ user_id, data_url: data.image });
         }
 
-        if (created) {
-            /**
-             * The account exists now; `/admin/bots` creates both on their
-             * first visit if this fails.
-             */
-            await ensureCoordinatorBot({ user_id })
-                .then((coordinator_id) => ensureMainComputer({ user_id, coordinator_id }))
-                .catch((error) =>
-                    logError({
-                        title: "Coordinator or main computer not created with the user",
-                        error,
-                        user_id,
-                        ip_address: grabRequestIP(req),
-                    }).catch(() => {}),
-                );
+        if (data.bot_ids || data.workspace_ids) {
+            await setUserAccess({ user_id, bot_ids: data.bot_ids, workspace_ids: data.workspace_ids });
         }
 
         await logEvent({
@@ -86,7 +74,13 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_
             category: "auth",
             user_id: user.id,
             plain_text: `User #${user.id} ${created ? "created" : "updated"} user #${user_id}.`,
-            metadata: { user_id, user_types: data.user_types, password_changed: Boolean(data.password) },
+            metadata: {
+                user_id,
+                user_types: data.user_types,
+                password_changed: Boolean(data.password),
+                bot_ids: data.bot_ids,
+                workspace_ids: data.workspace_ids,
+            },
             ip_address: grabRequestIP(req),
         });
 

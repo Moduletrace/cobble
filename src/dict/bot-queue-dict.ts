@@ -39,6 +39,13 @@ export type BotJobUpdateKind = (typeof BotJobUpdateKinds)[number]["value"];
 export const BotReplyJobTitle = "Thinking";
 
 /**
+ * The bot's status line while a task runs. Everyone who sees the bot sees
+ * it, so it never names the task: each user sees their own task's title
+ * and steps in their conversation.
+ */
+export const BotTaskStatusLine = "Working on a task";
+
+/**
  * The bot's status line while its job waits for a rate-limited model.
  */
 export const BotWaitingStatusLine = "Waiting for a free model";

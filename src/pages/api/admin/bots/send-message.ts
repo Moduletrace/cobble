@@ -17,8 +17,8 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * Posts a message from the session user to one of their own bots, in its
- * own chat or in a workspace it's in, and queues the bot's reply, which
+ * Posts a message from the session user to a bot they chat with, in its
+ * own chat or in a workspace, and queues the bot's reply, which
  * arrives over the WebSocket. The message goes in the conversation's
  * active session (the next one when it's full) and also to the user's
  * other open tabs. Files are uploaded first (`upload-attachment`) and
@@ -57,6 +57,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         const media = await grabAttachableMedia({ user_id: Number(user.id), media_ids });
         const session = await ensureBotSession({
+            user_id: user.id,
             bot_id: bot.id,
             workspace_id: conversation.workspace_id,
             rollover: true,

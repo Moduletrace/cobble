@@ -13,6 +13,10 @@ type Params = {
     system_prompt?: string | null;
     memory?: string | null;
     /**
+     * What the bot remembers about the user it's working with.
+     */
+    user_memory?: string | null;
+    /**
      * The workspace the bot is working in, if any.
      */
     workspace?: WorkspacePrompt | null;
@@ -25,13 +29,14 @@ type Params = {
 /**
  * The full prompt a bot runs with (markdown): its own core instructions,
  * then, in a workspace, the workspace's context and the bot's
- * instructions there, then its core memory and its memory there. Empty
- * parts are left out; the workspace heading always shows, so the bot
- * knows where it is.
+ * instructions there, then its core memory, its memory about the user and
+ * its memory in the workspace. Empty parts are left out; the workspace
+ * heading always shows, so the bot knows where it is.
  */
 export default function composeBotPrompt({
     system_prompt,
     memory,
+    user_memory,
     workspace,
     workspace_bot,
 }: Params) {
@@ -61,6 +66,10 @@ export default function composeBotPrompt({
 
     if (memory?.trim()) {
         parts.push(`# Memory\n\n${memory.trim()}`);
+    }
+
+    if (user_memory?.trim()) {
+        parts.push(`# Memory about the user\n\n${user_memory.trim()}`);
     }
 
     if (workspace && workspace_bot?.memory?.trim()) {

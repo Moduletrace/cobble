@@ -1,6 +1,6 @@
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import AppError from "@/src/utils/app-error";
-import grabUserBot from "../bots/grab-user-bot";
+import grabChatBot from "../bots/grab-chat-bot";
 import grabWorkspaceBot from "../workspaces/grab-workspace-bot";
 
 type Params = {
@@ -19,9 +19,9 @@ export type UserConversation = {
 };
 
 /**
- * One of the user's conversations: their bot, in its own chat or in one of
- * their workspaces it works in. Throws when the bot isn't theirs or isn't
- * in that workspace.
+ * One of the user's conversations: a bot they chat with in its own chat
+ * (`grabChatBot`) or in a workspace they're in (`grabWorkspaceBot`).
+ * Throws when they can't.
  */
 export default async function grabUserConversation({
     user_id,
@@ -42,7 +42,7 @@ export default async function grabUserConversation({
         };
     }
 
-    const bot = await grabUserBot({ bot_id, user_id });
+    const bot = await grabChatBot({ bot_id, user_id });
 
     if (!bot?.id) {
         throw new AppError(`Bot not found`);

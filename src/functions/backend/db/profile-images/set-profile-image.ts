@@ -7,6 +7,7 @@ import grabUserWorkspace from "@/src/functions/backend/db/workspaces/grab-user-w
 import type { ProfileImageTarget } from "@/src/schemas/profile-image-schema";
 import AppError from "@/src/utils/app-error";
 import bufferFromBase64 from "@/src/utils/buffer-from-base-64";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -28,6 +29,8 @@ const Targets = {
  * a private image, the old one deleted. Returns the new `image_media_id`.
  */
 export default async function setProfileImage({ user_id, target, id, data_url }: Params) {
+    await assertCrewManager({ user_id });
+
     const record =
         target == "bot"
             ? await grabUserBot({ bot_id: id, user_id })

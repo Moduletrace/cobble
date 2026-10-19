@@ -4,12 +4,16 @@ import { CoordinatorBotName } from "@/src/dict/bot-dict";
 import { CoordinatorSystemPrompt } from "@/src/data/coordinator-system-prompt";
 
 type Params = {
+    /**
+     * Who it's created by when it's missing (the super admin).
+     */
     user_id: number | string;
 };
 
 /**
- * Returns the id of the user's coordinator, creating it first (with the
- * default `CoordinatorSystemPrompt`) if the user has none. A
+ * Returns the id of the install's one coordinator (the super admin's
+ * alone), creating it first (with the default `CoordinatorSystemPrompt`)
+ * if there is none. A
  * coordinator without a prompt gets the default; an edited prompt is never
  * overwritten. Safe to call on every visit.
  */
@@ -22,7 +26,6 @@ export default async function ensureCoordinatorBot({ user_id }: Params) {
             table: "bots",
             query: {
                 query: {
-                    user_id: { value: user_id },
                     kind: { value: "coordinator" },
                 },
                 order: { field: "id", strategy: "ASC" },

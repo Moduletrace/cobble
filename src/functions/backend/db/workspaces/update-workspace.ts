@@ -7,6 +7,7 @@ import AppError from "@/src/utils/app-error";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
 import grabUserWorkspace from "./grab-user-workspace";
 import _ from "lodash";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -29,6 +30,8 @@ export default async function updateWorkspace({
     workspace_id,
     data,
 }: Params) {
+    await assertCrewManager({ user_id });
+
     assertPromptLength({ label: "System prompt", text: data.system_prompt });
 
     const workspace = await grabUserWorkspace({ workspace_id, user_id });

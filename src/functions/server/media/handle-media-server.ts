@@ -4,6 +4,7 @@ import grabDirNames from "@/src/utils/grab-dir-names";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import userAuth from "../../backend/auth/user-auth";
+import grabSharedPictureMedia from "@/src/functions/backend/db/access/grab-shared-picture-media";
 
 const { DATA_DIR } = grabDirNames();
 
@@ -48,7 +49,10 @@ export default async function handleMediaServer({
             targetId: media_id,
         });
 
-        media = media_res.singleRes || undefined;
+        media =
+            media_res.singleRes ||
+            (media_id ? await grabSharedPictureMedia({ media_id, user_id: user.id! }) : null) ||
+            undefined;
     } else {
         const media_res = await BunSQLite.select<
             BUN_SQLITE_COBBLE_MEDIA,
@@ -62,7 +66,8 @@ export default async function handleMediaServer({
 
         /**
          * A private file is only served through `/media/private`, to its
-         * owner.
+         * owner (or, for a bot's or workspace's picture, to whoever sees
+         * it).
          */
         if (media?.is_private) {
             media = undefined;

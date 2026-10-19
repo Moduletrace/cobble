@@ -9,10 +9,10 @@ import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
-import { BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
+import { BotReplyJobTitle, BotTaskStatusLine, BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
 import BotJobFatalError from "./bot-job-fatal-error";
 import describeJobStep from "./describe-job-step";
-import pushToBotOwner from "./push-to-bot-owner";
+import pushToSessionUser from "./push-to-session-user";
 import pushBotNotice from "./push-bot-notice";
 import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
@@ -80,8 +80,8 @@ export default async function processBotJob({
 
             const row = await insertBotJobUpdate({ job_id, bot_id, ...described });
 
-            await pushToBotOwner({
-                bot_id,
+            await pushToSessionUser({
+                session_id: job.session_id,
                 data: {
                     event: "server:bot-job-update",
                     data: {
@@ -111,7 +111,7 @@ export default async function processBotJob({
                 bot: await setBotFace({
                     bot_id,
                     face: "working",
-                    status_line: job.title || "",
+                    status_line: job.kind == "reply" ? BotReplyJobTitle : BotTaskStatusLine,
                 }),
             });
 

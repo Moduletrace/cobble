@@ -1,5 +1,7 @@
 import { useContext, useState } from "react";
+import EmptyContent from "@moduletrace/twui/elements/EmptyContent";
 import { AppContext } from "@/src/pages/__root";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import SettingsShell from "@/src/pages/admin/settings/(partials)/settings-shell";
 import WorkspaceBotsGroup from "../(partials)/workspace-bots-group";
 import WorkspaceComputersGroup from "../(partials)/workspace-computers-group";
@@ -11,13 +13,22 @@ import WorkspaceSectionHeading from "../(partials)/workspace-section-heading";
 
 /**
  * A workspace's page beside its rail: its context, bots, computers, then
- * its models, and deleting it.
+ * its models, and deleting it. A member only lands here while it has no
+ * bots yet.
  */
 export default function WorkspaceOverview() {
     const { pageProps } = useContext(AppContext);
     const [workspace, setWorkspace] = useState(pageProps?.workspace);
 
     if (!workspace?.id) return null;
+
+    if (!canManageCrew({ user_types: pageProps?.user_types })) {
+        return (
+            <SettingsShell title={workspace.name || "Workspace"} description={workspace.description || "A workspace."}>
+                <EmptyContent title="No bots here yet. An admin adds them." />
+            </SettingsShell>
+        );
+    }
 
     const workspace_id = Number(workspace.id);
     const harnesses = pageProps?.workspace_harness_overview?.harnesses;

@@ -156,14 +156,14 @@ async function resolveScope({
     const owned = id
         ? (
               await BunSQLite.sql({
-                  sql: `SELECT id FROM ${table} WHERE id = ? AND user_id = ? LIMIT 1`,
-                  values: [id, user_id],
+                  sql: `SELECT id FROM ${table} WHERE id = ? LIMIT 1`,
+                  values: [id],
               })
           ).payload?.[0]
         : undefined;
 
     if (!owned) {
-        throw new AppError(`Pick one of your ${table}.`);
+        throw new AppError(`Pick one of the ${table}.`);
     }
 
     return paradigm == "workspace"

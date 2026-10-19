@@ -3,6 +3,10 @@ import { AppData } from "@/src/data/app-data";
 import type { BotSessionListItem } from "@/src/types";
 
 type Params = {
+    /**
+     * The user the conversation is with.
+     */
+    user_id: number | string;
     bot_id: number | string;
     workspace_id?: number | string | null;
     /**
@@ -13,11 +17,12 @@ type Params = {
 };
 
 /**
- * A conversation's sessions for the sessions modal, latest activity first,
+ * A user's conversation's sessions for the sessions modal, latest activity first,
  * each with its message count and latest message. Empty sessions are left
  * out unless active.
  */
 export default async function grabBotSessions({
+    user_id,
     bot_id,
     workspace_id,
     query,
@@ -33,7 +38,7 @@ export default async function grabBotSessions({
     sql += `    (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = s.id) AS message_count,\n`;
     sql += `    (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text\n`;
     sql += `FROM bot_sessions s\n`;
-    sql += `WHERE s.bot_id = ? AND s.workspace_id IS ?\n`;
+    sql += `WHERE s.user_id = ? AND s.bot_id = ? AND s.workspace_id IS ?\n`;
     sql += `AND (s.status = 'active' OR EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = s.id))\n`;
 
     if (like) {
@@ -47,6 +52,7 @@ export default async function grabBotSessions({
     const res = await BunSQLite.sql<BotSessionListItem>({
         sql,
         values: [
+            user_id,
             bot_id,
             workspace_id ? Number(workspace_id) : null,
             ...(like ? [like, like, like] : []),

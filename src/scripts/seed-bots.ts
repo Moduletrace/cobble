@@ -210,7 +210,7 @@ async function insertBot({
             values: [bot.face, bot.status_line, coordinator_id],
         });
 
-        await insertMessages({ bot_id: coordinator_id, bot, now, last_ago });
+        await insertMessages({ user_id, bot_id: coordinator_id, bot, now, last_ago });
 
         console.log(`  ${bot.name} (#${coordinator_id}, existing)`);
         return;
@@ -237,7 +237,16 @@ async function insertBot({
         throw new Error(`Failed to create bot ${bot.name}: ${bot_res.msg}`);
     }
 
-    const session_id = await insertMessages({ bot_id, bot, now, last_ago });
+    /**
+     * Bots belong to the install: the user reaches a sample worker once
+     * it's assigned to them.
+     */
+    await BunSQLite.sql({
+        sql: `INSERT OR IGNORE INTO bot_users (created_at, updated_at, bot_id, user_id) VALUES (?, ?, ?, ?)`,
+        values: [now, now, bot_id, user_id],
+    });
+
+    const session_id = await insertMessages({ user_id, bot_id, bot, now, last_ago });
 
     if (bot.task) {
         await insertTask({ bot_id, session_id, task: bot.task });
@@ -247,21 +256,23 @@ async function insertBot({
 }
 
 /**
- * Adds the bot's sample messages to its own chat's active session and
- * returns the session's id.
+ * Adds the bot's sample messages to the user's own chat with it (its
+ * active session) and returns the session's id.
  */
 async function insertMessages({
+    user_id,
     bot_id,
     bot,
     now,
     last_ago,
 }: {
+    user_id: number;
     bot_id: number;
     bot: SeedBot;
     now: number;
     last_ago: number;
 }) {
-    const session = await ensureBotSession({ bot_id });
+    const session = await ensureBotSession({ user_id, bot_id });
     const session_id = Number(session.id);
 
     await BunSQLite.sql({
@@ -363,7 +374,7 @@ async function seedBots() {
 
     if (existing_workers?.length) {
         console.log(
-            `User #${user.id} <${EMAIL}> already has ${existing_workers.length} worker bots. Skipping.`,
+            `User #${user.id} <${EMAIL}> already created ${existing_workers.length} worker bots. Skipping.`,
         );
         return;
     }

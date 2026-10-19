@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
 import AppError from "@/src/utils/app-error";
 import grabUserBot from "./grab-user-bot";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -14,6 +15,8 @@ type Params = {
  * its row. The coordinator can't be deleted.
  */
 export default async function deleteBot({ user_id, bot_id }: Params) {
+    await assertCrewManager({ user_id });
+
     const bot = await grabUserBot({ bot_id, user_id });
 
     if (!bot?.id) {

@@ -48,6 +48,7 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
         }
 
         const session = await ensureBotSession({
+            user_id: cron_job.user_id!,
             bot_id: cron_job.bot_id!,
             workspace_id: cron_job.workspace_id || null,
         });
@@ -57,7 +58,6 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
             (
                 await grabBotComputers({
                     bot_id: cron_job.bot_id!,
-                    user_id: cron_job.user_id!,
                     workspace_id: cron_job.workspace_id || null,
                 })
             )[0]?.id;

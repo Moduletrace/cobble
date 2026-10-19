@@ -14,6 +14,10 @@ type Props = {
      * The latest step of the bot's active task, shown while it works.
      */
     progress?: string | null;
+    /**
+     * This session has an active task.
+     */
+    has_task?: boolean;
 };
 
 /**
@@ -22,7 +26,7 @@ type Props = {
  * While the bot works on a reply or a task, a status row sits under the
  * last one.
  */
-export default function MessageThread({ bot, messages, progress }: Props) {
+export default function MessageThread({ bot, messages, progress, has_task }: Props) {
     const groups = groupMessages({ messages });
 
     return (
@@ -40,7 +44,12 @@ export default function MessageThread({ bot, messages, progress }: Props) {
                         group={group}
                     />
                 ))}
-                <BotThinkingRow bot={bot} progress={progress} />
+                <BotThinkingRow
+                    bot={bot}
+                    progress={progress}
+                    awaiting_reply={messages[messages.length - 1]?.author == "user"}
+                    has_task={has_task}
+                />
             </Stack>
         </Stack>
     );

@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserWorkspace from "./grab-user-workspace";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -16,6 +17,8 @@ export default async function removeBotFromWorkspace({
     workspace_id,
     bot_id,
 }: Params) {
+    await assertCrewManager({ user_id });
+
     const workspace = await grabUserWorkspace({ workspace_id, user_id });
 
     if (!workspace?.id) {

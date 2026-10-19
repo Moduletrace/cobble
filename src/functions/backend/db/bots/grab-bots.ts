@@ -1,26 +1,33 @@
 import type { BotWithLastMessage } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
+import chatBotsSql from "@/src/utils/crew-access/chat-bots-sql";
+import workspaceBotsSql from "@/src/utils/crew-access/workspace-bots-sql";
+import grabCrewRole from "../access/grab-crew-role";
 
 type Params = {
     user_id: number | string;
     /**
-     * A workspace's crew instead: the coordinator and the bots in it, with
-     * their conversations in that workspace.
+     * A workspace's crew instead: the bots the user chats with there
+     * (check they're in the workspace first), with their conversations
+     * there.
      */
     workspace_id?: number | string | null;
 };
 
 /**
- * A user's crew for the rail: the coordinator pinned first, then
- * workers by latest activity. Each row carries its conversation's unread
- * flag, latest activity and latest message: in its own chat, or in the
- * workspace when one is given.
+ * The bots a user chats with, for the rail: in their own chat
+ * (`chatBotsSql`) or in one workspace (`workspaceBotsSql`). The
+ * coordinator is pinned first, then workers by latest activity. Each row
+ * carries the user's own conversation there: its unread flag, latest
+ * activity and latest message.
  */
 export default async function grabBots({
     user_id,
     workspace_id,
 }: Params): Promise<BotWithLastMessage[]> {
     const scope = workspace_id ? Number(workspace_id) : null;
+    const role = await grabCrewRole({ user_id });
+    const access = scope ? workspaceBotsSql({ role, workspace_id: scope }) : chatBotsSql({ role, user_id });
 
     let sql = ``;
 
@@ -33,27 +40,22 @@ export default async function grabBots({
     sql += `FROM bots b\n`;
     sql += `LEFT JOIN (\n`;
     sql += `    SELECT bot_id, MAX(unread) AS unread, MAX(last_activity_at) AS last_activity_at\n`;
-    sql += `    FROM bot_sessions WHERE workspace_id IS ? GROUP BY bot_id\n`;
+    sql += `    FROM bot_sessions WHERE workspace_id IS ? AND user_id = ? GROUP BY bot_id\n`;
     sql += `) t ON t.bot_id = b.id\n`;
     sql += `LEFT JOIN bot_messages lm ON lm.id = (\n`;
-    sql += `    SELECT id FROM bot_messages\n`;
-    sql += `    WHERE bot_id = b.id AND workspace_id IS ?\n`;
-    sql += `    ORDER BY created_at DESC, id DESC\n`;
+    sql += `    SELECT m.id FROM bot_messages m JOIN bot_sessions s ON s.id = m.session_id\n`;
+    sql += `    WHERE m.bot_id = b.id AND m.workspace_id IS ? AND s.user_id = ?\n`;
+    sql += `    ORDER BY m.created_at DESC, m.id DESC\n`;
     sql += `    LIMIT 1\n`;
     sql += `)\n`;
-    sql += `WHERE b.user_id = ?\n`;
-
-    if (scope) {
-        sql += `AND (b.kind = 'coordinator' OR b.id IN (SELECT bot_id FROM workspace_bots WHERE workspace_id = ?))\n`;
-    }
-
+    sql += `WHERE ${access.sql}\n`;
     sql += `ORDER BY\n`;
     sql += `    CASE WHEN b.kind = 'coordinator' THEN 0 ELSE 1 END,\n`;
     sql += `    COALESCE(lm.created_at, t.last_activity_at, b.created_at) DESC\n`;
 
     const res = await BunSQLite.sql<BotWithLastMessage>({
         sql,
-        values: [scope, scope, user_id, ...(scope ? [scope] : [])],
+        values: [scope, user_id, scope, user_id, ...access.values],
     });
 
     return res.payload || [];
