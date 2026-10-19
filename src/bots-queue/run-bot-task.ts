@@ -1,9 +1,13 @@
+import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import { TaskRunNote, WorkspaceLearningNote } from "@/src/data/harness-prompts";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
+import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
+import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
+import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
 import computerRef from "@/src/utils/computer-ref";
@@ -14,7 +18,7 @@ import withTakeOverRefs from "./with-take-over-refs";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
 type Params = BotJobContext & {
-    bot: { id: number };
+    bot: Pick<BUN_SQLITE_COBBLE_BOTS, "kind"> & { id: number };
     /**
      * The user whose conversation the job is in.
      */
@@ -53,6 +57,15 @@ export default async function runBotTask({
         const session_id = await jobSessionId({ job });
         const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
         const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
+
+        /**
+         * A coordinator's task can also change workspaces: the findings
+         * it was asked to record go there, not only in the report.
+         */
+        const coordinator_workspaces =
+            bot.kind == "coordinator"
+                ? (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived)
+                : [];
         const carry_over = await grabSessionCarryOver({
             session_id,
             bot_id: bot.id,
@@ -75,6 +88,9 @@ export default async function runBotTask({
                 carry_over,
                 TaskRunNote,
                 workspace_id ? WorkspaceLearningNote : "",
+                bot.kind == "coordinator"
+                    ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`
+                    : "",
                 computer
                     ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything. When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over.`
                     : workspace_id
@@ -103,6 +119,20 @@ export default async function runBotTask({
             ],
             tools: [
                 ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers }),
+                ...(bot.kind == "coordinator"
+                    ? [
+                          createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
+                          ...(coordinator_workspaces.length
+                              ? [
+                                    updateWorkspaceTool({
+                                        user_id,
+                                        workspaces: coordinator_workspaces,
+                                        workspace_id,
+                                    }),
+                                ]
+                              : []),
+                      ]
+                    : []),
                 ...(computers.length
                     ? [
                           searchComputersTool({ computers, workspace_id }),

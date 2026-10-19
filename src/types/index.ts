@@ -168,6 +168,14 @@ export type BotCreatedData = {
 };
 
 /**
+ * `server:workspace-created` data: a workspace the user can now see, as
+ * their rail lists it.
+ */
+export type WorkspaceCreatedData = {
+    workspace: WorkspaceWithActivity;
+};
+
+/**
  * `server:bot-removed` data: the bot that was deleted.
  */
 export type BotRemovedData = {
@@ -617,6 +625,11 @@ export const WebSocketEvents = [
      * A bot's face or status line changed (`data`: `BotUpdatedData`)
      */
     "server:bot-updated",
+    /**
+     * A workspace the user can see was created (`data`:
+     * `WorkspaceCreatedData`)
+     */
+    "server:workspace-created",
     /**
      * A running job took a step (`data`: `BotJobUpdateData`)
      */

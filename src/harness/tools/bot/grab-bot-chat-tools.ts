@@ -7,6 +7,7 @@ import searchComputersTool from "../computer/search-computers-tool";
 import addBotToWorkspaceTool from "./add-bot-to-workspace-tool";
 import assignComputerTool from "./assign-computer-tool";
 import createBotTool from "./create-bot-tool";
+import createWorkspaceTool from "./create-workspace-tool";
 import delegateTaskTool from "./delegate-task-tool";
 import grabBotTools from "./grab-bot-tools";
 import updateWorkspaceTool from "./update-workspace-tool";
@@ -45,12 +46,13 @@ type Params = {
  * in a workspace switching its default computer), start_task for longer
  * work, search_computers to find what's on its computers,
  * ask_user_to_take_over when only the user can do something on one, and
- * for the coordinator (the super admin's alone) create_bot to grow the
- * crew, delegate_task to every worker (the workspace's in a workspace)
- * plus, in its own chat, add_bot_to_workspace and assign_computer (which
- * workspace and which computers each crew member gets) or, in a
- * workspace, set_bot_workspace_instructions. Anything else on a computer
- * goes through a task, never mid-reply.
+ * for the coordinator (the super admin's alone) create_workspace and
+ * update_workspace (a workspace and its shared context), create_bot to
+ * grow the crew, delegate_task to every worker (the workspace's in a
+ * workspace) plus, in its own chat, add_bot_to_workspace and
+ * assign_computer (which workspace and which computers each crew member
+ * gets) or, in a workspace, set_bot_workspace_instructions. Anything else
+ * on a computer goes through a task, never mid-reply.
  */
 export default async function grabBotChatTools({
     bot,
@@ -82,6 +84,8 @@ export default async function grabBotChatTools({
     if (bot.kind != "coordinator") return tools;
 
     const workspaces = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
+
+    tools.push(createWorkspaceTool({ user_id, workspaces }));
 
     if (workspaces.length) {
         tools.push(updateWorkspaceTool({ user_id, workspaces, workspace_id }));

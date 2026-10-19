@@ -4,15 +4,16 @@ import { logError } from "@/src/functions/backend/logger";
 import grabConnectedUserIds from "@/src/websocket/(functions)/grab-connected-user-ids";
 import relayChangedBots from "./relay-changed-bots";
 import relayCreatedBots from "./relay-created-bots";
+import relayCreatedWorkspaces from "./relay-created-workspaces";
 import relayNewBotMessages from "./relay-new-bot-messages";
 import relayNewJobUpdates from "./relay-new-job-updates";
 import type { LiveRelayCursor } from "./types";
 
 /**
  * Keeps this process's sockets current with work done anywhere: every
- * `AppData.LiveRelayPollMs` it reads new bot messages, new job steps and
- * changed bots from the database and pushes them to the sockets here
- * of the users they're for. The process that did the work pushes at once
+ * `AppData.LiveRelayPollMs` it reads new bot messages, new job steps,
+ * new workspaces and changed bots from the database and pushes them to
+ * the sockets here of the users they're for. The process that did the work pushes at once
  * (`pushBotNotice`); this catches the rest, e.g. a job run by another
  * server on the same database. Clients ignore what they already have.
  * Runs in every server process, ungated.
@@ -54,6 +55,7 @@ export default async function liveRelay() {
             const bots_since = cursor.bots_at - AppData.LiveRelayPollMs;
 
             await relayCreatedBots({ since: bots_since, users });
+            await relayCreatedWorkspaces({ since: bots_since, users });
             await relayChangedBots({ since: bots_since, users });
             cursor.bots_at = now;
         } catch (error) {
