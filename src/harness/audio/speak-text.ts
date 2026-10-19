@@ -61,7 +61,11 @@ export default async function speakText({
     return result;
 }
 
-function pickVoice({
+/**
+ * The voice to ask for: the picked one when the model has it (or the
+ * model was picked by hand), else the model's first, else OpenAI's.
+ */
+export function pickVoice({
     candidate,
     voice,
 }: {

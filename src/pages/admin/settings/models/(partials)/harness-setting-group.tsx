@@ -4,6 +4,7 @@ import SettingsGroup from "../../(partials)/settings-group";
 import HarnessCurrentModel from "./harness-current-model";
 import HarnessModelSelect from "./harness-model-select";
 import HarnessProviderSelect from "./harness-provider-select";
+import HarnessVoicePreview from "./harness-voice-preview";
 import HarnessVoiceSelect from "./harness-voice-select";
 
 type Props = {
@@ -15,8 +16,8 @@ type Props = {
 /**
  * One harness: its provider, then its model (narrowed to that provider),
  * whether it falls back to the automatic picks (for a harness that has
- * them), whether it's on, and its
- * voice for speech. On a bot's page the provider select can also use the
+ * them), whether it's on, and its voice for speech, with a sample to hear
+ * it before saving. On a bot's page the provider select can also use the
  * default, which hides the rest.
  */
 export default function HarnessSettingGroup({ harness, value, onChange }: Props) {
@@ -85,6 +86,9 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     voice={value.voice}
                     onChange={(voice) => onChange({ ...value, voice: voice || undefined })}
                 />
+            ) : null}
+            {!value.inherit && harness.harness == "speech" && picked ? (
+                <HarnessVoicePreview model_id={picked.id} voice={value.voice} />
             ) : null}
             {value.inherit || harness.required ? null : (
                 <Checkbox

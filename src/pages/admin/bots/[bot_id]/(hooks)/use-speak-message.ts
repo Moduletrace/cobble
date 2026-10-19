@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import explainAudioError from "@/src/functions/frontend/explain-audio-error";
 
 export type SpeakMessageState = "idle" | "loading" | "playing";
 
@@ -78,7 +79,7 @@ export default function useSpeakMessage({ enabled }: { enabled: boolean }): Spea
             if (!isCurrent()) return;
 
             reset();
-            explainError({ src }).then((text) => {
+            explainAudioError({ src, fallback: "Couldn't read it aloud. Try again." }).then((text) => {
                 setError({ message_id, text });
             });
         };
@@ -96,28 +97,4 @@ export default function useSpeakMessage({ enabled }: { enabled: boolean }): Spea
     }
 
     return { enabled, message_id, state, error, toggle };
-}
-
-/**
- * The player only says it failed, so ask again for the reason: a failure
- * answers in JSON, and audio coming back instead is dropped at once.
- */
-async function explainError({ src }: { src: string }) {
-    const fallback = "Couldn't read it aloud. Try again.";
-    const controller = new AbortController();
-
-    try {
-        const res = await fetch(src, { signal: controller.signal, cache: "no-store" });
-
-        if (!res.headers.get("content-type")?.includes("json")) {
-            controller.abort();
-            return fallback;
-        }
-
-        const json = await res.json();
-
-        return json?.msg || fallback;
-    } catch {
-        return fallback;
-    }
 }

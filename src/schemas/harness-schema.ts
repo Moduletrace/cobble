@@ -90,3 +90,10 @@ export type SaveHarnessSettingsRequest = z.infer<
 export type SaveBotHarnessSettingsRequest = z.infer<
     typeof SaveBotHarnessSettingsRequestSchema
 >;
+
+export const PreviewVoiceRequestSchema = z.object({
+    model_id: z.coerce.number().int().positive("Pick a speech model"),
+    voice: z.string().trim().max(200).optional(),
+});
+
+export type PreviewVoiceRequest = z.infer<typeof PreviewVoiceRequestSchema>;

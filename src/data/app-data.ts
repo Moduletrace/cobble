@@ -296,6 +296,10 @@ export const AppData = {
      */
     SpeechMaxChars: 4000,
     /**
+     * What a speech model reads when a voice is tried in the model settings.
+     */
+    VoicePreviewText: "Hi there. This is how I'll sound when I read my replies aloud.",
+    /**
      * Largest picture a bot or a workspace can have.
      */
     ProfileImageMaxBytes: 5 * 1024 * 1024,
