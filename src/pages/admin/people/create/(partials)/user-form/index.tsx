@@ -4,7 +4,6 @@ import useFormInit from "@/src/hooks/use-form-init";
 import { UneditableUserTypes } from "@/src/dict/user-types-dict";
 import type { UserFormObject } from "@/src/types";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
-import parseIdList from "@/src/utils/parse-id-list";
 import parseUserTypes from "@/src/utils/parse-user-types";
 import submitUserForm from "../../(functions)/submit-user-form";
 import UserFormName from "./user-form-name";
@@ -12,7 +11,6 @@ import UserFormAction from "./user-form-action";
 import UserFormEmail from "./user-form-email";
 import UserFormUsername from "./user-form-username";
 import UserFormUserTypes from "./user-form-user-types";
-import UserFormAccess from "./user-form-access";
 import UserFormImage from "./user-form-image";
 import UserFormPassword from "./user-form-password";
 
@@ -33,9 +31,9 @@ type Props = {
 };
 
 /**
- * A user's photo, name, email, username, user types, what they reach
- * (bots and workspaces) and password, saved in one go through
- * `users/save-user`.
+ * A user's photo, name, email, username, user types and password, saved
+ * in one go through `users/save-user`. What they reach is set on their
+ * settings page.
  */
 export default function UserForm({
     person,
@@ -53,8 +51,6 @@ export default function UserForm({
                   user_types: parseUserTypes({ user_types: person.user_types }).filter(
                       (type) => !UneditableUserTypes.includes(type),
                   ),
-                  bot_ids: parseIdList({ ids: person.bot_ids }),
-                  workspace_ids: parseIdList({ ids: person.workspace_ids }),
               }
             : undefined,
         existing_full: person ? { id: person.id } : undefined,
@@ -70,7 +66,6 @@ export default function UserForm({
                 <UserFormUsername {...init} />
             </Row>
             <UserFormUserTypes {...init} person={person} />
-            <UserFormAccess {...init} person={person} />
             <UserFormPassword {...init} />
             <UserFormAction
                 {...init}

@@ -26,12 +26,6 @@ export const SaveUserRequestSchema = z
      * A new profile photo as a base64 data URL; left out keeps theirs.
      */
     image: z.string().startsWith("data:image/", "Pick an image").nullish(),
-    /**
-     * Every worker assigned to them and every workspace they're in,
-     * replacing the old lists. Left out: unchanged.
-     */
-    bot_ids: z.array(z.coerce.number().int().positive()).optional(),
-    workspace_ids: z.array(z.coerce.number().int().positive()).optional(),
     })
     .refine((data) => data.password == data.confirm_password, {
         message: "The passwords don't match",
@@ -45,3 +39,17 @@ export const UserIdRequestSchema = z.object({
 });
 
 export type UserIdRequest = z.infer<typeof UserIdRequestSchema>;
+
+export const UserGrantKinds = ["bot", "workspace"] as const;
+
+export type UserGrantKind = (typeof UserGrantKinds)[number];
+
+/**
+ * One worker or workspace to give a user or take away
+ * (`users/add-access`, `users/remove-access`).
+ */
+export const UserGrantRequestSchema = z.object({
+    user_id: z.coerce.number().int().positive(),
+    kind: z.enum(UserGrantKinds),
+    id: z.coerce.number().int().positive(),
+});

@@ -10,7 +10,7 @@ type Props = {
 };
 
 /**
- * The user's profile, photo, user types, access and password, saved
+ * The user's profile, photo, user types and password, saved
  * together. The same form as adding one, embedded on the page.
  */
 export default function UserEditGroup({ person, onSaved }: Props) {
@@ -20,7 +20,7 @@ export default function UserEditGroup({ person, onSaved }: Props) {
         <SettingsGroup
             id="edit"
             title="Edit"
-            description="Their photo, name, contact details, user types, what they reach and a new password."
+            description="Their photo, name, contact details, user types and a new password."
         >
             <UserForm
                 key={`${person.id}-${person.updated_at || ""}`}

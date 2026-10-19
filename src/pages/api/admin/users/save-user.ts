@@ -1,5 +1,4 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import setUserAccess from "@/src/functions/backend/db/access/set-user-access";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
 import saveUser from "@/src/functions/backend/db/users/save-user";
 import setUserProfileImage from "@/src/functions/backend/db/users/set-user-profile-image";
@@ -21,10 +20,9 @@ import type {
 /**
  * Creates a user (`canCreateUser`) or updates one (`canUpdateUser`):
  * name, email, username, password, user types (each checked against the
- * assignment matrix), when one is sent their profile photo, and when sent
- * the workers assigned to them and the workspaces they're in
- * (`setUserAccess`). Whoever may create or update users manages the crew
- * too (super admins and admins). Returns the user.
+ * assignment matrix), and when one is sent their profile photo. What they
+ * reach is set on its own (`users/add-access`, `users/remove-access`).
+ * Returns the user.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_USERS_JOIN>> = async ({ req, body }) => {
     try {
@@ -65,10 +63,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_
             await setUserProfileImage({ user_id, data_url: data.image });
         }
 
-        if (data.bot_ids || data.workspace_ids) {
-            await setUserAccess({ user_id, bot_ids: data.bot_ids, workspace_ids: data.workspace_ids });
-        }
-
         await logEvent({
             title: created ? "User created" : "User updated",
             category: "auth",
@@ -78,8 +72,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_
                 user_id,
                 user_types: data.user_types,
                 password_changed: Boolean(data.password),
-                bot_ids: data.bot_ids,
-                workspace_ids: data.workspace_ids,
             },
             ip_address: grabRequestIP(req),
         });

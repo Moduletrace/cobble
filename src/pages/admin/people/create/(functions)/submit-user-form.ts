@@ -20,7 +20,6 @@ export default async function submitUserForm({
     setLoading,
     setStatus,
     onSaved,
-    app_context,
 }: Params) {
     if (loading) return;
 
@@ -45,13 +44,6 @@ export default async function submitUserForm({
             confirm_password: form.confirm_password,
             user_types: form.user_types,
             image: image?.imageBase64Full,
-            /**
-             * Only where the form offers them (`UserFormAccess`), so a
-             * form without them never clears them.
-             */
-            ...(app_context.pageProps?.crew_bots
-                ? { bot_ids: form.bot_ids || [], workspace_ids: form.workspace_ids || [] }
-                : {}),
         },
     });
 
