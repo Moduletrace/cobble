@@ -15,7 +15,7 @@ export default async function relayNewJobUpdates({ after_id, users }: Params) {
     const rows =
         (
             await BunSQLite.sql<BotJobUpdateData & { user_id: number }>({
-                sql: `SELECT u.*, q.task_id, b.user_id FROM bots_queue_updates u
+                sql: `SELECT u.*, q.task_id, q.session_id, b.user_id FROM bots_queue_updates u
                     JOIN bots_queue q ON q.id = u.bots_queue_id
                     JOIN bots b ON b.id = u.bot_id
                     WHERE u.id > ? ORDER BY u.id ASC LIMIT 500`,

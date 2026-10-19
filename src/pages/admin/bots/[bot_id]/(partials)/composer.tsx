@@ -11,6 +11,10 @@ import ComposerSendButton from "./composer-send-button";
 
 type Props = {
     bot: BotWithLastMessage;
+    /**
+     * The workspace the conversation is in, if any.
+     */
+    workspace_id?: number | null;
     onSent: (params: { message: BotMessageWithAttachments }) => void;
 };
 
@@ -19,7 +23,7 @@ type Props = {
  * Its top rule lines up with the rail's user-row rule; picked files sit
  * just above it. Files can also be pasted or dropped in.
  */
-export default function Composer({ bot, onSent }: Props) {
+export default function Composer({ bot, workspace_id, onSent }: Props) {
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
@@ -34,7 +38,12 @@ export default function Composer({ bot, onSent }: Props) {
         setSending(true);
         setError(undefined);
 
-        const res = await sendBotMessage({ bot_id: bot.id, text, media_ids: files.media_ids });
+        const res = await sendBotMessage({
+            bot_id: bot.id,
+            workspace_id,
+            text,
+            media_ids: files.media_ids,
+        });
 
         setSending(false);
 

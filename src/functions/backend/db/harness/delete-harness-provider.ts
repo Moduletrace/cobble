@@ -7,7 +7,7 @@ type Params = {
 };
 
 /**
- * Removes a provider and its models. Harnesses (default and per bot) that
+ * Removes a provider and its models. Harnesses (default, per bot and per workspace) that
  * picked one of its models, or were limited to it, go back to automatic
  * on any provider.
  */
@@ -18,7 +18,7 @@ export default async function deleteHarnessProvider({ provider_id }: Params) {
         throw new AppError(`Provider not found.`);
     }
 
-    for (const table of ["harness_settings", "bot_harness_settings"]) {
+    for (const table of ["harness_settings", "bot_harness_settings", "workspace_harness_settings"]) {
         await BunSQLite.sql({
             sql: `UPDATE ${table} SET model_id = NULL, provider_id = NULL, updated_at = ?
                 WHERE provider_id = ? OR model_id IN (SELECT id FROM harness_models WHERE provider_id = ?)`,

@@ -10,8 +10,10 @@ type Params = {
 };
 
 /**
- * Switches the computer a bot works on (`bots.computer_id`) to one of its
- * own (`grabBotComputers`). Returns its computers, the new one first.
+ * Switches the computer a bot works on in its own chat
+ * (`bots.computer_id`) to one of its own (`grabBotComputers`). In a
+ * workspace the default computer is switched instead
+ * (`setWorkspaceComputer`). Returns its computers, the new one first.
  */
 export default async function setBotComputer({ bot_id, user_id, computer_id }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });

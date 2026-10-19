@@ -7,27 +7,33 @@ type Params = {
     user_id: number | string;
     bot_id: number | string;
     /**
+     * The session the user wrote in.
+     */
+    session_id: number | string;
+    /**
      * The user message to answer.
      */
     message_id: number | string;
 };
 
 /**
- * Queues the bot's chat reply to the user's latest message(s). A reply
- * reads the whole recent conversation when it runs, so a burst of
- * messages shares one reply: while one is still pending, it is reused.
+ * Queues the bot's chat reply to the user's latest message(s) in a
+ * session. A reply reads the session's recent messages when it runs, so a
+ * burst of messages shares one reply: while one is still pending in the
+ * session, it is reused.
  */
 export default async function enqueueBotReply({
     user_id,
     bot_id,
+    session_id,
     message_id,
 }: Params) {
     const pending = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS_QUEUE>({
             sql: `SELECT id FROM bots_queue
-                WHERE bot_id = ? AND kind = 'reply' AND status = 'pending'
+                WHERE bot_id = ? AND session_id = ? AND kind = 'reply' AND status = 'pending'
                 ORDER BY id DESC LIMIT 1`,
-            values: [bot_id],
+            values: [bot_id, session_id],
         })
     ).payload?.[0];
 
@@ -44,6 +50,7 @@ export default async function enqueueBotReply({
         kind: "reply",
         user_id,
         bot_id,
+        session_id,
         title: BotReplyJobTitle,
         instructions: "Reply to the user's latest messages.",
         message_id,

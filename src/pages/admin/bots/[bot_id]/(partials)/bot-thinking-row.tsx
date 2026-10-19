@@ -1,7 +1,7 @@
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import BotStone from "@/src/components/general/bot-stone";
+import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotHue } from "@/src/dict/bot-dict";
 import { BotReplyJobTitle, BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
 import type { BotWithLastMessage } from "@/src/types";
@@ -36,7 +36,8 @@ export default function BotThinkingRow({ bot, progress }: Props) {
 
     return (
         <Row role="status" className="w-full gap-3! flex-nowrap items-center">
-            <BotStone
+            <BotAvatar
+                image_media_id={bot.image_media_id}
                 hue={(bot.hue || null) as BotHue | null}
                 face={waiting ? "asleep" : "working"}
                 size={28}

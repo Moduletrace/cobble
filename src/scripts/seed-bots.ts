@@ -14,6 +14,7 @@ import type {
     BotTaskStepState,
 } from "@/src/dict/bot-dict";
 import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
+import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 
 /**
  * Seeds the sample crew from the approved chat design into one user's
@@ -205,11 +206,11 @@ async function insertBot({
         const coordinator_id = await ensureCoordinatorBot({ user_id });
 
         await BunSQLite.sql({
-            sql: `UPDATE bots SET face = ?, status_line = ?, last_activity_at = ? WHERE id = ?`,
-            values: [bot.face, bot.status_line, now - last_ago, coordinator_id],
+            sql: `UPDATE bots SET face = ?, status_line = ? WHERE id = ?`,
+            values: [bot.face, bot.status_line, coordinator_id],
         });
 
-        await insertMessages({ bot_id: coordinator_id, bot, now });
+        await insertMessages({ bot_id: coordinator_id, bot, now, last_ago });
 
         console.log(`  ${bot.name} (#${coordinator_id}, existing)`);
         return;
@@ -226,8 +227,6 @@ async function insertBot({
                 role: bot.role || undefined,
                 face: bot.face,
                 status_line: bot.status_line,
-                unread: bot.unread ? 1 : 0,
-                last_activity_at: now - last_ago,
             },
         ],
     });
@@ -238,24 +237,38 @@ async function insertBot({
         throw new Error(`Failed to create bot ${bot.name}: ${bot_res.msg}`);
     }
 
-    await insertMessages({ bot_id, bot, now });
+    const session_id = await insertMessages({ bot_id, bot, now, last_ago });
 
     if (bot.task) {
-        await insertTask({ bot_id, task: bot.task });
+        await insertTask({ bot_id, session_id, task: bot.task });
     }
 
     console.log(`  ${bot.name} (#${bot_id})`);
 }
 
+/**
+ * Adds the bot's sample messages to its own chat's active session and
+ * returns the session's id.
+ */
 async function insertMessages({
     bot_id,
     bot,
     now,
+    last_ago,
 }: {
     bot_id: number;
     bot: SeedBot;
     now: number;
+    last_ago: number;
 }) {
+    const session = await ensureBotSession({ bot_id });
+    const session_id = Number(session.id);
+
+    await BunSQLite.sql({
+        sql: `UPDATE bot_sessions SET unread = ?, last_activity_at = ? WHERE id = ?`,
+        values: [bot.unread ? 1 : 0, now - last_ago, session_id],
+    });
+
     const messages_res = await BunSQLite.insert<
         BUN_SQLITE_COBBLE_BOT_MESSAGES,
         Table
@@ -263,6 +276,7 @@ async function insertMessages({
         table: "bot_messages",
         data: bot.messages.map((message) => ({
             bot_id,
+            session_id,
             author: message.author,
             text: message.text,
             needs_you: message.needs_you ? 1 : 0,
@@ -276,19 +290,23 @@ async function insertMessages({
             `Failed to add messages for ${bot.name}: ${messages_res.msg}`,
         );
     }
+
+    return session_id;
 }
 
 async function insertTask({
     bot_id,
+    session_id,
     task,
 }: {
     bot_id: number;
+    session_id: number;
     task: SeedTask;
 }) {
     const task_res = await BunSQLite.insert<BUN_SQLITE_COBBLE_BOT_TASKS, Table>(
         {
             table: "bot_tasks",
-            data: [{ bot_id, title: task.title, status: "active" }],
+            data: [{ bot_id, session_id, title: task.title, status: "active" }],
         },
     );
 

@@ -5,6 +5,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { CpuAi } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
+import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "./bot-harness-form";
@@ -12,6 +13,10 @@ import HeaderIconButton from "./header-icon-button";
 
 type Props = {
     bot: BotWithLastMessage;
+    /**
+     * The workspace the conversation is in: the modal edits its models.
+     */
+    workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
     harnesses?: HarnessOverview[] | null;
     onSaved: (harnesses: HarnessOverview[]) => void;
 };
@@ -22,13 +27,14 @@ type Props = {
  * the coordinator that form is the defaults, for super admins only;
  * everyone else gets the icon disabled, its title saying why.
  */
-export default function BotModelsModal({ bot, harnesses, onSaved }: Props) {
+export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
 
     if (!harnesses?.length || !bot.id) return null;
 
-    const is_coordinator = bot.kind == "coordinator";
+    const in_workspace = Boolean(workspace?.id);
+    const is_coordinator = bot.kind == "coordinator" && !in_workspace;
     const can_edit =
         !is_coordinator ||
         isPassThroughUser({ user_types: pageProps?.user_types });
@@ -39,7 +45,9 @@ export default function BotModelsModal({ bot, harnesses, onSaved }: Props) {
             icon={CpuAi}
             title={
                 can_edit
-                    ? is_coordinator
+                    ? in_workspace
+                        ? `Change ${workspace?.name || "the workspace"}'s models`
+                        : is_coordinator
                         ? "Change the default models"
                         : `Change ${name}'s models`
                     : `${name} uses the default models. A super admin can change them in Settings, under Models.`
@@ -60,15 +68,26 @@ export default function BotModelsModal({ bot, harnesses, onSaved }: Props) {
         >
             <Stack className="w-full gap-1! items-stretch pb-2">
                 <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">
-                    {is_coordinator ? "Default models" : `${name}'s models`}
+                    {in_workspace
+                        ? `Models in ${workspace?.name || "this workspace"}`
+                        : is_coordinator
+                          ? "Default models"
+                          : `${name}'s models`}
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    {is_coordinator
+                    {in_workspace
+                        ? `Every bot working in ${workspace?.name || "this workspace"} uses these, the coordinator too. Left on "Same as the default", ${name} uses its own models, else the defaults.`
+                        : is_coordinator
                         ? `${name} and every bot left on the default use these. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it. Providers are in Settings, under Models.`
                         : `${name} uses the default models unless you pick its own. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it.`}
                 </Span>
             </Stack>
-            <BotHarnessForm bot={bot} harnesses={harnesses} onSaved={onSaved} />
+            <BotHarnessForm
+                bot={bot}
+                workspace_id={workspace?.id || null}
+                harnesses={harnesses}
+                onSaved={onSaved}
+            />
         </Modal>
     );
 }

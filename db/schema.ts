@@ -5,6 +5,7 @@ import {
     BotHues,
     BotKinds,
     BotMessageAuthors,
+    BotSessionStatuses,
     BotTaskStatuses,
     BotTaskStepStates,
 } from "@/src/dict/bot-dict";
@@ -262,19 +263,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
-                    fieldName: "unread",
-                    dataType: "INTEGER",
-                    options: [0, 1],
-                    defaultValue: 0,
-                },
-                {
-                    fieldName: "last_activity_at",
-                    fieldDescription: `Unix timestamp of the latest message, for rail ordering`,
-                    dataType: "INTEGER",
-                },
-                {
                     fieldName: "computer_id",
-                    fieldDescription: `The computer the bot works on now. Not a foreign key: null, or a computer it lost access to, means its main one`,
+                    fieldDescription: `The computer the bot works on in its own chat. Not a foreign key: null, or a computer it lost access to, means its main one. In a workspace it works on the workspace's computer`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "image_media_id",
+                    fieldDescription: `A custom picture (a private \`media\` row, paradigm \`bot-image\`) shown instead of the stone. The hue still applies. Not a foreign key: a missing row means the stone`,
                     dataType: "INTEGER",
                 },
             ],
@@ -282,6 +277,79 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bots_user_id",
                     indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_sessions",
+            tableDescription: `A stretch of one conversation: a bot in its own chat (no workspace) or in one workspace. Only the active session's messages go to the model; closed ones can be searched and reopened`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_session_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace the conversation is in. Null: the bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_session_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "title",
+                    fieldDescription: `From the first user message`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "summary",
+                    fieldDescription: `What happened in the session (markdown), written by the bot when the next one starts and carried into it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "previous_session_id",
+                    fieldDescription: `The session this one carries on from (its summary goes into the prompt). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "status",
+                    fieldDescription: `One active session per conversation`,
+                    dataType: "TEXT",
+                    options: BotSessionStatuses.map((s) => s.value),
+                    defaultValue: "active",
+                },
+                {
+                    fieldName: "unread",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "last_activity_at",
+                    fieldDescription: `Unix timestamp of the latest message, for ordering`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_sessions_bot_id_workspace_id",
+                    indexTableFields: ["bot_id", "workspace_id", "status"],
+                },
+                {
+                    indexName: "idx_bot_sessions_workspace_id",
+                    indexTableFields: ["workspace_id"],
                 },
             ],
         },
@@ -297,6 +365,30 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
                         foreignKeyName: "bot_message_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The session the message is in`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_sessions",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_session_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace, kept here to route the message without a join. Null: the bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_workspace_fk",
                     },
                 },
                 {
@@ -321,6 +413,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     indexName: "idx_bot_messages_bot_id_created_at",
                     indexTableFields: ["bot_id", "created_at"],
                 },
+                {
+                    indexName: "idx_bot_messages_session_id_created_at",
+                    indexTableFields: ["session_id", "created_at"],
+                },
             ],
         },
         {
@@ -335,6 +431,30 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
                         foreignKeyName: "bot_task_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The session the task was started from; its result is posted there`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_sessions",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_task_session_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace. Null: the bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_task_workspace_fk",
                     },
                 },
                 {
@@ -425,6 +545,30 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     },
                 },
                 {
+                    fieldName: "session_id",
+                    fieldDescription: `The session the result is posted in`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_sessions",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bots_queue_session_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace: its context, computers and models apply. Null: the bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bots_queue_workspace_fk",
+                    },
+                },
+                {
                     fieldName: "message_id",
                     fieldDescription: `The user message that asked for the work, if any`,
                     dataType: "INTEGER",
@@ -456,6 +600,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "requested_by_bot_id",
                     fieldDescription: `The bot that handed this job over (the coordinator, through delegate_task). It gets the result or failure in its own conversation. Not a foreign key, so the job outlives it`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "requested_by_session_id",
+                    fieldDescription: `The requesting bot's session the job was handed over from. The report goes to that conversation's active session. Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
@@ -585,8 +734,18 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "system_prompt",
-                    fieldDescription: `Shared context in markdown, appended to the prompt of every bot in the workspace`,
+                    fieldDescription: `Shared context in markdown, in the prompt of every bot working in the workspace`,
                     dataType: "TEXT",
+                },
+                {
+                    fieldName: "computer_id",
+                    fieldDescription: `The default computer: where the workspace's tasks run. Set to the first computer linked; null when none is. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "image_media_id",
+                    fieldDescription: `The workspace's picture (a private \`media\` row, paradigm \`workspace-image\`). Not a foreign key: a missing row means the default icon`,
+                    dataType: "INTEGER",
                 },
                 {
                     fieldName: "archived",
@@ -626,6 +785,16 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableColumnType: "INTEGER",
                         foreignKeyName: "workspace_bot_bot_fk",
                     },
+                },
+                {
+                    fieldName: "system_prompt",
+                    fieldDescription: `The bot's instructions for this workspace (markdown), after the workspace's own. The bot, the coordinator and the user can rewrite them`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "memory",
+                    fieldDescription: `What the bot must remember in this workspace (markdown), after its core memory`,
+                    dataType: "TEXT",
                 },
             ],
             uniqueConstraints: [
@@ -1139,6 +1308,69 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     constraintName: "A bot overrides a harness once",
                     constraintTableFields: [
                         { value: "bot_id" },
+                        { value: "harness" },
+                    ],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_harness_settings",
+            tableDescription: `A workspace's models. They win over the bot's own and the defaults for every run in the workspace`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_harness_settings_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "harness",
+                    dataType: "TEXT",
+                    options: Harnesses.map((h) => h.value),
+                },
+                {
+                    fieldName: "model_id",
+                    fieldDescription: `harness_models row picked for this workspace. Null picks automatically. Not a foreign key, like harness_settings`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "provider_id",
+                    fieldDescription: `harness_providers row this workspace's harness is limited to. Null: any provider. Not a foreign key, like harness_settings`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "fallback",
+                    fieldDescription: `When the picked model fails, try the automatic picks`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "enabled",
+                    fieldDescription: `0 turns the harness off in this workspace. Text is always on`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "options",
+                    fieldDescription: `Harness options, e.g. {"voice":"george"} for speech`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_setting_per_workspace_harness",
+                    constraintName: "A workspace overrides a harness once",
+                    constraintTableFields: [
+                        { value: "workspace_id" },
                         { value: "harness" },
                     ],
                 },

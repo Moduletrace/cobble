@@ -33,6 +33,10 @@ export type GenerateTextParams = {
      * The bot the turn is for: its own models are used where it has them.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 export type GenerateTextResult = HarnessChatResult & {
@@ -54,11 +58,12 @@ export default async function generateText({
     signal = new AbortController().signal,
     media_cache = new Map(),
     bot_id,
+    workspace_id,
 }: GenerateTextParams): Promise<GenerateTextResult> {
     const { result, candidate } = await withCandidates({
         harness: "text",
         candidates:
-            candidates || (await resolveHarnessCandidates({ harness: "text", bot_id })),
+            candidates || (await resolveHarnessCandidates({ harness: "text", bot_id, workspace_id })),
         prefer_key,
         run: async (candidate) => {
             const answer = await grabHarnessAdapter({
@@ -71,6 +76,7 @@ export default async function generateText({
                     cache: media_cache,
                     signal,
                     bot_id,
+                    workspace_id,
                 }),
                 tools,
                 max_tokens,

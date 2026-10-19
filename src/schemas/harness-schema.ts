@@ -67,6 +67,20 @@ export const SaveBotHarnessSettingsRequestSchema = z.object({
         .max(Harnesses.length),
 });
 
+/**
+ * A workspace's own model settings. `inherit` drops the workspace's
+ * setting for that harness so each bot uses its own or the default again.
+ */
+export const SaveWorkspaceHarnessSettingsRequestSchema = SaveBotHarnessSettingsRequestSchema.omit({
+    bot_id: true,
+}).extend({
+    workspace_id: z.coerce.number().int().positive(),
+});
+
+export type SaveWorkspaceHarnessSettingsRequest = z.infer<
+    typeof SaveWorkspaceHarnessSettingsRequestSchema
+>;
+
 export type SaveHarnessProviderRequest = z.infer<
     typeof SaveHarnessProviderRequestSchema
 >;

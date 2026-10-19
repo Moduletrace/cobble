@@ -8,18 +8,25 @@ import grabBotJobUpdates from "../bots-queue/grab-bot-job-updates";
 
 type Params = {
     bot_id: number | string;
+    /**
+     * Only a task started from this session.
+     */
+    session_id?: number | string | null;
 };
 
 /**
- * The bot's most recent active task, its steps and what its job has done
- * so far, for the working-on panel.
+ * The bot's most recent active task (in one session, when given), its
+ * steps and what its job has done so far, for the working-on panel.
  */
 export default async function grabActiveBotTask({
     bot_id,
+    session_id,
 }: Params): Promise<BotTaskWithSteps | null> {
     const task_res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_TASKS>({
-        sql: `SELECT * FROM bot_tasks WHERE bot_id = ? AND status = 'active' ORDER BY created_at DESC, id DESC LIMIT 1`,
-        values: [bot_id],
+        sql: `SELECT * FROM bot_tasks WHERE bot_id = ? AND status = 'active'
+            ${session_id ? `AND session_id = ?` : ""}
+            ORDER BY created_at DESC, id DESC LIMIT 1`,
+        values: session_id ? [bot_id, session_id] : [bot_id],
     });
 
     const task = task_res.singleRes || task_res.payload?.[0];

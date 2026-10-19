@@ -14,6 +14,7 @@ type Params = {
      * Resolve what runs now for this bot instead of the default.
      */
     bot_id?: number | string;
+    workspace_id?: number | string;
 };
 
 /**
@@ -25,10 +26,11 @@ export default async function grabHarnessOverviewItem({
     setting,
     entries,
     bot_id,
+    workspace_id,
 }: Params): Promise<HarnessOverview> {
     const meta = Harnesses.find((h) => h.value == harness)!;
     const candidates = setting.enabled
-        ? await resolveHarnessCandidates({ harness, bot_id }).catch(() => [])
+        ? await resolveHarnessCandidates({ harness, bot_id, workspace_id }).catch(() => [])
         : [];
     const first = candidates[0];
     const serving = entries.filter(({ model }) => modelServesHarness({ model, harness }));

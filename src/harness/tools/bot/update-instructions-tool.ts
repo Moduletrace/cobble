@@ -1,33 +1,61 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import updateBotSystemPrompt from "@/src/functions/backend/db/bots/update-bot-system-prompt";
+import updateWorkspaceBot from "@/src/functions/backend/db/workspaces/update-workspace-bot";
 import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
     bot_id: number | string;
+    /**
+     * The workspace the run is in: then the bot rewrites its instructions
+     * for the workspace unless it picks `core`.
+     */
+    workspace_id?: number | string | null;
+};
+
+type Args = {
+    instructions: string;
+    scope?: "workspace" | "core";
 };
 
 /**
- * Lets a bot rewrite its own core instructions as it adapts to the user.
+ * Lets a bot rewrite its own instructions as it adapts to the user: its
+ * core instructions, or in a workspace (by default) its instructions for
+ * that workspace.
  */
 export default function updateInstructionsTool({
     user_id,
     bot_id,
-}: Params): HarnessTool<{ instructions: string }> {
+    workspace_id,
+}: Params): HarnessTool<Args> {
+    const instructions = z.string().trim().max(AppData.PromptMaxLength);
+
     return {
         name: "update_instructions",
-        description: `Replace your core instructions with this full text (markdown): the start of your prompt, before any workspace or memory. Change them only to work better for this user, such as a new standing rule they gave you. Keep everything that still applies.`,
-        schema: z.object({
-            instructions: z.string().trim().min(1).max(AppData.PromptMaxLength),
-        }),
+        description: workspace_id
+            ? `Replace your instructions with this full text (markdown). scope "workspace" (the default) is your instructions for this workspace, under "# Your instructions in ..."; "core" is your core instructions, the start of your prompt in every workspace and your own chat. Change them only to work better for this user, such as a new standing rule they gave you. Keep everything that still applies.`
+            : `Replace your core instructions with this full text (markdown): the start of your prompt, before any workspace or memory. Change them only to work better for this user, such as a new standing rule they gave you. Keep everything that still applies.`,
+        schema: workspace_id
+            ? z.object({ instructions, scope: z.enum(["workspace", "core"]).default("workspace") })
+            : z.object({ instructions: instructions.min(1) }),
         run: async ({ args }) => {
+            if (workspace_id && args.scope != "core") {
+                await updateWorkspaceBot({
+                    user_id,
+                    workspace_id,
+                    bot_id,
+                    system_prompt: args.instructions,
+                });
+                return `Instructions for this workspace saved. They apply from your next run here.`;
+            }
+
             await updateBotSystemPrompt({
                 user_id,
                 bot_id,
                 system_prompt: args.instructions,
             });
-            return `Instructions saved. They apply from your next run.`;
+            return `Core instructions saved. They apply from your next run, everywhere.`;
         },
     };
 }

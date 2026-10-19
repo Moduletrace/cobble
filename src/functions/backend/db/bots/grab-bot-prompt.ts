@@ -1,39 +1,42 @@
-import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import BunSQLite from "@moduletrace/bun-sqlite";
 import composeBotPrompt from "@/src/utils/compose-bot-prompt";
 import AppError from "@/src/utils/app-error";
+import grabWorkspaceBot from "../workspaces/grab-workspace-bot";
 import grabUserBot from "./grab-user-bot";
 
 type Params = {
     bot_id: number | string;
     user_id: number | string;
+    /**
+     * The workspace the bot is working in. Its context and the bot's
+     * instructions and memory there join the prompt.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
- * The full prompt for one of the user's bots: its core instructions, the
- * system prompt of every non-archived workspace it's in, and its memory.
+ * The full prompt for one of the user's bots (`composeBotPrompt`): its
+ * core instructions and memory, and in a workspace that workspace's
+ * context and what the bot has for it.
  */
-export default async function grabBotPrompt({ bot_id, user_id }: Params) {
+export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });
 
     if (!bot?.id) {
         throw new AppError(`Bot not found.`);
     }
 
-    const workspaces =
-        (
-            await BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACES>({
-                sql: `SELECT w.name, w.system_prompt FROM workspaces w
-                    JOIN workspace_bots wb ON wb.workspace_id = w.id
-                    WHERE wb.bot_id = ? AND w.user_id = ? AND w.archived = 0
-                    ORDER BY w.id ASC`,
-                values: [bot.id, user_id],
-            })
-        ).payload || [];
+    const found = workspace_id
+        ? await grabWorkspaceBot({ workspace_id, bot_id: bot.id, user_id })
+        : null;
+
+    if (workspace_id && !found) {
+        throw new AppError(`${bot.name || "This bot"} isn't in that workspace.`);
+    }
 
     return composeBotPrompt({
         system_prompt: bot.system_prompt,
         memory: bot.memory,
-        workspaces,
+        workspace: found?.workspace,
+        workspace_bot: found?.membership,
     });
 }

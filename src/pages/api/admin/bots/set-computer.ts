@@ -2,6 +2,8 @@ import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import setBotComputer from "@/src/functions/backend/db/computers/set-bot-computer";
+import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
+import setWorkspaceComputer from "@/src/functions/backend/db/workspaces/set-workspace-computer";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { SetBotComputerRequestSchema } from "@/src/schemas/bot-schema";
 import AppError from "@/src/utils/app-error";
@@ -14,9 +16,9 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * Switches the computer one of the session user's bots works on, and
- * tells the user's other tabs. Returns the bot's computers, the new one
- * first.
+ * Switches the computer one of the session user's bots works on (in a
+ * workspace, the workspace's default computer), and tells the user's
+ * other tabs. Returns the bot's computers there, the new one first.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<BUN_SQLITE_COBBLE_COMPUTERS>
@@ -36,16 +38,21 @@ export const handler: BunextAPIRouteHandler<
             throw new AppError(`This user can only read records.`);
         }
 
-        const { bot_id, computer_id } = parseWithSchema({
+        const { bot_id, computer_id, workspace_id } = parseWithSchema({
             schema: SetBotComputerRequestSchema,
             data: body,
         });
 
-        const { bot, computer, computers } = await setBotComputer({
-            bot_id,
-            computer_id,
-            user_id: user.id,
-        });
+        const { bot, computer, computers } = workspace_id
+            ? {
+                  bot: (await grabUserConversation({ user_id: user.id, bot_id, workspace_id })).bot,
+                  ...(await setWorkspaceComputer({ user_id: user.id, workspace_id, computer_id })),
+              }
+            : await setBotComputer({
+                  bot_id,
+                  computer_id,
+                  user_id: user.id,
+              });
 
         await pushBotNotice({
             bot_id: bot.id || 0,
@@ -61,14 +68,18 @@ export const handler: BunextAPIRouteHandler<
             title: "Bot computer switched",
             category: "system",
             user_id: user.id,
-            plain_text: `User #${user.id} switched ${bot.name} to ${computer.name || `computer #${computer.id}`}.`,
-            metadata: { bot_id: bot.id, computer_id: computer.id },
+            plain_text: workspace_id
+                ? `User #${user.id} made ${computer.name || `computer #${computer.id}`} the default of workspace #${workspace_id}.`
+                : `User #${user.id} switched ${bot.name} to ${computer.name || `computer #${computer.id}`}.`,
+            metadata: { bot_id: bot.id, computer_id: computer.id, workspace_id },
             ip_address: grabRequestIP(req),
         });
 
         return {
             success: true,
-            msg: `${bot.name} is on ${computer.name || "that computer"} now.`,
+            msg: workspace_id
+                ? `${computer.name || "That computer"} is the workspace's default computer now.`
+                : `${bot.name} is on ${computer.name || "that computer"} now.`,
             payload: computers,
         };
     } catch (error: unknown) {

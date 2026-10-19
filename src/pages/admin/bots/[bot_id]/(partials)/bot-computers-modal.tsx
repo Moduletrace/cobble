@@ -11,6 +11,11 @@ import HeaderIconButton from "./header-icon-button";
 
 type Props = {
     bot: BotWithLastMessage;
+    /**
+     * In a workspace the bot uses the workspace's computers, and a switch
+     * changes the workspace's default for every bot there.
+     */
+    workspace_name?: string | null;
 };
 
 /**
@@ -18,7 +23,7 @@ type Props = {
  * computers are, the one it's on checked, and with more than one,
  * switches it. Each can be opened in the viewer.
  */
-export default function BotComputersModal({ bot }: Props) {
+export default function BotComputersModal({ bot, workspace_name }: Props) {
     const { computers, switching_id, error, switchComputer, openComputer } =
         useContext(BotComputersContext);
     const [open, setOpen] = useState(false);
@@ -52,9 +57,13 @@ export default function BotComputersModal({ bot }: Props) {
                     {`A computer is a sandbox ${name} works in: a shell, a browser and files of its own. Its tasks run on the checked one. Open one to use it yourself.`}
                 </Span>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    {can_switch
-                        ? `Pick another to move ${name} there. You can also click a computer it names in a message.`
-                        : `This is the only computer ${name} can use right now.`}
+                    {workspace_name
+                        ? can_switch
+                            ? `These are ${workspace_name}'s computers. Picking another makes it the default for every bot working here.`
+                            : `This is ${workspace_name}'s only computer. Add more on the workspace's page.`
+                        : can_switch
+                          ? `Pick another to move ${name} there. You can also click a computer it names in a message.`
+                          : `This is the only computer ${name} can use right now.`}
                 </Span>
             </Stack>
             <Stack

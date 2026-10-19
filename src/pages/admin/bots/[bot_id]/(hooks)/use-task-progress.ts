@@ -5,6 +5,10 @@ import type { BotJobUpdateData, BotTaskWithSteps, BotUpdatedData } from "@/src/t
 type Params = {
     bot_id: number;
     /**
+     * The open session: steps of jobs from other sessions are left out.
+     */
+    session_id?: number | null;
+    /**
      * The bot's active task when the page loaded.
      */
     task: BotTaskWithSteps | null;
@@ -27,13 +31,14 @@ function fromTask({ task }: { task: BotTaskWithSteps | null }): Progress {
  * row's text), kept current from `server:bot-job-update`. Starts over when
  * `server:bot-updated` brings a different task, or none.
  */
-export default function useTaskProgress({ bot_id, task }: Params) {
+export default function useTaskProgress({ bot_id, session_id, task }: Params) {
     const [progress, setProgress] = useState<Progress>(() => fromTask({ task }));
 
     useServerEvent({
         event: "server:bot-job-update",
         onData: (update: BotJobUpdateData) => {
             if (update.bot_id != bot_id || !update.task_id || !update.text) return;
+            if (session_id && update.session_id && update.session_id != session_id) return;
 
             setProgress({ task_id: update.task_id, text: update.text });
         },

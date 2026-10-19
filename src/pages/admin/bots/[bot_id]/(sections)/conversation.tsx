@@ -15,7 +15,8 @@ import ComputerViewerModal from "../(partials)/computer-viewer-modal";
 
 /**
  * The conversation column: header, bottom-anchored thread, composer, the
- * thread and composer held to a readable width.
+ * thread and composer held to a readable width. Shows one session of the
+ * bot's conversation, on its own or in a workspace (`pageProps.workspace`).
  * The bot's computers are shared with the header's modal and the computer
  * buttons in the thread, so a switch from either shows in both; either
  * can open one in the viewer.
@@ -23,32 +24,58 @@ import ComputerViewerModal from "../(partials)/computer-viewer-modal";
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
     const bot = pageProps?.bot;
+    const workspace = pageProps?.workspace?.id ? pageProps.workspace : null;
+    const workspace_id = workspace?.id || null;
 
     const [messages, setMessages] = useState<BotMessageWithAttachments[]>(
         pageProps?.bot_messages || [],
     );
+    const [session_id, setSessionId] = useState<number | null>(pageProps?.bot_session?.id || null);
+    const [has_other_unread, setHasOtherUnread] = useState(false);
 
     const bots = useLiveBots({
         bots: pageProps?.bots || [],
         open_bot_id: bot?.id || undefined,
+        workspace_id,
     });
     const live_bot = bots.find((b) => b.id == bot?.id) || bot;
     const bot_computers = useBotComputers({
         bot_id: bot?.id || 0,
+        workspace_id,
         computers: pageProps?.bot_computers || [],
     });
 
     const progress = useTaskProgress({
         bot_id: bot?.id || 0,
+        session_id,
         task: pageProps?.bot_task || null,
     });
 
-    console.log(`Refreshing ...`);
+    /**
+     * A message that starts a newer session (sent here or in another tab)
+     * moves the thread onto it.
+     */
+    const startsNewSession = (message: BotMessageWithAttachments) =>
+        Boolean(message.session_id && (!session_id || Number(message.session_id) > session_id));
 
     useServerEvent({
         event: "server:bot-message",
         onData: (message: BotMessageWithAttachments) => {
             if (message.bot_id != bot?.id) return;
+            if ((message.workspace_id || null) != workspace_id) return;
+
+            if (message.session_id && message.session_id != session_id) {
+                if (message.author == "user" && startsNewSession(message)) {
+                    setSessionId(Number(message.session_id));
+                    setMessages([message]);
+                } else if (message.author == "user") {
+                    window.location.reload();
+                } else {
+                    setHasOtherUnread(true);
+                }
+
+                return;
+            }
 
             setMessages((prev) =>
                 prev.some((m) => m.id == message.id)
@@ -56,10 +83,10 @@ export default function Conversation() {
                     : [...prev, message],
             );
 
-            if (message.author == "bot") {
+            if (message.author == "bot" && message.session_id) {
                 fetchApi(`/api/admin/bots/mark-read`, {
                     method: "POST",
-                    body: { bot_id: message.bot_id },
+                    body: { session_id: message.session_id },
                 }).catch(() => {});
             }
         },
@@ -72,6 +99,8 @@ export default function Conversation() {
             <Stack className="grow min-w-0 h-full gap-0! items-stretch">
                 <ConversationHeader
                     bot={live_bot}
+                    workspace={workspace}
+                    has_other_unread={has_other_unread}
                     harnesses={pageProps?.bot_harness_overview?.harnesses}
                 />
                 <MessageThread
@@ -81,13 +110,20 @@ export default function Conversation() {
                 />
                 <Composer
                     bot={bot}
-                    onSent={({ message }) =>
+                    workspace_id={workspace_id}
+                    onSent={({ message }) => {
+                        if (startsNewSession(message) && message.session_id != session_id) {
+                            setSessionId(Number(message.session_id));
+                            setMessages([message]);
+                            return;
+                        }
+
                         setMessages((prev) =>
                             prev.some((m) => m.id == message.id)
                                 ? prev
                                 : [...prev, message],
-                        )
-                    }
+                        );
+                    }}
                 />
             </Stack>
             <ComputerViewerModal bot={live_bot} />

@@ -1,6 +1,6 @@
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import BotStone from "@/src/components/general/bot-stone";
+import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
 import type { BotWithLastMessage } from "@/src/types";
 import type { MessageGroup } from "../(utils)/group-messages";
@@ -18,7 +18,8 @@ type Props = {
 export default function BotMessageGroup({ bot, group }: Props) {
     return (
         <Row className="w-full gap-3! flex-nowrap items-start">
-            <BotStone
+            <BotAvatar
+                image_media_id={bot.image_media_id}
                 hue={(bot.hue || null) as BotHue | null}
                 face={(bot.face || "idle") as BotFace}
                 size={28}

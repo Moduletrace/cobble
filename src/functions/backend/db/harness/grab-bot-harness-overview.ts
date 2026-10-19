@@ -8,23 +8,44 @@ type Params = {
     /**
      * A worker bot the caller has checked belongs to the session user.
      */
-    bot_id: number;
+    bot_id?: number;
+    /**
+     * A workspace the caller has checked belongs to the session user. Then
+     * the settings shown are the workspace's own, over what it inherits:
+     * the bot's (when given) or the defaults.
+     */
+    workspace_id?: number;
 };
 
 /**
- * A worker bot's model settings page: per harness, the bot's own setting
- * (or the default it inherits), the models it can pick, what it runs on
- * now, and what the default runs on.
+ * A worker bot's (or a workspace's) model settings: per harness, its own
+ * setting (or what it inherits), the models it can pick, what it runs on
+ * now, and what it would run on without its own setting.
  */
 export default async function grabBotHarnessOverview({
     bot_id,
+    workspace_id,
 }: Params): Promise<BotHarnessOverviewPayload> {
+    /**
+     * In a workspace, "the default" is what a run there gets without the
+     * workspace's own setting: the bot's, else the defaults.
+     */
+    const inherited_bot_id = workspace_id ? bot_id : undefined;
+
     const [own, defaults] = await Promise.all([
         Promise.all(
-            Harnesses.map((harness) => grabHarnessSetting({ harness: harness.value, bot_id })),
+            Harnesses.map((harness) =>
+                grabHarnessSetting({
+                    harness: harness.value,
+                    bot_id: workspace_id ? undefined : bot_id,
+                    workspace_id,
+                }),
+            ),
         ),
         Promise.all(
-            Harnesses.map((harness) => grabHarnessSetting({ harness: harness.value })),
+            Harnesses.map((harness) =>
+                grabHarnessSetting({ harness: harness.value, bot_id: inherited_bot_id }),
+            ),
         ),
     ]);
 
@@ -38,11 +59,18 @@ export default async function grabBotHarnessOverview({
         harnesses: await Promise.all(
             own.map(async (setting, index) => {
                 const [item, default_item] = await Promise.all([
-                    grabHarnessOverviewItem({ harness: setting.harness, setting, entries, bot_id }),
+                    grabHarnessOverviewItem({
+                        harness: setting.harness,
+                        setting,
+                        entries,
+                        bot_id,
+                        workspace_id,
+                    }),
                     grabHarnessOverviewItem({
                         harness: setting.harness,
                         setting: defaults[index]!,
                         entries,
+                        bot_id: inherited_bot_id,
                     }),
                 ]);
 

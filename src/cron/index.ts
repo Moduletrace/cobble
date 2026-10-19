@@ -2,6 +2,7 @@ import bunext from "@moduletrace/bunext";
 import cronHeartbeat from "./heartbeat";
 import pruneBotsQueue from "./prune-bots-queue";
 import cronSyncHarnessModels from "./sync-harness-models";
+import syncComputers from "./sync-computers";
 import registerCronJob from "./register-cron-job";
 
 export default function cron() {
@@ -28,6 +29,13 @@ export default function cron() {
         title: "sync-harness-models",
         schedule: "@hourly",
         task: cronSyncHarnessModels,
+        run_on_start: true,
+    });
+
+    registerCronJob({
+        title: "sync-computers",
+        schedule: "*/5 * * * *",
+        task: syncComputers,
         run_on_start: true,
     });
 }

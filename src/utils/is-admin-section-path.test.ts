@@ -5,6 +5,7 @@ describe("isAdminSectionPath", () => {
     test("allows live sections and their sub pages", () => {
         expect(isAdminSectionPath({ pathname: "/admin/bots" })).toBe(true);
         expect(isAdminSectionPath({ pathname: "/admin/bots/3" })).toBe(true);
+        expect(isAdminSectionPath({ pathname: "/admin/workspaces/2/bots/1" })).toBe(true);
         expect(isAdminSectionPath({ pathname: "/admin/settings/change-password" })).toBe(
             true,
         );

@@ -34,4 +34,12 @@ export const MediaParadigms = [
         title: "Bot Attachment",
         value: "bot-attachment",
     },
+    {
+        title: "Bot Image",
+        value: "bot-image",
+    },
+    {
+        title: "Workspace Image",
+        value: "workspace-image",
+    },
 ] as const;

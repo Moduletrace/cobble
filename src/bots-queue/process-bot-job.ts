@@ -84,7 +84,11 @@ export default async function processBotJob({
                 bot_id,
                 data: {
                     event: "server:bot-job-update",
-                    data: { ...row, task_id: job.task_id || null } satisfies BotJobUpdateData,
+                    data: {
+                        ...row,
+                        task_id: job.task_id || null,
+                        session_id: job.session_id || null,
+                    } satisfies BotJobUpdateData,
                 },
             });
         } catch (error) {

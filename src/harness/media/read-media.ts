@@ -18,6 +18,10 @@ type Params = {
      * Reads with this bot's models when it has its own.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 const DocumentExtensions = ["pdf", "docx", "txt", "md", "csv", "json", "html", "xml", "yaml", "yml"];
@@ -43,6 +47,7 @@ export default async function readMedia({
     name,
     signal,
     bot_id,
+    workspace_id,
 }: Params): Promise<string> {
     const type = media_type.toLowerCase().split(";")[0]!.trim();
     const ext = (
@@ -56,6 +61,7 @@ export default async function readMedia({
             url: `data:${type};base64,${Buffer.from(data).toString("base64")}`,
             signal,
             bot_id,
+            workspace_id,
         });
     }
 
@@ -64,6 +70,7 @@ export default async function readMedia({
             audio: { data, format: audioFormat({ type, ext }) },
             signal,
             bot_id,
+            workspace_id,
         });
     }
 

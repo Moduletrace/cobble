@@ -108,6 +108,24 @@ export const BotTaskStatuses = [
 
 export type BotTaskStatus = (typeof BotTaskStatuses)[number]["value"];
 
+/**
+ * A conversation (one bot, in its own chat or one workspace) is split into
+ * sessions so no single history grows without bound. One is active per
+ * conversation; closed ones can be browsed and reopened.
+ */
+export const BotSessionStatuses = [
+    {
+        title: "Active",
+        value: "active",
+    },
+    {
+        title: "Closed",
+        value: "closed",
+    },
+] as const;
+
+export type BotSessionStatus = (typeof BotSessionStatuses)[number]["value"];
+
 export const BotTaskStepStates = [
     {
         title: "Done",

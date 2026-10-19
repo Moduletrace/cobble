@@ -5,30 +5,29 @@ import grabMessagesMedia from "./grab-messages-media";
 import mediaToAttachment from "./media-to-attachment";
 
 type Params = {
-    bot_id: number | string;
+    session_id: number | string;
     limit?: number;
 };
 
 /**
- * The latest messages of a bot's conversation, oldest first, with their
- * attachments.
+ * The latest messages of a session, oldest first, with their attachments.
  */
 export default async function grabBotMessages({
-    bot_id,
+    session_id,
     limit = 100,
 }: Params): Promise<BotMessageWithAttachments[]> {
     let sql = ``;
 
     sql += `SELECT * FROM (\n`;
     sql += `    SELECT * FROM bot_messages\n`;
-    sql += `    WHERE bot_id = ?\n`;
+    sql += `    WHERE session_id = ?\n`;
     sql += `    ORDER BY created_at DESC, id DESC\n`;
     sql += `    LIMIT ?\n`;
     sql += `) ORDER BY created_at ASC, id ASC\n`;
 
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_MESSAGES>({
         sql,
-        values: [bot_id, limit],
+        values: [session_id, limit],
     });
 
     const messages = res.payload || [];

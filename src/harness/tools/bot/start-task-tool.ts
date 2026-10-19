@@ -7,6 +7,10 @@ type Params = {
     user_id: number | string;
     bot_id: number | string;
     /**
+     * The session the task is started from; its result is posted there.
+     */
+    session_id: number | string;
+    /**
      * The bot's computers, the current one first (`grabBotComputers`).
      */
     computers: BUN_SQLITE_COBBLE_COMPUTERS[];
@@ -29,6 +33,7 @@ type Args = {
 export default function startTaskTool({
     user_id,
     bot_id,
+    session_id,
     computers,
     message_id,
 }: Params): HarnessTool<Args> {
@@ -54,6 +59,7 @@ export default function startTaskTool({
             const job_id = await enqueueBotJob({
                 user_id,
                 bot_id,
+                session_id,
                 title: args.title,
                 instructions: args.instructions,
                 message_id,

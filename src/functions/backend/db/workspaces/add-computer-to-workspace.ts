@@ -10,8 +10,9 @@ type Params = {
 };
 
 /**
- * Assigns one of the user's computers to one of their workspaces, so every
- * bot in the workspace gets access to it. Assigning it twice is a no-op.
+ * Links one of the user's computers to one of their workspaces, so every
+ * bot working there can use it. The first one linked becomes the
+ * workspace's default. Linking it twice is a no-op.
  */
 export default async function addComputerToWorkspace({
     user_id,
@@ -29,4 +30,11 @@ export default async function addComputerToWorkspace({
         sql: `INSERT OR IGNORE INTO workspace_computers (workspace_id, computer_id, created_at, updated_at) VALUES (?, ?, ?, ?)`,
         values: [workspace.id, computer.id, Date.now(), Date.now()],
     });
+
+    if (!workspace.computer_id) {
+        await BunSQLite.sql({
+            sql: `UPDATE workspaces SET computer_id = ?, updated_at = ? WHERE id = ?`,
+            values: [computer.id, Date.now(), workspace.id],
+        });
+    }
 }

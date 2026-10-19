@@ -1,16 +1,23 @@
-import type { BotWithLastMessage } from "@/src/types";
+import { useContext } from "react";
+import { AddFlowContext } from "../(data)/add-flow-context";
+import type { BotWithLastMessage, WorkspaceWithActivity } from "@/src/types";
 import CoordinatorRow from "./coordinator-row";
-import BotRow from "./bot-row";
+import RailBotsSection from "./rail-bots-section";
+import RailSectionAddButton from "./rail-section-add-button";
+import RailWorkspacesSection from "./rail-workspaces-section";
 
 type Props = {
     bots: BotWithLastMessage[];
+    workspaces: WorkspaceWithActivity[];
     selected_id?: number;
 };
 
 /**
- * The pinned coordinator, then the crew.
+ * The rail outside workspaces: the pinned coordinator, the crew (the
+ * latest few, then "See all bots"), then the workspaces.
  */
-export default function RailCrewList({ bots, selected_id }: Props) {
+export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
+    const { openForm } = useContext(AddFlowContext);
     const coordinator = bots.find((bot) => bot.kind === "coordinator");
     const workers = bots.filter((bot) => bot.kind !== "coordinator");
 
@@ -23,13 +30,15 @@ export default function RailCrewList({ bots, selected_id }: Props) {
                     selected={coordinator.id === selected_id}
                 />
             ) : null}
-            {workers.map((bot) => (
-                <BotRow
-                    key={bot.id}
-                    bot={bot}
-                    selected={bot.id === selected_id}
-                />
-            ))}
+            <RailBotsSection
+                action={<RailSectionAddButton title="Add a bot" onClick={() => openForm({ kind: "bot" })} />}
+                title="Bots"
+                workers={workers}
+                selected_id={selected_id}
+                hrefFor={(bot) => `/admin/bots/${bot.id}`}
+                empty="No bots yet. Add one for a job you hand out often."
+            />
+            <RailWorkspacesSection workspaces={workspaces} />
         </>
     );
 }

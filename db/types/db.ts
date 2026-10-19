@@ -6,6 +6,7 @@ export const BunSQLiteTables = [
     "media",
     "media_paradigms",
     "bots",
+    "bot_sessions",
     "bot_messages",
     "bot_tasks",
     "bot_task_steps",
@@ -22,6 +23,7 @@ export const BunSQLiteTables = [
     "harness_models",
     "harness_settings",
     "bot_harness_settings",
+    "workspace_harness_settings",
     "logs",
     "envs",
 ] as const
@@ -140,7 +142,7 @@ export type BUN_SQLITE_COBBLE_MEDIA_PARADIGMS = {
      */
     updated_at?: number | "";
     media_id?: number | "";
-    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "";
+    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "bot-image" | "workspace-image" | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOTS = {
@@ -189,15 +191,58 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      * What the bot must always remember, in markdown. The bot keeps it up to date
      */
     memory?: string;
-    unread?: 0 | 1 | "";
     /** 
-     * Unix timestamp of the latest message, for rail ordering
-     */
-    last_activity_at?: number | "";
-    /** 
-     * The computer the bot works on now. Not a foreign key: null, or a computer it lost access to, means its main one
+     * The computer the bot works on in its own chat. Not a foreign key: null, or a computer it lost access to, means its main one. In a workspace it works on the workspace's computer
      */
     computer_id?: number | "";
+    /** 
+     * A custom picture (a private `media` row, paradigm `bot-image`) shown instead of the stone. The hue still applies. Not a foreign key: a missing row means the stone
+     */
+    image_media_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The bot
+     */
+    bot_id?: number | "";
+    /** 
+     * The workspace the conversation is in. Null: the bot's own chat
+     */
+    workspace_id?: number | "";
+    /** 
+     * From the first user message
+     */
+    title?: string;
+    /** 
+     * What happened in the session (markdown), written by the bot when the next one starts and carried into it
+     */
+    summary?: string;
+    /** 
+     * The session this one carries on from (its summary goes into the prompt). Not a foreign key
+     */
+    previous_session_id?: number | "";
+    /** 
+     * One active session per conversation
+     */
+    status?: "active" | "closed" | "";
+    unread?: 0 | 1 | "";
+    /** 
+     * Unix timestamp of the latest message, for ordering
+     */
+    last_activity_at?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
@@ -214,6 +259,14 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     updated_at?: number | "";
     bot_id?: number | "";
+    /** 
+     * The session the message is in
+     */
+    session_id?: number | "";
+    /** 
+     * The session's workspace, kept here to route the message without a join. Null: the bot's own chat
+     */
+    workspace_id?: number | "";
     author?: "bot" | "user" | "";
     text?: string;
     /** 
@@ -236,6 +289,14 @@ export type BUN_SQLITE_COBBLE_BOT_TASKS = {
      */
     updated_at?: number | "";
     bot_id?: number | "";
+    /** 
+     * The session the task was started from; its result is posted there
+     */
+    session_id?: number | "";
+    /** 
+     * The session's workspace. Null: the bot's own chat
+     */
+    workspace_id?: number | "";
     title?: string;
     status?: "active" | "done" | "";
     /** 
@@ -285,6 +346,14 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
      */
     bot_id?: number | "";
     /** 
+     * The session the result is posted in
+     */
+    session_id?: number | "";
+    /** 
+     * The session's workspace: its context, computers and models apply. Null: the bot's own chat
+     */
+    workspace_id?: number | "";
+    /** 
      * The user message that asked for the work, if any
      */
     message_id?: number | "";
@@ -300,6 +369,10 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
      * The bot that handed this job over (the coordinator, through delegate_task). It gets the result or failure in its own conversation. Not a foreign key, so the job outlives it
      */
     requested_by_bot_id?: number | "";
+    /** 
+     * The requesting bot's session the job was handed over from. The report goes to that conversation's active session. Not a foreign key
+     */
+    requested_by_session_id?: number | "";
     /** 
      * Short label for the job
      */
@@ -413,9 +486,17 @@ export type BUN_SQLITE_COBBLE_WORKSPACES = {
     name?: string;
     description?: string;
     /** 
-     * Shared context in markdown, appended to the prompt of every bot in the workspace
+     * Shared context in markdown, in the prompt of every bot working in the workspace
      */
     system_prompt?: string;
+    /** 
+     * The default computer: where the workspace's tasks run. Set to the first computer linked; null when none is. Not a foreign key
+     */
+    computer_id?: number | "";
+    /** 
+     * The workspace's picture (a private `media` row, paradigm `workspace-image`). Not a foreign key: a missing row means the default icon
+     */
+    image_media_id?: number | "";
     archived?: 0 | 1 | "";
 }
 
@@ -434,6 +515,14 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_BOTS = {
     updated_at?: number | "";
     workspace_id?: number | "";
     bot_id?: number | "";
+    /** 
+     * The bot's instructions for this workspace (markdown), after the workspace's own. The bot, the coordinator and the user can rewrite them
+     */
+    system_prompt?: string;
+    /** 
+     * What the bot must remember in this workspace (markdown), after its core memory
+     */
+    memory?: string;
 }
 
 export type BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA = {
@@ -494,7 +583,7 @@ export type BUN_SQLITE_COBBLE_CONTAINERS = {
     /** 
      * Last known docker state
      */
-    status?: "created" | "running" | "paused" | "restarting" | "exited" | "removing" | "dead" | "unknown" | "";
+    status?: "creating" | "failed" | "created" | "running" | "paused" | "restarting" | "exited" | "removing" | "dead" | "unknown" | "";
     /** 
      * Extra docker details (ports, volumes, env names, labels)
      */
@@ -742,6 +831,46 @@ export type BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS = {
     options?: string;
 }
 
+export type BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The workspace
+     */
+    workspace_id?: number | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "";
+    /** 
+     * harness_models row picked for this workspace. Null picks automatically. Not a foreign key, like harness_settings
+     */
+    model_id?: number | "";
+    /** 
+     * harness_providers row this workspace's harness is limited to. Null: any provider. Not a foreign key, like harness_settings
+     */
+    provider_id?: number | "";
+    /** 
+     * When the picked model fails, try the automatic picks
+     */
+    fallback?: 0 | 1 | "";
+    /** 
+     * 0 turns the harness off in this workspace. Text is always on
+     */
+    enabled?: 0 | 1 | "";
+    /** 
+     * Harness options, e.g. {"voice":"george"} for speech
+     */
+    options?: string;
+}
+
 export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * The unique identifier of the record.
@@ -836,4 +965,4 @@ export type BUN_SQLITE_COBBLE_ENVS = {
     expose_to_computers?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS

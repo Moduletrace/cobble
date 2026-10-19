@@ -9,6 +9,11 @@ import mediaToAttachment from "./media-to-attachment";
 
 type Params = {
     bot_id: number;
+    /**
+     * The session it goes in, and that session's workspace.
+     */
+    session_id: number;
+    workspace_id?: number | null;
     text: string;
     /**
      * Files to attach, already checked to be the user's own
@@ -18,12 +23,14 @@ type Params = {
 };
 
 /**
- * Appends a user message (and its files) to a bot's conversation and
- * bumps its activity. Callers must check the bot belongs to the session
- * user first.
+ * Appends a user message (and its files) to a session and bumps its
+ * activity. The first one titles the session. Callers must check the bot
+ * and session belong to the session user first.
  */
 export default async function insertUserMessage({
     bot_id,
+    session_id,
+    workspace_id,
     text,
     media = [],
 }: Params): Promise<BotMessageWithAttachments> {
@@ -34,7 +41,16 @@ export default async function insertUserMessage({
         (typeof BunSQLiteTables)[number]
     >({
         table: "bot_messages",
-        data: [{ bot_id, author: "user", text, needs_you: 0 }],
+        data: [
+            {
+                bot_id,
+                session_id,
+                workspace_id: workspace_id || undefined,
+                author: "user",
+                text,
+                needs_you: 0,
+            },
+        ],
     });
 
     const id = res.postInsertReturn?.insertId;
@@ -50,14 +66,20 @@ export default async function insertUserMessage({
         });
     }
 
+    const title = (text || media[0]?.title || "").replace(/\s+/g, " ").trim().slice(0, 80);
+
     await BunSQLite.sql({
-        sql: `UPDATE bots SET last_activity_at = ? WHERE id = ?`,
-        values: [now, bot_id],
+        sql: `UPDATE bot_sessions SET last_activity_at = ?,
+            title = CASE WHEN COALESCE(title, '') = '' THEN ? ELSE title END
+            WHERE id = ?`,
+        values: [now, title, session_id],
     });
 
     return {
         id,
         bot_id,
+        session_id,
+        workspace_id: workspace_id || undefined,
         author: "user",
         text,
         needs_you: 0,

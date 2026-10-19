@@ -5,6 +5,7 @@ import setBotFace from "../bots/set-bot-face";
 import countOpenBotJobs from "./count-open-bot-jobs";
 import grabLockedBotJob from "./grab-locked-bot-job";
 import relayJobToRequester from "./relay-job-to-requester";
+import jobSessionId from "./job-session-id";
 
 type Params = {
     job_id: number | string;
@@ -71,6 +72,8 @@ export default async function completeBotJob({
         ? null
         : await insertBotMessage({
               bot_id: job.bot_id,
+              session_id: await jobSessionId({ job }),
+              workspace_id: job.workspace_id || null,
               text: result,
               needs_you,
           });

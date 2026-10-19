@@ -2,16 +2,16 @@ import Row from "@moduletrace/twui/layout/Row";
 import Link from "@moduletrace/twui/layout/Link";
 import Wordmark from "@/src/components/general/wordmark";
 import LogoIcon from "@/src/components/general/logo-icon";
-import NewBotButton from "./new-bot-button";
+import RailAddButton from "./rail-add-button";
 
 type Props = {
     /**
-     * Off on settings pages, where adding a bot is out of place.
+     * Off on settings pages, where adding things is out of place.
      */
-    show_new_bot?: boolean;
+    show_add?: boolean;
 };
 
-export default function RailHeader({ show_new_bot = true }: Props) {
+export default function RailHeader({ show_add = true }: Props) {
     return (
         <Row className="h-[72px] shrink-0 gap-0! flex-nowrap items-start justify-center lg:justify-between px-0 lg:pl-5 lg:pr-6 pt-5">
             <Link
@@ -21,7 +21,7 @@ export default function RailHeader({ show_new_bot = true }: Props) {
                 <Wordmark height={15} className="hidden lg:block" />
                 <LogoIcon icon_size={28} img_props={{ className: "lg:hidden" }} />
             </Link>
-            {show_new_bot ? <NewBotButton /> : null}
+            {show_add ? <RailAddButton /> : null}
         </Row>
     );
 }

@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
     BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS,
     BUN_SQLITE_COBBLE_HARNESS_SETTINGS,
+    BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS,
 } from "@/db/types/db";
 import type { HarnessKind } from "@/src/dict/harness-dict";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
@@ -22,18 +23,24 @@ export type HarnessSetting = {
     enabled: boolean;
     options: Record<string, unknown>;
     /**
-     * `bot` when a worker bot overrides the default for this harness.
+     * `workspace` when the call's workspace sets this harness, `bot` when a
+     * worker bot overrides the default for it.
      */
-    source: "default" | "bot";
+    source: "default" | "bot" | "workspace";
 };
 
 type Params = {
     harness: HarnessKind;
     /**
-     * The bot the call is for. A worker bot's own setting wins; the
-     * coordinator always uses the default.
+     * The bot the call is for. A worker bot's own setting wins over the
+     * default; the coordinator always uses the default.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in. Its setting wins over the bot's, for
+     * the coordinator too.
+     */
+    workspace_id?: number | string | null;
 };
 
 type SettingRow = Pick<
@@ -42,13 +49,23 @@ type SettingRow = Pick<
 >;
 
 /**
- * A harness's setting for a call. With no row it is automatic on the
- * default provider (OpenRouter), on, with fallback. Text is always on.
+ * A harness's setting for a call: the workspace's, else the bot's, else
+ * the default. With no row it is automatic on the default provider
+ * (OpenRouter), on, with fallback. Text is always on.
  */
 export default async function grabHarnessSetting({
     harness,
     bot_id,
+    workspace_id,
 }: Params): Promise<HarnessSetting> {
+    const workspace_row = workspace_id
+        ? await grabWorkspaceOverride({ harness, workspace_id })
+        : undefined;
+
+    if (workspace_row) {
+        return toSetting({ harness, row: workspace_row, source: "workspace" });
+    }
+
     const bot_row = bot_id
         ? await grabBotOverride({ harness, bot_id })
         : undefined;
@@ -72,6 +89,21 @@ export default async function grabHarnessSetting({
     }
 
     return toSetting({ harness, row, source: "default" });
+}
+
+async function grabWorkspaceOverride({
+    harness,
+    workspace_id,
+}: {
+    harness: HarnessKind;
+    workspace_id: number | string;
+}) {
+    return (
+        await BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS>({
+            sql: `SELECT * FROM workspace_harness_settings WHERE workspace_id = ? AND harness = ? LIMIT 1`,
+            values: [workspace_id, harness],
+        })
+    ).payload?.[0];
 }
 
 async function grabBotOverride({

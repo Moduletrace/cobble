@@ -2,17 +2,25 @@ import { useContext, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import H1 from "@moduletrace/twui/layout/H1";
-import { CpuAi, Monitor } from "lucide-react";
-import BotStone from "@/src/components/general/bot-stone";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import { CpuAi, Layers, Monitor } from "lucide-react";
+import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputersModal from "./bot-computers-modal";
 import BotModelsModal from "./bot-models-modal";
+import BotProfileModal from "./bot-profile-modal";
+import BotSessionsModal from "./bot-sessions-modal";
+import NewSessionButton from "./new-session-button";
 import HeaderMetaItem from "./header-meta-item";
 
 type Props = {
     bot: BotWithLastMessage;
+    /**
+     * The workspace the conversation is in: its name shows under the
+     * bot's, and the models modal edits its models.
+     */
+    workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
+    has_other_unread?: boolean;
     /**
      * The bot's models (the defaults for the coordinator).
      */
@@ -25,7 +33,7 @@ type Props = {
  * that open the computers and models modals. Kept here so a save or a
  * switch shows under the name at once.
  */
-export default function ConversationHeader({ bot, harnesses: initial }: Props) {
+export default function ConversationHeader({ bot, workspace, has_other_unread, harnesses: initial }: Props) {
     const [harnesses, setHarnesses] = useState(initial);
     const { computers } = useContext(BotComputersContext);
 
@@ -34,16 +42,15 @@ export default function ConversationHeader({ bot, harnesses: initial }: Props) {
 
     return (
         <Row className="h-16 shrink-0 gap-3! flex-nowrap items-center px-6 border-0 border-b border-solid border-hairline">
-            <BotStone
-                hue={(bot.hue || null) as BotHue | null}
-                face={(bot.face || "idle") as BotFace}
-                size={40}
-            />
+            <BotProfileModal bot={bot} />
             <Stack className="min-w-0 gap-0!">
                 <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full">
                     {bot.name}
                 </H1>
                 <Row className="min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
+                    {workspace?.id ? (
+                        <HeaderMetaItem icon={Layers} label="Workspace" text={workspace.name || "Workspace"} />
+                    ) : null}
                     <HeaderMetaItem
                         icon={CpuAi}
                         label="Model"
@@ -63,10 +70,17 @@ export default function ConversationHeader({ bot, harnesses: initial }: Props) {
                 </Row>
             </Stack>
             <Row className="ml-auto shrink-0 gap-1! flex-nowrap justify-end">
-                <BotComputersModal bot={bot} />
+                <BotSessionsModal
+                    bot={bot}
+                    workspace_id={workspace?.id || null}
+                    has_other_unread={has_other_unread}
+                />
+                <NewSessionButton bot_id={Number(bot.id)} workspace_id={workspace?.id || null} />
+                <BotComputersModal bot={bot} workspace_name={workspace?.id ? workspace.name || "This workspace" : null} />
                 <BotModelsModal
                     key={bot.id}
                     bot={bot}
+                    workspace={workspace}
                     harnesses={harnesses}
                     onSaved={setHarnesses}
                 />

@@ -33,6 +33,10 @@ export type BotComputers = {
 
 type Params = {
     bot_id: number;
+    /**
+     * In a workspace, switching changes the workspace's default computer.
+     */
+    workspace_id?: number | null;
     computers: BUN_SQLITE_COBBLE_COMPUTERS[];
 };
 
@@ -42,7 +46,7 @@ type Params = {
  * arrives as `server:bot-updated` with the bot's `computer_id`. Also holds
  * the computer open in the viewer (`ComputerViewerModal`).
  */
-export default function useBotComputers({ bot_id, computers: initial }: Params): BotComputers {
+export default function useBotComputers({ bot_id, workspace_id, computers: initial }: Params): BotComputers {
     const [computers, setComputers] = useState(initial);
     const [switching_id, setSwitchingId] = useState<number>();
     const [error, setError] = useState<string>();
@@ -71,7 +75,7 @@ export default function useBotComputers({ bot_id, computers: initial }: Params):
         setSwitchingId(computer_id);
         setError(undefined);
 
-        const res = await setBotComputer({ bot_id, computer_id }).catch(() => null);
+        const res = await setBotComputer({ bot_id, computer_id, workspace_id }).catch(() => null);
 
         if (res?.success && res.payload?.length) {
             setComputers(res.payload);

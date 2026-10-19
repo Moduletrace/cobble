@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
 import relayJobToRequester from "./relay-job-to-requester";
+import jobSessionId from "./job-session-id";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -30,6 +31,8 @@ export default async function notifyBotJobFailed({
 
     const message = await insertBotMessage({
         bot_id: job.bot_id,
+        session_id: await jobSessionId({ job }),
+        workspace_id: job.workspace_id || null,
         text:
             failure_message ||
             [

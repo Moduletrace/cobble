@@ -21,6 +21,10 @@ type Params = {
      * Reads media with this bot's models when it has its own.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
     read_image?: typeof readImage;
     transcribe?: typeof transcribeAudio;
 };
@@ -37,6 +41,7 @@ export default async function prepareMessagesForModel({
     cache,
     signal,
     bot_id,
+    workspace_id,
     read_image = readImage,
     transcribe = transcribeAudio,
 }: Params): Promise<HarnessMessage[]> {
@@ -56,7 +61,7 @@ export default async function prepareMessagesForModel({
                     label: `Image${part.name ? ` "${part.name}"` : ""}`,
                     cache,
                     signal,
-                    read: () => read_image({ url: part.url, signal, bot_id }),
+                    read: () => read_image({ url: part.url, signal, bot_id, workspace_id }),
                 }),
             };
         }
@@ -78,6 +83,7 @@ export default async function prepareMessagesForModel({
                             },
                             signal,
                             bot_id,
+                            workspace_id,
                         }),
                 }),
             };

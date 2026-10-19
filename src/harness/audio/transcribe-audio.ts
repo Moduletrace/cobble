@@ -24,6 +24,10 @@ type Params = {
      * Uses this bot's transcription model when it has its own.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
@@ -36,6 +40,7 @@ export default async function transcribeAudio({
     language,
     signal,
     bot_id,
+    workspace_id,
 }: Params) {
     if (audio.data.byteLength > AppData.HarnessMaxAudioBytes) {
         throw new AppError(`That recording is too long to transcribe.`);
@@ -44,6 +49,7 @@ export default async function transcribeAudio({
     const candidates = await resolveHarnessCandidates({
         harness: "transcription",
         bot_id,
+        workspace_id,
     });
 
     const final_signal = signal || new AbortController().signal;

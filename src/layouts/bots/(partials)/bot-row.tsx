@@ -3,7 +3,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Span from "@moduletrace/twui/layout/Span";
 import { twMerge } from "tailwind-merge";
-import BotStone from "@/src/components/general/bot-stone";
+import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotWithLastMessage } from "@/src/types";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
 import messagePreview from "@/src/utils/message-preview";
@@ -12,6 +12,10 @@ import UnreadDot from "./unread-dot";
 
 type Props = {
     bot: BotWithLastMessage;
+    /**
+     * Where the row goes; the bot's own chat by default.
+     */
+    href?: string;
     selected?: boolean;
     /**
      * Shown when the bot has no status line, before the last-message
@@ -25,7 +29,7 @@ type Props = {
  * line while it has one): no badges, spinners or state dots.
  * Selected is ink at 5%, never a hue.
  */
-export default function BotRow({ bot, selected, subtitle }: Props) {
+export default function BotRow({ bot, href, selected, subtitle }: Props) {
     const hue = (bot.hue || null) as BotHue | null;
     const snippet =
         bot.status_line ||
@@ -37,7 +41,7 @@ export default function BotRow({ bot, selected, subtitle }: Props) {
 
     return (
         <Link
-            href={`/admin/bots/${bot.id}`}
+            href={href || `/admin/bots/${bot.id}`}
             aria-current={selected ? "page" : undefined}
             title={bot.name}
             className={twMerge(
@@ -47,7 +51,7 @@ export default function BotRow({ bot, selected, subtitle }: Props) {
                 selected && "bg-ink/5 hover:bg-ink/5",
             )}
         >
-            <BotStone hue={hue} face={(bot.face || "idle") as BotFace} />
+            <BotAvatar image_media_id={bot.image_media_id} hue={hue} face={(bot.face || "idle") as BotFace} />
             <Stack className="hidden lg:flex grow min-w-0 gap-0!">
                 <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
                     {bot.name}

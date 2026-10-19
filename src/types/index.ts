@@ -1,6 +1,7 @@
 import type {
     BUN_SQLITE_COBBLE_ALL_TYPEDEFS,
     BUN_SQLITE_COBBLE_BOT_MESSAGES,
+    BUN_SQLITE_COBBLE_BOT_SESSIONS,
     BUN_SQLITE_COBBLE_BOT_TASK_STEPS,
     BUN_SQLITE_COBBLE_BOT_TASKS,
     BUN_SQLITE_COBBLE_BOTS,
@@ -9,6 +10,7 @@ import type {
     BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_USER_TYPES,
     BUN_SQLITE_COBBLE_USERS,
+    BUN_SQLITE_COBBLE_WORKSPACES,
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { UserTypes } from "../dict/user-types-dict";
@@ -22,6 +24,7 @@ import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/f
 import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
+import type { ContainerStatus } from "../dict/computer-dict";
 
 export type User = {
     id: number;
@@ -39,11 +42,49 @@ export type User = {
 };
 
 /**
- * A bot row plus its latest message, for the rail.
+ * A bot row plus its conversation (in its own chat or one workspace):
+ * unread, latest activity and latest message, for the rail.
  */
 export type BotWithLastMessage = BUN_SQLITE_COBBLE_BOTS & {
+    unread?: number | null;
+    last_activity_at?: number | null;
     last_message_text?: string | null;
     last_message_at?: number | null;
+};
+
+/**
+ * A session in a conversation's sessions modal.
+ */
+export type BotSessionListItem = BUN_SQLITE_COBBLE_BOT_SESSIONS & {
+    message_count: number;
+    last_message_text?: string | null;
+};
+
+/**
+ * A workspace in the rail: unread while any conversation in it is.
+ */
+export type WorkspaceWithActivity = BUN_SQLITE_COBBLE_WORKSPACES & {
+    unread: number;
+    last_activity_at?: number | null;
+};
+
+/**
+ * A computer with its container's state, for lists and the Add flow.
+ */
+export type ComputerWithStatus = BUN_SQLITE_COBBLE_COMPUTERS & {
+    status?: ContainerStatus | null;
+    /**
+     * Why setting it up failed, while `status` is `failed`.
+     */
+    error?: string | null;
+};
+
+/**
+ * A bot in a workspace, with what it has for that workspace alone.
+ */
+export type WorkspaceBot = BotWithLastMessage & {
+    workspace_system_prompt?: string | null;
+    workspace_memory?: string | null;
 };
 
 /**
@@ -63,6 +104,10 @@ export type BotTaskWithSteps = BUN_SQLITE_COBBLE_BOT_TASKS & {
  */
 export type BotJobUpdateData = BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & {
     task_id: number | null;
+    /**
+     * The conversation session the job belongs to.
+     */
+    session_id: number | null;
 };
 
 /**
@@ -274,6 +319,30 @@ export type PagePropsType = {
     bot?: BotWithLastMessage | null;
     bot_messages?: BotMessageWithAttachments[] | null;
     /**
+     * The open conversation's active session.
+     */
+    bot_session?: BUN_SQLITE_COBBLE_BOT_SESSIONS | null;
+    /**
+     * The user's workspaces, for the rail.
+     */
+    workspaces?: WorkspaceWithActivity[] | null;
+    /**
+     * The workspace open now (its page or a conversation in it).
+     */
+    workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
+    /**
+     * On a workspace's page: its bots, its computers (default first),
+     * every computer the user has, and its models.
+     */
+    workspace_bots?: WorkspaceBot[] | null;
+    /**
+     * Every bot the user has, for adding one to a workspace.
+     */
+    all_bots?: BotWithLastMessage[] | null;
+    workspace_computers?: ComputerWithStatus[] | null;
+    computers?: ComputerWithStatus[] | null;
+    workspace_harness_overview?: BotHarnessOverviewPayload | null;
+    /**
      * The open bot's computers, the one it's on first.
      */
     bot_computers?: BUN_SQLITE_COBBLE_COMPUTERS[] | null;
@@ -450,6 +519,11 @@ export const WebSocketEvents = [
      * A running job took a step (`data`: `BotJobUpdateData`)
      */
     "server:bot-job-update",
+    /**
+     * A computer's container changed state, e.g. finished setting up
+     * (`data`: `ComputerWithStatus`)
+     */
+    "server:computer-updated",
 ] as const;
 
 export type WebSocketDataType = {
@@ -668,6 +742,7 @@ export type UserFormObject = BUN_SQLITE_COBBLE_USERS & {
 export type PageQueryObject = {
     user_id?: string;
     bot_id?: string;
+    workspace_id?: string;
     event_id?: string;
     user_type?: UserType;
 };

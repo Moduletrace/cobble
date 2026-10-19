@@ -4,6 +4,7 @@ import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import insertBotMessage from "@/src/functions/backend/db/bots/insert-bot-message";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
+import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -13,11 +14,20 @@ type Params = {
      */
     coordinator_id: number | string;
     /**
+     * The coordinator's session the task is handed over from.
+     */
+    session_id: number | string;
+    /**
+     * The workspace the coordinator is working in: the worker works on it
+     * there, in its conversation in the workspace.
+     */
+    workspace_id?: number | string | null;
+    /**
      * The coordinator's name, shown in the worker's conversation.
      */
     coordinator_name: string;
     /**
-     * The user's worker bots.
+     * The worker bots it can hand work to (in a workspace, its members).
      */
     workers: BUN_SQLITE_COBBLE_BOTS[];
 };
@@ -37,6 +47,8 @@ type Args = {
 export default function delegateTaskTool({
     user_id,
     coordinator_id,
+    session_id,
+    workspace_id,
     coordinator_name,
     workers,
 }: Params): HarnessTool<Args> {
@@ -59,21 +71,26 @@ export default function delegateTaskTool({
                 throw new Error(`No crew member has id ${args.bot_id}. Crew: ${crew}.`);
             }
 
-            const computers = await grabBotComputers({ bot_id: worker.id, user_id });
+            const computers = await grabBotComputers({ bot_id: worker.id, user_id, workspace_id });
+            const worker_session = await ensureBotSession({ bot_id: worker.id, workspace_id });
 
             const job_id = await enqueueBotJob({
                 user_id,
                 bot_id: worker.id,
+                session_id: Number(worker_session.id),
                 title: args.title,
                 instructions: args.instructions,
                 computer_id: computers[0]?.id || undefined,
                 requested_by_bot_id: coordinator_id,
+                requested_by_session_id: session_id,
             });
 
             await pushBotNotice({
                 bot_id: worker.id,
                 message: await insertBotMessage({
                     bot_id: worker.id,
+                    session_id: Number(worker_session.id),
+                    workspace_id: workspace_id ? Number(workspace_id) : null,
                     text: `${coordinator_name} asked me to: **${args.title}**`,
                 }),
             });

@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { AppContext } from "@/src/pages/__root";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
@@ -21,6 +22,7 @@ type Props = {
  * bot in chat so it carries on.
  */
 export default function ComputerViewerModal({ bot }: Props) {
+    const { pageProps } = useContext(AppContext);
     const { computers, viewing, closeComputer } = useContext(BotComputersContext);
     const [handing_back, setHandingBack] = useState(false);
     const [error, setError] = useState<string>();
@@ -38,6 +40,7 @@ export default function ComputerViewerModal({ bot }: Props) {
 
         const res = await sendBotMessage({
             bot_id: bot.id || 0,
+            workspace_id: pageProps?.workspace?.id || null,
             text: `I'm done on ${name}. You can carry on.`,
             media_ids: [],
         }).catch(() => null);

@@ -15,6 +15,10 @@ type Params = {
      * Uses this bot's speech model and voice when it has its own.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
@@ -26,10 +30,11 @@ export default async function speakText({
     format,
     signal,
     bot_id,
+    workspace_id,
 }: Params) {
     const [candidates, setting] = await Promise.all([
-        resolveHarnessCandidates({ harness: "speech", bot_id }),
-        grabHarnessSetting({ harness: "speech", bot_id }),
+        resolveHarnessCandidates({ harness: "speech", bot_id, workspace_id }),
+        grabHarnessSetting({ harness: "speech", bot_id, workspace_id }),
     ]);
 
     const { result } = await withCandidates({

@@ -41,6 +41,10 @@ type Params = {
      * The bot the run is for: its own models are used where it has them.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
     generate?: typeof generateText;
     resolveCandidates?: () => Promise<HarnessCandidate[]>;
 };
@@ -75,8 +79,9 @@ export default async function runTextLoop({
     signal = new AbortController().signal,
     onStep,
     bot_id,
+    workspace_id,
     generate = generateText,
-    resolveCandidates = () => resolveHarnessCandidates({ harness: "text", bot_id }),
+    resolveCandidates = () => resolveHarnessCandidates({ harness: "text", bot_id, workspace_id }),
 }: Params): Promise<TextLoopResult> {
     const candidates = await resolveCandidates();
     const definitions = tools.map((tool) => toolDefinition({ tool }));
@@ -120,6 +125,7 @@ export default async function runTextLoop({
             signal,
             media_cache,
             bot_id,
+            workspace_id,
         });
 
         prefer_key = answer.candidate.key;

@@ -55,8 +55,6 @@ export default async function ensureCoordinatorBot({ user_id }: Params) {
                 face: "idle",
                 status_line: "",
                 system_prompt: CoordinatorSystemPrompt,
-                unread: 0,
-                last_activity_at: Date.now(),
             },
         ],
     });

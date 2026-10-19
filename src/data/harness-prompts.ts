@@ -47,3 +47,24 @@ export const CoordinatorSoloNote = `You have no worker bots yet: you do all the 
 export const TaskRunNote = `# Working on a task
 
 You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
+
+/**
+ * Added to a bot's prompt when it works in a workspace: what it learns
+ * there stays there unless it applies everywhere.
+ */
+export const WorkspaceLearningNote = `# Learning in this workspace
+
+update_memory and update_instructions save to this workspace by default: what you learn here applies here. Save to your core memory or instructions (scope "core") only when the user asks for it to apply in every workspace, or when it's plainly about how you work everywhere, not about this workspace. When something learned here looks useful everywhere, suggest saving it to your core and do it once the user agrees.`;
+
+/**
+ * Asks the text model for a closed session's summary, carried into the
+ * next session's prompt.
+ */
+export const SessionSummaryPrompt = `Summarize this conversation for whoever picks it up next: what the user wanted, what was done, decisions made, open questions and anything still in progress. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
+
+/**
+ * Heads the previous session's summary in a bot's prompt.
+ */
+export const PreviousSessionNote = `# Earlier in this conversation
+
+This session carries on from an earlier one. What happened there:`;

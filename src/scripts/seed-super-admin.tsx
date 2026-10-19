@@ -101,6 +101,7 @@ async function seedSuperAdmin() {
     const main_computer_id = await ensureMainComputer({
         user_id,
         coordinator_id,
+        wait: true,
     });
     console.log(`Main computer is #${main_computer_id}.`);
 

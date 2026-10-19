@@ -1,6 +1,7 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
+import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import type { PagePropsType, PageQueryObject } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 
@@ -31,6 +32,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         props: {
             bots,
             bot,
+            workspaces: await grabUserWorkspaces({ user_id: user.id }),
             bot_harness_overview: await grabBotHarnessOverview({ bot_id: bot.id }),
         },
     };

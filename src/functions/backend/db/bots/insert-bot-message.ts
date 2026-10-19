@@ -6,16 +6,23 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 
 type Params = {
     bot_id: number;
+    /**
+     * The session it goes in, and that session's workspace.
+     */
+    session_id: number;
+    workspace_id?: number | null;
     text: string;
     needs_you?: boolean;
 };
 
 /**
- * Appends a bot message to its conversation, marks the bot unread and
- * bumps its activity. Callers must check the bot first.
+ * Appends a bot message to a session, marks the session unread and bumps
+ * its activity. Callers must check the bot and session first.
  */
 export default async function insertBotMessage({
     bot_id,
+    session_id,
+    workspace_id,
     text,
     needs_you,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
@@ -27,7 +34,16 @@ export default async function insertBotMessage({
         (typeof BunSQLiteTables)[number]
     >({
         table: "bot_messages",
-        data: [{ bot_id, author: "bot", text, needs_you: needs_you_flag }],
+        data: [
+            {
+                bot_id,
+                session_id,
+                workspace_id: workspace_id || undefined,
+                author: "bot",
+                text,
+                needs_you: needs_you_flag,
+            },
+        ],
     });
 
     const id = res.postInsertReturn?.insertId;
@@ -37,13 +53,15 @@ export default async function insertBotMessage({
     }
 
     await BunSQLite.sql({
-        sql: `UPDATE bots SET last_activity_at = ?, unread = 1 WHERE id = ?`,
-        values: [now, bot_id],
+        sql: `UPDATE bot_sessions SET last_activity_at = ?, unread = 1 WHERE id = ?`,
+        values: [now, session_id],
     });
 
     return {
         id,
         bot_id,
+        session_id,
+        workspace_id: workspace_id || undefined,
         author: "bot",
         text,
         needs_you: needs_you_flag,

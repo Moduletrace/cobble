@@ -12,10 +12,14 @@ import writeComputerEnv from "./write-computer-env";
 type Params = {
     computer_id: number | string;
     /**
-     * Screenshots are read with this bot's media reading model, and only
-     * workspaces it shares with the computer add envs.
+     * Screenshots are read with this bot's media reading model.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the run is in: its envs apply, and its models read
+     * screenshots.
+     */
+    workspace_id?: number | string | null;
     signal?: AbortSignal;
 };
 
@@ -45,6 +49,7 @@ export type OpenComputer = {
 export default async function openComputerTools({
     computer_id,
     bot_id,
+    workspace_id,
     signal,
 }: Params): Promise<OpenComputer> {
     const target = await grabComputerMcpUrl({ computer_id });
@@ -53,7 +58,7 @@ export default async function openComputerTools({
         throw new Error(`Computer #${computer_id} has no container to connect to.`);
     }
 
-    const envs = await grabComputerEnvs({ computer_id, bot_id });
+    const envs = await grabComputerEnvs({ computer_id, workspace_id });
     const paths = await writeComputerEnv({ base_url: target.base_url, envs, signal });
     const secrets = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
@@ -71,6 +76,7 @@ export default async function openComputerTools({
                     focus: "This is a screenshot of a computer screen. Describe the page layout, text, buttons and form fields, and any errors or popups.",
                     signal,
                     bot_id,
+                    workspace_id,
                 }),
         });
 

@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import addBotToComputer from "@/src/functions/backend/db/computers/add-bot-to-computer";
-import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import removeBotFromComputer from "@/src/functions/backend/db/computers/remove-bot-from-computer";
 import computerRef from "@/src/utils/computer-ref";
 import type { HarnessTool } from "../../types";
@@ -30,8 +29,8 @@ type Args = {
 
 /**
  * Lets the coordinator give a crew member access to one of the user's
- * computers (`bot_computers`), or take a direct grant away. Access that
- * comes through a workspace stays, and the result says so.
+ * computers in its own chat (`bot_computers`), or take it away. In a
+ * workspace, bots use the workspace's computers instead.
  */
 export default function assignComputerTool({
     user_id,
@@ -77,13 +76,7 @@ export default function assignComputerTool({
 
             await removeBotFromComputer({ user_id, bot_id: worker.id, computer_id: computer.id });
 
-            const still = (await grabBotComputers({ bot_id: worker.id, user_id })).some(
-                (c) => c.id == computer.id,
-            );
-
-            return still
-                ? `Removed ${worker.name}'s own access to ${ref}, but it still has it through a workspace.`
-                : `${worker.name} can't use ${ref} any more.`;
+            return `${worker.name} can't use ${ref} in its own chat any more. In a workspace it still uses the workspace's computers.`;
         },
     };
 }

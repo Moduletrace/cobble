@@ -18,16 +18,21 @@ type Params = {
      * Uses this bot's media reading model when it has its own.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
  * Reads an image with the media reading (vision) harness and returns what
  * it sees, as text for a model that can't see.
  */
-export default async function readImage({ url, focus, signal, bot_id }: Params) {
+export default async function readImage({ url, focus, signal, bot_id, workspace_id }: Params) {
     const candidates = await resolveHarnessCandidates({
         harness: "vision",
         bot_id,
+        workspace_id,
     });
 
     const { result } = await withCandidates({

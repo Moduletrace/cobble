@@ -15,6 +15,10 @@ type Params = {
      * Uses this bot's image model when it has its own.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
@@ -27,8 +31,9 @@ export default async function generateImage({
     references,
     signal,
     bot_id,
+    workspace_id,
 }: Params) {
-    const candidates = await resolveHarnessCandidates({ harness: "image", bot_id });
+    const candidates = await resolveHarnessCandidates({ harness: "image", bot_id, workspace_id });
 
     const { result } = await withCandidates({
         harness: "image",

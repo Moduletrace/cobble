@@ -9,8 +9,9 @@ type Params = {
 };
 
 /**
- * Takes a computer off one of the user's workspaces. Its bots keep any
- * access they were given directly.
+ * Unlinks a computer from one of the user's workspaces; the computer
+ * itself stays. When it was the default, the oldest computer still linked
+ * takes over (none: the workspace has no computer).
  */
 export default async function removeComputerFromWorkspace({
     user_id,
@@ -27,4 +28,13 @@ export default async function removeComputerFromWorkspace({
         sql: `DELETE FROM workspace_computers WHERE workspace_id = ? AND computer_id = ?`,
         values: [workspace.id, computer_id],
     });
+
+    if (String(workspace.computer_id) == String(computer_id)) {
+        await BunSQLite.sql({
+            sql: `UPDATE workspaces SET updated_at = ?, computer_id = (
+                SELECT computer_id FROM workspace_computers WHERE workspace_id = ? ORDER BY id ASC LIMIT 1
+            ) WHERE id = ?`,
+            values: [Date.now(), workspace.id, workspace.id],
+        });
+    }
 }

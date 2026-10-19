@@ -23,6 +23,10 @@ type Params = {
      * The bot the call is for: a worker bot can override the default.
      */
     bot_id?: number | string;
+    /**
+     * The workspace the call is in: its models win over the bot's.
+     */
+    workspace_id?: number | string | null;
 };
 
 type CatalogEntry = HarnessCatalogModel & {
@@ -41,8 +45,9 @@ type CatalogEntry = HarnessCatalogModel & {
 export default async function resolveHarnessCandidates({
     harness,
     bot_id,
+    workspace_id,
 }: Params): Promise<HarnessCandidate[]> {
-    const setting = await grabHarnessSetting({ harness, bot_id });
+    const setting = await grabHarnessSetting({ harness, bot_id, workspace_id });
 
     if (!setting.enabled) {
         const title = Harnesses.find((h) => h.value == harness)?.title;

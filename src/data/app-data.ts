@@ -27,15 +27,40 @@ export const AppData = {
     PasswordMaxLength: 128,
     PasswordAttemptLimit: 10,
     /**
-     * Docker network shared by the main container and every computer. The
-     * installer creates it, and the main computer's container on it.
+     * Docker network shared by the app and every computer. The app creates
+     * it when it sets up its first computer and joins it when it runs in
+     * docker.
      */
     DockerNetworkName: SiteData["SiteSlug"],
-    MainComputerContainerName: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Port the AIO sandbox listens on inside its container.
      */
     ComputerPort: 8080,
+    /**
+     * Every computer the app creates runs this image, named
+     * `<ComputerContainerPrefix>-<computer id>` on `DockerNetworkName`.
+     */
+    ComputerImage: "ghcr.io/agent-infra/sandbox:latest",
+    ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
+    /**
+     * A computer's home directory (`ComputerHomeDir` in its container) is
+     * kept at `DATA_DIR/<ComputerDataDir>/<id>`, owned by the sandbox's
+     * user. It stays when the computer is deleted.
+     */
+    ComputerDataDir: "computers",
+    ComputerHomeDir: "/home/gem",
+    ComputerUserUid: 1000,
+    ComputerUserGid: 1000,
+    /**
+     * Per computer container.
+     */
+    ComputerMemoryBytes: 4 * 1024 * 1024 * 1024,
+    ComputerCpus: 2,
+    ComputerShmBytes: 2 * 1024 * 1024 * 1024,
+    /**
+     * The docker engine API, reached over its unix socket.
+     */
+    DockerSocketPath: "/var/run/docker.sock",
     /**
      * Cap on a bot's `system_prompt` and `memory`, and on a workspace's
      * `system_prompt`, so self-updates can't grow a prompt without bound.
@@ -129,6 +154,30 @@ export const AppData = {
      */
     BotReplyHistoryMessages: 40,
     /**
+     * A session with this many messages is closed when the user writes
+     * again, and the message starts the next one (carrying a summary).
+     */
+    BotSessionMaxMessages: 120,
+    /**
+     * How much of a closed session the bot reads to summarize it, and how
+     * long the summary may be.
+     */
+    BotSessionSummaryMessages: 80,
+    BotSessionSummaryMaxChars: 4000,
+    /**
+     * Sessions listed per page in a conversation's sessions modal.
+     */
+    BotSessionsPageSize: 30,
+    /**
+     * Worker bots the rail lists, most recently active first, before
+     * "See all bots".
+     */
+    RailRecentBots: 8,
+    /**
+     * Stones shown beside "See all bots".
+     */
+    RailSeeAllStones: 4,
+    /**
      * Tool turns a chat reply may take. Long work goes to a task instead.
      */
     BotReplyMaxToolSteps: 8,
@@ -144,4 +193,8 @@ export const AppData = {
      * themselves to a reply; older ones are named.
      */
     BotReplyAttachmentMessages: 4,
+    /**
+     * Largest picture a bot or a workspace can have.
+     */
+    ProfileImageMaxBytes: 5 * 1024 * 1024,
 } as const;
