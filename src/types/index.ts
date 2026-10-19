@@ -27,6 +27,12 @@ import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace } from "../dict/bot-dict";
+import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
+import type {
+    CustomToolHttpMethod,
+    CustomToolKind,
+    CustomToolScriptLanguage,
+} from "../dict/custom-tool-dict";
 
 export type User = {
     id: number;
@@ -345,6 +351,141 @@ export type KnownEnvStatus = KnownEnv & {
     from_process: boolean;
 };
 
+/**
+ * One tool an MCP server offers, as last listed (`mcp_servers.tools_cache`).
+ */
+export type McpToolInfo = {
+    name: string;
+    description: string;
+    input_schema: Record<string, unknown>;
+};
+
+/**
+ * Who gets an MCP server or custom tool: every bot, or the bots and
+ * workspaces it's attached to.
+ */
+export type ExtensionAccess = {
+    all_bots: boolean;
+    bot_ids: number[];
+    workspace_ids: number[];
+};
+
+/**
+ * An `mcp_servers` row with its JSON read.
+ */
+export type McpServerRecord = {
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    transport: McpTransport;
+    url: string;
+    headers: Record<string, string>;
+    command: string;
+    setup_command: string;
+    env: Record<string, string>;
+    excluded_tools: string[];
+    tools: McpToolInfo[];
+    all_bots: boolean;
+    enabled: boolean;
+    status: McpServerStatus;
+    last_error: string;
+    last_synced_at: number | null;
+};
+
+export type CustomToolHttpConfig = {
+    method: CustomToolHttpMethod;
+    url: string;
+    headers?: Record<string, string>;
+    body?: string;
+    timeout_ms?: number;
+};
+
+export type CustomToolScriptConfig = {
+    language: CustomToolScriptLanguage;
+    code: string;
+    timeout_ms?: number;
+};
+
+export type CustomToolPromptConfig = {
+    prompt: string;
+};
+
+/**
+ * A `custom_tools` row with its JSON read, `config` matching its kind.
+ */
+export type CustomToolRecord = {
+    id: number;
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+    all_bots: boolean;
+    enabled: boolean;
+} & (
+    | { kind: "http"; config: CustomToolHttpConfig }
+    | { kind: "script"; config: CustomToolScriptConfig }
+    | { kind: "prompt"; config: CustomToolPromptConfig }
+);
+
+/**
+ * An MCP server as the MCPs settings page shows it. Only super admins get
+ * how it's reached (`url`, `headers`, `command`, `setup_command`, `env`).
+ */
+export type PublicMcpServer = Omit<
+    McpServerRecord,
+    "url" | "headers" | "command" | "setup_command" | "env" | "all_bots"
+> & {
+    access: ExtensionAccess;
+    url?: string;
+    headers?: Record<string, string>;
+    command?: string;
+    setup_command?: string;
+    env?: Record<string, string>;
+};
+
+/**
+ * A custom tool as the Tools settings page shows it. Only super admins get
+ * its `parameters` and `config`.
+ */
+export type PublicCustomTool = {
+    id: number;
+    name: string;
+    description: string;
+    kind: CustomToolKind;
+    enabled: boolean;
+    access: ExtensionAccess;
+    parameters?: Record<string, unknown>;
+    config?: CustomToolHttpConfig | CustomToolScriptConfig | CustomToolPromptConfig;
+};
+
+/**
+ * The bots and workspaces an MCP server or tool can be attached to. The
+ * coordinator is listed for the super admin only.
+ */
+export type ExtensionTargets = {
+    bots: { id: number; name: string; role: string; kind: string }[];
+    workspaces: { id: number; name: string }[];
+    /**
+     * A super admin: adds, edits and deletes, and sets "all bots".
+     */
+    can_edit: boolean;
+};
+
+export type McpServersOverviewPayload = ExtensionTargets & {
+    servers: PublicMcpServer[];
+};
+
+export type CustomToolsOverviewPayload = ExtensionTargets & {
+    tools: PublicCustomTool[];
+};
+
+/**
+ * What trying a custom tool returned, as a bot would read it.
+ */
+export type CustomToolTestPayload = {
+    output: string;
+};
+
 export type EnvsOverviewPayload = {
     scopes: EnvScope[];
     envs: PublicEnv[];
@@ -457,6 +598,8 @@ export type PagePropsType = {
     harness_overview?: HarnessOverviewPayload | null;
     bot_harness_overview?: BotHarnessOverviewPayload | null;
     envs_overview?: EnvsOverviewPayload | null;
+    mcps_overview?: McpServersOverviewPayload | null;
+    tools_overview?: CustomToolsOverviewPayload | null;
     envs?: {
         GOOGLE_CLIENT_ID?: string;
         R2_PUBLIC_DOMAIN?: string;

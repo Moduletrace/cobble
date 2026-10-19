@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
-import Textarea from "@moduletrace/twui/form/Textarea";
+import CodeEditor from "@/src/components/general/code-editor";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
 import type { CronJobWithNames } from "@/src/types";
@@ -66,15 +66,13 @@ export default function RoutineForm({ cron_job, onCancel, onSaved }: Props) {
                 info="Cron, in UTC: minute hour day month weekday, or @hourly, @daily, @weekly."
                 onChange={(e) => setSchedule(e.target.value)}
             />
-            <Textarea
-                id="routine-instructions"
+            <CodeEditor
+                mode="markdown"
+                className="h-40"
                 title="Brief"
-                label="Brief"
-                showLabel
-                rows={6}
-                defaultValue={instructions}
+                content={instructions}
                 info="What the bot does at every run, and how it knows it's done."
-                onChange={(e) => setInstructions(e.target.value)}
+                onChange={(value) => setInstructions(value)}
             />
             <AddFormActions submit_label="Save" loading={loading} error={error} onCancel={onCancel} />
         </Form>

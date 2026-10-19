@@ -3,6 +3,7 @@ import cronHeartbeat from "./heartbeat";
 import pruneBotsQueue from "./prune-bots-queue";
 import cronSyncHarnessModels from "./sync-harness-models";
 import syncComputers from "./sync-computers";
+import syncMcpServers from "./sync-mcp-servers";
 import runCronJobs from "./run-cron-jobs";
 import registerCronJob from "./register-cron-job";
 
@@ -38,6 +39,12 @@ export default function cron() {
         schedule: "*/5 * * * *",
         task: syncComputers,
         run_on_start: true,
+    });
+
+    registerCronJob({
+        title: "sync-mcp-servers",
+        schedule: "@hourly",
+        task: syncMcpServers,
     });
 
     registerCronJob({

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
-import Textarea from "@moduletrace/twui/form/Textarea";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
+import CodeEditor from "@/src/components/general/code-editor";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group";
@@ -80,15 +80,13 @@ export default function WorkspaceDetailsGroup({ workspace, onSaved }: Props) {
                     defaultValue={description}
                     onChange={(e) => setDescription(e.target.value)}
                 />
-                <Textarea
-                    id="workspace-context"
+                <CodeEditor
+                    mode="markdown"
+                    className="h-52"
                     title="Context"
-                    label="Context"
-                    showLabel
-                    rows={8}
-                    defaultValue={system_prompt}
+                    content={system_prompt}
                     info="Markdown. Goals, people, links, rules: whatever every bot here should know."
-                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    onChange={(value) => setSystemPrompt(value)}
                 />
                 <Row className="w-full gap-3! flex-nowrap items-center justify-between">
                     <SettingsStatus status={status} />

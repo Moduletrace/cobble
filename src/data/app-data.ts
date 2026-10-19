@@ -182,6 +182,22 @@ export const AppData = {
      */
     McpToolTimeoutMs: 5 * 60 * 1000,
     /**
+     * MCP servers set up in Settings, under MCPs: a stdio server runs in
+     * `DATA_DIR/<McpDataDir>/<id>` (its setup installs there, so it
+     * survives updates), its setup command may take `McpSetupTimeoutMs`,
+     * and it's stopped after `McpStdioIdleMs` without a call.
+     */
+    McpDataDir: "mcp",
+    McpSetupTimeoutMs: 10 * 60 * 1000,
+    McpStdioIdleMs: 10 * 60 * 1000,
+    /**
+     * A custom tool (Settings, under Tools) gives up after its own timeout,
+     * `CustomToolDefaultTimeoutMs` when it has none, never past
+     * `CustomToolMaxTimeoutMs`.
+     */
+    CustomToolDefaultTimeoutMs: 60 * 1000,
+    CustomToolMaxTimeoutMs: 10 * 60 * 1000,
+    /**
      * `search_computers`: how long the command may run on each computer,
      * and how much of each computer's output the bot reads.
      */

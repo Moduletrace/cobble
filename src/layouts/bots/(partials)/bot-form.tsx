@@ -1,8 +1,8 @@
 import { useContext, useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
-import Textarea from "@moduletrace/twui/form/Textarea";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
+import CodeEditor from "@/src/components/general/code-editor";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import ImagePickField from "@/src/components/general/image-pick-field";
 import { AppContext } from "@/src/pages/__root";
@@ -165,16 +165,14 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                     <BotHuePicker hue={hue} disabled={loading} onChange={setHue} />
                 </>
             )}
-            <Textarea
-                id="bot-form-instructions"
+            <CodeEditor
+                mode="markdown"
+                className="h-40"
                 title="Instructions"
-                label="Instructions"
-                showLabel
-                rows={6}
                 placeholder="You research topics for the user. Find good sources, read them, and report back with a short summary and links."
-                defaultValue={system_prompt}
+                content={system_prompt}
                 info="What it does and how. It refines these itself as it learns how you work."
-                onChange={(e) => setSystemPrompt(e.target.value)}
+                onChange={(value) => setSystemPrompt(value)}
             />
             {!bot && workspace?.id ? (
                 <Checkbox

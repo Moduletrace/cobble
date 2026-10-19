@@ -5,6 +5,7 @@ import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
+import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
@@ -28,8 +29,9 @@ type Params = BotJobContext & {
 /**
  * Works through a task in its session's workspace (if any): the bot
  * follows its brief with its full prompt,
- * its own tools, search_computers across all its computers and, when the
- * job has a computer, that computer's tools (over MCP), until it answers. That answer is the report for the user.
+ * its own tools, search_computers across all its computers, its MCP
+ * servers' and custom tools (`openBotExtensions`) and, when the job has a
+ * computer, that computer's tools (over MCP), until it answers. That answer is the report for the user.
  * When only the user can go on (a login, a captcha), the bot asks them to
  * take over (`ask_user_to_take_over`) and the report needs them.
  * Every model turn is reported as a step (`report`).
@@ -52,6 +54,8 @@ export default async function runBotTask({
               signal,
           })
         : null;
+
+    let extensions: OpenBotExtensions | undefined;
 
     try {
         const session_id = await jobSessionId({ job });
@@ -82,6 +86,43 @@ export default async function runBotTask({
             ...computers.filter((c) => c.id != job.computer_id),
         ];
 
+        const tools = [
+            ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers }),
+            ...(bot.kind == "coordinator"
+                ? [
+                      createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
+                      ...(coordinator_workspaces.length
+                          ? [
+                                updateWorkspaceTool({
+                                    user_id,
+                                    workspaces: coordinator_workspaces,
+                                    workspace_id,
+                                }),
+                            ]
+                          : []),
+                  ]
+                : []),
+            ...(computers.length
+                ? [
+                      searchComputersTool({ computers, workspace_id }),
+                      askToTakeOverTool({
+                          computers: take_over_computers,
+                          in_task: true,
+                          onAsk: ({ ref }) => take_overs.push(ref),
+                      }),
+                  ]
+                : []),
+            ...(computer?.tools || []),
+        ];
+
+        extensions = await openBotExtensions({
+            bot_id: bot.id,
+            workspace_id,
+            computer_id: job.computer_id || null,
+            taken: tools.map((tool) => tool.name),
+            signal,
+        });
+
         const result = await runTextLoop({
             system: [
                 prompt,
@@ -104,6 +145,7 @@ export default async function runBotTask({
                           .map((env) => `- ${env.key}${env.description ? `: ${env.description}` : ""}`)
                           .join("\n")}`
                     : "",
+                extensions.note,
             ]
                 .filter(Boolean)
                 .join("\n\n"),
@@ -117,34 +159,7 @@ export default async function runBotTask({
                     }),
                 },
             ],
-            tools: [
-                ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers }),
-                ...(bot.kind == "coordinator"
-                    ? [
-                          createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
-                          ...(coordinator_workspaces.length
-                              ? [
-                                    updateWorkspaceTool({
-                                        user_id,
-                                        workspaces: coordinator_workspaces,
-                                        workspace_id,
-                                    }),
-                                ]
-                              : []),
-                      ]
-                    : []),
-                ...(computers.length
-                    ? [
-                          searchComputersTool({ computers, workspace_id }),
-                          askToTakeOverTool({
-                              computers: take_over_computers,
-                              in_task: true,
-                              onAsk: ({ ref }) => take_overs.push(ref),
-                          }),
-                      ]
-                    : []),
-                ...(computer?.tools || []),
-            ],
+            tools: [...tools, ...extensions.tools],
             bot_id: bot.id,
             workspace_id,
             signal,
@@ -157,6 +172,7 @@ export default async function runBotTask({
             refs: take_overs,
         });
     } finally {
+        await extensions?.close();
         await computer?.close();
     }
 }

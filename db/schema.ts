@@ -20,6 +20,8 @@ import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms } from "@/src/dict/env-dict";
+import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
+import { CustomToolKinds } from "@/src/dict/custom-tool-dict";
 
 const schema: BUN_SQLITE_DatabaseSchemaType = {
     tables: [
@@ -1679,6 +1681,320 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         { value: "workspace_id" },
                         { value: "harness" },
                     ],
+                },
+            ],
+        },
+        {
+            tableName: "mcp_servers",
+            tableDescription: `MCP servers bots can use (Settings, under MCPs). Per bot (bot_mcp_servers), per workspace (workspace_mcp_servers) or every bot (all_bots). Private: headers and env may hold literal secrets`,
+            fields: [
+                {
+                    fieldName: "name",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `Prefixes its tools' names (<slug>__<tool>). Unique`,
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "description",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "transport",
+                    dataType: "TEXT",
+                    options: McpTransports.map((t) => t.value),
+                    defaultValue: "remote",
+                },
+                {
+                    fieldName: "url",
+                    fieldDescription: `remote: the server's MCP endpoint`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "headers",
+                    fieldDescription: `remote: request headers, {"Authorization":"Bearer {{env.KEY}}"}. Values are templates`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "command",
+                    fieldDescription: `stdio: the command that starts the server, run with the host's shell in DATA_DIR/mcp/<id>`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "setup_command",
+                    fieldDescription: `stdio: installs what the command needs. Runs before the first start and again whenever it changes`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "env",
+                    fieldDescription: `stdio: the only environment the server gets (besides PATH and HOME), {"GITHUB_TOKEN":"{{env.GITHUB_TOKEN}}"}. Values are templates`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "excluded_tools",
+                    fieldDescription: `Tool names (the server's own) bots don't get`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "tools_cache",
+                    fieldDescription: `The server's tools as last listed ([{name, description, input_schema}]). Runs build their tools from it and connect on the first call`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "all_bots",
+                    fieldDescription: `1 gives it to every bot, the coordinator included`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: McpServerStatuses.map((s) => s.value),
+                    defaultValue: "untested",
+                },
+                {
+                    fieldName: "last_error",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "last_synced_at",
+                    fieldDescription: `Unix ms of the last tool listing`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Who created it. Not a foreign key: it belongs to the install`,
+                    dataType: "INTEGER",
+                },
+            ],
+        },
+        {
+            tableName: "custom_tools",
+            tableDescription: `Tools bots can call (Settings, under Tools): an HTTP request, a script on a computer, or a prompt. Per bot (bot_custom_tools), per workspace (workspace_custom_tools) or every bot (all_bots)`,
+            fields: [
+                {
+                    fieldName: "name",
+                    fieldDescription: `What the model calls it: snake_case, unique, never a built-in tool's name`,
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "description",
+                    fieldDescription: `What the model reads to decide when to call it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "kind",
+                    dataType: "TEXT",
+                    options: CustomToolKinds.map((k) => k.value),
+                },
+                {
+                    fieldName: "parameters",
+                    fieldDescription: `JSON schema (an object) of its arguments`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "config",
+                    fieldDescription: `Per kind. http: {method, url, headers, body, timeout_ms}; script: {language, code, timeout_ms}; prompt: {prompt}. Text fields are templates ({{args.x}}, {{env.KEY}})`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "all_bots",
+                    fieldDescription: `1 gives it to every bot, the coordinator included`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Who created it. Not a foreign key: it belongs to the install`,
+                    dataType: "INTEGER",
+                },
+            ],
+        },
+        {
+            tableName: "bot_mcp_servers",
+            tableDescription: `A bot that gets an MCP server's tools everywhere it works`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_mcp_servers_bots_fk",
+                    },
+                },
+                {
+                    fieldName: "mcp_server_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "mcp_servers",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_mcp_servers_mcp_servers_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_mcp_server_per_bot",
+                    constraintName: "A bot gets an MCP server once",
+                    constraintTableFields: [{ value: "bot_id" }, { value: "mcp_server_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_mcp_servers_mcp_server_id",
+                    indexTableFields: ["mcp_server_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_mcp_servers",
+            tableDescription: `Every bot in the workspace gets the MCP server's tools there`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_mcp_servers_workspaces_fk",
+                    },
+                },
+                {
+                    fieldName: "mcp_server_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "mcp_servers",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_mcp_servers_mcp_servers_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_mcp_server_per_workspace",
+                    constraintName: "A workspace gets an MCP server once",
+                    constraintTableFields: [{ value: "workspace_id" }, { value: "mcp_server_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_mcp_servers_mcp_server_id",
+                    indexTableFields: ["mcp_server_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_custom_tools",
+            tableDescription: `A bot that gets a custom tool everywhere it works`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_custom_tools_bots_fk",
+                    },
+                },
+                {
+                    fieldName: "custom_tool_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "custom_tools",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_custom_tools_custom_tools_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_custom_tool_per_bot",
+                    constraintName: "A bot gets a custom tool once",
+                    constraintTableFields: [{ value: "bot_id" }, { value: "custom_tool_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_custom_tools_custom_tool_id",
+                    indexTableFields: ["custom_tool_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_custom_tools",
+            tableDescription: `Every bot in the workspace gets the custom tool there`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_custom_tools_workspaces_fk",
+                    },
+                },
+                {
+                    fieldName: "custom_tool_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "custom_tools",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_custom_tools_custom_tools_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_custom_tool_per_workspace",
+                    constraintName: "A workspace gets a custom tool once",
+                    constraintTableFields: [{ value: "workspace_id" }, { value: "custom_tool_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_custom_tools_custom_tool_id",
+                    indexTableFields: ["custom_tool_id"],
                 },
             ],
         },

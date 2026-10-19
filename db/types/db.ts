@@ -29,6 +29,12 @@ export const BunSQLiteTables = [
     "harness_settings",
     "bot_harness_settings",
     "workspace_harness_settings",
+    "mcp_servers",
+    "custom_tools",
+    "bot_mcp_servers",
+    "workspace_mcp_servers",
+    "bot_custom_tools",
+    "workspace_custom_tools",
     "logs",
     "envs",
 ] as const
@@ -1026,6 +1032,180 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS = {
     options?: string;
 }
 
+export type BUN_SQLITE_COBBLE_MCP_SERVERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    name?: string;
+    /** 
+     * Prefixes its tools' names (<slug>__<tool>). Unique
+     */
+    slug?: string;
+    description?: string;
+    transport?: "remote" | "stdio" | "";
+    /** 
+     * remote: the server's MCP endpoint
+     */
+    url?: string;
+    /** 
+     * remote: request headers, {"Authorization":"Bearer {{env.KEY}}"}. Values are templates
+     */
+    headers?: string;
+    /** 
+     * stdio: the command that starts the server, run with the host's shell in DATA_DIR/mcp/<id>
+     */
+    command?: string;
+    /** 
+     * stdio: installs what the command needs. Runs before the first start and again whenever it changes
+     */
+    setup_command?: string;
+    /** 
+     * stdio: the only environment the server gets (besides PATH and HOME), {"GITHUB_TOKEN":"{{env.GITHUB_TOKEN}}"}. Values are templates
+     */
+    env?: string;
+    /** 
+     * Tool names (the server's own) bots don't get
+     */
+    excluded_tools?: string;
+    /** 
+     * The server's tools as last listed ([{name, description, input_schema}]). Runs build their tools from it and connect on the first call
+     */
+    tools_cache?: string;
+    /** 
+     * 1 gives it to every bot, the coordinator included
+     */
+    all_bots?: 0 | 1 | "";
+    enabled?: 0 | 1 | "";
+    status?: "untested" | "ok" | "error" | "";
+    last_error?: string;
+    /** 
+     * Unix ms of the last tool listing
+     */
+    last_synced_at?: number | "";
+    /** 
+     * Who created it. Not a foreign key: it belongs to the install
+     */
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CUSTOM_TOOLS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * What the model calls it: snake_case, unique, never a built-in tool's name
+     */
+    name?: string;
+    /** 
+     * What the model reads to decide when to call it
+     */
+    description?: string;
+    kind?: "http" | "script" | "prompt" | "";
+    /** 
+     * JSON schema (an object) of its arguments
+     */
+    parameters?: string;
+    /** 
+     * Per kind. http: {method, url, headers, body, timeout_ms}; script: {language, code, timeout_ms}; prompt: {prompt}. Text fields are templates ({{args.x}}, {{env.KEY}})
+     */
+    config?: string;
+    /** 
+     * 1 gives it to every bot, the coordinator included
+     */
+    all_bots?: 0 | 1 | "";
+    enabled?: 0 | 1 | "";
+    /** 
+     * Who created it. Not a foreign key: it belongs to the install
+     */
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_MCP_SERVERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    mcp_server_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    workspace_id?: number | "";
+    mcp_server_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    custom_tool_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    workspace_id?: number | "";
+    custom_tool_id?: number | "";
+}
+
 export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * The unique identifier of the record.
@@ -1120,4 +1300,4 @@ export type BUN_SQLITE_COBBLE_ENVS = {
     expose_to_computers?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS

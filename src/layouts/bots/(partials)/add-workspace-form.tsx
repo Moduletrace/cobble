@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
-import Textarea from "@moduletrace/twui/form/Textarea";
+import CodeEditor from "@/src/components/general/code-editor";
 import ImagePickField from "@/src/components/general/image-pick-field";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import setProfileImage from "@/src/functions/frontend/set-profile-image";
@@ -82,16 +82,14 @@ export default function AddWorkspaceForm({ onCancel }: Props) {
                 defaultValue={description}
                 onChange={(e) => setDescription(e.target.value)}
             />
-            <Textarea
-                id="add-workspace-instructions"
+            <CodeEditor
+                mode="markdown"
+                className="h-32"
                 title="Context"
-                label="Context"
-                showLabel
-                rows={5}
                 placeholder="We ship on April 14. The repo is acme/launch. Marketing signs off on all copy."
-                defaultValue={system_prompt}
+                content={system_prompt}
                 info="Every bot working here gets this. You can change it later."
-                onChange={(e) => setSystemPrompt(e.target.value)}
+                onChange={(value) => setSystemPrompt(value)}
             />
             <AddFormActions submit_label="Create workspace" loading={loading} error={error} onCancel={onCancel} />
         </Form>

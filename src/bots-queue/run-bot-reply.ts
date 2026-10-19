@@ -11,6 +11,7 @@ import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
+import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import botMessagesToHarness from "./bot-messages-to-harness";
 import composeComputersNote from "./compose-computers-note";
 import grabSessionCarryOver from "./grab-session-carry-over";
@@ -33,7 +34,9 @@ type Params = BotJobContext & {
  * knowing where it is (its workspace, if the session is in one), what
  * happened in the session before (`grabSessionCarryOver`) and its
  * computers (`composeComputersNote`), with its chat tools (memory,
- * instructions, start_task, and for the coordinator delegate_task).
+ * instructions, start_task, and for the coordinator delegate_task) plus
+ * its MCP servers' and custom tools (`openBotExtensions`, script tools on
+ * its current computer).
  * Finishes silently when the last message is already the bot's, i.e. an
  * earlier reply answered everything.
  */
@@ -82,6 +85,14 @@ export default async function runBotReply({
         onTakeOver: ({ ref }) => take_overs.push(ref),
     });
 
+    const extensions = await openBotExtensions({
+        bot_id: bot.id,
+        workspace_id,
+        computer_id: computers[0]?.id || null,
+        taken: tools.map((tool) => tool.name),
+        signal,
+    });
+
     /**
      * delegate_task is only there while the coordinator has workers.
      */
@@ -92,33 +103,38 @@ export default async function runBotReply({
               ? CoordinatorReplyNote
               : CoordinatorSoloNote;
 
-    const result = await runTextLoop({
-        system: [
-            prompt,
-            carry_over,
-            ChatReplyNote,
-            workspace_id ? WorkspaceLearningNote : "",
-            composeComputersNote({
-                computers,
-                is_coordinator: bot.kind == "coordinator",
-                in_workspace: Boolean(workspace_id),
+    try {
+        const result = await runTextLoop({
+            system: [
+                prompt,
+                carry_over,
+                ChatReplyNote,
+                workspace_id ? WorkspaceLearningNote : "",
+                composeComputersNote({
+                    computers,
+                    is_coordinator: bot.kind == "coordinator",
+                    in_workspace: Boolean(workspace_id),
+                }),
+                crew_note,
+                extensions.note,
+                `Now: ${new Date().toUTCString()}.`,
+            ]
+                .filter(Boolean)
+                .join("\n\n"),
+            messages: botMessagesToHarness({
+                messages: history,
+                parts: await loadAttachmentParts({ messages: history }),
             }),
-            crew_note,
-            `Now: ${new Date().toUTCString()}.`,
-        ]
-            .filter(Boolean)
-            .join("\n\n"),
-        messages: botMessagesToHarness({
-            messages: history,
-            parts: await loadAttachmentParts({ messages: history }),
-        }),
-        tools,
-        max_steps: AppData.BotReplyMaxToolSteps,
-        bot_id: bot.id,
-        workspace_id,
-        signal,
-        onStep: report,
-    });
+            tools: [...tools, ...extensions.tools],
+            max_steps: AppData.BotReplyMaxToolSteps,
+            bot_id: bot.id,
+            workspace_id,
+            signal,
+            onStep: report,
+        });
 
-    return withTakeOverRefs({ text: result.text, refs: take_overs });
+        return withTakeOverRefs({ text: result.text, refs: take_overs });
+    } finally {
+        await extensions.close();
+    }
 }

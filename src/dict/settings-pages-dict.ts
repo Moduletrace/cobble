@@ -4,10 +4,12 @@ import {
     KeyRound,
     Layers,
     Monitor,
+    Plug,
     Users,
     SlidersHorizontal,
     UserRound,
     Variable,
+    Wrench,
     type LucideIcon,
 } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_USER_TYPES } from "@/db/types/db";
@@ -49,6 +51,8 @@ export const SettingsPages: SettingsPage[] = [
     { title: "Bots", url: "/admin/settings/bots", Icon: Bot, can_view: canManageCrew },
     { title: "Workspaces", url: "/admin/settings/workspaces", Icon: Layers, can_view: canManageCrew },
     { title: "Computers", url: SettingsComputersPath, Icon: Monitor, can_view: canManageCrew },
+    { title: "MCPs", url: "/admin/settings/mcps", Icon: Plug, can_view: canManageCrew },
+    { title: "Tools", url: "/admin/settings/tools", Icon: Wrench, can_view: canManageCrew },
     {
         title: "Users",
         url: "/admin/settings/users",

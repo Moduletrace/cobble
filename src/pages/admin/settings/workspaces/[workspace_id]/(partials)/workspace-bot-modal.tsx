@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
-import Textarea from "@moduletrace/twui/form/Textarea";
+import CodeEditor from "@/src/components/general/code-editor";
 import type { WorkspaceBot } from "@/src/types";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
@@ -57,25 +57,21 @@ export default function WorkspaceBotModal({ workspace_id, workspace_name, bot, o
             description={`${name} keeps its own instructions and memory everywhere. These apply only here, and it updates them itself as it learns how this workspace works.`}
         >
             <Form className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
-                <Textarea
-                    id="workspace-bot-instructions"
+                <CodeEditor
+                    mode="markdown"
+                    className="h-44"
                     title="Instructions here"
-                    label="Instructions here"
-                    showLabel
-                    rows={7}
-                    defaultValue={system_prompt}
+                    content={system_prompt}
                     placeholder="In this workspace, write for the marketing team: short, plain, no jargon."
-                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    onChange={(value) => setSystemPrompt(value)}
                 />
-                <Textarea
-                    id="workspace-bot-memory"
+                <CodeEditor
+                    mode="markdown"
+                    className="h-32"
                     title="Memory here"
-                    label="Memory here"
-                    showLabel
-                    rows={5}
-                    defaultValue={memory}
+                    content={memory}
                     info="What it must remember in this workspace."
-                    onChange={(e) => setMemory(e.target.value)}
+                    onChange={(value) => setMemory(value)}
                 />
                 <AddFormActions submit_label="Save" loading={loading} error={error} onCancel={onClose} />
             </Form>
