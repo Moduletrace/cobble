@@ -56,6 +56,12 @@ export const BotNeedsYouStatusLine = "Waiting on you";
 export const BotWaitingStatusLine = "Waiting for a free model";
 
 /**
+ * The bot's status line while its task waits for another job on the same
+ * computer to finish.
+ */
+export const BotComputerBusyStatusLine = "Waiting for its computer";
+
+/**
  * How a job step that called a tool reads in the chat's working row, by
  * tool name. Tools not listed read "Using <name>".
  */

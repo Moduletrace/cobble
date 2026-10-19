@@ -9,7 +9,12 @@ import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
-import { BotReplyJobTitle, BotTaskStatusLine, BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
+import {
+    BotComputerBusyStatusLine,
+    BotReplyJobTitle,
+    BotTaskStatusLine,
+    BotWaitingStatusLine,
+} from "@/src/dict/bot-queue-dict";
 import BotJobFatalError from "./bot-job-fatal-error";
 import describeJobStep from "./describe-job-step";
 import pushToSessionUser from "./push-to-session-user";
@@ -26,7 +31,8 @@ import type { BotJobContext, BotJobRunner } from "./types";
 const computer_lock = createKeyLock();
 
 /**
- * One reply per bot at a time, so replies never cross in the chat.
+ * One reply per conversation at a time, so replies never cross in the
+ * chat. A bot's other sessions answer side by side.
  */
 const reply_lock = createKeyLock();
 
@@ -133,11 +139,23 @@ export default async function processBotJob({
             });
         };
 
+        /**
+         * A task whose computer is busy says so while it waits, so the
+         * user doesn't see silence.
+         */
+        const runOnComputer = async (computer_id: number) => {
+            if (computer_lock.busy({ key: computer_id })) {
+                await setFace({ face: "asleep", status_line: BotComputerBusyStatusLine });
+            }
+
+            return await computer_lock.run({ key: computer_id, task: run });
+        };
+
         const outcome =
             job.kind == "reply"
-                ? await reply_lock.run({ key: bot_id, task: run })
+                ? await reply_lock.run({ key: job.session_id || `bot-${bot_id}`, task: run })
                 : job.computer_id
-                  ? await computer_lock.run({ key: job.computer_id, task: run })
+                  ? await runOnComputer(job.computer_id)
                   : await run();
 
         if (controller.signal.aborted) return;

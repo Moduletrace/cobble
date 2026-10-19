@@ -65,4 +65,19 @@ describe("createKeyLock", () => {
         expect(failed).rejects.toThrow("boom");
         expect(await next).toBe("ok");
     });
+
+    test("is busy while a task with the key is running", async () => {
+        const lock = createKeyLock();
+
+        expect(lock.busy({ key: 1 })).toBe(false);
+
+        const running = lock.run({ key: 1, task: () => wait(10) });
+
+        expect(lock.busy({ key: 1 })).toBe(true);
+        expect(lock.busy({ key: 2 })).toBe(false);
+
+        await running;
+
+        expect(lock.busy({ key: 1 })).toBe(false);
+    });
 });

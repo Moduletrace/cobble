@@ -3,7 +3,11 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotHue } from "@/src/dict/bot-dict";
-import { BotReplyJobTitle, BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
+import {
+    BotComputerBusyStatusLine,
+    BotReplyJobTitle,
+    BotWaitingStatusLine,
+} from "@/src/dict/bot-queue-dict";
 import type { BotWithLastMessage } from "@/src/types";
 
 type Props = {
@@ -24,17 +28,23 @@ type Props = {
 
 /**
  * Under the last message while the bot is working on a reply or a task
- * (or waiting for a model to come back), so slow work doesn't look like
- * none. A task shows its latest step. The bot's face is shared by
- * everyone who sees it, so the row only shows for work in this
- * conversation: a reply while the user has the last word, or its own
- * task.
+ * (or waiting for a model or its computer), so slow work doesn't look like
+ * none. A task shows its latest step. The bot's face is one per user,
+ * shared by all their sessions with it, so a reply shows from the thread
+ * alone: every user message queues one, so while the user has the last
+ * word a reply is due here, even while the bot works elsewhere. Only the
+ * waits (for a model, for its computer) come from the face.
  */
 export default function BotThinkingRow({ bot, progress, awaiting_reply, has_task }: Props) {
     const name = bot.name || "The bot";
-    const thinking = bot.face == "working" && bot.status_line == BotReplyJobTitle && Boolean(awaiting_reply);
-    const working = bot.face == "working" && bot.status_line != BotReplyJobTitle && Boolean(has_task);
-    const waiting = bot.face == "asleep" && bot.status_line == BotWaitingStatusLine && Boolean(awaiting_reply || has_task);
+    const asleep = bot.face == "asleep";
+    const waiting_model = asleep && bot.status_line == BotWaitingStatusLine && Boolean(awaiting_reply || has_task);
+    const waiting_computer =
+        asleep && bot.status_line == BotComputerBusyStatusLine && Boolean(has_task) && !awaiting_reply;
+    const waiting = waiting_model || waiting_computer;
+    const thinking = Boolean(awaiting_reply) && !waiting;
+    const working =
+        !awaiting_reply && bot.face == "working" && bot.status_line != BotReplyJobTitle && Boolean(has_task);
 
     if (!thinking && !working && !waiting) return null;
 
@@ -42,7 +52,7 @@ export default function BotThinkingRow({ bot, progress, awaiting_reply, has_task
         ? `${name} is thinking…`
         : working
           ? `${name} is working…`
-          : `${BotWaitingStatusLine}…`;
+          : `${bot.status_line}…`;
     const detail = working ? progress : null;
 
     return (

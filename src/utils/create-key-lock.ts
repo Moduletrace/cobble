@@ -28,5 +28,13 @@ export default function createKeyLock() {
         }
     }
 
-    return { run, size: () => tails.size };
+    /**
+     * Whether a task with this key is running or queued, so a caller can
+     * say it's waiting before it joins the line.
+     */
+    function busy({ key }: { key: string | number }) {
+        return tails.has(String(key));
+    }
+
+    return { run, busy, size: () => tails.size };
 }
