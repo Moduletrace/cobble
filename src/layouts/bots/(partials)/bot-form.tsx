@@ -1,19 +1,19 @@
 import { useContext, useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
-import Select from "@moduletrace/twui/form/Select";
 import Textarea from "@moduletrace/twui/form/Textarea";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import ImagePickField from "@/src/components/general/image-pick-field";
 import { AppContext } from "@/src/pages/__root";
-import { BotHues, type BotHue } from "@/src/dict/bot-dict";
+import type { BotHue } from "@/src/dict/bot-dict";
 import setProfileImage from "@/src/functions/frontend/set-profile-image";
 import postAdminApi from "../(functions)/post-admin-api";
 import usePickedImage from "../(hooks)/use-picked-image";
 import pickFreeHue from "@/src/utils/pick-free-hue";
 import AddFormActions from "./add-form-actions";
 import BotFormPreview from "./bot-form-preview";
+import BotHuePicker from "./bot-hue-picker";
 
 type Props = {
     /**
@@ -162,19 +162,7 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                         info="One line, shown under its name."
                         onChange={(e) => setRole(e.target.value)}
                     />
-                    <Select
-                        id="bot-form-hue"
-                        title="Colour"
-                        label="Colour"
-                        showLabel
-                        options={BotHues.map((option) => ({
-                            value: option.value,
-                            title: option.title,
-                            default: option.value == hue,
-                        }))}
-                        info="Its colour for life: how you tell it apart, even with a picture."
-                        changeHandler={(next) => setHue(next as BotHue)}
-                    />
+                    <BotHuePicker hue={hue} disabled={loading} onChange={setHue} />
                 </>
             )}
             <Textarea
