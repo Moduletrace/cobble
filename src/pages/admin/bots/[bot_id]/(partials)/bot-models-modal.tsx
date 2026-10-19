@@ -1,29 +1,29 @@
 import { useContext, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
-import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { ChevronDown, CpuAi } from "lucide-react";
+import { CpuAi } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "./bot-harness-form";
+import HeaderIconButton from "./header-icon-button";
 
 type Props = {
     bot: BotWithLastMessage;
     harnesses?: HarnessOverview[] | null;
+    onSaved: (harnesses: HarnessOverview[]) => void;
 };
 
 /**
- * The header's model button: shows the model the bot thinks with and
- * opens every model it uses (text, media reading, transcription, speech,
- * images) in the Models settings form. On the coordinator that form is the
- * defaults, for super admins only; everyone else gets the button read only.
+ * The header's model icon: opens every model the bot uses (text, media
+ * reading, transcription, speech, images) in the Models settings form. On
+ * the coordinator that form is the defaults, for super admins only;
+ * everyone else gets the icon disabled, its title saying why.
  */
-export default function BotModelsModal({ bot, harnesses: initial }: Props) {
+export default function BotModelsModal({ bot, harnesses, onSaved }: Props) {
     const { pageProps } = useContext(AppContext);
-    const [harnesses, setHarnesses] = useState(initial);
     const [open, setOpen] = useState(false);
 
     if (!harnesses?.length || !bot.id) return null;
@@ -33,47 +33,27 @@ export default function BotModelsModal({ bot, harnesses: initial }: Props) {
         !is_coordinator ||
         isPassThroughUser({ user_types: pageProps?.user_types });
     const name = bot.name || "This bot";
-    const current =
-        harnesses.find((h) => h.harness == "text")?.current?.name ||
-        "No model set up";
 
     const target = (
-        <Button
+        <HeaderIconButton
+            icon={CpuAi}
             title={
                 can_edit
-                    ? `${name}'s models`
-                    : `${name} uses the default models. A super admin can change them here or in Settings, under Models.`
+                    ? is_coordinator
+                        ? "Change the default models"
+                        : `Change ${name}'s models`
+                    : `${name} uses the default models. A super admin can change them in Settings, under Models.`
             }
-            type="button"
-            variant="outlined"
-            color="gray"
-            size="small"
             disabled={!can_edit}
-            buttonContentProps={{ className: "min-w-0" }}
-            className="max-w-full min-w-0 gap-2! flex-nowrap text-[13px] text-ink-secondary hover:text-ink"
-        >
-            <CpuAi size={16} aria-hidden className="shrink-0 -mt-0.5" />
-            <Span className="truncate">{current}</Span>
-            {can_edit ? (
-                <ChevronDown size={14} aria-hidden className="shrink-0" />
-            ) : null}
-        </Button>
+        />
     );
 
-    if (!can_edit) {
-        return (
-            <Stack className="max-w-[280px] min-w-0 shrink">
-                {target}
-            </Stack>
-        );
-    }
+    if (!can_edit) return target;
 
     return (
         <Modal
             target={target}
-            targetWrapperProps={{
-                className: "max-w-[280px] min-w-0 shrink",
-            }}
+            targetWrapperProps={{ className: "shrink-0" }}
             open={open}
             setOpen={setOpen}
             className="max-w-3xl bg-paper px-6 pt-6 pb-0"
@@ -84,15 +64,11 @@ export default function BotModelsModal({ bot, harnesses: initial }: Props) {
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {is_coordinator
-                        ? `${name} and every bot left on the default use these. Providers are in Settings, under Models.`
-                        : `${name} uses the default models unless you pick its own.`}
+                        ? `${name} and every bot left on the default use these. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it. Providers are in Settings, under Models.`
+                        : `${name} uses the default models unless you pick its own. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it.`}
                 </Span>
             </Stack>
-            <BotHarnessForm
-                bot={bot}
-                harnesses={harnesses}
-                onSaved={setHarnesses}
-            />
+            <BotHarnessForm bot={bot} harnesses={harnesses} onSaved={onSaved} />
         </Modal>
     );
 }

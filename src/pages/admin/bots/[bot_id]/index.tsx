@@ -2,15 +2,9 @@ import type { PagePropsType } from "@/src/types";
 import type { BunextPageModuleMetaFn } from "@moduletrace/bunext/types";
 import { SiteData } from "@/src/data/site-data";
 import Conversation from "./(sections)/conversation";
-import WorkingOnPanel from "./(sections)/working-on-panel";
 
 export default function BotConversationPage() {
-    return (
-        <>
-            <Conversation />
-            <WorkingOnPanel />
-        </>
-    );
+    return <Conversation />;
 }
 
 export const meta: BunextPageModuleMetaFn = async (params) => {

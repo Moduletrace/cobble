@@ -14,13 +14,13 @@ type Props = {
 };
 
 /**
- * One computer in the header's computer select, checked when it's the
+ * One computer in the header's computers modal, checked when it's the
  * one the bot is on.
  */
 export default function BotComputerOption({ computer, current, onPick }: Props) {
     return (
         <Row
-            role="menuitemradio"
+            role="radio"
             aria-checked={current}
             tabIndex={0}
             onClick={current ? undefined : onPick}

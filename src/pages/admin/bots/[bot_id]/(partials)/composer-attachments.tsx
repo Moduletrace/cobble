@@ -14,7 +14,7 @@ export default function ComposerAttachments({ pending, onRemove }: Props) {
     if (!pending.length) return null;
 
     return (
-        <Row className="gap-2! px-6 pb-3">
+        <Row className="w-full max-w-[760px] mx-auto gap-2! px-6 pb-3">
             {pending.map((item) => (
                 <ComposerAttachmentChip
                     key={item.key}

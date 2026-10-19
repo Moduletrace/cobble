@@ -273,7 +273,6 @@ export type PagePropsType = {
     bots?: BotWithLastMessage[] | null;
     bot?: BotWithLastMessage | null;
     bot_messages?: BotMessageWithAttachments[] | null;
-    bot_task?: BotTaskWithSteps | null;
     /**
      * The open bot's computers, the one it's on first.
      */

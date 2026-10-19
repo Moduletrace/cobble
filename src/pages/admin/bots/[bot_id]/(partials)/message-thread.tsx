@@ -23,7 +23,7 @@ export default function MessageThread({ bot, messages }: Props) {
                 role="log"
                 aria-live="polite"
                 aria-label={`Conversation with ${bot.name}`}
-                className="w-full gap-4! items-stretch px-6 pt-6 pb-6"
+                className="w-full max-w-[760px] mx-auto gap-4! items-stretch px-6 pt-6 pb-6"
             >
                 {groups.map((group) => (
                     <MessageGroupBlock key={group.key} bot={bot} group={group} />

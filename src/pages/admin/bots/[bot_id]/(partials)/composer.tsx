@@ -69,35 +69,37 @@ export default function Composer({ bot, onSent }: Props) {
             }}
         >
             <ComposerAttachments pending={files.pending} onRemove={files.remove} />
-            <Row className="h-[88px] shrink-0 gap-4! flex-nowrap items-center px-6 border-0 border-t border-solid border-hairline">
-                <ComposerAttachButton disabled={files.full} onFiles={files.add} />
-                <Textarea
-                    name="message"
-                    aria-label={`Message ${bot.name}`}
-                    placeholder={`Message ${bot.name}`}
-                    rows={1}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onPaste={(e) => {
-                        const pasted = [...e.clipboardData.files];
+            <Stack className="shrink-0 gap-0! items-stretch border-0 border-t border-solid border-hairline">
+                <Row className="w-full max-w-[760px] mx-auto h-[88px] gap-4! flex-nowrap items-center px-6">
+                    <ComposerAttachButton disabled={files.full} onFiles={files.add} />
+                    <Textarea
+                        name="message"
+                        aria-label={`Message ${bot.name}`}
+                        placeholder={`Message ${bot.name}`}
+                        rows={1}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onPaste={(e) => {
+                            const pasted = [...e.clipboardData.files];
 
-                        if (!pasted.length) return;
+                            if (!pasted.length) return;
 
-                        e.preventDefault();
-                        files.add({ files: pasted });
-                    }}
-                    aria-invalid={error ? true : undefined}
-                    title={error}
-                    className="field-sizing-content max-h-[100px] resize-none overflow-y-auto text-sm leading-5 text-ink placeholder:text-ink-secondary"
-                    wrapperWrapperProps={{ className: "grow min-w-0" }}
-                    wrapperProps={{
-                        className:
-                            "p-0! outline-0! border-0! bg-transparent! dark:bg-transparent! rounded-none",
-                    }}
-                />
-                <ComposerSendButton disabled={!can_send} loading={sending || files.uploading} onClick={send} />
-            </Row>
+                            e.preventDefault();
+                            files.add({ files: pasted });
+                        }}
+                        aria-invalid={error ? true : undefined}
+                        title={error}
+                        className="field-sizing-content max-h-[100px] resize-none overflow-y-auto text-sm leading-5 text-ink placeholder:text-ink-secondary"
+                        wrapperWrapperProps={{ className: "grow min-w-0" }}
+                        wrapperProps={{
+                            className:
+                                "p-0! outline-0! border-0! bg-transparent! dark:bg-transparent! rounded-none",
+                        }}
+                    />
+                    <ComposerSendButton disabled={!can_send} loading={sending || files.uploading} onClick={send} />
+                </Row>
+            </Stack>
         </Stack>
     );
 }

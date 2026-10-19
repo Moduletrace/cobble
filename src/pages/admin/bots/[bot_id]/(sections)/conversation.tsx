@@ -12,8 +12,9 @@ import MessageThread from "../(partials)/message-thread";
 import Composer from "../(partials)/composer";
 
 /**
- * The 900px conversation column: header, bottom-anchored thread, composer.
- * The bot's computers are shared with the header's select and the computer
+ * The conversation column: header, bottom-anchored thread, composer, the
+ * thread and composer held to a readable width.
+ * The bot's computers are shared with the header's modal and the computer
  * buttons in the thread, so a switch from either shows in both.
  */
 export default function Conversation() {
@@ -56,7 +57,6 @@ export default function Conversation() {
             <Stack className="grow min-w-0 h-full gap-0! items-stretch">
                 <ConversationHeader
                     bot={live_bot}
-                    bots={bots}
                     harnesses={pageProps?.bot_harness_overview?.harnesses}
                 />
                 <MessageThread bot={live_bot} messages={messages} />

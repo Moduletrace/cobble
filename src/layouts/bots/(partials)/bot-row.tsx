@@ -14,21 +14,24 @@ type Props = {
     bot: BotWithLastMessage;
     selected?: boolean;
     /**
-     * Replaces the last-message snippet (the coordinator shows crew status).
+     * Shown when the bot has no status line, before the last-message
+     * snippet (the coordinator's crew counts).
      */
     subtitle?: string;
 };
 
 /**
- * 48px rail row. Status is the face: no badges, spinners or state dots.
+ * 48px rail row. Status is the face and the subtitle (the bot's status
+ * line while it has one): no badges, spinners or state dots.
  * Selected is ink at 5%, never a hue.
  */
 export default function BotRow({ bot, selected, subtitle }: Props) {
     const hue = (bot.hue || null) as BotHue | null;
     const snippet =
-        subtitle ??
-        (bot.last_message_text ? messagePreview({ text: bot.last_message_text }) : null) ??
-        bot.role ??
+        bot.status_line ||
+        subtitle ||
+        (bot.last_message_text ? messagePreview({ text: bot.last_message_text }) : "") ||
+        bot.role ||
         "";
     const at = bot.last_message_at || bot.last_activity_at;
 
