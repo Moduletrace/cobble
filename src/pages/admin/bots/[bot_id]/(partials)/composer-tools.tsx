@@ -1,8 +1,11 @@
+import { useContext } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import useExtensions from "@/src/hooks/use-extensions";
 import type { BotExtensionsPayload, BotWithLastMessage } from "@/src/types";
+import { BotComputersContext } from "../(data)/bot-computers-context";
 import ComposerAddToolModal from "./composer-add-tool-modal";
+import ComposerComputerButton from "./composer-computer-button";
 import ComposerToolChip from "./composer-tool-chip";
 
 type Props = {
@@ -14,7 +17,8 @@ type Props = {
 /**
  * The MCP servers and tools the bot can use here, under the composer.
  * Super admins and admins remove any it was given (even one every bot
- * started with) and add more; a workspace's own stay.
+ * started with) and add more; a workspace's own stay. The computer the
+ * bot is on sits before them, opening it in the viewer.
  */
 export default function ComposerTools({ bot, workspace_id, initial }: Props) {
     const extensions = useExtensions({
@@ -23,11 +27,16 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
         initial,
     });
 
-    if (!extensions.attached.length && !(extensions.can_manage && extensions.addable.length)) return null;
+    const { computers } = useContext(BotComputersContext);
+
+    const has_tools = Boolean(extensions.attached.length || (extensions.can_manage && extensions.addable.length));
+
+    if (!has_tools && !computers.length) return null;
 
     return (
         <Row className="w-full max-w-container mx-auto gap-1.5! items-center px-6 pb-3 -mt-3">
-            <Span className="text-[12px] leading-4 text-ink-secondary">Tools</Span>
+            <ComposerComputerButton />
+            {has_tools ? <Span className="text-[12px] leading-4 text-ink-secondary">Tools</Span> : null}
             {extensions.attached.map((item) => (
                 <ComposerToolChip
                     key={`${item.kind}:${item.id}`}
