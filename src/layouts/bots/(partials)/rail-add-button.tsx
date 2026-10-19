@@ -23,7 +23,7 @@ export default function RailAddButton() {
             variant="ghost"
             color="text"
             onClick={openAdd}
-            className="hidden lg:flex shrink-0 p-1.5! rounded-default-sm text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
+            className="hidden @rail:flex shrink-0 p-1.5! rounded-default-sm text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
         >
             <Plus size={18} aria-hidden />
         </Button>

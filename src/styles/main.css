@@ -153,6 +153,9 @@
     --radius-default-xl: 14px;
 
     --container-container: 870px;
+    /* The rail's full (named) width: below it the rail shows icons only.
+       A container query, so the mobile drawer opens full too. */
+    --container-rail: 220px;
 }
 
 body {

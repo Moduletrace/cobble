@@ -17,6 +17,8 @@ import Layout from "../layouts/main";
 import AuthLayout from "../layouts/auth";
 import BotsLayout from "../layouts/bots";
 import ThemeInitScript from "../components/general/theme-init-script";
+import PwaInitScript from "../components/general/pwa-init-script";
+import ServiceWorkerRegistrar from "../components/general/service-worker-registrar";
 
 export const AppContext = React.createContext<AppContextObject>(
     {} as AppContextObject,
@@ -57,6 +59,7 @@ export default function App({
         return (
             <AppContext.Provider value={appContextObject}>
                 <BotsLayout>{children}</BotsLayout>
+                <ServiceWorkerRegistrar />
             </AppContext.Provider>
         );
     }
@@ -68,6 +71,7 @@ export default function App({
         return (
             <AppContext.Provider value={appContextObject}>
                 <AuthLayout>{children}</AuthLayout>
+                <ServiceWorkerRegistrar />
             </AppContext.Provider>
         );
     }
@@ -86,6 +90,7 @@ export default function App({
             >
                 {children}
             </Layout>
+            <ServiceWorkerRegistrar />
         </AppContext.Provider>
     );
 }
@@ -94,6 +99,18 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
     return (
         <>
             <ThemeInitScript />
+            <PwaInitScript />
+            <meta name="application-name" content={SiteData["SiteName"]} />
+            <meta name="mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+            <meta
+                name="apple-mobile-web-app-title"
+                content={SiteData["SiteName"]}
+            />
+            <meta
+                name="apple-mobile-web-app-status-bar-style"
+                content="default"
+            />
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link
                 rel="preconnect"

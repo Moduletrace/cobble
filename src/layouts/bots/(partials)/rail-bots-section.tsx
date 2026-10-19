@@ -39,7 +39,7 @@ export default function RailBotsSection({ title, workers, selected_id, hrefFor, 
                 <BotRow key={bot.id} bot={bot} href={hrefFor(bot)} selected={bot.id == selected_id} />
             ))}
             {workers.length ? null : (
-                <Span className="hidden lg:block px-3 py-2 text-[13px] leading-[18px] text-ink-secondary">
+                <Span className="hidden @rail:block px-3 py-2 text-[13px] leading-[18px] text-ink-secondary">
                     {empty}
                 </Span>
             )}

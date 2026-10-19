@@ -139,7 +139,7 @@ export default function RailSettingsAside({ pathname }: Props) {
     return (
         <>
             <RailBackLink title={back.title} href={back.href} />
-            <Divider className="shrink-0 mx-1 lg:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
+            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
             <RailSettingsRecordRow
                 avatar={avatar}
                 title={title}

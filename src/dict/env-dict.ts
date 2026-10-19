@@ -43,6 +43,20 @@ export type KnownEnv = {
  */
 export const EnvDict: readonly KnownEnv[] = [
     {
+        key: "VAPID_PUBLIC_KEY",
+        description:
+            "Web Push public key, shared with browsers that subscribe. Generated on first start when missing.",
+        required: false,
+        secret: false,
+    },
+    {
+        key: "VAPID_PRIVATE_KEY",
+        description:
+            "Web Push private key, used to sign notifications. Generated on first start when missing; never share it.",
+        required: false,
+        secret: true,
+    },
+    {
         key: "MAIN_COMPUTER_URL",
         description: `The main computer's address, for a server running outside docker (e.g. http://localhost:8170). Empty uses the docker network.`,
         required: false,

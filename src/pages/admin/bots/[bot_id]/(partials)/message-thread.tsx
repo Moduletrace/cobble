@@ -39,7 +39,7 @@ export default function MessageThread({ bot, messages, progress, reply_progress,
                 role="log"
                 aria-live="polite"
                 aria-label={`Conversation with ${bot.name}`}
-                className="w-full max-w-container mx-auto gap-4! items-stretch px-6 pt-6 pb-6"
+                className="w-full max-w-container mx-auto gap-4! items-stretch px-3 md:px-6 pt-6 pb-6"
             >
                 {groups.map((group) => (
                     <MessageGroupBlock

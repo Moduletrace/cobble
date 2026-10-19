@@ -45,14 +45,14 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
             aria-current={selected ? "page" : undefined}
             title={bot.name}
             className={twMerge(
-                "flex shrink-0 h-12 items-center gap-3 rounded-default px-1 lg:px-3 border-0 leading-normal",
+                "flex shrink-0 h-12 items-center gap-3 rounded-default px-1 @rail:px-3 border-0 leading-normal",
                 "hover:opacity-100 hover:bg-sunken transition-colors duration-[var(--m-fast)]",
                 "focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
                 selected && "bg-ink/5 hover:bg-ink/5",
             )}
         >
             <BotAvatar image_media_id={bot.image_media_id} hue={hue} face={(bot.face || "idle") as BotFace} />
-            <Stack className="hidden lg:flex grow min-w-0 gap-0!">
+            <Stack className="hidden @rail:flex grow min-w-0 gap-0!">
                 <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
                     {bot.name}
                 </Span>
@@ -60,7 +60,7 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
                     {snippet}
                 </Span>
             </Stack>
-            <Stack className="hidden lg:flex shrink-0 self-stretch items-end justify-start gap-1.5! pt-1.5">
+            <Stack className="hidden @rail:flex shrink-0 self-stretch items-end justify-start gap-1.5! pt-1.5">
                 {at ? (
                     <Span className="text-[11px] leading-4 text-ink-secondary">
                         {relativeTime({ at: Number(at) })}

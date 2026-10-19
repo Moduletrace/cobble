@@ -14,7 +14,7 @@ type Props = {
  */
 export default function AuthLayout({ children }: Props): React.JSX.Element {
     return (
-        <Stack className="w-full min-h-screen items-stretch gap-0! bg-light dark:bg-black">
+        <Stack className="w-full min-h-dvh items-stretch gap-0! bg-light dark:bg-black">
             <AuthTopBar />
             <Main className="grow justify-center">{children}</Main>
             <AuthBottomBar />

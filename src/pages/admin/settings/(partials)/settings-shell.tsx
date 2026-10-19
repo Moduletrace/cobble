@@ -44,7 +44,7 @@ export default function SettingsShell({
             <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch">
                 <Stack
                     className={twMerge(
-                        "w-full max-w-container mx-auto gap-0! items-stretch px-6 lg:px-10 pb-16",
+                        "w-full max-w-container mx-auto gap-0! items-stretch px-4 md:px-6 lg:px-10 pb-16",
                         wide && "max-w-[1200px]",
                     )}
                 >

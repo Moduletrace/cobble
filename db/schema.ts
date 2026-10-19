@@ -2078,6 +2078,94 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "user_presence",
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user. One row each`,
+                    dataType: "INTEGER",
+                    unique: true,
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "user_presence_user_fk",
+                    },
+                },
+                {
+                    fieldName: "last_seen_at",
+                    fieldDescription: `Unix timestamp of the last open socket or keepalive, for skipping push notifications while the app is open`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_user_presence_last_seen_at",
+                    indexTableFields: ["last_seen_at"],
+                },
+            ],
+        },
+        {
+            tableName: "push_subscriptions",
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user the device belongs to`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "push_subscriptions_user_fk",
+                    },
+                },
+                {
+                    fieldName: "endpoint",
+                    fieldDescription: `The push service URL the browser gave. Unique: one device, one row`,
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "p256dh",
+                    fieldDescription: `The subscription's public key`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "auth",
+                    fieldDescription: `The subscription's auth secret`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "user_agent",
+                    fieldDescription: `What the device said it was, for the settings list`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "platform",
+                    fieldDescription: `The browser's platform, for the settings list`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "last_used_at",
+                    fieldDescription: `Unix timestamp of the last notification sent to it`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_error",
+                    fieldDescription: `Why the last send failed, if it did`,
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_push_subscriptions_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
             tableName: "envs",
             fields: [
                 {

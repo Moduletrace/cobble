@@ -652,6 +652,7 @@ export type PagePropsType = {
     harness_overview?: HarnessOverviewPayload | null;
     bot_harness_overview?: BotHarnessOverviewPayload | null;
     envs_overview?: EnvsOverviewPayload | null;
+    push_overview?: PushOverview | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
     bot_extensions?: BotExtensionsPayload | null;
@@ -1085,4 +1086,24 @@ export type FeatureItem = {
     Icon: LucideIcon;
     title: string;
     description: string;
+};
+
+/**
+ * One device with push notifications on, as Settings lists it. Never the
+ * endpoint: that is a capability URL held by the browser.
+ */
+export type PushDeviceOverview = {
+    id: number;
+    device: string;
+    created_at: number;
+    last_used_at: number;
+    last_error: string | null;
+};
+
+export type PushOverview = {
+    /**
+     * The install's VAPID public key, which a subscribing browser needs.
+     */
+    public_key: string | null;
+    subscriptions: PushDeviceOverview[];
 };

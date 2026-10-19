@@ -22,7 +22,7 @@ export default function RailPagesList({ pathname }: Props) {
     return (
         <>
             <RailBackLink />
-            <Divider className="shrink-0 mx-1 lg:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
+            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
             {RailPages.filter((page) => is_super_admin || !page.super_admin_only).map((page) => (
                 <RailSettingsLink
                     key={page.url}

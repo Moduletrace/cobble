@@ -9,8 +9,10 @@ import botsQueue from "./bots-queue";
 import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
+import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
 import { ComputerProxyPrefix } from "./dict/computer-dict";
 import ensureDockerNetwork from "./functions/backend/docker/ensure-docker-network";
+import { ensureVapidKeys } from "./push/vapid";
 
 declare global {}
 
@@ -21,6 +23,18 @@ const port = process.env.PORT || 7227;
 
 await enableForeignKeys();
 await bunext.bunextInit();
+
+/**
+ * Web Push needs a key pair; the first start of the main install creates
+ * it (in the Environment settings) so notifications work without setup.
+ */
+if (process.env.NODE_ENV != "production" || process.env.MAIN_SERVER) {
+    await ensureVapidKeys().catch((error) =>
+        logError({ title: "Could not prepare Web Push keys", error }).catch(
+            () => {},
+        ),
+    );
+}
 
 /**
  * Computers are docker containers on this network, so the app doesn't
@@ -38,6 +52,10 @@ const server = Bun.serve({
     async fetch(req, server) {
         try {
             const url = new URL(req.url);
+
+            const pwa_file = await handlePwaFile({ pathname: url.pathname });
+
+            if (pwa_file) return pwa_file;
 
             if (url.pathname.startsWith("/media")) {
                 try {

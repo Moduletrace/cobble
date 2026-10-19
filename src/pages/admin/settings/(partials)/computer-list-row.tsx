@@ -28,14 +28,22 @@ type Props = {
  * settings page from the title. Every list uses it, so the row behaves the
  * same, and the open button shows it in the viewer over the page.
  */
-export default function ComputerListRow({ computer, badge, subtitle, children, linked = true }: Props) {
+export default function ComputerListRow({
+    computer,
+    badge,
+    subtitle,
+    children,
+    linked = true,
+}: Props) {
     const name = computer.name || `Computer ${computer.id}`;
     const ready = computer.status == "running";
 
     return (
         <SettingsListRow
             avatar={<ComputerIconTile />}
-            href={linked ? `/admin/settings/computers/${computer.id}` : undefined}
+            href={
+                linked ? `/admin/settings/computers/${computer.id}` : undefined
+            }
             title={name}
             badge={badge}
             subtitle={

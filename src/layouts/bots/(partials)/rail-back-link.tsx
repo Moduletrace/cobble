@@ -21,12 +21,12 @@ export default function RailBackLink({
         <Link
             href={href}
             title={title}
-            className="flex shrink-0 h-12 items-center gap-3 rounded-default px-1 lg:px-3 border-0 leading-normal text-ink hover:opacity-100 hover:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+            className="flex shrink-0 h-12 items-center gap-3 rounded-default px-1 @rail:px-3 border-0 leading-normal text-ink hover:opacity-100 hover:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         >
-            <Span className="size-8 shrink-0 flex items-center justify-center mx-auto lg:mx-0">
+            <Span className="size-8 shrink-0 flex items-center justify-center mx-auto @rail:mx-0">
                 <ArrowLeft size={18} aria-hidden />
             </Span>
-            <Span className="hidden lg:block min-w-0 truncate text-sm font-bold leading-5 text-ink">
+            <Span className="hidden @rail:block min-w-0 truncate text-sm font-bold leading-5 text-ink">
                 {title}
             </Span>
         </Link>

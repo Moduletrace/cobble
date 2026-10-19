@@ -32,7 +32,7 @@ export default function RailWorkspacesSection({ workspaces, selected_id }: Props
                 <WorkspaceRow key={workspace.id} workspace={workspace} selected={workspace.id == selected_id} />
             ))}
             {workspaces.length ? null : (
-                <Span className="hidden lg:block px-3 py-2 text-[13px] leading-[18px] text-ink-secondary">
+                <Span className="hidden @rail:block px-3 py-2 text-[13px] leading-[18px] text-ink-secondary">
                     No workspaces yet. A workspace keeps a project's context, bots and computers together.
                 </Span>
             )}

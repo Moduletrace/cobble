@@ -10,6 +10,7 @@ import type {
 import sendBotMessage from "../(functions)/send-bot-message";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
 import useComposerDraft from "../(hooks)/use-composer-draft";
+import useOnlineStatus from "@/src/hooks/use-online-status";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerSendButton from "./composer-send-button";
@@ -40,11 +41,13 @@ export default function Composer({ bot, workspace_id, extensions, onSent }: Prop
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
     const files = useComposerAttachments({ bot_id: bot.id, workspace_id });
+    const online = useOnlineStatus();
 
     const can_send =
         Boolean(text.trim() || files.media_ids.length) &&
         !sending &&
-        !files.uploading;
+        !files.uploading &&
+        online;
 
     async function send() {
         if (!can_send || !bot.id) return;
@@ -98,7 +101,7 @@ export default function Composer({ bot, workspace_id, extensions, onSent }: Prop
                 onRemove={files.remove}
             />
             <Stack className="shrink-0 gap-0! items-stretch border-0 border-t border-solid border-hairline">
-                <Row className="w-full max-w-container mx-auto h-[88px] gap-4! flex-nowrap items-center px-6">
+                <Row className="w-full max-w-container mx-auto h-[88px] gap-3! md:gap-4! flex-nowrap items-center px-3 md:px-6">
                     <ComposerAttachButton
                         disabled={files.full}
                         onFiles={files.add}

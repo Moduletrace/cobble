@@ -30,7 +30,7 @@ export default function BotProfileModal({ bot }: Props) {
             image_media_id={bot.image_media_id}
             hue={(bot.hue || null) as BotHue | null}
             face={(bot.face || "idle") as BotFace}
-            size={40}
+            size={35}
         />
     );
 
@@ -65,7 +65,9 @@ export default function BotProfileModal({ bot }: Props) {
                         : `${name}'s core instructions apply everywhere. What it does in one workspace is set on that workspace's page.`}
                 </Span>
             </Stack>
-            {open ? <BotForm bot={bot} onCancel={() => setOpen(false)} /> : null}
+            {open ? (
+                <BotForm bot={bot} onCancel={() => setOpen(false)} />
+            ) : null}
         </Modal>
     );
 }

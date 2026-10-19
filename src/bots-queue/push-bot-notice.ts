@@ -1,5 +1,7 @@
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import type { BotFaceChange } from "@/src/functions/backend/db/bots/set-bot-face";
+import notifyBotMessage from "@/src/push/notify-bot-message";
+import notifyBotFace from "@/src/push/notify-bot-face";
 import pushBotUpdated from "./push-bot-updated";
 import pushToSessionUser from "./push-to-session-user";
 
@@ -29,6 +31,11 @@ export default async function pushBotNotice({ bot_id, message, bot, relay }: Par
             session_id: message.session_id,
             data: { event: "server:bot-message", data: message },
         });
+
+        /**
+         * Not waited on: a push service's latency must not slow the job.
+         */
+        void notifyBotMessage({ message });
     }
 
     if (relay) {
@@ -36,9 +43,20 @@ export default async function pushBotNotice({ bot_id, message, bot, relay }: Par
             session_id: relay.message.session_id,
             data: { event: "server:bot-message", data: relay.message },
         });
+
+        void notifyBotMessage({ message: relay.message });
     }
 
     if (bot) {
         await pushBotUpdated({ bot_id: bot.id || bot_id, user_id: bot.user_id });
+
+        /**
+         * A message that carries needs-you already notified; this is the
+         * face-only case (a task running into something only the user
+         * can solve).
+         */
+        if (!message && bot.face == "needs-you") {
+            void notifyBotFace({ bot });
+        }
     }
 }

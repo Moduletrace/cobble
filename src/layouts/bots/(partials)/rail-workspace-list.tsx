@@ -37,7 +37,7 @@ export default function RailWorkspaceList({ workspace, bots, selected_id, on_wor
                 title={on_workspace_page ? "All bots" : `Back to ${workspace.name}`}
                 href={on_workspace_page ? undefined : base}
             />
-            <Divider className="shrink-0 mx-1 lg:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
+            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
             <WorkspaceRow workspace={{ ...workspace, unread: 0 }} selected={on_workspace_page} />
             <RailBotsSection
                 action={<RailSectionAddButton title="Add a bot to this workspace" onClick={() => openForm({ kind: "bot" })} />}

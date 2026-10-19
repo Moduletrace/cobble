@@ -28,15 +28,15 @@ export default function RailSeeAllRow({ hidden, label, onOpen }: Props) {
             variant="ghost"
             color="text"
             onClick={onOpen}
-            className="flex shrink-0 h-10 w-full items-center justify-center lg:justify-start gap-3! rounded-default px-1! lg:px-3! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
+            className="flex shrink-0 h-10 w-full items-center justify-center @rail:justify-start gap-3! rounded-default px-1! @rail:px-3! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
         >
-            <Ellipsis size={18} aria-hidden className="lg:hidden" />
-            <Row className="hidden lg:flex shrink-0 gap-1! flex-nowrap items-center">
+            <Ellipsis size={18} aria-hidden className="@rail:hidden" />
+            <Row className="hidden @rail:flex shrink-0 gap-1! flex-nowrap items-center">
                 {hidden.slice(0, AppData.RailSeeAllStones).map((bot) => (
                     <RailSeeAllStone key={bot.id} bot={bot} />
                 ))}
             </Row>
-            <Span className="hidden lg:inline text-[13px] font-bold leading-4">{label}</Span>
+            <Span className="hidden @rail:inline text-[13px] font-bold leading-4">{label}</Span>
         </Button>
     );
 }

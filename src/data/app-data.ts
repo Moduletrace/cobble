@@ -275,4 +275,18 @@ export const AppData = {
      * Largest picture a bot or a workspace can have.
      */
     ProfileImageMaxBytes: 5 * 1024 * 1024,
+    /**
+     * A user with an open socket seen this recently gets no push: they
+     * are already looking at the app.
+     */
+    PushPresenceWindowMs: 45_000,
+    /**
+     * A notification's body is one line, cut here.
+     */
+    PushBodyMaxChars: 140,
+    /**
+     * How long a push service may hold a notification for a device that
+     * is offline.
+     */
+    PushTtlSeconds: 60 * 60,
 } as const;

@@ -11,6 +11,7 @@ import { wsSendData } from "./(functions)/ws-send-data";
 import checkSessionAccess from "./(functions)/check-session-access";
 import logEvent from "@/src/functions/backend/logger";
 import { computerProxySocket } from "@/src/functions/server/computers/computer-proxy-socket";
+import touchUserPresence from "@/src/functions/backend/db/push/touch-user-presence";
 
 /**
  * The twui `useWebSocket` hook sends a raw keepalive string to keep the
@@ -33,6 +34,10 @@ export const websocket = {
         const { user } = ws.data;
 
         joinRoom(ws, "public");
+
+        if (user.id) {
+            void touchUserPresence({ user_id: user.id }).catch(() => {});
+        }
 
         wsSendData({
             ws,
@@ -58,6 +63,14 @@ export const websocket = {
         message: string | Buffer,
     ) {
         if (ws.data.proxy) return computerProxySocket.message(ws, message);
+
+        /**
+         * Every keepalive counts, including twui's raw ping string, so
+         * presence stays fresh while the app is open.
+         */
+        if (ws.data.user?.id) {
+            void touchUserPresence({ user_id: ws.data.user.id }).catch(() => {});
+        }
 
         const data = parseMessage(message);
 

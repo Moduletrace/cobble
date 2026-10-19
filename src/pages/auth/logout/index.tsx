@@ -21,7 +21,7 @@ export default function LogoutPage() {
     return (
         <Section
             className={twMerge(
-                "h-screen w-screen px-0 items-center justify-center",
+                "h-dvh w-screen px-0 items-center justify-center",
             )}
         >
             <Center>

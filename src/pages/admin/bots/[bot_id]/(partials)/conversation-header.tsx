@@ -15,6 +15,7 @@ import BotProfileModal from "./bot-profile-modal";
 import BotSessionsModal from "./bot-sessions-modal";
 import NewSessionButton from "./new-session-button";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
+import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
 import HeaderMetaItem from "./header-meta-item";
 
 type Props = {
@@ -50,13 +51,14 @@ export default function ConversationHeader({ bot, workspace, has_other_unread, h
             : canManageCrew({ user_types: pageProps?.user_types });
 
     return (
-        <Row className="h-16 shrink-0 gap-3! flex-nowrap items-center px-6 border-0 border-b border-solid border-hairline">
+        <Row className="h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3 md:px-6 border-0 border-b border-solid border-hairline">
+            <RailDrawerButton />
             <BotProfileModal bot={bot} />
             <Stack className="min-w-0 gap-0!">
                 <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full">
                     {bot.name}
                 </H1>
-                <Row className="min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
+                <Row className="hidden md:flex min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
                     {workspace?.id ? (
                         <HeaderMetaItem icon={Layers} label="Workspace" text={workspace.name || "Workspace"} />
                     ) : null}
@@ -86,19 +88,23 @@ export default function ConversationHeader({ bot, workspace, has_other_unread, h
                 />
                 <NewSessionButton bot_id={Number(bot.id)} workspace_id={workspace?.id || null} />
                 <BotComputersModal bot={bot} workspace_name={workspace?.id ? workspace.name || "This workspace" : null} />
-                <BotModelsModal
-                    key={bot.id}
-                    bot={bot}
-                    workspace={workspace}
-                    harnesses={harnesses}
-                    onSaved={setHarnesses}
-                />
-                {can_open_settings ? (
-                    <HeaderIconButton
-                        icon={Settings}
-                        title={`${bot.name || "This bot"}'s settings`}
-                        href={`/admin/settings/bots/${bot.id}`}
+                <span className="hidden md:inline-flex">
+                    <BotModelsModal
+                        key={bot.id}
+                        bot={bot}
+                        workspace={workspace}
+                        harnesses={harnesses}
+                        onSaved={setHarnesses}
                     />
+                </span>
+                {can_open_settings ? (
+                    <span className="hidden md:inline-flex">
+                        <HeaderIconButton
+                            icon={Settings}
+                            title={`${bot.name || "This bot"}'s settings`}
+                            href={`/admin/settings/bots/${bot.id}`}
+                        />
+                    </span>
                 ) : null}
             </Row>
         </Row>
