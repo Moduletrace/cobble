@@ -1,9 +1,9 @@
-import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
+import type { BotMessageWithAttachments } from "@/src/types";
 
 export type MessageGroup = {
     key: string;
     author: "bot" | "user";
-    messages: BUN_SQLITE_COBBLE_BOT_MESSAGES[];
+    messages: BotMessageWithAttachments[];
     /**
      * Time of the group's last message, shown once per group.
      */
@@ -11,7 +11,7 @@ export type MessageGroup = {
 };
 
 type Params = {
-    messages: BUN_SQLITE_COBBLE_BOT_MESSAGES[];
+    messages: BotMessageWithAttachments[];
     /**
      * Consecutive messages from one author within this gap share a group.
      */

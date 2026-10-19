@@ -1,5 +1,6 @@
 import React from "react";
 import Row from "@moduletrace/twui/layout/Row";
+import useWebSocket from "@moduletrace/twui/hooks/useWebSocket";
 import BotsRail from "./(sections)/bots-rail";
 
 /**
@@ -12,6 +13,11 @@ export default function BotsLayout({
 }: {
     children: React.ReactNode;
 }) {
+    /**
+     * One socket for live bot updates (see `useServerEvent`).
+     */
+    useWebSocket({ url: "/ws" });
+
     return (
         <Row className="w-full h-screen gap-0! flex-nowrap items-stretch overflow-hidden bg-paper text-ink">
             <BotsRail />

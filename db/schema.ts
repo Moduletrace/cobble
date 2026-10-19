@@ -13,8 +13,12 @@ import {
     ContainerPurposes,
     ContainerStatuses,
 } from "@/src/dict/computer-dict";
+import { Harnesses } from "@/src/dict/harness-dict";
+import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
+import { BotJobKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
+import { EnvParadigms } from "@/src/dict/env-dict";
 
 const schema: BUN_SQLITE_DatabaseSchemaType = {
     tables: [
@@ -397,6 +401,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             },
             fields: [
                 {
+                    fieldName: "kind",
+                    fieldDescription: `task (long-running work, shown in the working-on panel) or reply (answers the user in chat)`,
+                    dataType: "TEXT",
+                    options: BotJobKinds.map((k) => k.value),
+                    defaultValue: "task",
+                },
+                {
                     fieldName: "bot_id",
                     fieldDescription: `The bot doing the work`,
                     dataType: "INTEGER",
@@ -569,6 +580,50 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_workspace_bots_bot_id",
                     indexTableFields: ["bot_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_message_media",
+            tableDescription: `Files attached to a chat message (\`media\` rows, private to the message's owner)`,
+            fields: [
+                {
+                    fieldName: "message_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_messages",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_media_message_fk",
+                    },
+                },
+                {
+                    fieldName: "media_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "media",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_message_media_media_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_link_per_message_media",
+                    constraintName: "A file is attached to a message once",
+                    constraintTableFields: [
+                        { value: "message_id" },
+                        { value: "media_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_message_media_message_id",
+                    indexTableFields: ["message_id"],
                 },
             ],
         },
@@ -774,6 +829,260 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "harness_providers",
+            fields: [
+                {
+                    fieldName: "kind",
+                    fieldDescription: `Which provider preset this is`,
+                    dataType: "TEXT",
+                    options: HarnessProviderKinds.map((hpk) => hpk.value),
+                },
+                {
+                    fieldName: "name",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "base_url",
+                    fieldDescription: `API base URL, e.g. https://openrouter.ai/api/v1`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "api_key",
+                    fieldDescription: `API key, encrypted with ENCRYPTION_KEY. Never sent to the client`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "last_synced_at",
+                    fieldDescription: `Unix timestamp of the last model list sync`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "sync_error",
+                    fieldDescription: `Why the last model list sync failed, if it did`,
+                    dataType: "TEXT",
+                },
+            ],
+        },
+        {
+            tableName: "harness_models",
+            fields: [
+                {
+                    fieldName: "provider_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "harness_providers",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "harness_model_provider_fk",
+                    },
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `The provider's model id, e.g. deepseek/deepseek-v4.1-flash:free`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "name",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "free",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "available",
+                    fieldDescription: `0 once the provider stops listing it`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "input_modalities",
+                    fieldDescription: `JSON array, e.g. ["text","image"]`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "output_modalities",
+                    fieldDescription: `JSON array, e.g. ["text"], ["speech"], ["image"]`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "supports_tools",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "context_length",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "max_output_tokens",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "voices",
+                    fieldDescription: `JSON array of voice names, for speech models`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "intelligence_score",
+                    fieldDescription: `Artificial Analysis intelligence index`,
+                    dataType: "REAL",
+                },
+                {
+                    fieldName: "agentic_score",
+                    fieldDescription: `Artificial Analysis agentic index`,
+                    dataType: "REAL",
+                },
+                {
+                    fieldName: "released_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "expires_at",
+                    fieldDescription: `When the provider retires the model`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_seen_at",
+                    fieldDescription: `Unix timestamp of the last sync that listed it`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_model_slug_per_provider",
+                    constraintName: "A provider lists a model once",
+                    constraintTableFields: [
+                        { value: "provider_id" },
+                        { value: "slug" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_harness_models_free_available",
+                    indexTableFields: ["free", "available"],
+                },
+            ],
+        },
+        {
+            tableName: "harness_settings",
+            fields: [
+                {
+                    fieldName: "harness",
+                    dataType: "TEXT",
+                    options: Harnesses.map((h) => h.value),
+                    unique: true,
+                },
+                {
+                    fieldName: "model_id",
+                    fieldDescription: `harness_models row picked by a super admin. Null picks automatically. Not a foreign key, so removing a provider leaves the setting`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "provider_id",
+                    fieldDescription: `harness_providers row this harness is limited to (its pick and automatic picks). Null: any provider. Not a foreign key; removing the provider clears it`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "fallback",
+                    fieldDescription: `When the picked model fails, try the automatic picks`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "enabled",
+                    fieldDescription: `0 turns the harness off. Text is always on`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "options",
+                    fieldDescription: `Harness options, e.g. {"voice":"george"} for speech`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+            ],
+        },
+        {
+            tableName: "bot_harness_settings",
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The worker bot that overrides the default. The coordinator always uses the defaults`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_harness_settings_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "harness",
+                    dataType: "TEXT",
+                    options: Harnesses.map((h) => h.value),
+                },
+                {
+                    fieldName: "model_id",
+                    fieldDescription: `harness_models row picked for this bot. Null picks automatically. Not a foreign key, like harness_settings`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "provider_id",
+                    fieldDescription: `harness_providers row this bot's harness is limited to. Null: any provider. Not a foreign key, like harness_settings`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "fallback",
+                    fieldDescription: `When the picked model fails, try the automatic picks`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "enabled",
+                    fieldDescription: `0 turns the harness off for this bot. Text is always on`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "options",
+                    fieldDescription: `Harness options, e.g. {"voice":"george"} for speech`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_setting_per_bot_harness",
+                    constraintName: "A bot overrides a harness once",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "harness" },
+                    ],
+                },
+            ],
+        },
+        {
             tableName: "logs",
             fields: [
                 {
@@ -833,6 +1142,77 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_logs_user_id",
                     indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "envs",
+            fields: [
+                {
+                    fieldName: "key",
+                    fieldDescription: `Variable name. One per key and scope (enforced in saveEnv: SQLite unique constraints treat NULL ids as distinct)`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "value",
+                    fieldDescription: `Encrypted env value.`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "description",
+                    dataType: "TEXT",
+                    fieldDescription: `Env description. Can be searched. Bots see it beside the key, never the value`,
+                },
+                {
+                    fieldName: "paradigm",
+                    fieldDescription: `Where it applies: general, a workspace, or a computer. Computer beats workspace beats general`,
+                    dataType: "TEXT",
+                    options: EnvParadigms.map((p) => p.value),
+                    defaultValue: "general",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace, for paradigm workspace`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "envs_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "computer_id",
+                    fieldDescription: `The computer, for paradigm computer`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "computers",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "envs_computer_fk",
+                    },
+                },
+                {
+                    fieldName: "secret",
+                    fieldDescription: `1 hides the value once saved (only replaced, never shown) and redacts it from everything bots read`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "expose_to_computers",
+                    fieldDescription: `1 puts it in the shell of every computer it applies to. App settings (EnvDict) never are`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_envs_paradigm_key",
+                    indexTableFields: ["paradigm", "key"],
                 },
             ],
         },

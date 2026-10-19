@@ -4,11 +4,17 @@ import type {
     BUN_SQLITE_COBBLE_BOTS_QUEUE,
     BunSQLiteTables,
 } from "@/db/types/db";
+import type { BotJobKind } from "@/src/dict/bot-queue-dict";
 import AppError from "@/src/utils/app-error";
 import grabUserBot from "../bots/grab-user-bot";
 import grabBotComputers from "../computers/grab-bot-computers";
 
 type Params = {
+    /**
+     * `task` (the default) shows in the working-on panel; a `reply` answers
+     * the user in chat and has no task.
+     */
+    kind?: BotJobKind;
     user_id: number | string;
     bot_id: number | string;
     title: string;
@@ -24,7 +30,7 @@ type Params = {
     message_id?: number | string;
     /**
      * The task for the working-on panel. One is created from `title` when
-     * not given.
+     * not given (replies have none).
      */
     task_id?: number | string;
     /**
@@ -44,6 +50,7 @@ type Params = {
  * every message needs a job; quick answers are replied to directly.
  */
 export default async function enqueueBotJob({
+    kind = "task",
     user_id,
     bot_id,
     title,
@@ -76,7 +83,10 @@ export default async function enqueueBotJob({
         }
     }
 
-    const final_task_id = task_id || (await createJobTask({ bot_id: bot.id, title }));
+    const final_task_id =
+        kind == "reply"
+            ? undefined
+            : task_id || (await createJobTask({ bot_id: bot.id, title }));
 
     const res = await BunSQLite.queue.add<
         BUN_SQLITE_COBBLE_BOTS_QUEUE,
@@ -85,12 +95,13 @@ export default async function enqueueBotJob({
         table: "bots_queue",
         data: [
             {
+                kind,
                 bot_id: bot.id,
                 title,
                 instructions,
                 params: params ? JSON.stringify(params) : undefined,
                 message_id: message_id ? Number(message_id) : undefined,
-                task_id: Number(final_task_id),
+                task_id: final_task_id ? Number(final_task_id) : undefined,
                 computer_id: computer_id ? Number(computer_id) : undefined,
             },
         ],

@@ -29,6 +29,10 @@ export type BotJobOutcome = {
      */
     result: string;
     needs_you?: boolean;
+    /**
+     * Finish without posting `result` (a reply with nothing left to answer).
+     */
+    silent?: boolean;
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

@@ -59,6 +59,14 @@ export default async function handleMediaServer({
         });
 
         media = media_res.singleRes || undefined;
+
+        /**
+         * A private file is only served through `/media/private`, to its
+         * owner.
+         */
+        if (media?.is_private) {
+            media = undefined;
+        }
     }
 
     if (!media?.id) {

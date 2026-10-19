@@ -17,6 +17,9 @@ import type { MediaParadigms, MediaTypes } from "../dict/media-dict";
 import type { BunextPageModuleServerReturnURLObject } from "@moduletrace/bunext/types";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "./sql-joins";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
+import type { HarnessKind } from "../dict/harness-dict";
+import type { HarnessProviderKind } from "../dict/harness-provider-dict";
+import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
 
 export type User = {
     id: number;
@@ -49,6 +52,192 @@ export type BotTaskWithSteps = BUN_SQLITE_COBBLE_BOT_TASKS & {
 };
 
 /**
+ * `server:bot-updated` data: the bot's new face and status line, and its
+ * active task (null when there is none).
+ */
+export type BotUpdatedData = {
+    id: number;
+    face: BUN_SQLITE_COBBLE_BOTS["face"];
+    status_line: string;
+    task: BotTaskWithSteps | null;
+};
+
+/**
+ * A model provider as the client sees it: never the key itself.
+ */
+export type PublicHarnessProvider = {
+    id: number;
+    kind: HarnessProviderKind;
+    name: string;
+    base_url: string;
+    enabled: boolean;
+    has_key: boolean;
+    /**
+     * A key is set in the provider's environment variable.
+     */
+    has_env_key: boolean;
+    needs_key: boolean;
+    key_env?: string;
+    last_synced_at?: number;
+    sync_error?: string;
+};
+
+/**
+ * A model a harness can be set to, for the Models settings page.
+ */
+export type HarnessModelOption = {
+    id: number;
+    provider_id: number;
+    provider_name: string;
+    slug: string;
+    name: string;
+    free: boolean;
+    voices?: string[];
+};
+
+/**
+ * One harness on the Models settings page: its setting, the models it can
+ * be set to, and what it runs on right now.
+ */
+/**
+ * A provider a harness can be limited to.
+ */
+export type HarnessProviderChoice = {
+    id: number;
+    name: string;
+};
+
+export type HarnessOverview = {
+    harness: HarnessKind;
+    title: string;
+    description: string;
+    required: boolean;
+    model_id?: number;
+    /**
+     * The provider the harness is limited to; undefined: any.
+     */
+    provider_id?: number;
+    /**
+     * The providers with a model that can do this job.
+     */
+    providers: HarnessProviderChoice[];
+    fallback: boolean;
+    enabled: boolean;
+    options: Record<string, unknown>;
+    models: HarnessModelOption[];
+    /**
+     * The first model it would try now, if any.
+     */
+    current?: HarnessModelOption & { source: "pinned" | "auto" };
+    /**
+     * How many models it would try in all.
+     */
+    candidate_count: number;
+    /**
+     * On a bot's page: true while the bot uses the default for this
+     * harness, and what the default runs on.
+     */
+    inherit?: boolean;
+    default?: Pick<HarnessOverview, "enabled" | "current" | "candidate_count">;
+};
+
+/**
+ * One harness's controls on the Models settings page. `model_id` null is
+ * automatic.
+ */
+export type HarnessFormValue = {
+    /**
+     * On a bot's page: use the default instead of its own setting.
+     */
+    inherit?: boolean;
+    model_id: number | null;
+    provider_id: number | null;
+    fallback: boolean;
+    enabled: boolean;
+    voice?: string;
+};
+
+export type HarnessSettingsFormObject = Partial<
+    Record<HarnessKind, HarnessFormValue>
+>;
+
+/**
+ * The Models settings page data, also returned by every harness API call
+ * so the page updates without a reload.
+ */
+export type HarnessOverviewPayload = {
+    providers: PublicHarnessProvider[];
+    harnesses: HarnessOverview[];
+};
+
+/**
+ * An env as the Environment settings page sees it. `value` is sent only
+ * for non-secret envs; secrets are replaced, never read back.
+ */
+export type PublicEnv = {
+    id: number;
+    key: string;
+    description: string;
+    paradigm: EnvParadigm;
+    workspace_id: number | null;
+    computer_id: number | null;
+    secret: boolean;
+    expose_to_computers: boolean;
+    value?: string;
+    /**
+     * An `EnvDict` key the app itself reads.
+     */
+    known: boolean;
+};
+
+/**
+ * Somewhere envs can be set: general, or one of the user's workspaces or
+ * computers.
+ */
+export type EnvScope = {
+    paradigm: EnvParadigm;
+    id: number | null;
+    title: string;
+};
+
+/**
+ * An app setting on the Environment page: whether it's saved, or comes
+ * from the server's environment instead.
+ */
+export type KnownEnvStatus = KnownEnv & {
+    saved: boolean;
+    from_process: boolean;
+};
+
+export type EnvsOverviewPayload = {
+    scopes: EnvScope[];
+    envs: PublicEnv[];
+    known: KnownEnvStatus[];
+};
+
+/**
+ * A worker bot's model settings page data, also returned when it saves.
+ */
+/**
+ * A file on a chat message, as the client shows it.
+ */
+export type BotMessageAttachment = {
+    id: number;
+    name: string;
+    media_type: MediaType;
+    url: string;
+    thumbnail_url?: string;
+};
+
+export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
+    attachments?: BotMessageAttachment[];
+};
+
+export type BotHarnessOverviewPayload = {
+    harnesses: HarnessOverview[];
+};
+
+/**
  * A database snapshot in the bun-sqlite backups directory (`db/.backups`).
  */
 export type DbBackup = {
@@ -64,11 +253,14 @@ export type PagePropsType = {
     persons?: BUN_SQLITE_COBBLE_USERS_JOIN[] | null;
     bots?: BotWithLastMessage[] | null;
     bot?: BotWithLastMessage | null;
-    bot_messages?: BUN_SQLITE_COBBLE_BOT_MESSAGES[] | null;
+    bot_messages?: BotMessageWithAttachments[] | null;
     bot_task?: BotTaskWithSteps | null;
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;
+    harness_overview?: HarnessOverviewPayload | null;
+    bot_harness_overview?: BotHarnessOverviewPayload | null;
+    envs_overview?: EnvsOverviewPayload | null;
     envs?: {
         GOOGLE_CLIENT_ID?: string;
         R2_PUBLIC_DOMAIN?: string;
@@ -80,6 +272,7 @@ export type PagePropsType = {
 export type AppContextObject = {
     SITE_DATA: SITE_DATA_TYPE;
     user: User | null;
+    user_types: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     appState: AppStateObject;
     setAppState: React.Dispatch<React.SetStateAction<AppStateObject>>;
     refresh?: number;
@@ -224,7 +417,7 @@ export const WebSocketEvents = [
      */
     "server:bot-message",
     /**
-     * A bot's face or status line changed (`data`: `{ id, face, status_line }`)
+     * A bot's face or status line changed (`data`: `BotUpdatedData`)
      */
     "server:bot-updated",
 ] as const;

@@ -1,17 +1,28 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Span from "@moduletrace/twui/layout/Span";
 import H2 from "@moduletrace/twui/layout/H2";
 import { AppContext } from "@/src/pages/__root";
+import useServerEvent from "@/src/hooks/use-server-event";
+import type { BotUpdatedData } from "@/src/types";
 import TaskStepRow from "../(partials)/task-step-row";
 import OpenComputerButton from "../(partials)/open-computer-button";
 
 /**
- * 280px panel listing the steps the bot is taking. Hidden below 1280px.
+ * 280px panel listing the steps the bot is taking, kept current by the
+ * active task each `server:bot-updated` push carries. Hidden below 1280px.
  */
 export default function WorkingOnPanel() {
     const { pageProps } = useContext(AppContext);
-    const task = pageProps?.bot_task;
+    const bot_id = pageProps?.bot?.id;
+    const [task, setTask] = useState(pageProps?.bot_task);
+
+    useServerEvent({
+        event: "server:bot-updated",
+        onData: (data: BotUpdatedData) => {
+            if (data.id == bot_id) setTask(data.task);
+        },
+    });
 
     return (
         <Stack

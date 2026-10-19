@@ -230,7 +230,13 @@ export default async function uploadAndRecordMedia({
     const media_data: BUN_SQLITE_COBBLE_MEDIA = {
         ...media,
         user_id: Number(user.id),
-        is_primary: is_primary ? 1 : 0,
+        /**
+         * NULL, not 0, when not primary: the (user_id, is_primary) unique
+         * constraint only means one primary image per user, and SQLite
+         * lets NULLs repeat.
+         */
+        is_primary: is_primary ? 1 : (null as any),
+        is_private: is_private ? 1 : 0,
         media_write_path: media_write_path,
         media_thumbnail_write_path:
             media_type === "image" ? media_thumbnail_write_path : undefined,

@@ -6,14 +6,14 @@ import Span from "@moduletrace/twui/layout/Span";
 import { ChevronRight } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
 import RailUserMenu from "./rail-user-menu";
+import Tag from "@moduletrace/twui/elements/Tag";
 
 /**
  * The signed-in user, opening the popover above. Its top rule sits at the
  * same height as the composer rule, so the two read as one line.
  */
 export default function RailUserRow() {
-    const { pageProps } = useContext(AppContext);
-    const user = pageProps?.user;
+    const { user, user_types } = useContext(AppContext);
 
     const name = user?.first_name || user?.email || "";
     const initials = [user?.first_name, user?.last_name]
@@ -38,13 +38,23 @@ export default function RailUserRow() {
                         <Span className="size-6 shrink-0 rounded-full bg-sunken flex items-center justify-center text-[11px] font-bold leading-none text-ink">
                             {initials}
                         </Span>
-                        <Stack className="hidden lg:flex grow min-w-0 gap-0!">
+                        <Stack className="hidden lg:flex grow min-w-0 gap-1">
                             <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
                                 {name}
                             </Span>
-                            <Span className="text-[11px] leading-4 text-ink-secondary">
-                                Free
-                            </Span>
+                            <Row>
+                                {user_types?.map((ut, indx) => {
+                                    return (
+                                        <Tag
+                                            key={indx}
+                                            variant="outlined"
+                                            color="gray"
+                                        >
+                                            {ut.user_type}
+                                        </Tag>
+                                    );
+                                })}
+                            </Row>
                         </Stack>
                         <ChevronRight
                             size={16}

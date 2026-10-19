@@ -11,6 +11,10 @@ export const MediaTypes = [
         title: "Document",
         value: "document",
     },
+    {
+        title: "Audio",
+        value: "audio",
+    },
 ] as const;
 
 export const MediaParadigms = [
@@ -25,5 +29,9 @@ export const MediaParadigms = [
     {
         title: "Event",
         value: "event",
+    },
+    {
+        title: "Bot Attachment",
+        value: "bot-attachment",
     },
 ] as const;

@@ -6,6 +6,9 @@ import failBotJob from "@/src/functions/backend/db/bots-queue/fail-bot-job";
 import updateBotJob from "@/src/functions/backend/db/bots-queue/update-bot-job";
 import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
+import HarnessError from "@/src/harness/harness-error";
+import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
+import { BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
 import BotJobFatalError from "./bot-job-fatal-error";
 import pushBotNotice from "./push-bot-notice";
 import runBotJob from "./run-bot-job";
@@ -16,6 +19,11 @@ import type { BotJobContext, BotJobRunner } from "./types";
  * One job per computer at a time, across all running jobs.
  */
 const computer_lock = createKeyLock();
+
+/**
+ * One reply per bot at a time, so replies never cross in the chat.
+ */
+const reply_lock = createKeyLock();
 
 /**
  * Renew the lock well inside the timeout, so one slow write can't lose it.
@@ -86,9 +94,12 @@ export default async function processBotJob({
             });
         };
 
-        const outcome = job.computer_id
-            ? await computer_lock.run({ key: job.computer_id, task: run })
-            : await run();
+        const outcome =
+            job.kind == "reply"
+                ? await reply_lock.run({ key: bot_id, task: run })
+                : job.computer_id
+                  ? await computer_lock.run({ key: job.computer_id, task: run })
+                  : await run();
 
         if (controller.signal.aborted) return;
 
@@ -99,10 +110,34 @@ export default async function processBotJob({
                 worker,
                 result: outcome.result,
                 needs_you: outcome.needs_you,
+                silent: outcome.silent,
             })),
         });
     } catch (error: unknown) {
         if (controller.signal.aborted) return;
+
+        /**
+         * Every model is cooling down (rate limits): nothing was tried, so
+         * wait for the first to come back without using an attempt.
+         */
+        if (error instanceof HarnessError && error.resting) {
+            await deferBotJob({
+                job_id,
+                worker,
+                until: error.retry_at || Date.now() + AppData.HarnessCooldownMs,
+                refund: true,
+            });
+
+            await pushBotNotice({
+                bot_id,
+                bot: await setBotFace({
+                    bot_id,
+                    face: "asleep",
+                    status_line: BotWaitingStatusLine,
+                }),
+            });
+            return;
+        }
 
         const failed = await failBotJob({
             job_id,
@@ -119,6 +154,18 @@ export default async function processBotJob({
 
         if (failed?.notice) {
             await pushBotNotice({ bot_id, ...failed.notice });
+        }
+
+        /**
+         * A retry no sooner than the provider said to come back.
+         */
+        if (
+            failed?.status == "pending" &&
+            error instanceof HarnessError &&
+            error.retryable &&
+            error.retry_at
+        ) {
+            await deferBotJob({ job_id, worker, until: error.retry_at });
         }
     } finally {
         clearInterval(heartbeat);

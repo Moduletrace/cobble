@@ -12,11 +12,17 @@ export const BunSQLiteTables = [
     "bots_queue",
     "workspaces",
     "workspace_bots",
+    "bot_message_media",
     "containers",
     "computers",
     "bot_computers",
     "workspace_computers",
+    "harness_providers",
+    "harness_models",
+    "harness_settings",
+    "bot_harness_settings",
     "logs",
+    "envs",
 ] as const
 
 export type BUN_SQLITE_COBBLE_USERS = {
@@ -108,7 +114,7 @@ export type BUN_SQLITE_COBBLE_MEDIA = {
     title?: string;
     description?: string;
     summary?: string;
-    media_type?: "image" | "video" | "document" | "";
+    media_type?: "image" | "video" | "document" | "audio" | "";
     media_write_path?: string;
     media_thumbnail_write_path?: string;
     mime_type?: string;
@@ -133,7 +139,7 @@ export type BUN_SQLITE_COBBLE_MEDIA_PARADIGMS = {
      */
     updated_at?: number | "";
     media_id?: number | "";
-    media_paradigm?: "user-profile-image" | "generic" | "event" | "";
+    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOTS = {
@@ -266,6 +272,10 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
      */
     updated_at?: number | "";
     /** 
+     * task (long-running work, shown in the working-on panel) or reply (answers the user in chat)
+     */
+    kind?: "task" | "reply" | "";
+    /** 
      * The bot doing the work
      */
     bot_id?: number | "";
@@ -380,6 +390,23 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_BOTS = {
     updated_at?: number | "";
     workspace_id?: number | "";
     bot_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    message_id?: number | "";
+    media_id?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_CONTAINERS = {
@@ -500,6 +527,177 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS = {
     computer_id?: number | "";
 }
 
+export type BUN_SQLITE_COBBLE_HARNESS_PROVIDERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Which provider preset this is
+     */
+    kind?: "openrouter" | "openai" | "anthropic" | "google" | "deepseek" | "groq" | "mistral" | "xai" | "ollama" | "custom" | "";
+    name?: string;
+    /** 
+     * API base URL, e.g. https://openrouter.ai/api/v1
+     */
+    base_url?: string;
+    /** 
+     * API key, encrypted with ENCRYPTION_KEY. Never sent to the client
+     */
+    api_key?: string;
+    enabled?: 0 | 1 | "";
+    /** 
+     * Unix timestamp of the last model list sync
+     */
+    last_synced_at?: number | "";
+    /** 
+     * Why the last model list sync failed, if it did
+     */
+    sync_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_HARNESS_MODELS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    provider_id?: number | "";
+    /** 
+     * The provider's model id, e.g. deepseek/deepseek-v4.1-flash:free
+     */
+    slug?: string;
+    name?: string;
+    free?: 0 | 1 | "";
+    /** 
+     * 0 once the provider stops listing it
+     */
+    available?: 0 | 1 | "";
+    /** 
+     * JSON array, e.g. ["text","image"]
+     */
+    input_modalities?: string;
+    /** 
+     * JSON array, e.g. ["text"], ["speech"], ["image"]
+     */
+    output_modalities?: string;
+    supports_tools?: 0 | 1 | "";
+    context_length?: number | "";
+    max_output_tokens?: number | "";
+    /** 
+     * JSON array of voice names, for speech models
+     */
+    voices?: string;
+    /** 
+     * Artificial Analysis intelligence index
+     */
+    intelligence_score?: number | "";
+    /** 
+     * Artificial Analysis agentic index
+     */
+    agentic_score?: number | "";
+    released_at?: number | "";
+    /** 
+     * When the provider retires the model
+     */
+    expires_at?: number | "";
+    /** 
+     * Unix timestamp of the last sync that listed it
+     */
+    last_seen_at?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_HARNESS_SETTINGS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "";
+    /** 
+     * harness_models row picked by a super admin. Null picks automatically. Not a foreign key, so removing a provider leaves the setting
+     */
+    model_id?: number | "";
+    /** 
+     * harness_providers row this harness is limited to (its pick and automatic picks). Null: any provider. Not a foreign key; removing the provider clears it
+     */
+    provider_id?: number | "";
+    /** 
+     * When the picked model fails, try the automatic picks
+     */
+    fallback?: 0 | 1 | "";
+    /** 
+     * 0 turns the harness off. Text is always on
+     */
+    enabled?: 0 | 1 | "";
+    /** 
+     * Harness options, e.g. {"voice":"george"} for speech
+     */
+    options?: string;
+}
+
+export type BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The worker bot that overrides the default. The coordinator always uses the defaults
+     */
+    bot_id?: number | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "";
+    /** 
+     * harness_models row picked for this bot. Null picks automatically. Not a foreign key, like harness_settings
+     */
+    model_id?: number | "";
+    /** 
+     * harness_providers row this bot's harness is limited to. Null: any provider. Not a foreign key, like harness_settings
+     */
+    provider_id?: number | "";
+    /** 
+     * When the picked model fails, try the automatic picks
+     */
+    fallback?: 0 | 1 | "";
+    /** 
+     * 0 turns the harness off for this bot. Text is always on
+     */
+    enabled?: 0 | 1 | "";
+    /** 
+     * Harness options, e.g. {"voice":"george"} for speech
+     */
+    options?: string;
+}
+
 export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * The unique identifier of the record.
@@ -547,4 +745,51 @@ export type BUN_SQLITE_COBBLE_LOGS = {
     ip_address?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_LOGS
+export type BUN_SQLITE_COBBLE_ENVS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Variable name. One per key and scope (enforced in saveEnv: SQLite unique constraints treat NULL ids as distinct)
+     */
+    key?: string;
+    /** 
+     * Encrypted env value.
+     */
+    value?: string;
+    /** 
+     * Env description. Can be searched. Bots see it beside the key, never the value
+     */
+    description?: string;
+    /** 
+     * Where it applies: general, a workspace, or a computer. Computer beats workspace beats general
+     */
+    paradigm?: "general" | "workspace" | "computer" | "";
+    /** 
+     * The workspace, for paradigm workspace
+     */
+    workspace_id?: number | "";
+    /** 
+     * The computer, for paradigm computer
+     */
+    computer_id?: number | "";
+    /** 
+     * 1 hides the value once saved (only replaced, never shown) and redacts it from everything bots read
+     */
+    secret?: 0 | 1 | "";
+    /** 
+     * 1 puts it in the shell of every computer it applies to. App settings (EnvDict) never are
+     */
+    expose_to_computers?: 0 | 1 | "";
+}
+
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS

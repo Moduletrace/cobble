@@ -30,7 +30,12 @@ export default async function notifyBotJobFailed({
         bot_id: job.bot_id,
         text:
             failure_message ||
-            [`I couldn't finish "${job.title || "the job"}".`, job.last_error]
+            [
+                job.kind == "reply"
+                    ? `I couldn't reply.`
+                    : `I couldn't finish "${job.title || "the job"}".`,
+                job.last_error,
+            ]
                 .filter(Boolean)
                 .join(" "),
         needs_you: true,

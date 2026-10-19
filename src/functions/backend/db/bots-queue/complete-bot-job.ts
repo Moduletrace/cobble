@@ -17,12 +17,17 @@ type Params = {
      * Flag the message as needing the user.
      */
     needs_you?: boolean;
+    /**
+     * Finish without posting a message.
+     */
+    silent?: boolean;
 };
 
 /**
  * Marks a job done, closes its task and sends the completion message back
- * to the user in the bot's conversation. The bot shows done (or needs-you)
- * unless it has other jobs open. Throws if this handler no longer holds
+ * to the user in the bot's conversation. Unless it has other jobs open,
+ * the bot shows needs-you if asked, else done after a task and idle after
+ * a reply. Throws if this handler no longer holds
  * the job.
  */
 export default async function completeBotJob({
@@ -30,6 +35,7 @@ export default async function completeBotJob({
     worker,
     result,
     needs_you,
+    silent,
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
 
@@ -60,11 +66,13 @@ export default async function completeBotJob({
         });
     }
 
-    const message = await insertBotMessage({
-        bot_id: job.bot_id,
-        text: result,
-        needs_you,
-    });
+    const message = silent
+        ? null
+        : await insertBotMessage({
+              bot_id: job.bot_id,
+              text: result,
+              needs_you,
+          });
 
     const bot = needs_you
         ? await setBotFace({
@@ -74,7 +82,10 @@ export default async function completeBotJob({
           })
         : (await countOpenBotJobs({ bot_id: job.bot_id }))
           ? null
-          : await setBotFace({ bot_id: job.bot_id, face: "done" });
+          : await setBotFace({
+                bot_id: job.bot_id,
+                face: job.kind == "reply" ? "idle" : "done",
+            });
 
     return { message, bot };
 }

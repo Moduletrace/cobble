@@ -1,5 +1,8 @@
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
+import type { BotMessageWithAttachments } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
+import grabMessagesMedia from "./grab-messages-media";
+import mediaToAttachment from "./media-to-attachment";
 
 type Params = {
     bot_id: number | string;
@@ -7,12 +10,13 @@ type Params = {
 };
 
 /**
- * The latest messages of a bot's conversation, oldest first.
+ * The latest messages of a bot's conversation, oldest first, with their
+ * attachments.
  */
 export default async function grabBotMessages({
     bot_id,
     limit = 100,
-}: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES[]> {
+}: Params): Promise<BotMessageWithAttachments[]> {
     let sql = ``;
 
     sql += `SELECT * FROM (\n`;
@@ -27,5 +31,16 @@ export default async function grabBotMessages({
         values: [bot_id, limit],
     });
 
-    return res.payload || [];
+    const messages = res.payload || [];
+    const media = await grabMessagesMedia({
+        message_ids: messages.map((message) => Number(message.id)),
+    });
+
+    return messages.map((message) => {
+        const files = media.get(Number(message.id));
+
+        return files
+            ? { ...message, attachments: files.map((file) => mediaToAttachment({ media: file })) }
+            : message;
+    });
 }

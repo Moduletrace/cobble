@@ -7,7 +7,11 @@ import type {
     BunextRootComponentProps,
 } from "@moduletrace/bunext/types";
 
-import type { AppContextObject, AppStateObject } from "@/src/types";
+import type {
+    AppContextObject,
+    AppStateObject,
+    PagePropsType,
+} from "@/src/types";
 import { SiteData } from "@/src/data/site-data";
 import Layout from "../layouts/main";
 import AuthLayout from "../layouts/auth";
@@ -33,8 +37,11 @@ export default function App({
         likes: null,
     });
 
+    const page_props = props as PagePropsType;
+
     const appContextObject: AppContextObject = {
-        user: null,
+        user: page_props?.user || null,
+        user_types: page_props?.user_types || null,
         appState,
         setAppState,
         refresh,
@@ -97,7 +104,11 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
                 href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap"
                 rel="stylesheet"
             />
-            <link rel="icon" href="/favicon.ico" sizes="16x16 24x24 32x32 48x48" />
+            <link
+                rel="icon"
+                href="/favicon.ico"
+                sizes="16x16 24x24 32x32 48x48"
+            />
             <link
                 rel="icon"
                 type="image/png"

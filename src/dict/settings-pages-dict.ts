@@ -1,7 +1,9 @@
 import {
+    CpuAi,
     KeyRound,
     SlidersHorizontal,
     UserRound,
+    Variable,
     type LucideIcon,
 } from "lucide-react";
 
@@ -9,6 +11,10 @@ export type SettingsPage = {
     title: string;
     url: string;
     Icon: LucideIcon;
+    /**
+     * Shown and served to super admins only.
+     */
+    super_admin_only?: boolean;
 };
 
 /**
@@ -26,6 +32,18 @@ export const SettingsPages: SettingsPage[] = [
         title: "Change password",
         url: "/admin/settings/change-password",
         Icon: KeyRound,
+    },
+    {
+        title: "Models",
+        url: "/admin/settings/models",
+        Icon: CpuAi,
+        super_admin_only: true,
+    },
+    {
+        title: "Environment",
+        url: "/admin/settings/environment",
+        Icon: Variable,
+        super_admin_only: true,
     },
 ];
 

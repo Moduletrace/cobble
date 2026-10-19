@@ -4,18 +4,25 @@ import H1 from "@moduletrace/twui/layout/H1";
 import Span from "@moduletrace/twui/layout/Span";
 import BotStone from "@/src/components/general/bot-stone";
 import type { BotFace, BotHue } from "@/src/dict/bot-dict";
-import type { BotWithLastMessage } from "@/src/types";
+import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import { crewStatusSentence } from "@/src/utils/crew-status";
+import BotModelsModal from "./bot-models-modal";
 
 type Props = {
     bot: BotWithLastMessage;
     bots: BotWithLastMessage[];
+    /**
+     * The bot's models (the defaults for the coordinator).
+     */
+    harnesses?: HarnessOverview[] | null;
 };
 
 /**
- * 64px header. The coordinator's status is the crew sentence.
+ * 64px header. The coordinator's status is the crew sentence. On the
+ * right, the model button that opens the bot's models (the defaults on
+ * the coordinator, for super admins).
  */
-export default function ConversationHeader({ bot, bots }: Props) {
+export default function ConversationHeader({ bot, bots, harnesses }: Props) {
     const status =
         bot.kind === "coordinator"
             ? crewStatusSentence({ bots })
@@ -36,6 +43,7 @@ export default function ConversationHeader({ bot, bots }: Props) {
                     {status}
                 </Span>
             </Stack>
+            <BotModelsModal key={bot.id} bot={bot} harnesses={harnesses} />
         </Row>
     );
 }

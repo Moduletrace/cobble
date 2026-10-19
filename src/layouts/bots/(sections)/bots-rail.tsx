@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { AppContext } from "@/src/pages/__root";
+import useLiveBots from "@/src/hooks/use-live-bots";
 import RailHeader from "../(partials)/rail-header";
 import RailCrewList from "../(partials)/rail-crew-list";
 import RailSettingsList from "../(partials)/rail-settings-list";
@@ -16,6 +17,10 @@ export default function BotsRail() {
 
     const pathname = pageProps?.url?.pathname;
     const is_settings_page = Boolean(pathname?.startsWith("/admin/settings"));
+    const bots = useLiveBots({
+        bots: pageProps?.bots || [],
+        open_bot_id: pageProps?.bot?.id || undefined,
+    });
 
     return (
         <Stack
@@ -28,7 +33,7 @@ export default function BotsRail() {
                     <RailSettingsList pathname={pathname} />
                 ) : (
                     <RailCrewList
-                        bots={pageProps?.bots || []}
+                        bots={bots}
                         selected_id={pageProps?.bot?.id || undefined}
                     />
                 )}

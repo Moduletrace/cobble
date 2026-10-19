@@ -1,0 +1,73 @@
+import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
+import grabHarnessAdapter from "../providers/grab-harness-adapter";
+import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
+import withCandidates from "../resolve/with-candidates";
+import type { HarnessCandidate } from "../types";
+
+type Params = {
+    text: string;
+    /**
+     * `mp3` unless set.
+     */
+    format?: string;
+    signal?: AbortSignal;
+    /**
+     * Uses this bot's speech model and voice when it has its own.
+     */
+    bot_id?: number | string;
+};
+
+/**
+ * Reads text aloud with the speech harness. Uses the voice picked in the
+ * speech setting when the model has it, else the model's first voice.
+ */
+export default async function speakText({
+    text,
+    format,
+    signal,
+    bot_id,
+}: Params) {
+    const [candidates, setting] = await Promise.all([
+        resolveHarnessCandidates({ harness: "speech", bot_id }),
+        grabHarnessSetting({ harness: "speech", bot_id }),
+    ]);
+
+    const { result } = await withCandidates({
+        harness: "speech",
+        candidates,
+        run: async (candidate) =>
+            await grabHarnessAdapter({ kind: candidate.provider.kind }).speak({
+                candidate,
+                text,
+                voice: pickVoice({
+                    candidate,
+                    voice:
+                        typeof setting.options.voice == "string"
+                            ? setting.options.voice
+                            : undefined,
+                }),
+                format,
+                signal: signal || new AbortController().signal,
+            }),
+    });
+
+    return result;
+}
+
+function pickVoice({
+    candidate,
+    voice,
+}: {
+    candidate: HarnessCandidate;
+    voice?: string;
+}) {
+    const voices = candidate.model.voices;
+
+    if (voice && (candidate.source == "pinned" || voices?.includes(voice))) {
+        return voice;
+    }
+
+    if (voices?.[0]) return voices[0];
+
+    return candidate.provider.kind == "openai" ? "alloy" : undefined;
+}

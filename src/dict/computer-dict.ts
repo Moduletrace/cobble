@@ -70,3 +70,20 @@ export const ContainerPurposes = [
 ] as const;
 
 export type ContainerPurpose = (typeof ContainerPurposes)[number]["value"];
+
+/**
+ * Path of the AIO sandbox's MCP endpoint, on the computer's address.
+ */
+export const ComputerMcpPath = "/mcp";
+
+/**
+ * Sandbox MCP tools bots don't get: noise (cdp urls), skills they have no
+ * use for, and raw display control that needs pixel coordinates (the page
+ * tools cover the same ground by element).
+ */
+export const ComputerMcpExcludedTools = [
+    "browser_get_info",
+    "sandbox_load_skill",
+    "browser_gui_screenshot",
+    "browser_gui_execute_action",
+] as const;

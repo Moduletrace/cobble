@@ -20,7 +20,7 @@ export default async function MediaDataToArrayBuffer(
     if (body instanceof ReadableStream) {
         return Bun.readableStreamToArrayBuffer(body);
     }
-    // Blob, BunFile, Request, Response — wrap in Response and use Bun's reader
+    // Blob, BunFile, Request, Response: wrap in Response and use Bun's reader
     return new Response(body as BodyInit)
         .bytes()
         .then((b) => b.buffer as ArrayBuffer);
