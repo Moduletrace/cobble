@@ -44,6 +44,7 @@ export default function RailWorkspaceList({ workspace, bots, selected_id, on_wor
                 title="Workspace bots"
                 workers={workers}
                 selected_id={on_workspace_page ? undefined : selected_id}
+                workspace_id={workspace.id ? Number(workspace.id) : null}
                 hrefFor={(bot) => `${base}/bots/${bot.id}`}
                 empty="No bots here yet."
             />

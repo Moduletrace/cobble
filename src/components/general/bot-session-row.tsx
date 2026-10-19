@@ -33,14 +33,20 @@ export default function BotSessionRow({ session, loading, disabled, onOpen }: Pr
             loading={loading}
             disabled={active || disabled}
             onClick={onOpen}
+            buttonContentProps={{ className: "w-full min-w-0 flex-nowrap" }}
             className={twMerge(
-                "w-full justify-start! items-start! gap-0! px-3! py-2.5! rounded-default text-left text-ink dark:text-ink hover:bg-sunken hover:dark:bg-sunken focus-visible:ring-2 focus-visible:ring-ink",
-                active && "bg-ink/5 opacity-100!",
+                "w-full justify-start! items-start! gap-0! px-3! py-2.5! rounded-default text-left text-ink dark:text-ink hover:bg-ink/5 hover:dark:bg-ink/5 focus-visible:ring-2 focus-visible:ring-ink",
+                active && "bg-sunken hover:bg-sunken hover:dark:bg-sunken opacity-100!",
             )}
         >
             <Stack className="w-full min-w-0 gap-0.5! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
-                    <Span className="grow min-w-0 truncate text-sm font-bold leading-5 text-ink">
+                    <Span
+                        className={twMerge(
+                            "grow min-w-0 truncate text-sm font-bold leading-5",
+                            active ? "text-ink-secondary" : "text-ink",
+                        )}
+                    >
                         {session.title || "Untitled session"}
                     </Span>
                     {session.unread && !active ? (

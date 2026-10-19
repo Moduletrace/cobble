@@ -14,6 +14,10 @@ type Params = {
      */
     query?: string;
     page?: number;
+    /**
+     * How many to return; a page by default.
+     */
+    limit?: number;
 };
 
 /**
@@ -27,10 +31,11 @@ export default async function grabBotSessions({
     workspace_id,
     query,
     page = 1,
+    limit,
 }: Params): Promise<BotSessionListItem[]> {
     const search = query?.trim();
     const like = search ? `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
-    const limit = AppData.BotSessionsPageSize;
+    const page_size = limit || AppData.BotSessionsPageSize;
 
     let sql = ``;
 
@@ -56,8 +61,8 @@ export default async function grabBotSessions({
             bot_id,
             workspace_id ? Number(workspace_id) : null,
             ...(like ? [like, like, like] : []),
-            limit,
-            (Math.max(1, page) - 1) * limit,
+            page_size,
+            (Math.max(1, page) - 1) * page_size,
         ],
     });
 

@@ -29,7 +29,7 @@ export const handler: BunextAPIRouteHandler<
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
 
-        const { bot_id, workspace_id, query, page } = parseWithSchema({
+        const { bot_id, workspace_id, query, page, limit } = parseWithSchema({
             schema: ListBotSessionsRequestSchema,
             data: body,
         });
@@ -44,6 +44,7 @@ export const handler: BunextAPIRouteHandler<
                 workspace_id: conversation.workspace_id,
                 query,
                 page,
+                limit,
             }),
         };
     } catch (error: unknown) {

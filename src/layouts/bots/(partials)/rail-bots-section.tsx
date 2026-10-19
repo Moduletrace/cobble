@@ -4,7 +4,7 @@ import { AppData } from "@/src/data/app-data";
 import type { BotWithLastMessage } from "@/src/types";
 import pickRailBots from "../(utils)/pick-rail-bots";
 import AllBotsModal from "./all-bots-modal";
-import BotRow from "./bot-row";
+import RailBotEntry from "./rail-bot-entry";
 import RailSectionLabel from "./rail-section-label";
 import RailSeeAllRow from "./rail-see-all-row";
 
@@ -15,6 +15,10 @@ type Props = {
      */
     workers: BotWithLastMessage[];
     selected_id?: number;
+    /**
+     * Set inside a workspace, whose conversations have their own sessions.
+     */
+    workspace_id?: number | null;
     hrefFor: (bot: BotWithLastMessage) => string;
     /**
      * Shown when there are no bots yet.
@@ -28,7 +32,7 @@ type Props = {
  * active (and any that want attention), then "See all bots" for the rest,
  * which lists them all in a modal.
  */
-export default function RailBotsSection({ title, workers, selected_id, hrefFor, empty, action }: Props) {
+export default function RailBotsSection({ title, workers, selected_id, workspace_id, hrefFor, empty, action }: Props) {
     const [open, setOpen] = useState(false);
     const { shown, hidden } = pickRailBots({ workers, selected_id, limit: AppData.RailRecentBots });
 
@@ -36,7 +40,13 @@ export default function RailBotsSection({ title, workers, selected_id, hrefFor, 
         <>
             <RailSectionLabel title={title} action={action} />
             {shown.map((bot) => (
-                <BotRow key={bot.id} bot={bot} href={hrefFor(bot)} selected={bot.id == selected_id} />
+                <RailBotEntry
+                    key={bot.id}
+                    bot={bot}
+                    href={hrefFor(bot)}
+                    selected={bot.id == selected_id}
+                    workspace_id={workspace_id}
+                />
             ))}
             {workers.length ? null : (
                 <Span className="hidden @rail:block px-3 py-2 text-[13px] leading-[18px] text-ink-secondary">

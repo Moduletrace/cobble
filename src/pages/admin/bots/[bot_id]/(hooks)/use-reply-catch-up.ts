@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AppData } from "@/src/data/app-data";
 import type { BotMessageWithAttachments, WebSocketDataType } from "@/src/types";
-import postSessionApi from "../(functions)/post-session-api";
+import postSessionApi from "@/src/functions/frontend/post-session-api";
 
 type Params = {
     session_id?: number | null;

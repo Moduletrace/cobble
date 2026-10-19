@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import type { BotSessionListItem } from "@/src/types";
-import postSessionApi from "../(functions)/post-session-api";
+import postSessionApi from "@/src/functions/frontend/post-session-api";
 
 type Params = {
     bot_id: number;
     workspace_id?: number | null;
     /**
-     * Loads only while the modal is open.
+     * Loads only while the caller needs the sessions.
      */
     open: boolean;
+    /**
+     * How many to load, latest first; the modal leaves it out for a page.
+     */
+    limit?: number;
 };
 
 /**
  * A conversation's sessions, latest first, searched as the user types
  * (debounced). Starting or reopening a session reloads the page onto it.
  */
-export default function useBotSessions({ bot_id, workspace_id, open }: Params) {
+export default function useBotSessions({ bot_id, workspace_id, open, limit }: Params) {
     const [query, setQuery] = useState("");
     const [sessions, setSessions] = useState<BotSessionListItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -31,7 +35,7 @@ export default function useBotSessions({ bot_id, workspace_id, open }: Params) {
 
             const res = await postSessionApi<BotSessionListItem>({
                 path: "list-sessions",
-                body: { bot_id, workspace_id, query: query.trim() || undefined },
+                body: { bot_id, workspace_id, query: query.trim() || undefined, limit },
             }).catch(() => null);
 
             if (stale) return;
@@ -50,7 +54,7 @@ export default function useBotSessions({ bot_id, workspace_id, open }: Params) {
             stale = true;
             clearTimeout(timer);
         };
-    }, [open, query, bot_id, workspace_id]);
+    }, [open, query, bot_id, workspace_id, limit]);
 
     const act = async ({ id, path, body }: { id: number | "new"; path: "new-session" | "reopen-session"; body: Record<string, unknown> }) => {
         if (busy_id) return;

@@ -12,7 +12,7 @@ import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputersModal from "./bot-computers-modal";
 import BotModelsModal from "./bot-models-modal";
 import BotProfileModal from "./bot-profile-modal";
-import BotSessionsModal from "./bot-sessions-modal";
+import BotSessionsModal from "@/src/components/general/bot-sessions-modal";
 import NewSessionButton from "./new-session-button";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
 import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";

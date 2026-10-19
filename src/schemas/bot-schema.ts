@@ -63,6 +63,10 @@ export type BotConversationRequest = z.infer<typeof BotConversationRequestSchema
 export const ListBotSessionsRequestSchema = BotConversationRequestSchema.extend({
     query: z.string().trim().max(200).optional(),
     page: z.coerce.number().int().positive().optional(),
+    /**
+     * A handful for the rail's sub-list; the modal leaves it out for a page.
+     */
+    limit: z.coerce.number().int().positive().max(AppData.BotSessionsPageSize).optional(),
 });
 
 export type ListBotSessionsRequest = z.infer<typeof ListBotSessionsRequestSchema>;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MessageSquarePlus } from "lucide-react";
-import postSessionApi from "../(functions)/post-session-api";
+import postSessionApi from "@/src/functions/frontend/post-session-api";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
 
 type Props = {

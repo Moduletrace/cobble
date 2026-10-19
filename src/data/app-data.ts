@@ -252,6 +252,11 @@ export const AppData = {
      */
     RailSeeAllStones: 4,
     /**
+     * Recent sessions the rail lists under the open bot, before "All
+     * sessions".
+     */
+    RailRecentSessions: 5,
+    /**
      * Recent sessions a workspace's dashboard shows.
      */
     WorkspaceActivityItems: 6,
