@@ -11,7 +11,7 @@ import { BotHues, type BotHue } from "@/src/dict/bot-dict";
 import setProfileImage from "@/src/functions/frontend/set-profile-image";
 import postAdminApi from "../(functions)/post-admin-api";
 import usePickedImage from "../(hooks)/use-picked-image";
-import pickFreeHue from "../(utils)/pick-free-hue";
+import pickFreeHue from "@/src/utils/pick-free-hue";
 import AddFormActions from "./add-form-actions";
 import BotFormPreview from "./bot-form-preview";
 

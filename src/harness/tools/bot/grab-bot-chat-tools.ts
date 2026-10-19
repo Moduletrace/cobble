@@ -4,7 +4,9 @@ import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-comp
 import type { HarnessTool } from "../../types";
 import askToTakeOverTool from "../computer/ask-to-take-over-tool";
 import searchComputersTool from "../computer/search-computers-tool";
+import addBotToWorkspaceTool from "./add-bot-to-workspace-tool";
 import assignComputerTool from "./assign-computer-tool";
+import createBotTool from "./create-bot-tool";
 import delegateTaskTool from "./delegate-task-tool";
 import grabBotTools from "./grab-bot-tools";
 import updateWorkspaceTool from "./update-workspace-tool";
@@ -43,10 +45,12 @@ type Params = {
  * in a workspace switching its default computer), start_task for longer
  * work, search_computers to find what's on its computers,
  * ask_user_to_take_over when only the user can do something on one, and
- * for the coordinator (the super admin's alone) delegate_task to every
- * worker (the workspace's in a workspace) plus, in its own chat, assign_computer (which computers each
- * crew member can use) or, in a workspace, set_bot_workspace_instructions.
- * Anything else on a computer goes through a task, never mid-reply.
+ * for the coordinator (the super admin's alone) create_bot to grow the
+ * crew, delegate_task to every worker (the workspace's in a workspace)
+ * plus, in its own chat, add_bot_to_workspace and assign_computer (which
+ * workspace and which computers each crew member gets) or, in a
+ * workspace, set_bot_workspace_instructions. Anything else on a computer
+ * goes through a task, never mid-reply.
  */
 export default async function grabBotChatTools({
     bot,
@@ -82,6 +86,8 @@ export default async function grabBotChatTools({
     if (workspaces.length) {
         tools.push(updateWorkspaceTool({ user_id, workspaces, workspace_id }));
     }
+
+    tools.push(createBotTool({ user_id, workspaces, workspace_id }));
 
     const workers =
         (
@@ -123,6 +129,10 @@ export default async function grabBotChatTools({
         );
 
         tools.push(assignComputerTool({ user_id, workers, computers, access }));
+    }
+
+    if (workspaces.length) {
+        tools.push(addBotToWorkspaceTool({ user_id, workers, workspaces }));
     }
 
     return tools;
