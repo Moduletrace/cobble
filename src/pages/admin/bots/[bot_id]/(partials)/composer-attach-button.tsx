@@ -24,7 +24,7 @@ export default function ComposerAttachButton({ disabled, onFiles }: Props) {
             color="text"
             disabled={disabled}
             onClick={() => pickFiles({ onFiles })}
-            className="shrink-0 p-1! -m-1 text-ink dark:text-ink rounded-default-xs focus-visible:ring-2 focus-visible:ring-ink"
+            className="shrink-0 p-1! -mx-1 my-1 text-ink dark:text-ink rounded-default-xs focus-visible:ring-2 focus-visible:ring-ink"
         >
             <Plus size={16} aria-hidden />
         </Button>
