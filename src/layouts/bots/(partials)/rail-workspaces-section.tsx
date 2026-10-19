@@ -1,9 +1,13 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import Span from "@moduletrace/twui/layout/Span";
+import { AppData } from "@/src/data/app-data";
 import type { WorkspaceWithActivity } from "@/src/types";
 import { AddFlowContext } from "../(data)/add-flow-context";
+import AllWorkspacesModal from "./all-workspaces-modal";
 import RailSectionAddButton from "./rail-section-add-button";
 import RailSectionLabel from "./rail-section-label";
+import RailSeeAllRow from "./rail-see-all-row";
+import RailSeeAllWorkspace from "./rail-see-all-workspace";
 import WorkspaceRow from "./workspace-row";
 
 type Props = {
@@ -12,10 +16,15 @@ type Props = {
 };
 
 /**
- * The user's workspaces, with a "+" to create one.
+ * The user's workspaces, with a "+" to create one: the latest
+ * `AppData.RailRecentWorkspaces`, then "See all workspaces" for the rest,
+ * which lists them all in a modal.
  */
 export default function RailWorkspacesSection({ workspaces, selected_id }: Props) {
     const { openForm } = useContext(AddFlowContext);
+    const [open, setOpen] = useState(false);
+    const shown = workspaces.slice(0, AppData.RailRecentWorkspaces);
+    const hidden = workspaces.slice(AppData.RailRecentWorkspaces);
 
     return (
         <>
@@ -28,7 +37,7 @@ export default function RailWorkspacesSection({ workspaces, selected_id }: Props
                     />
                 }
             />
-            {workspaces.map((workspace) => (
+            {shown.map((workspace) => (
                 <WorkspaceRow key={workspace.id} workspace={workspace} selected={workspace.id == selected_id} />
             ))}
             {workspaces.length ? null : (
@@ -36,6 +45,16 @@ export default function RailWorkspacesSection({ workspaces, selected_id }: Props
                     No workspaces yet. A workspace keeps a project's context, bots and computers together.
                 </Span>
             )}
+            {hidden.length ? (
+                <RailSeeAllRow
+                    stones={hidden.slice(0, AppData.RailSeeAllStones).map((workspace) => (
+                        <RailSeeAllWorkspace key={workspace.id} workspace={workspace} />
+                    ))}
+                    label={`See all ${workspaces.length} workspaces`}
+                    onOpen={() => setOpen(true)}
+                />
+            ) : null}
+            <AllWorkspacesModal open={open} setOpen={setOpen} workspaces={workspaces} />
         </>
     );
 }

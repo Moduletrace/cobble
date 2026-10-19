@@ -252,11 +252,16 @@ export const AppData = {
      * Worker bots the rail lists, most recently active first, before
      * "See all bots".
      */
-    RailRecentBots: 8,
+    RailRecentBots: 5,
     /**
-     * Stones shown beside "See all bots".
+     * Workspaces the rail lists, most recently active first, before
+     * "See all workspaces".
      */
-    RailSeeAllStones: 4,
+    RailRecentWorkspaces: 5,
+    /**
+     * Stones shown beside "See all bots" and "See all workspaces".
+     */
+    RailSeeAllStones: 3,
     /**
      * Recent sessions the rail lists under the open bot, before "All
      * sessions".

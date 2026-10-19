@@ -7,6 +7,7 @@ import AllBotsModal from "./all-bots-modal";
 import RailBotEntry from "./rail-bot-entry";
 import RailSectionLabel from "./rail-section-label";
 import RailSeeAllRow from "./rail-see-all-row";
+import RailSeeAllStone from "./rail-see-all-stone";
 
 type Props = {
     title: string;
@@ -55,7 +56,9 @@ export default function RailBotsSection({ title, workers, selected_id, workspace
             )}
             {hidden.length ? (
                 <RailSeeAllRow
-                    hidden={hidden}
+                    stones={hidden.slice(0, AppData.RailSeeAllStones).map((bot) => (
+                        <RailSeeAllStone key={bot.id} bot={bot} />
+                    ))}
                     label={`See all ${workers.length} bots`}
                     onOpen={() => setOpen(true)}
                 />
