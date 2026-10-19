@@ -1,25 +1,22 @@
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import { Plus } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
 import { AddFlowContext } from "@/src/layouts/bots/(data)/add-flow-context";
-import type { BotWithLastMessage } from "@/src/types";
 import useSettingsList from "../../(hooks)/use-settings-list";
 import SettingsGroup from "../../(partials)/settings-group";
 import SettingsList from "../../(partials)/settings-list";
 import SettingsStatus from "../../(partials)/settings-status";
-import BotEditModal from "../(partials)/bot-edit-modal";
 import BotSettingsRow from "../(partials)/bot-settings-row";
 
 /**
- * The user's crew, coordinator first: chat with a bot, edit it, set its
- * models, add one or delete a worker.
+ * The user's crew, coordinator first. A row opens that bot's settings
+ * page; chat with it, or delete a worker.
  */
 export default function BotsSettingsSection() {
     const { pageProps } = useContext(AppContext);
     const { openForm } = useContext(AddFlowContext);
     const { items, busy, status, remove } = useSettingsList({ items: pageProps?.bots || [] });
-    const [editing, setEditing] = useState<BotWithLastMessage>();
 
     return (
         <SettingsGroup
@@ -32,7 +29,6 @@ export default function BotsSettingsSection() {
                         key={bot.id}
                         bot={bot}
                         busy={busy}
-                        onEdit={() => setEditing(bot)}
                         onDelete={() =>
                             remove({
                                 id: bot.id,
@@ -57,7 +53,6 @@ export default function BotsSettingsSection() {
                 New bot
             </Button>
             <SettingsStatus status={status} />
-            <BotEditModal bot={editing} onClose={() => setEditing(undefined)} />
         </SettingsGroup>
     );
 }

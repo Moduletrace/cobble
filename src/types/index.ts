@@ -102,6 +102,15 @@ export type WorkspaceBot = BotWithLastMessage & {
 };
 
 /**
+ * A workspace a bot works in, with what the bot has for that workspace
+ * alone.
+ */
+export type BotWorkspace = WorkspaceWithActivity & {
+    workspace_system_prompt?: string | null;
+    workspace_memory?: string | null;
+};
+
+/**
  * The task shown in the working-on panel, with its ordered steps.
  */
 export type BotTaskWithSteps = BUN_SQLITE_COBBLE_BOT_TASKS & {
@@ -347,6 +356,11 @@ export type PagePropsType = {
     person?: BUN_SQLITE_COBBLE_USERS_JOIN | null;
     persons?: BUN_SQLITE_COBBLE_USERS_JOIN[] | null;
     /**
+     * The user a settings page manages, when it is not the session user
+     * (`/admin/settings/users/<id>`).
+     */
+    target_person?: BUN_SQLITE_COBBLE_USERS_JOIN | null;
+    /**
      * Every worker and workspace, to pick what a user reaches
      * (`grabCrewOptions`).
      */
@@ -380,9 +394,13 @@ export type PagePropsType = {
     computers?: ComputerWithStatus[] | null;
     workspace_harness_overview?: BotHarnessOverviewPayload | null;
     /**
+     * The workspaces a bot works in, with what it has for each alone.
+     */
+    bot_workspaces?: BotWorkspace[] | null;
+    /**
      * The open bot's computers, the one it's on first.
      */
-    bot_computers?: BUN_SQLITE_COBBLE_COMPUTERS[] | null;
+    bot_computers?: ComputerWithStatus[] | null;
     /**
      * The open bot's active task and what its job has done so far.
      */

@@ -7,15 +7,14 @@ import SettingsRowAction from "../../(partials)/settings-row-action";
 type Props = {
     bot: BotWithLastMessage;
     busy?: boolean;
-    onEdit: () => void;
     onDelete: () => void;
 };
 
 /**
- * One bot: its stone or picture, name and job, then Chat, Edit, and for a
- * worker its Models and Delete.
+ * One bot: its stone or picture, name and job. The title opens its
+ * settings page; Chat and, for a worker, Delete sit at the end.
  */
-export default function BotSettingsRow({ bot, busy, onEdit, onDelete }: Props) {
+export default function BotSettingsRow({ bot, busy, onDelete }: Props) {
     const name = bot.name || `Bot ${bot.id}`;
     const is_coordinator = bot.kind == "coordinator";
 
@@ -28,16 +27,13 @@ export default function BotSettingsRow({ bot, busy, onEdit, onDelete }: Props) {
                     face={(bot.face || "idle") as BotFace}
                 />
             }
+            href={`/admin/settings/bots/${bot.id}`}
             title={name}
             subtitle={bot.role || (is_coordinator ? "Coordinates your crew and hands work to it" : undefined)}
         >
             <SettingsRowAction title={`Chat with ${name}`} label="Chat" href={`/admin/bots/${bot.id}`} />
-            <SettingsRowAction title={`Edit ${name}`} label="Edit" disabled={busy} onClick={onEdit} />
             {is_coordinator ? null : (
-                <>
-                    <SettingsRowAction title={`${name}'s models`} label="Models" href={`/admin/bots/${bot.id}/models`} />
-                    <SettingsRowAction title={`Delete ${name}`} label="Delete" disabled={busy} onClick={onDelete} />
-                </>
+                <SettingsRowAction title={`Delete ${name}`} label="Delete" disabled={busy} onClick={onDelete} />
             )}
         </SettingsListRow>
     );

@@ -7,7 +7,7 @@ import { RailPages } from "@/src/dict/rail-pages-dict";
 import RailHeader from "../(partials)/rail-header";
 import RailPagesList from "../(partials)/rail-pages-list";
 import RailCrewList from "../(partials)/rail-crew-list";
-import RailSettingsList from "../(partials)/rail-settings-list";
+import RailSettingsAside from "../(partials)/rail-settings-aside";
 import RailUserRow from "../(partials)/rail-user-row";
 import RailWorkspaceList from "../(partials)/rail-workspace-list";
 
@@ -48,7 +48,7 @@ export default function BotsRail() {
             <RailHeader show_add={!is_settings_page && !is_rail_page} />
             <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch px-2 lg:px-3 pt-1 pb-3">
                 {is_settings_page ? (
-                    <RailSettingsList pathname={pathname} />
+                    <RailSettingsAside pathname={pathname} />
                 ) : is_rail_page ? (
                     <RailPagesList pathname={pathname} />
                 ) : in_workspace && live_workspace ? (

@@ -13,13 +13,24 @@ type Props = {
      * For a button that acts on its own; a modal's target leaves it out.
      */
     onClick?: () => void;
+    /**
+     * For a button that opens a page.
+     */
+    href?: string;
 };
 
 /**
  * A ghost icon button on the right of the conversation header, usually a
  * modal's target.
  */
-export default function HeaderIconButton({ icon: Icon, title, disabled, loading, onClick }: Props) {
+export default function HeaderIconButton({
+    icon: Icon,
+    title,
+    disabled,
+    loading,
+    onClick,
+    href,
+}: Props) {
     return (
         <Button
             title={title}
@@ -30,6 +41,7 @@ export default function HeaderIconButton({ icon: Icon, title, disabled, loading,
             disabled={disabled}
             loading={loading}
             onClick={onClick}
+            href={href}
             className="shrink-0 p-2! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken rounded-default transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
         >
             <Icon size={18} aria-hidden />

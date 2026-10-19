@@ -26,6 +26,10 @@ type Props = {
      */
     onSaved?: (params: { person: BUN_SQLITE_COBBLE_USERS_JOIN; msg: string }) => void;
     onCancel?: () => void;
+    /**
+     * On a settings page: no Cancel, and the save updates in place.
+     */
+    embedded?: boolean;
 };
 
 /**
@@ -33,7 +37,12 @@ type Props = {
  * (bots and workspaces) and password, saved in one go through
  * `users/save-user`.
  */
-export default function UserForm({ person, onSaved, onCancel }: Props) {
+export default function UserForm({
+    person,
+    onSaved,
+    onCancel,
+    embedded,
+}: Props) {
     const init = useFormInit<UserFormObject>({
         existing: person
             ? {
@@ -63,7 +72,11 @@ export default function UserForm({ person, onSaved, onCancel }: Props) {
             <UserFormUserTypes {...init} person={person} />
             <UserFormAccess {...init} person={person} />
             <UserFormPassword {...init} />
-            <UserFormAction {...init} onCancel={onCancel} />
+            <UserFormAction
+                {...init}
+                onCancel={onCancel}
+                hide_cancel={embedded}
+            />
         </Form>
     );
 }

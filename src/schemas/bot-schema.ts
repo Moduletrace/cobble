@@ -37,6 +37,16 @@ export const SetBotComputerRequestSchema = z.object({
 
 export type SetBotComputerRequest = z.infer<typeof SetBotComputerRequestSchema>;
 
+/**
+ * Giving a bot direct access to a computer, or taking it away.
+ */
+export const BotComputerRequestSchema = z.object({
+    bot_id: z.coerce.number().int().positive("Pick a bot"),
+    computer_id: z.coerce.number().int().positive("Pick a computer"),
+});
+
+export type BotComputerRequest = z.infer<typeof BotComputerRequestSchema>;
+
 export const BotSessionIdRequestSchema = z.object({
     session_id: z.coerce.number().int().positive("Pick a session"),
 });

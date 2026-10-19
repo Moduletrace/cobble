@@ -7,7 +7,11 @@ type Props = {
     submit_label: string;
     loading?: boolean;
     error?: string;
-    onCancel: () => void;
+    /**
+     * Left out on a form embedded in a settings page: then there is
+     * nothing to cancel into.
+     */
+    onCancel?: () => void;
 };
 
 /**
@@ -19,17 +23,19 @@ export default function AddFormActions({ submit_label, loading, error, onCancel 
         <Stack className="gap-3! items-stretch">
             <SettingsStatus status={error ? { error: true, msg: error } : undefined} />
             <Row className="gap-2! flex-nowrap justify-end">
-                <Button
-                    title="Cancel"
-                    type="button"
-                    variant="ghost"
-                    color="gray"
-                    size="small"
-                    disabled={loading}
-                    onClick={onCancel}
-                >
-                    Cancel
-                </Button>
+                {onCancel ? (
+                    <Button
+                        title="Cancel"
+                        type="button"
+                        variant="ghost"
+                        color="gray"
+                        size="small"
+                        disabled={loading}
+                        onClick={onCancel}
+                    >
+                        Cancel
+                    </Button>
+                ) : null}
                 <Button title={submit_label} type="submit" size="small" loading={loading} disabled={loading}>
                     {submit_label}
                 </Button>

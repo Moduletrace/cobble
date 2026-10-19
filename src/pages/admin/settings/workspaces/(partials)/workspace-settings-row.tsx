@@ -19,10 +19,10 @@ export default function WorkspaceSettingsRow({ workspace, busy, onDelete }: Prop
     return (
         <SettingsListRow
             avatar={<WorkspaceAvatar image_media_id={workspace.image_media_id} size="sm" />}
+            href={`/admin/settings/workspaces/${workspace.id}`}
             title={name}
             subtitle={workspace.description || undefined}
         >
-            <SettingsRowAction title={`Open ${name}`} label="Open" href={`/admin/workspaces/${workspace.id}`} />
             <SettingsRowAction title={`Delete ${name}`} label="Delete" disabled={busy} onClick={onDelete} />
         </SettingsListRow>
     );

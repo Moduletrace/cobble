@@ -20,7 +20,15 @@ type Props = {
      * Edits this bot; adds a worker when not given.
      */
     bot?: BUN_SQLITE_COBBLE_BOTS;
-    onCancel: () => void;
+    /**
+     * Left out when the form is embedded in a settings page.
+     */
+    onCancel?: () => void;
+    /**
+     * Called with the saved bot instead of reloading. For the settings
+     * page, which updates in place.
+     */
+    onSaved?: (bot: BUN_SQLITE_COBBLE_BOTS) => void;
 };
 
 /**
@@ -30,7 +38,7 @@ type Props = {
  * The coordinator keeps its name and has no colour: only its picture and
  * instructions change.
  */
-export default function BotForm({ bot, onCancel }: Props) {
+export default function BotForm({ bot, onCancel, onSaved }: Props) {
     const { pageProps } = useContext(AppContext);
     const workspace = pageProps?.workspace;
     const crew = pageProps?.all_bots || pageProps?.bots || [];
@@ -72,6 +80,8 @@ export default function BotForm({ bot, onCancel }: Props) {
             return;
         }
 
+        let image_media_id: number | null | undefined;
+
         if (image.changed) {
             const image_res = await setProfileImage({
                 target: "bot",
@@ -84,9 +94,24 @@ export default function BotForm({ bot, onCancel }: Props) {
                 setError(image_res?.msg || "The bot is saved, but its picture isn't. Try another image.");
                 return;
             }
+
+            image_media_id = image_res.singleRes?.image_media_id;
         }
 
         if (bot?.id) {
+            const saved = res.singleRes as BUN_SQLITE_COBBLE_BOTS | undefined;
+
+            if (onSaved && saved?.id) {
+                setLoading(false);
+                onSaved({
+                    ...saved,
+                    ...(image_media_id === undefined
+                        ? {}
+                        : { image_media_id: image_media_id ?? undefined }),
+                });
+                return;
+            }
+
             window.location.reload();
             return;
         }

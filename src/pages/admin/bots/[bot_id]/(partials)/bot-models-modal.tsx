@@ -9,7 +9,7 @@ import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
-import BotHarnessForm from "./bot-harness-form";
+import BotHarnessForm from "@/src/pages/admin/settings/(partials)/bot-harness-form";
 import HeaderIconButton from "./header-icon-button";
 
 type Props = {

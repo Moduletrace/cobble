@@ -122,7 +122,7 @@ export default function AddFlow({ children }: Props) {
                             const pathname = pageProps?.url?.pathname;
 
                             if (
-                                (linked && pathname == `/admin/workspaces/${workspace?.id}`) ||
+                                (linked && pathname == `/admin/settings/workspaces/${workspace?.id}`) ||
                                 pathname == SettingsComputersPath
                             ) {
                                 window.location.reload();

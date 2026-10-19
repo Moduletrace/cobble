@@ -2,15 +2,19 @@ import { useContext, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import H1 from "@moduletrace/twui/layout/H1";
-import { CpuAi, Layers, Monitor } from "lucide-react";
+import { CpuAi, Layers, Monitor, Settings } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
+import { AppContext } from "@/src/pages/__root";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
+import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputersModal from "./bot-computers-modal";
 import BotModelsModal from "./bot-models-modal";
 import BotProfileModal from "./bot-profile-modal";
 import BotSessionsModal from "./bot-sessions-modal";
 import NewSessionButton from "./new-session-button";
+import HeaderIconButton from "./header-icon-button";
 import HeaderMetaItem from "./header-meta-item";
 
 type Props = {
@@ -36,9 +40,14 @@ type Props = {
 export default function ConversationHeader({ bot, workspace, has_other_unread, harnesses: initial }: Props) {
     const [harnesses, setHarnesses] = useState(initial);
     const { computers } = useContext(BotComputersContext);
+    const { pageProps } = useContext(AppContext);
 
     const model = harnesses?.find((h) => h.harness == "text")?.current;
     const computer = computers[0];
+    const can_open_settings =
+        bot.kind == "coordinator"
+            ? isPassThroughUser({ user_types: pageProps?.user_types })
+            : canManageCrew({ user_types: pageProps?.user_types });
 
     return (
         <Row className="h-16 shrink-0 gap-3! flex-nowrap items-center px-6 border-0 border-b border-solid border-hairline">
@@ -84,6 +93,13 @@ export default function ConversationHeader({ bot, workspace, has_other_unread, h
                     harnesses={harnesses}
                     onSaved={setHarnesses}
                 />
+                {can_open_settings ? (
+                    <HeaderIconButton
+                        icon={Settings}
+                        title={`${bot.name || "This bot"}'s settings`}
+                        href={`/admin/settings/bots/${bot.id}`}
+                    />
+                ) : null}
             </Row>
         </Row>
     );

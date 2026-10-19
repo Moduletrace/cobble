@@ -8,26 +8,21 @@ import useSettingsList from "../../(hooks)/use-settings-list";
 import SettingsGroup from "../../(partials)/settings-group";
 import SettingsList from "../../(partials)/settings-list";
 import SettingsStatus from "../../(partials)/settings-status";
-import UserEditModal from "../(partials)/user-edit-modal";
+import NewUserModal from "../(partials)/new-user-modal";
 import UserSettingsRow from "../(partials)/user-settings-row";
 import revokeUser from "../(functions)/revoke-user";
 
 /**
- * Everyone who can sign in (for super admins and admins): add a user
- * with a password, edit one (photo, name, email, username, a new
- * password, user types), revoke one, or delete one with everything
- * that's theirs. What each person
- * may do here is the RBAC helpers' call.
+ * Everyone who can sign in (for super admins and admins). A row opens
+ * that user's settings page; add one with a password, revoke one, or
+ * delete one with everything that's theirs.
  */
 export default function UsersSettingsSection() {
     const { pageProps } = useContext(AppContext);
     const { items, setItems, busy, setBusy, status, setStatus, remove } = useSettingsList({
         items: pageProps?.persons || [],
     });
-    /**
-     * The user being edited, or `true` while adding one.
-     */
-    const [editing, setEditing] = useState<BUN_SQLITE_COBBLE_USERS_JOIN | true>();
+    const [creating, setCreating] = useState(false);
 
     const savePerson = (person: BUN_SQLITE_COBBLE_USERS_JOIN) =>
         setItems((prev) =>
@@ -66,7 +61,6 @@ export default function UsersSettingsSection() {
                         actor_user_id={pageProps?.user?.id}
                         actor_user_types={pageProps?.user_types}
                         busy={busy}
-                        onEdit={() => setEditing(person)}
                         onRevoke={() => revoke(person)}
                         onDelete={() =>
                             remove({
@@ -80,27 +74,26 @@ export default function UsersSettingsSection() {
                 ))}
             </SettingsList>
             {canCreateUser({ user_types: pageProps?.user_types }) ? (
-            <Button
-                title="Add a user"
-                type="button"
-                variant="ghost"
-                color="gray"
-                size="small"
-                onClick={() => setEditing(true)}
-                className="self-start gap-1!"
-            >
-                <Plus size={14} aria-hidden />
-                New user
-            </Button>
+                <Button
+                    title="Add a user"
+                    type="button"
+                    variant="ghost"
+                    color="gray"
+                    size="small"
+                    onClick={() => setCreating(true)}
+                    className="self-start gap-1!"
+                >
+                    <Plus size={14} aria-hidden />
+                    New user
+                </Button>
             ) : null}
             <SettingsStatus status={status} />
-            <UserEditModal
-                person={editing === true ? undefined : editing}
-                open={Boolean(editing)}
-                onClose={() => setEditing(undefined)}
+            <NewUserModal
+                open={creating}
+                onClose={() => setCreating(false)}
                 onSaved={({ person, msg }) => {
                     savePerson(person);
-                    setEditing(undefined);
+                    setCreating(false);
                     setStatus({ success: true, msg });
                 }}
             />

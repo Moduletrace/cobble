@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import Stack from "@moduletrace/twui/layout/Stack";
+import SettingsBreadcrumbs from "./settings-breadcrumbs";
 import SettingsPaneHeader from "./settings-pane-header";
 
 type Props = {
@@ -11,6 +12,10 @@ type Props = {
      * A wider column, for tables (activity).
      */
     wide?: boolean;
+    /**
+     * A nested record page's name, for its breadcrumb trail.
+     */
+    breadcrumb_title?: string;
 };
 
 /**
@@ -22,6 +27,7 @@ export default function SettingsShell({
     description,
     children,
     wide,
+    breadcrumb_title,
 }: Props) {
     return (
         <Stack className="grow min-w-0 h-full gap-0! items-stretch">
@@ -33,6 +39,9 @@ export default function SettingsShell({
                         wide && "max-w-[1200px]",
                     )}
                 >
+                    {breadcrumb_title ? (
+                        <SettingsBreadcrumbs title={breadcrumb_title} />
+                    ) : null}
                     {children}
                 </Stack>
             </Stack>
