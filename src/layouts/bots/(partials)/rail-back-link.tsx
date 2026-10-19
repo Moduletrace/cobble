@@ -26,7 +26,7 @@ export default function RailBackLink({
             <Span className="size-8 shrink-0 flex items-center justify-center mx-auto lg:mx-0">
                 <ArrowLeft size={18} aria-hidden />
             </Span>
-            <Span className="hidden lg:inline text-sm font-bold leading-5 text-ink">
+            <Span className="hidden lg:block min-w-0 truncate text-sm font-bold leading-5 text-ink">
                 {title}
             </Span>
         </Link>
