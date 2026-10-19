@@ -11,10 +11,11 @@ type Params = {
 
 /**
  * The app address of one of a computer's modes, e.g.
- * `/computers/3/terminal`.
+ * `/computers/3/terminal`, with `{prefix}` in its path filled in.
  */
 export default function computerViewUrl({ computer_id, mode }: Params) {
+    const base = `${ComputerProxyPrefix}/${computer_id}/`;
     const path = ComputerViewModes.find((m) => m.value == mode)?.path || "";
 
-    return `${ComputerProxyPrefix}/${computer_id}/${path}`;
+    return `${base}${path.replace("{prefix}", base.replace(/^\//, ""))}`;
 }

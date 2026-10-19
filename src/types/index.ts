@@ -7,6 +7,7 @@ import type {
     BUN_SQLITE_COBBLE_BOTS,
     BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES,
     BUN_SQLITE_COBBLE_COMPUTERS,
+    BUN_SQLITE_COBBLE_CRON_JOBS,
     BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_USER_TYPES,
     BUN_SQLITE_COBBLE_USERS,
@@ -50,6 +51,19 @@ export type BotWithLastMessage = BUN_SQLITE_COBBLE_BOTS & {
     last_activity_at?: number | null;
     last_message_text?: string | null;
     last_message_at?: number | null;
+};
+
+/**
+ * A bot's schedule with what the routines page shows beside it: the bot
+ * and the workspace it runs in.
+ */
+export type CronJobWithNames = BUN_SQLITE_COBBLE_CRON_JOBS & {
+    bot_name?: string | null;
+    bot_kind?: string | null;
+    bot_hue?: string | null;
+    bot_face?: string | null;
+    bot_image_media_id?: number | null;
+    workspace_name?: string | null;
 };
 
 /**
@@ -350,6 +364,10 @@ export type PagePropsType = {
      * The open bot's active task and what its job has done so far.
      */
     bot_task?: BotTaskWithSteps | null;
+    /**
+     * The routines page: every schedule the user's bots have.
+     */
+    cron_jobs?: CronJobWithNames[] | null;
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;

@@ -110,8 +110,11 @@ export const ComputerMcpExcludedTools = [
 
 /**
  * How the user can open a computer, each one of the AIO sandbox's own
- * apps at `path` (relative to the computer's address). More of them
- * (VNC, opencode, codex) can join later.
+ * apps at `path` (relative to the computer's address; `{prefix}` is the
+ * computer's app address without its leading slash, e.g. `computers/3/`).
+ * Desktop is the whole screen over VNC: the only view with the browser's
+ * toolbar (extensions) and a clipboard panel. More of them (opencode,
+ * codex) can join later.
  */
 export const ComputerViewModes = [
     {
@@ -128,6 +131,11 @@ export const ComputerViewModes = [
         title: "Code",
         value: "code",
         path: "code-server/",
+    },
+    {
+        title: "Desktop",
+        value: "desktop",
+        path: "vnc/vnc.html?autoconnect=true&resize=scale&reconnect=true&path={prefix}websockify",
     },
 ] as const;
 

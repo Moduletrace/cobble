@@ -127,6 +127,16 @@ export const AppData = {
      */
     BotQueueRetentionDays: 30,
     /**
+     * A bot's schedules (`cron_jobs`): how many it can have, and the
+     * shortest gap between two runs, so a schedule can't flood the queue.
+     */
+    CronJobMaxPerBot: 20,
+    CronJobMinIntervalMs: 5 * 60 * 1000,
+    /**
+     * Due schedules queued per tick of the `run-cron-jobs` cron.
+     */
+    CronJobBatchSize: 50,
+    /**
      * Automatic model picks (`rankAutoModels`). A free model from outside
      * `AutoModelVendorPreference` must have at least this much context, and
      * this intelligence index or, unscored, this many billion parameters.

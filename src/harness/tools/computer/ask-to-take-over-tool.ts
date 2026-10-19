@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import { ComputerViewModes, type ComputerViewMode } from "@/src/dict/computer-dict";
+import { HelpPath, HelpSignInTopicId } from "@/src/dict/help-dict";
 import takeOverRef from "@/src/utils/take-over-ref";
 import type { HarnessTool } from "../../types";
 
@@ -40,7 +41,7 @@ export default function askToTakeOverTool({ computers, in_task, onAsk }: Params)
 
     return {
         name: "ask_user_to_take_over",
-        description: `Ask the user to take over one of your computers when only they can do something on it: log in, solve a captcha, enter a code, approve a prompt, or show you something. They get a button that opens it in the mode you pick: browser (the web browser), terminal (a shell) or code (the code editor). Computers: ${listed}. Defaults to ${computers[0]?.id}.`,
+        description: `Ask the user to take over one of your computers when only they can do something on it: log in, solve a captcha, enter a code, approve a prompt, or show you something. They get a button that opens it in the mode you pick: browser (the web browser), terminal (a shell), code (the code editor) or desktop (the whole screen, with the browser's toolbar and extensions). When a site refuses to sign in on the computer (Google often does: "This browser or app may not be secure"), pick desktop and point the user to the guide at ${HelpPath}#${HelpSignInTopicId}: they bring their session over with the Cookie-Editor extension. Computers: ${listed}. Defaults to ${computers[0]?.id}.`,
         schema: z.object({
             computer_id: z.number().int().optional(),
             mode: z.enum(Modes),

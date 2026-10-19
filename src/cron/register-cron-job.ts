@@ -5,6 +5,11 @@ type Params = {
     schedule: Bun.CronWithAutocomplete;
     task: () => Promise<unknown>;
     run_on_start?: boolean;
+    /**
+     * Don't log every run (for jobs that run every minute). Errors are
+     * still logged.
+     */
+    quiet?: boolean;
 };
 
 /**
@@ -18,14 +23,17 @@ export default function registerCronJob({
     schedule,
     task,
     run_on_start,
+    quiet,
 }: Params) {
     const run = async () => {
         try {
-            await logEvent({
-                title: `Cron: ${title}`,
-                category: "cron",
-                plain_text: `CRON: ${title} ...`,
-            });
+            if (!quiet) {
+                await logEvent({
+                    title: `Cron: ${title}`,
+                    category: "cron",
+                    plain_text: `CRON: ${title} ...`,
+                });
+            }
             await task();
         } catch (error) {
             await logError({

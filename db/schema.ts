@@ -710,6 +710,117 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "cron_jobs",
+            tableDescription: `A bot's schedules (routines in the UI): a brief queued as a task on a cron schedule, in UTC. The \`run-cron-jobs\` cron queues the due ones every minute`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The owner`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "cron_jobs_user_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that runs it`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "cron_jobs_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace it runs in (context, computers, models, and the conversation its results go to); null for the bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "cron_jobs_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "title",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "instructions",
+                    fieldDescription: `The brief each run gets (markdown), like a task's`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "schedule",
+                    fieldDescription: `A Bun.cron expression (5 fields or a nickname like @daily), in UTC`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "computer_id",
+                    fieldDescription: `The computer its runs use; null for the bot's current one when it runs. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "max_runs",
+                    fieldDescription: `Turns itself off after this many runs (1 for a one-off); null runs until stopped`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "run_count",
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "next_run_at",
+                    fieldDescription: `Unix ms of the next run; null once it can't run again`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_run_at",
+                    fieldDescription: `Unix ms of the last run queued`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_job_id",
+                    fieldDescription: `The \`bots_queue\` job of the last run. Not a foreign key: finished jobs are pruned`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_error",
+                    fieldDescription: `Why the last run couldn't be queued or was skipped; cleared by the next run`,
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_cron_jobs_enabled_next_run_at",
+                    indexTableFields: ["enabled", "next_run_at"],
+                },
+                {
+                    indexName: "idx_cron_jobs_bot_id",
+                    indexTableFields: ["bot_id"],
+                },
+                {
+                    indexName: "idx_cron_jobs_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
             tableName: "workspaces",
             fields: [
                 {

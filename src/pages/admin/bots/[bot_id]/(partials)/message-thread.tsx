@@ -1,5 +1,8 @@
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { BotMessageWithAttachments, BotWithLastMessage } from "@/src/types";
+import type {
+    BotMessageWithAttachments,
+    BotWithLastMessage,
+} from "@/src/types";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
 import MessageGroupBlock from "./message-group-block";
@@ -28,10 +31,14 @@ export default function MessageThread({ bot, messages, progress }: Props) {
                 role="log"
                 aria-live="polite"
                 aria-label={`Conversation with ${bot.name}`}
-                className="w-full max-w-[760px] mx-auto gap-4! items-stretch px-6 pt-6 pb-6"
+                className="w-full max-w-container mx-auto gap-4! items-stretch px-6 pt-6 pb-6"
             >
                 {groups.map((group) => (
-                    <MessageGroupBlock key={group.key} bot={bot} group={group} />
+                    <MessageGroupBlock
+                        key={group.key}
+                        bot={bot}
+                        group={group}
+                    />
                 ))}
                 <BotThinkingRow bot={bot} progress={progress} />
             </Stack>

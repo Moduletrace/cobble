@@ -1,12 +1,6 @@
-import {
-    Activity,
-    CircleHelp,
-    Clock,
-    LogOut,
-    SlidersHorizontal,
-    type LucideIcon,
-} from "lucide-react";
+import { LogOut, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import { SettingsDefaultPath } from "@/src/dict/settings-pages-dict";
+import { RailPages } from "@/src/dict/rail-pages-dict";
 
 export type RailUserMenuItem = {
     title: string;
@@ -20,16 +14,19 @@ export type RailUserMenuItem = {
      * Rendered last, after a rule.
      */
     destructive?: boolean;
+    /**
+     * Shown to super admins only.
+     */
+    super_admin_only?: boolean;
 };
 
 /**
- * Exactly the five popover items. Nothing else lives in the rail: these
- * destinations are only reachable from here.
+ * The popover items: the rail pages (routines, activity, help), settings,
+ * sign out. Nothing else lives in the rail: these destinations are only
+ * reachable from here.
  */
 export const RailUserMenuItems: RailUserMenuItem[] = [
-    { title: "Activity", Icon: Activity },
-    { title: "Routines", Icon: Clock },
+    ...RailPages,
     { title: "Settings", url: SettingsDefaultPath, Icon: SlidersHorizontal },
-    { title: "Help", Icon: CircleHelp },
     { title: "Sign out", url: "/auth/logout", Icon: LogOut, destructive: true },
 ];

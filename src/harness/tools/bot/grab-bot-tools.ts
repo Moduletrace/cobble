@@ -1,6 +1,10 @@
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import type { HarnessTool } from "../../types";
+import createScheduleTool from "./create-schedule-tool";
+import deleteScheduleTool from "./delete-schedule-tool";
+import listSchedulesTool from "./list-schedules-tool";
 import setWorkspaceComputerTool from "./set-workspace-computer-tool";
+import updateScheduleTool from "./update-schedule-tool";
 import updateInstructionsTool from "./update-instructions-tool";
 import updateMemoryTool from "./update-memory-tool";
 
@@ -20,7 +24,8 @@ type Params = {
 
 /**
  * The tools a bot works with on every run, bound to that bot and where it
- * works.
+ * works: its memory and instructions, its schedules, and in a workspace
+ * with several computers switching the default one.
  */
 export default function grabBotTools({
     user_id,
@@ -31,6 +36,10 @@ export default function grabBotTools({
     return [
         updateMemoryTool({ user_id, bot_id, workspace_id }),
         updateInstructionsTool({ user_id, bot_id, workspace_id }),
+        createScheduleTool({ user_id, bot_id, workspace_id, computers }),
+        listSchedulesTool({ user_id, bot_id }),
+        updateScheduleTool({ user_id, bot_id }),
+        deleteScheduleTool({ user_id, bot_id }),
         ...(workspace_id && computers.length > 1
             ? [setWorkspaceComputerTool({ user_id, workspace_id, computers })]
             : []),

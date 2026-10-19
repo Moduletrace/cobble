@@ -2,7 +2,10 @@ import { useState, type KeyboardEvent } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Textarea from "@moduletrace/twui/form/Textarea";
-import type { BotMessageWithAttachments, BotWithLastMessage } from "@/src/types";
+import type {
+    BotMessageWithAttachments,
+    BotWithLastMessage,
+} from "@/src/types";
 import sendBotMessage from "../(functions)/send-bot-message";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
 import ComposerAttachButton from "./composer-attach-button";
@@ -30,7 +33,9 @@ export default function Composer({ bot, workspace_id, onSent }: Props) {
     const files = useComposerAttachments();
 
     const can_send =
-        Boolean(text.trim() || files.media_ids.length) && !sending && !files.uploading;
+        Boolean(text.trim() || files.media_ids.length) &&
+        !sending &&
+        !files.uploading;
 
     async function send() {
         if (!can_send || !bot.id) return;
@@ -57,7 +62,9 @@ export default function Composer({ bot, workspace_id, onSent }: Props) {
         onSent({ message: res.singleRes });
     }
 
-    function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) {
+    function handleKeyDown(
+        e: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
+    ) {
         if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             send();
@@ -77,10 +84,16 @@ export default function Composer({ bot, workspace_id, onSent }: Props) {
                 files.add({ files: [...e.dataTransfer.files] });
             }}
         >
-            <ComposerAttachments pending={files.pending} onRemove={files.remove} />
+            <ComposerAttachments
+                pending={files.pending}
+                onRemove={files.remove}
+            />
             <Stack className="shrink-0 gap-0! items-stretch border-0 border-t border-solid border-hairline">
-                <Row className="w-full max-w-[760px] mx-auto h-[88px] gap-4! flex-nowrap items-center px-6">
-                    <ComposerAttachButton disabled={files.full} onFiles={files.add} />
+                <Row className="w-full max-w-container mx-auto h-[88px] gap-4! flex-nowrap items-center px-6">
+                    <ComposerAttachButton
+                        disabled={files.full}
+                        onFiles={files.add}
+                    />
                     <Textarea
                         name="message"
                         aria-label={`Message ${bot.name}`}
@@ -106,7 +119,11 @@ export default function Composer({ bot, workspace_id, onSent }: Props) {
                                 "p-0! outline-0! border-0! bg-transparent! dark:bg-transparent! rounded-none",
                         }}
                     />
-                    <ComposerSendButton disabled={!can_send} loading={sending || files.uploading} onClick={send} />
+                    <ComposerSendButton
+                        disabled={!can_send}
+                        loading={sending || files.uploading}
+                        onClick={send}
+                    />
                 </Row>
             </Stack>
         </Stack>

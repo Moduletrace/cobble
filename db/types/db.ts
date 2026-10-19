@@ -12,6 +12,7 @@ export const BunSQLiteTables = [
     "bot_task_steps",
     "bots_queue",
     "bots_queue_updates",
+    "cron_jobs",
     "workspaces",
     "workspace_bots",
     "bot_message_media",
@@ -466,6 +467,68 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES = {
     metadata?: string;
 }
 
+export type BUN_SQLITE_COBBLE_CRON_JOBS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The owner
+     */
+    user_id?: number | "";
+    /** 
+     * The bot that runs it
+     */
+    bot_id?: number | "";
+    /** 
+     * The workspace it runs in (context, computers, models, and the conversation its results go to); null for the bot's own chat
+     */
+    workspace_id?: number | "";
+    title?: string;
+    /** 
+     * The brief each run gets (markdown), like a task's
+     */
+    instructions?: string;
+    /** 
+     * A Bun.cron expression (5 fields or a nickname like @daily), in UTC
+     */
+    schedule?: string;
+    /** 
+     * The computer its runs use; null for the bot's current one when it runs. Not a foreign key
+     */
+    computer_id?: number | "";
+    enabled?: 0 | 1 | "";
+    /** 
+     * Turns itself off after this many runs (1 for a one-off); null runs until stopped
+     */
+    max_runs?: number | "";
+    run_count?: number | "";
+    /** 
+     * Unix ms of the next run; null once it can't run again
+     */
+    next_run_at?: number | "";
+    /** 
+     * Unix ms of the last run queued
+     */
+    last_run_at?: number | "";
+    /** 
+     * The `bots_queue` job of the last run. Not a foreign key: finished jobs are pruned
+     */
+    last_job_id?: number | "";
+    /** 
+     * Why the last run couldn't be queued or was skipped; cleared by the next run
+     */
+    last_error?: string;
+}
+
 export type BUN_SQLITE_COBBLE_WORKSPACES = {
     /** 
      * The unique identifier of the record.
@@ -587,7 +650,7 @@ export type BUN_SQLITE_COBBLE_CONTAINERS = {
     /** 
      * Last known docker state
      */
-    status?: "creating" | "failed" | "created" | "running" | "paused" | "restarting" | "exited" | "removing" | "dead" | "unknown" | "";
+    status?: "creating" | "failed" | "created" | "starting" | "running" | "unhealthy" | "paused" | "restarting" | "exited" | "removing" | "dead" | "unknown" | "";
     /** 
      * Extra docker details (ports, volumes, env names, labels)
      */
@@ -977,4 +1040,4 @@ export type BUN_SQLITE_COBBLE_ENVS = {
     expose_to_computers?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_ENVS

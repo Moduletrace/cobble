@@ -151,6 +151,8 @@
     --radius-default-xs: 4px;
     --radius-default-lg: 10px;
     --radius-default-xl: 14px;
+
+    --container-container: 960px;
 }
 
 body {

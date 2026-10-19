@@ -3,7 +3,9 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import { AppContext } from "@/src/pages/__root";
 import useLiveBots from "@/src/hooks/use-live-bots";
 import useLiveWorkspaces from "../(hooks)/use-live-workspaces";
+import { RailPages } from "@/src/dict/rail-pages-dict";
 import RailHeader from "../(partials)/rail-header";
+import RailPagesList from "../(partials)/rail-pages-list";
 import RailCrewList from "../(partials)/rail-crew-list";
 import RailSettingsList from "../(partials)/rail-settings-list";
 import RailUserRow from "../(partials)/rail-user-row";
@@ -13,13 +15,17 @@ import RailWorkspaceList from "../(partials)/rail-workspace-list";
  * Left rail: wordmark and Add, then the crew (pinned coordinator first,
  * the latest bots, the workspaces). Inside a workspace it lists that
  * workspace's crew instead; on `/admin/settings/*` a back link and the
- * settings sub pages. Collapses to a 64px icon rail below 1024px.
+ * settings sub pages, and on routines, activity and help a back link and
+ * those pages (`RailPages`). Collapses to a 64px icon rail below 1024px.
  */
 export default function BotsRail() {
     const { pageProps } = useContext(AppContext);
 
     const pathname = pageProps?.url?.pathname;
     const is_settings_page = Boolean(pathname?.startsWith("/admin/settings"));
+    const is_rail_page = RailPages.some(
+        (page) => pathname == page.url || Boolean(pathname?.startsWith(`${page.url}/`)),
+    );
     const workspace = pageProps?.workspace;
     const in_workspace = Boolean(workspace?.id && pathname?.startsWith("/admin/workspaces/"));
 
@@ -39,10 +45,12 @@ export default function BotsRail() {
             className="w-16 lg:w-[260px] shrink-0 h-full gap-0! items-stretch border-0 border-r border-solid border-hairline"
             aria-label={is_settings_page ? "Settings" : in_workspace ? workspace?.name || "Workspace" : "Bots"}
         >
-            <RailHeader show_add={!is_settings_page} />
+            <RailHeader show_add={!is_settings_page && !is_rail_page} />
             <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch px-2 lg:px-3 pt-1 pb-3">
                 {is_settings_page ? (
                     <RailSettingsList pathname={pathname} />
+                ) : is_rail_page ? (
+                    <RailPagesList pathname={pathname} />
                 ) : in_workspace && live_workspace ? (
                     <RailWorkspaceList
                         workspace={live_workspace}
