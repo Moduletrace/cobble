@@ -3,6 +3,7 @@ import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordin
 import ensureMainComputer from "@/src/functions/backend/db/computers/ensure-main-computer";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
 import saveUser from "@/src/functions/backend/db/users/save-user";
+import setUserProfileImage from "@/src/functions/backend/db/users/set-user-profile-image";
 import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
 import { SaveUserRequestSchema } from "@/src/schemas/user-schema";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
@@ -20,8 +21,8 @@ import type {
 
 /**
  * Creates a user (`canCreateUser`) or updates one (`canUpdateUser`):
- * name, email, username, password and user types, each type checked
- * against the assignment matrix. A new user gets their coordinator and main computer
+ * name, email, username, password, user types (each checked against the
+ * assignment matrix) and, when one is sent, their profile photo. A new user gets their coordinator and main computer
  * straight away, as at signup. Returns the user.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_USERS_JOIN>> = async ({ req, body }) => {
@@ -58,6 +59,10 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_
             throw new AppError(`You can't do that.`);
         }
         const { user_id, created } = await saveUser({ ...data, actor_user_types: user_types || [] });
+
+        if (data.image) {
+            await setUserProfileImage({ user_id, data_url: data.image });
+        }
 
         if (created) {
             /**

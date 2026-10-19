@@ -4,51 +4,24 @@ import useFormInit from "@/src/hooks/use-form-init";
 import type { UserFormObject } from "@/src/types";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
-export default function UserFormImage({
-    setForm,
-    existing_full,
-    setImage,
-}: ReturnType<typeof useFormInit<UserFormObject>>) {
-    const title = existing_full?.id ? "Update User" : "Create New User";
+type Props = ReturnType<typeof useFormInit<UserFormObject>> & {
+    person?: BUN_SQLITE_COBBLE_USERS_JOIN;
+};
 
-    const person = existing_full as BUN_SQLITE_COBBLE_USERS_JOIN | undefined;
-
+/**
+ * Their profile photo, saved with the rest of the form.
+ */
+export default function UserFormImage({ person, setImage }: Props) {
     const user_image_url = person?.profile_media_id
-        ? grabMediaURL({
-              media: { id: person?.profile_media_id },
-          })
+        ? grabMediaURL({ media: { id: person.profile_media_id } }).media_url
         : undefined;
 
     return (
-        <>
-            <ImageUpload
-                label="User Image"
-                existingImageUrl={user_image_url?.media_url}
-                onChangeHandler={(imgData) => {
-                    setImage(imgData);
-                }}
-                setImgURL={(imgURL) => {
-                    if (
-                        typeof imgURL !== "string" &&
-                        typeof imgURL !== "undefined"
-                    ) {
-                        return;
-                    }
-
-                    setForm((prev) => ({
-                        ...prev,
-                        image: imgURL || "",
-                        image_thumbnail: imgURL || "",
-                    }));
-                }}
-                restoreImageFn={() => {
-                    setForm((prev) => ({
-                        ...prev,
-                        image: user_image_url || "",
-                        image_thumbnail: user_image_url || "",
-                    }));
-                }}
-            />
-        </>
+        <ImageUpload
+            label="Photo"
+            existingImageUrl={user_image_url}
+            onChangeHandler={(imgData) => setImage(imgData)}
+            restoreImageFn={() => setImage(undefined)}
+        />
     );
 }

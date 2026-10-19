@@ -44,6 +44,7 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(provider?.id ? `Save ${provider.name || "this provider"}?` : `Add ${name || "this provider"}?`)) return;
 
         setLoading(true);
         setError(undefined);

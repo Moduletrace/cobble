@@ -7,18 +7,22 @@ export default function UserFormUsername({
     form,
 }: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
     return (
-        <>
-            <Input
-                placeholder="Username"
-                onChange={(e) => {
-                    setForm((prev) => ({
-                        ...prev,
-                        username: e.target.value,
-                    }));
-                }}
-                defaultValue={form.username}
-                showLabel
-            />
-        </>
+        <Input
+            id="user-form-username"
+            title="Username"
+            label="Username"
+            placeholder="ada"
+            autoComplete="off"
+            info="Lowercase letters, numbers, dots, dashes or underscores."
+            onChange={(e) => {
+                setForm((prev) => ({
+                    ...prev,
+                    username: e.target.value,
+                }));
+            }}
+            defaultValue={form.username}
+            showLabel
+            required
+        />
     );
 }

@@ -35,5 +35,5 @@ export default function useSettingsList<T extends { id?: number | string | "" }>
         setStatus({ success: true, msg: res.msg || "Deleted." });
     };
 
-    return { items, setItems, busy, status, setStatus, remove };
+    return { items, setItems, busy, setBusy, status, setStatus, remove };
 }

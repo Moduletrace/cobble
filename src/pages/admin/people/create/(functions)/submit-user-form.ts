@@ -1,133 +1,64 @@
-import type {
-    BUN_SQLITE_COBBLE_USER_TYPES,
-    BUN_SQLITE_COBBLE_USERS,
-} from "@/db/types/db";
-import adminCrudHandler from "@/src/functions/frontend/admin-crud-handler";
-import clientDeleteMediaHandler from "@/src/functions/frontend/client-delete-media-handler";
-import clientUploadMediaHandler from "@/src/functions/frontend/client-upload-media-handler";
+import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type useFormInit from "@/src/hooks/use-form-init";
 import type { UserFormObject } from "@/src/types";
-import _ from "lodash";
+import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 
+type Params = ReturnType<typeof useFormInit<UserFormObject>> & {
+    onSaved?: (params: { person: BUN_SQLITE_COBBLE_USERS_JOIN; msg: string }) => void;
+};
+
+/**
+ * Saves the user, with a newly picked photo, through `users/save-user`,
+ * which checks every field and user type. Hands the saved user to
+ * `onSaved`, else reloads or opens their page.
+ */
 export default async function submitUserForm({
+    form,
+    image,
+    existing_full,
+    loading,
     setLoading,
     setStatus,
-    form,
-    existing_full,
-    existing,
-    image,
-}: ReturnType<typeof useFormInit<UserFormObject>>) {
-    try {
-        const confirm_msg = existing_full?.id
-            ? `Update this user?`
-            : `Create new user?`;
+    onSaved,
+}: Params) {
+    if (loading) return;
 
-        if (!window.confirm(confirm_msg)) {
-            return;
-        }
+    if ((form.password || "") != (form.confirm_password || "")) {
+        setStatus({ error: true, msg: "The passwords don't match." });
+        return;
+    }
 
-        const new_user_data: BUN_SQLITE_COBBLE_USERS = _.pick<
-            UserFormObject,
-            keyof UserFormObject
-        >(form, ["first_name", "last_name", "email", "username", "bio"]);
+    if (!window.confirm(existing_full?.id ? `Save changes to ${form.first_name || "this user"}?` : `Add ${form.first_name || "this user"}?`)) return;
 
-        setLoading(true);
+    setLoading(true);
 
-        const create_or_update_user_res = await adminCrudHandler({
-            action: existing_full?.id ? "update" : "insert",
-            table: "users",
-            insert_data: [new_user_data],
-            update_data: new_user_data,
-            id: existing_full?.id,
-        });
+    const res = await postAdminApi<BUN_SQLITE_COBBLE_USERS_JOIN>({
+        path: "users/save-user",
+        body: {
+            user_id: existing_full?.id || null,
+            first_name: form.first_name,
+            last_name: form.last_name,
+            email: form.email,
+            username: form.username,
+            password: form.password,
+            confirm_password: form.confirm_password,
+            user_types: form.user_types,
+            image: image?.imageBase64Full,
+        },
+    });
 
-        const target_user_id =
-            existing_full?.id || create_or_update_user_res.singleRes?.id;
+    setLoading(false);
 
-        if (image?.imageBase64Full) {
-            const is_user_settings =
-                window.location.pathname.includes("admin/settings");
+    if (!res.success || !res.singleRes?.id) {
+        setStatus({ error: true, msg: res.msg || "Couldn't save the user." });
+        return;
+    }
 
-            const delete_media_res = await clientDeleteMediaHandler({
-                user_id: target_user_id,
-                media_paradigm: "user-profile-image",
-            });
-
-            if (!delete_media_res.success) {
-                console.log("delete_media_res", delete_media_res);
-
-                throw new Error(
-                    delete_media_res.msg ||
-                        delete_media_res.error ||
-                        `Couldn't delete old media`,
-                );
-            }
-
-            const upload_image_res = await clientUploadMediaHandler({
-                user_id: target_user_id,
-                media_base_64_data_url: image.imageBase64Full,
-                media_paradigms: ["user-profile-image"],
-                media_type: "image",
-                is_media_primary: true,
-                update_on_duplicate: true,
-                reauth: is_user_settings,
-            });
-
-            console.log("upload_image_res", upload_image_res);
-
-            if (!upload_image_res.success) {
-                throw new Error(
-                    upload_image_res.msg || "Couldn't upload Image",
-                );
-            }
-        }
-
-        if (create_or_update_user_res.success && target_user_id) {
-            const delete_user_types = await adminCrudHandler({
-                action: "delete",
-                table: "user_types",
-                sql_query: {
-                    query: {
-                        user_id: {
-                            value: target_user_id,
-                        },
-                    },
-                },
-            });
-
-            const user_types = form.user_types;
-
-            if (user_types?.[0]) {
-                const add_user_types =
-                    await adminCrudHandler<BUN_SQLITE_COBBLE_USER_TYPES>({
-                        action: "insert",
-                        table: "user_types",
-                        insert_data: user_types.map((ut) => ({
-                            user_id: target_user_id,
-                            user_type: ut,
-                        })),
-                    });
-
-                if (existing_full?.id) {
-                    window.location.reload();
-                } else {
-                    window.location.pathname = `/admin/people/${target_user_id}`;
-                }
-            }
-        } else {
-            console.log("res", create_or_update_user_res);
-            console.log("form", form);
-
-            throw new Error(
-                create_or_update_user_res.msg || "Person Creation Failed",
-            );
-        }
-    } catch (error: any) {
-        setStatus({
-            error: true,
-            msg: error.message || "User Form Error",
-        });
-
-        setLoading(false);
+    if (onSaved) {
+        onSaved({ person: res.singleRes, msg: res.msg || "Saved." });
+    } else if (existing_full?.id) {
+        window.location.reload();
+    } else {
+        window.location.pathname = `/admin/people/${res.singleRes.id}`;
     }
 }

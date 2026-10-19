@@ -14,13 +14,14 @@ type Props = {
     actor_user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
     busy?: boolean;
     onEdit: () => void;
+    onRevoke: () => void;
     onDelete: () => void;
 };
 
 /**
- * One user: their photo, name, user types and email, then Edit and
- * Delete where the actor may (`canUpdateUser`, `canRevokeUser`; never
- * deleting yourself).
+ * One user: their photo, name, user types and email, then Edit, Revoke
+ * (not once revoked) and Delete where the actor may (`canUpdateUser`,
+ * `canRevokeUser`; never revoking or deleting yourself).
  */
 export default function UserSettingsRow({
     person,
@@ -28,6 +29,7 @@ export default function UserSettingsRow({
     actor_user_types,
     busy,
     onEdit,
+    onRevoke,
     onDelete,
 }: Props) {
     const name =
@@ -42,6 +44,7 @@ export default function UserSettingsRow({
     const target_user_types = user_types.map((user_type) => ({ user_type }));
     const can_edit = canUpdateUser({ actor_user_types, actor_user_id, target_user_id: person.id, target_user_types });
     const can_delete = !is_self && canRevokeUser({ user_types: actor_user_types, target_user_types });
+    const can_revoke = can_delete && !user_types.includes("revoked");
 
     return (
         <SettingsListRow
@@ -56,6 +59,14 @@ export default function UserSettingsRow({
                     label="Edit"
                     disabled={busy}
                     onClick={onEdit}
+                />
+            ) : null}
+            {can_revoke ? (
+                <SettingsRowAction
+                    title={`Revoke ${name}`}
+                    label="Revoke"
+                    disabled={busy}
+                    onClick={onRevoke}
                 />
             ) : null}
             {can_delete ? (

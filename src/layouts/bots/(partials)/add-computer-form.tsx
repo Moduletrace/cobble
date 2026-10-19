@@ -48,6 +48,7 @@ export default function AddComputerForm({ computer, onCancel, onCreated, onUpdat
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(computer?.id ? `Save ${computer.name || "this computer"}? New resources restart it; its files stay.` : `Create ${name || "this computer"}?`)) return;
 
         setLoading(true);
         setError(undefined);

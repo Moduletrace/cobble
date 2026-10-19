@@ -56,6 +56,7 @@ export default function HarnessSettingsForm({
 
     const submit = async () => {
         if (!dirty || loading) return;
+        if (!window.confirm(`Save these model settings?`)) return;
 
         setLoading(true);
         setStatus({});

@@ -1,17 +1,18 @@
-import type { BUN_SQLITE_COBBLE_USERS } from "@/db/types/db";
-import Button from "@moduletrace/twui/layout/Button";
 import useFormInit from "@/src/hooks/use-form-init";
+import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
+import type { UserFormObject } from "@/src/types";
 
-export default function UserFormAction({
-    setForm,
-    existing,
-    existing_full,
-}: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
-    const title = existing_full?.id ? "Update User" : "Create New User";
+type Props = ReturnType<typeof useFormInit<UserFormObject>> & {
+    onCancel?: () => void;
+};
 
+export default function UserFormAction({ existing_full, loading, status, onCancel }: Props) {
     return (
-        <>
-            <Button title={title}>{title}</Button>
-        </>
+        <AddFormActions
+            submit_label={existing_full?.id ? "Save" : "Add user"}
+            loading={loading}
+            error={status?.error ? status.msg : undefined}
+            onCancel={onCancel || (() => window.history.back())}
+        />
     );
 }

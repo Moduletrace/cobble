@@ -62,6 +62,7 @@ export default function ProfileForm({ person }: Props) {
             className="w-full gap-0! items-stretch"
             onSubmit={() => {
                 if (!dirty || loading) return;
+                if (!window.confirm(`Save your profile?`)) return;
                 submitProfileForm({
                     ...init,
                     onSaved: ({ saved, photo_src, msg }) => {

@@ -8,10 +8,12 @@ export default function UserFormName({
     form,
 }: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
     return (
-        <Row className="w-full grid xl:grid-cols-2">
+        <Row className="w-full grid sm:grid-cols-2 gap-4!">
             <Input
-                title="First Name"
-                placeholder="Eg. John"
+                id="user-form-first-name"
+                title="First name"
+                label="First name"
+                placeholder="Ada"
                 onChange={(e) => {
                     setForm((prev) => ({
                         ...prev,
@@ -19,14 +21,16 @@ export default function UserFormName({
                     }));
                 }}
                 defaultValue={form.first_name}
-                autoComplete="given-name"
+                autoComplete="off"
                 showLabel
                 required
             />
 
             <Input
-                title="Last Name"
-                placeholder="Eg. Doe"
+                id="user-form-last-name"
+                title="Last name"
+                label="Last name"
+                placeholder="Lovelace"
                 onChange={(e) => {
                     setForm((prev) => ({
                         ...prev,
@@ -34,7 +38,7 @@ export default function UserFormName({
                     }));
                 }}
                 defaultValue={form.last_name}
-                autoComplete="family-name"
+                autoComplete="off"
                 showLabel
             />
         </Row>

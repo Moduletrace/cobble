@@ -24,6 +24,7 @@ export default function RoutineForm({ cron_job, onCancel, onSaved }: Props) {
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(`Save ${title || "this routine"}?`)) return;
 
         setLoading(true);
         setError(undefined);

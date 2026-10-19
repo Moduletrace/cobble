@@ -22,6 +22,10 @@ export const SaveUserRequestSchema = z
      * as they are.
      */
     user_types: z.array(z.enum(UserTypes.map((type) => type.value))).default([]),
+    /**
+     * A new profile photo as a base64 data URL; left out keeps theirs.
+     */
+    image: z.string().startsWith("data:image/", "Pick an image").nullish(),
     })
     .refine((data) => data.password == data.confirm_password, {
         message: "The passwords don't match",

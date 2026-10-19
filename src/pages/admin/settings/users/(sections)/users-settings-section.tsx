@@ -10,20 +10,48 @@ import SettingsList from "../../(partials)/settings-list";
 import SettingsStatus from "../../(partials)/settings-status";
 import UserEditModal from "../(partials)/user-edit-modal";
 import UserSettingsRow from "../(partials)/user-settings-row";
+import revokeUser from "../(functions)/revoke-user";
 
 /**
  * Everyone who can sign in (for super admins and admins): add a user
- * with a password, edit one (name, email, username, a new password, user
- * types), or delete one with everything that's theirs. What each person
+ * with a password, edit one (photo, name, email, username, a new
+ * password, user types), revoke one, or delete one with everything
+ * that's theirs. What each person
  * may do here is the RBAC helpers' call.
  */
 export default function UsersSettingsSection() {
     const { pageProps } = useContext(AppContext);
-    const { items, setItems, busy, status, setStatus, remove } = useSettingsList({ items: pageProps?.persons || [] });
+    const { items, setItems, busy, setBusy, status, setStatus, remove } = useSettingsList({
+        items: pageProps?.persons || [],
+    });
     /**
      * The user being edited, or `true` while adding one.
      */
     const [editing, setEditing] = useState<BUN_SQLITE_COBBLE_USERS_JOIN | true>();
+
+    const savePerson = (person: BUN_SQLITE_COBBLE_USERS_JOIN) =>
+        setItems((prev) =>
+            prev.some((p) => p.id == person.id) ? prev.map((p) => (p.id == person.id ? person : p)) : [...prev, person],
+        );
+
+    const revoke = async (person: BUN_SQLITE_COBBLE_USERS_JOIN) => {
+        if (busy || !window.confirm(`Revoke ${person.first_name || "this user"}? They can't sign in until Revoked is removed from their user types. Their crew and files are kept.`)) return;
+
+        setBusy(true);
+        setStatus(undefined);
+
+        const res = await revokeUser({ person });
+
+        setBusy(false);
+
+        if (!res.success || !res.singleRes?.id) {
+            setStatus({ error: true, msg: res.msg || "Couldn't revoke them." });
+            return;
+        }
+
+        savePerson(res.singleRes);
+        setStatus({ success: true, msg: `${person.first_name || "They"} can't sign in now.` });
+    };
 
     return (
         <SettingsGroup
@@ -39,6 +67,7 @@ export default function UsersSettingsSection() {
                         actor_user_types={pageProps?.user_types}
                         busy={busy}
                         onEdit={() => setEditing(person)}
+                        onRevoke={() => revoke(person)}
                         onDelete={() =>
                             remove({
                                 id: person.id,
@@ -70,11 +99,7 @@ export default function UsersSettingsSection() {
                 open={Boolean(editing)}
                 onClose={() => setEditing(undefined)}
                 onSaved={({ person, msg }) => {
-                    setItems((prev) =>
-                        prev.some((p) => p.id == person.id)
-                            ? prev.map((p) => (p.id == person.id ? person : p))
-                            : [...prev, person],
-                    );
+                    savePerson(person);
                     setEditing(undefined);
                     setStatus({ success: true, msg });
                 }}

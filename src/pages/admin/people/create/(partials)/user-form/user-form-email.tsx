@@ -7,20 +7,22 @@ export default function UserFormEmail({
     form,
 }: ReturnType<typeof useFormInit<BUN_SQLITE_COBBLE_USERS>>) {
     return (
-        <>
-            <Input
-                type="email"
-                placeholder="Email Addres"
-                onChange={(e) => {
-                    setForm((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                    }));
-                }}
-                defaultValue={form.email}
-                showLabel
-                required
-            />
-        </>
+        <Input
+            id="user-form-email"
+            title="Email"
+            label="Email"
+            type="email"
+            placeholder="ada@example.com"
+            autoComplete="off"
+            onChange={(e) => {
+                setForm((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                }));
+            }}
+            defaultValue={form.email}
+            showLabel
+            required
+        />
     );
 }

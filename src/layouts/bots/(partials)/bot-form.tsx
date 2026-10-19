@@ -49,6 +49,7 @@ export default function BotForm({ bot, onCancel }: Props) {
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(bot?.id ? `Save changes to ${bot.name || "this bot"}?` : `Add ${name || "this bot"} to your crew?`)) return;
 
         setLoading(true);
         setError(undefined);

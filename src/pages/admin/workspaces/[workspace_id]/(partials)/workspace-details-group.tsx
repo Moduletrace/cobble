@@ -34,6 +34,7 @@ export default function WorkspaceDetailsGroup({ workspace, onSaved }: Props) {
 
     const submit = async () => {
         if (!dirty || loading) return;
+        if (!window.confirm(`Save ${name || "this workspace"}?`)) return;
 
         setLoading(true);
         setStatus(undefined);

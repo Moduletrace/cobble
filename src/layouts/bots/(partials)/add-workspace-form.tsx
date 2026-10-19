@@ -27,6 +27,7 @@ export default function AddWorkspaceForm({ onCancel }: Props) {
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(`Create ${name || "this workspace"}?`)) return;
 
         setLoading(true);
         setError(undefined);

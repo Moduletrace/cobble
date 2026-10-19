@@ -755,6 +755,8 @@ export type AdminFetchParams<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = {
 
 export type UserFormObject = BUN_SQLITE_COBBLE_USERS & {
     user_types?: UserType[];
+    password?: string;
+    confirm_password?: string;
 };
 
 export type PageQueryObject = {

@@ -50,6 +50,7 @@ export default function PasswordForm({ has_password: initial }: Props) {
             className="w-full gap-0! items-stretch"
             onSubmit={() => {
                 if (!dirty || loading) return;
+                if (!window.confirm(has_password ? `Change your password?` : `Set your password?`)) return;
                 submitPasswordForm({ ...init, has_password, onDone });
             }}
         >

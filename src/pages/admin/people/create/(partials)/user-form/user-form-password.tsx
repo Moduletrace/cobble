@@ -2,21 +2,16 @@ import Input from "@moduletrace/twui/form/Input";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { AppData } from "@/src/data/app-data";
-
-type Props = {
-    /**
-     * Editing someone: both may stay empty to keep their password.
-     */
-    optional?: boolean;
-    onPassword: (password: string) => void;
-    onConfirm: (password: string) => void;
-};
+import useFormInit from "@/src/hooks/use-form-init";
+import type { UserFormObject } from "@/src/types";
 
 /**
- * The password section of the user form: the password, then the same
- * again to confirm it.
+ * The password, then the same again to confirm it. Editing someone, both
+ * may stay empty to keep theirs.
  */
-export default function UserPasswordFields({ optional, onPassword, onConfirm }: Props) {
+export default function UserFormPassword({ setForm, existing_full }: ReturnType<typeof useFormInit<UserFormObject>>) {
+    const optional = Boolean(existing_full?.id);
+
     return (
         <Stack className="w-full gap-3! items-stretch pt-2 border-0 border-t border-solid border-hairline">
             <Stack className="gap-0.5!">
@@ -33,7 +28,7 @@ export default function UserPasswordFields({ optional, onPassword, onConfirm }: 
                 type="password"
                 placeholder={optional ? "Leave empty to keep it" : "A strong password"}
                 autoComplete="new-password"
-                onChange={(e) => onPassword(e.target.value)}
+                onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
             />
             <Input
                 id="user-form-confirm-password"
@@ -43,7 +38,7 @@ export default function UserPasswordFields({ optional, onPassword, onConfirm }: 
                 type="password"
                 placeholder="The same password again"
                 autoComplete="new-password"
-                onChange={(e) => onConfirm(e.target.value)}
+                onChange={(e) => setForm((prev) => ({ ...prev, confirm_password: e.target.value }))}
             />
         </Stack>
     );

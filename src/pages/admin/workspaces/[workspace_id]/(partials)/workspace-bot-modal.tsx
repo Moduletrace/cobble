@@ -28,6 +28,7 @@ export default function WorkspaceBotModal({ workspace_id, workspace_name, bot, o
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(`Save ${bot.name || "this bot"}'s instructions and memory here?`)) return;
 
         setLoading(true);
         setError(undefined);

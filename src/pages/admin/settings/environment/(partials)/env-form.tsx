@@ -42,6 +42,7 @@ export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props)
 
     const submit = async () => {
         if (loading) return;
+        if (!window.confirm(env?.id ? `Save ${env.key}?` : `Add ${key || "this env"}?`)) return;
 
         setLoading(true);
         setError(undefined);
