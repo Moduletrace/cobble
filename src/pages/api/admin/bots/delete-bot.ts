@@ -1,4 +1,6 @@
+import pushBotRemoved from "@/src/bots-queue/push-bot-removed";
 import userAuth from "@/src/functions/backend/auth/user-auth";
+import grabBotAudience from "@/src/functions/backend/db/access/grab-bot-audience";
 import deleteBot from "@/src/functions/backend/db/bots/delete-bot";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { BotIdRequestSchema } from "@/src/schemas/bot-schema";
@@ -33,7 +35,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
 
         const { bot_id } = parseWithSchema({ schema: BotIdRequestSchema, data: body });
 
+        /**
+         * Read before the delete: its assignments and workspace places go
+         * with it, so who saw it can't be worked out afterwards.
+         */
+        const audience = await grabBotAudience({ bot_id });
+
         const bot = await deleteBot({ user_id: user.id, bot_id });
+
+        pushBotRemoved({ bot_id, user_ids: audience });
 
         await logEvent({
             title: "Bot deleted",

@@ -135,6 +135,13 @@ export type BotCreatedData = {
 };
 
 /**
+ * `server:bot-removed` data: the bot that was deleted.
+ */
+export type BotRemovedData = {
+    bot_id: number;
+};
+
+/**
  * `server:bot-updated` data: the bot's new face and status line, and its
  * active task (null when there is none).
  */
@@ -550,6 +557,10 @@ export const WebSocketEvents = [
      * `BotCreatedData`)
      */
     "server:bot-created",
+    /**
+     * A bot the user could see was deleted (`data`: `BotRemovedData`)
+     */
+    "server:bot-removed",
     /**
      * A bot's face or status line changed (`data`: `BotUpdatedData`)
      */

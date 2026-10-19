@@ -1,6 +1,11 @@
 import { useState } from "react";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
-import type { BotCreatedData, BotUpdatedData, BotWithLastMessage } from "@/src/types";
+import type {
+    BotCreatedData,
+    BotRemovedData,
+    BotUpdatedData,
+    BotWithLastMessage,
+} from "@/src/types";
 import useServerEvent from "./use-server-event";
 
 type Params = {
@@ -47,6 +52,12 @@ export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: 
                 return [...prev.slice(0, at), data.bot, ...prev.slice(at)];
             });
         },
+    });
+
+    useServerEvent({
+        event: "server:bot-removed",
+        onData: (data: BotRemovedData) =>
+            setLive((prev) => prev.filter((bot) => bot.id != data.bot_id)),
     });
 
     useServerEvent({
