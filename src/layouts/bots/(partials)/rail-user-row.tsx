@@ -4,6 +4,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Span from "@moduletrace/twui/layout/Span";
 import { ChevronRight } from "lucide-react";
+import UserAvatar from "@/src/components/general/user-avatar";
 import { AppContext } from "@/src/pages/__root";
 import RailUserMenu from "./rail-user-menu";
 import Tag from "@moduletrace/twui/elements/Tag";
@@ -35,20 +36,24 @@ export default function RailUserRow() {
                         aria-label={`Account menu for ${name}`}
                         className="w-full h-12 gap-3! flex-nowrap items-center rounded-default px-1 lg:px-0 cursor-pointer hover:bg-sunken transition-colors duration-[var(--m-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
                     >
-                        <Span className="size-6 shrink-0 rounded-full bg-sunken flex items-center justify-center text-[11px] font-bold leading-none text-ink">
-                            {initials}
-                        </Span>
+                        <UserAvatar
+                            src={user?.image_thumbnail || user?.image}
+                            img_err_src={user?.image}
+                            initials={initials}
+                            size="md"
+                        />
                         <Stack className="hidden lg:flex grow min-w-0 gap-1">
                             <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
                                 {name}
                             </Span>
-                            <Row>
+                            <Row className="-mt-1">
                                 {user_types?.map((ut, indx) => {
                                     return (
                                         <Tag
                                             key={indx}
-                                            variant="outlined"
+                                            variant="ghost"
                                             color="gray"
+                                            className="p-0!"
                                         >
                                             {ut.user_type}
                                         </Tag>

@@ -6,7 +6,7 @@ import Button from "@moduletrace/twui/layout/Button";
 import imageInputToBase64, {
     type ImageInputToBase64FunctionReturn,
 } from "@moduletrace/twui/utils/form/imageInputToBase64";
-import ProfileAvatar from "./profile-avatar";
+import UserAvatar from "@/src/components/general/user-avatar";
 
 type Props = {
     saved_src?: string;
@@ -32,7 +32,12 @@ export default function ProfilePhotoField({
 
     return (
         <Row className="w-full gap-4! flex-nowrap items-center">
-            <ProfileAvatar src={preview_src} initials={initials} />
+            <UserAvatar
+                src={preview_src}
+                initials={initials}
+                alt="Your photo"
+                size="lg"
+            />
             <Stack className="gap-2! min-w-0">
                 <Row className="gap-2!">
                     <Button
