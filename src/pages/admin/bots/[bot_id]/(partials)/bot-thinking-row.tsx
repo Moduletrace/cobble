@@ -5,6 +5,7 @@ import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotHue } from "@/src/dict/bot-dict";
 import {
     BotComputerBusyStatusLine,
+    BotGettingMessageStatusLine,
     BotReplyJobTitle,
     BotWaitingStatusLine,
 } from "@/src/dict/bot-queue-dict";
@@ -25,38 +26,54 @@ type Props = {
      */
     awaiting_reply?: boolean;
     /**
+     * The user's last message is still on its way to the server, so the bot
+     * hasn't got it yet.
+     */
+    receiving?: boolean;
+    /**
      * This session has an active task.
      */
     has_task?: boolean;
 };
 
 /**
- * Under the last message while the bot is working on a reply or a task
- * (or waiting for a model or its computer), so slow work doesn't look like
- * none. A task or a reply shows its latest step. The bot's face is one per user,
- * shared by all their sessions with it, so a reply shows from the thread
- * alone: every user message queues one, so while the user has the last
- * word a reply is due here, even while the bot works elsewhere. Only the
- * waits (for a model, for its computer) come from the face.
+ * Under the last message while the bot is getting a just-sent message,
+ * working on a reply or a task (or waiting for a model or its computer), so
+ * slow work doesn't look like none. A task or a reply shows its latest step.
+ * The bot's face is one per user, shared by all their sessions with it, so a
+ * reply shows from the thread alone: every user message queues one, so while
+ * the user has the last word a reply is due here, even while the bot works
+ * elsewhere. Only the waits (for a model, for its computer) come from the
+ * face.
  */
-export default function BotThinkingRow({ bot, progress, reply_progress, awaiting_reply, has_task }: Props) {
+export default function BotThinkingRow({
+    bot,
+    progress,
+    reply_progress,
+    awaiting_reply,
+    receiving,
+    has_task,
+}: Props) {
     const name = bot.name || "The bot";
     const asleep = bot.face == "asleep";
     const waiting_model = asleep && bot.status_line == BotWaitingStatusLine && Boolean(awaiting_reply || has_task);
     const waiting_computer =
         asleep && bot.status_line == BotComputerBusyStatusLine && Boolean(has_task) && !awaiting_reply;
     const waiting = waiting_model || waiting_computer;
-    const thinking = Boolean(awaiting_reply) && !waiting;
+    const getting = Boolean(receiving) && Boolean(awaiting_reply);
+    const thinking = Boolean(awaiting_reply) && !waiting && !getting;
     const working =
         !awaiting_reply && bot.face == "working" && bot.status_line != BotReplyJobTitle && Boolean(has_task);
 
-    if (!thinking && !working && !waiting) return null;
+    if (!getting && !thinking && !working && !waiting) return null;
 
-    const label = thinking
-        ? `${name} is thinking…`
-        : working
-          ? `${name} is working…`
-          : `${bot.status_line}…`;
+    const label = getting
+        ? `${name} is ${BotGettingMessageStatusLine.toLowerCase()}…`
+        : thinking
+          ? `${name} is thinking…`
+          : working
+            ? `${name} is working…`
+            : `${bot.status_line}…`;
     const detail = working ? progress : thinking ? reply_progress : null;
 
     return (

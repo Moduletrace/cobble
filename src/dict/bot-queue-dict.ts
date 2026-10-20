@@ -56,6 +56,13 @@ export const BotNeedsYouStatusLine = "Waiting on you";
 export const BotWaitingStatusLine = "Waiting for a free model";
 
 /**
+ * What the thinking row says while a just-sent message is still on its way
+ * to the server, before the bot has it and before its reply is queued
+ * ("<name> is getting your message…").
+ */
+export const BotGettingMessageStatusLine = "Getting your message";
+
+/**
  * The bot's status line while its task waits for another job on the same
  * computer to finish.
  */

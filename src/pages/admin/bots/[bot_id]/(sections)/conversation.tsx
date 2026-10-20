@@ -16,6 +16,7 @@ import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { SpeakMessageContext } from "../(data)/speak-message-context";
 import reactToBotMessage from "../(functions)/react-to-bot-message";
+import dropSentMessage from "../(utils)/drop-sent-message";
 import useBotComputers from "../(hooks)/use-bot-computers";
 import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
@@ -45,6 +46,15 @@ export default function Conversation() {
     const [messages, setMessages] = useState<BotMessageWithAttachments[]>(
         pageProps?.bot_messages || [],
     );
+    /**
+     * Messages sent here that the server hasn't confirmed yet, shown after
+     * the saved ones so a slow connection never hides what was typed. They
+     * give way to the saved message, which arrives by the response or a
+     * push.
+     */
+    const [pending_messages, setPendingMessages] = useState<
+        BotMessageWithAttachments[]
+    >([]);
     const [session_id, setSessionId] = useState<number | null>(
         pageProps?.bot_session?.id || null,
     );
@@ -54,10 +64,12 @@ export default function Conversation() {
     );
 
     /**
-     * A quote picked in one session doesn't follow the thread to another.
+     * A quote picked in one session doesn't follow the thread to another,
+     * and neither does a message still on its way to the old one.
      */
     useEffect(() => {
         setReplyTo(null);
+        setPendingMessages([]);
     }, [session_id]);
 
     const bots = useLiveBots({
@@ -87,18 +99,25 @@ export default function Conversation() {
         task: pageProps?.bot_task || null,
     });
 
+    const thread_messages = useMemo(
+        () => [...messages, ...pending_messages],
+        [messages, pending_messages],
+    );
+
+    const last_saved_id = messages[messages.length - 1]?.id || null;
+    const last_thread_message = thread_messages[thread_messages.length - 1];
+    const awaiting_reply = last_thread_message?.author == "user";
+
     const reply_progress = useReplyProgress({
         bot_id: bot?.id || 0,
         session_id,
-        last_message_id: messages[messages.length - 1]?.id || null,
+        last_message_id: last_saved_id,
     });
-
-    const awaiting_reply = messages[messages.length - 1]?.author == "user";
 
     useReplyCatchUp({
         session_id,
         awaiting_reply,
-        last_message_id: messages[messages.length - 1]?.id || null,
+        last_message_id: last_saved_id,
     });
 
     /**
@@ -116,6 +135,14 @@ export default function Conversation() {
         onData: (message: BotMessageWithAttachments) => {
             if (message.bot_id != bot?.id) return;
             if ((message.workspace_id || null) != workspace_id) return;
+
+            /**
+             * A pushed copy of a message sent here (its response can come
+             * after the push) takes the pending bubble's place.
+             */
+            setPendingMessages((prev) =>
+                dropSentMessage({ pending: prev, message }),
+            );
 
             if (message.session_id && message.session_id != session_id) {
                 if (message.author == "user" && startsNewSession(message)) {
@@ -207,9 +234,10 @@ export default function Conversation() {
                                 />
                                 <MessageThread
                                     bot={live_bot}
-                                    messages={messages}
+                                    messages={thread_messages}
                                     progress={progress.text}
                                     reply_progress={reply_progress}
+                                    receiving={pending_messages.length > 0}
                                     has_task={Boolean(progress.task_id)}
                                     onQuote={({ text }) =>
                                         composer.current?.insertQuote({ text })
@@ -223,8 +251,28 @@ export default function Conversation() {
                                     voice={pageProps?.bot_voice}
                                     reply_to={reply_to}
                                     onCancelReply={() => setReplyTo(null)}
+                                    onSendStart={({ message }) =>
+                                        setPendingMessages((prev) => [
+                                            ...prev,
+                                            message,
+                                        ])
+                                    }
+                                    onSendFailed={({ temp_id }) =>
+                                        setPendingMessages((prev) =>
+                                            prev.filter(
+                                                (message) =>
+                                                    message.id != temp_id,
+                                            ),
+                                        )
+                                    }
                                     onSent={({ message }) => {
                                         setReplyTo(null);
+                                        setPendingMessages((prev) =>
+                                            dropSentMessage({
+                                                pending: prev,
+                                                message,
+                                            }),
+                                        );
 
                                         if (
                                             startsNewSession(message) &&

@@ -22,6 +22,10 @@ type Props = {
      */
     reply_progress?: string | null;
     /**
+     * The last message is still on its way to the server.
+     */
+    receiving?: boolean;
+    /**
      * This session has an active task.
      */
     has_task?: boolean;
@@ -37,7 +41,15 @@ type Props = {
  * While the bot works on a reply or a task, a status row sits under the
  * last one. Text selected in a message can be quoted in the composer.
  */
-export default function MessageThread({ bot, messages, progress, reply_progress, has_task, onQuote }: Props) {
+export default function MessageThread({
+    bot,
+    messages,
+    progress,
+    reply_progress,
+    receiving,
+    has_task,
+    onQuote,
+}: Props) {
     const groups = useMemo(() => groupMessages({ messages }), [messages]);
     const ref = useRef<HTMLDivElement>(null);
     const { selection, clear } = useMessageSelection({ ref });
@@ -64,6 +76,7 @@ export default function MessageThread({ bot, messages, progress, reply_progress,
                     progress={progress}
                     reply_progress={reply_progress}
                     awaiting_reply={messages[messages.length - 1]?.author == "user"}
+                    receiving={receiving}
                     has_task={has_task}
                 />
             </Stack>

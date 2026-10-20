@@ -104,10 +104,28 @@ export default function useComposerAttachments({ bot_id, workspace_id }: Params)
         setPending((prev) => prev.filter((item) => item.key != key));
     };
 
+    /**
+     * Puts files already uploaded back, after a send that didn't make it.
+     */
+    const restore = ({ attachments }: { attachments: BotMessageAttachment[] }) => {
+        if (!attachments.length) return;
+
+        setPending((prev) => [
+            ...prev,
+            ...attachments.map((attachment) => ({
+                key: `restored-${attachment.id}-${Date.now()}`,
+                name: attachment.name,
+                status: "ready" as const,
+                attachment,
+            })),
+        ]);
+    };
+
     return {
         pending,
         add,
         remove,
+        restore,
         clear: () => {
             revoke({ items: pending });
             setPending([]);

@@ -4,6 +4,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import P from "@moduletrace/twui/layout/P";
 import type {
     BotExtensionsPayload,
+    BotMessageAttachment,
     BotMessageWithAttachments,
     BotVoicePayload,
     BotWithLastMessage,
@@ -55,7 +56,18 @@ type Props = {
      */
     reply_to?: BotMessageWithAttachments | null;
     onCancelReply?: () => void;
+    /**
+     * The message is put in the thread at once, before the server has it.
+     */
+    onSendStart: (params: { message: BotMessageWithAttachments }) => void;
+    /**
+     * The server took it, so the pending copy makes way for the saved one.
+     */
     onSent: (params: { message: BotMessageWithAttachments }) => void;
+    /**
+     * It didn't make it: the pending copy goes.
+     */
+    onSendFailed: (params: { temp_id: number }) => void;
     handle_ref?: Ref<ComposerHandle>;
 };
 
@@ -68,7 +80,9 @@ type Props = {
  * also be pasted or dropped in. Unsent text is kept per conversation
  * across reloads, with its uploaded files. The bot's MCP servers and tools
  * are listed under the input. The mic dictates: what's said is written
- * into the input at the cursor, to edit before sending.
+ * into the input at the cursor, to edit before sending. Sending shows the
+ * message in the thread straight away and empties the input, so a slow
+ * connection never holds either; a failed send puts both back.
  */
 export default function Composer({
     bot,
@@ -77,18 +91,29 @@ export default function Composer({
     voice,
     reply_to,
     onCancelReply,
+    onSendStart,
     onSent,
+    onSendFailed,
     handle_ref,
 }: Props) {
     const draft = useComposerDraft({ bot_id: bot.id, workspace_id });
     const { text, setText } = draft;
-    const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
     const files = useComposerAttachments({ bot_id: bot.id, workspace_id });
     const online = useOnlineStatus();
     const bots = useContext(CrewBotsContext);
     const workspaces = useContext(CrewWorkspacesContext);
     const send_ref = useRef<() => void>(() => {});
+
+    /**
+     * Temporary ids for messages the server doesn't have yet, and the text
+     * as it stands now, for a failed send that has to put it back.
+     */
+    const temp_id = useRef(0);
+    const latest_text = useRef(text);
+    const send_lock = useRef(false);
+
+    latest_text.current = text;
 
     const input = useComposerEditor({
         placeholder: `Message ${bot.name}`,
@@ -144,35 +169,99 @@ export default function Composer({
 
     const can_send =
         Boolean(text.trim() || files.media_ids.length) &&
-        !sending &&
         !files.uploading &&
         recorder.state == "idle" &&
         online;
 
-    async function send() {
-        if (!can_send || !bot.id) return;
+    /**
+     * A send that didn't make it puts its files back, and its text too
+     * unless something has been typed since.
+     */
+    const restore = ({
+        lost_text,
+        attachments,
+    }: {
+        lost_text: string;
+        attachments: BotMessageAttachment[];
+    }) => {
+        if (lost_text && !latest_text.current.trim()) {
+            setText(lost_text);
+            input.setMarkdown({ markdown: lost_text });
+        }
 
-        setSending(true);
+        files.restore({ attachments });
+    };
+
+    /**
+     * The bubble and the bot's "getting your message" row show at once, and
+     * the input empties, so a slow connection never holds any of it. The
+     * response swaps the bubble for the saved message, or takes it back.
+     */
+    async function send() {
+        if (!can_send || !bot.id || send_lock.current) return;
+
+        /** Only for this tick: the cleared editor lands by the next one. */
+        send_lock.current = true;
+        setTimeout(() => {
+            send_lock.current = false;
+        }, 0);
+
         setError(undefined);
 
-        const res = await sendBotMessage({
-            bot_id: bot.id,
-            workspace_id,
-            text,
-            media_ids: files.media_ids,
-            reply_to_message_id: reply_to?.id || null,
+        temp_id.current -= 1;
+
+        const client_id = temp_id.current;
+        const text_sent = text;
+        const media_ids = files.media_ids;
+        const attachments = files.pending.flatMap((item) =>
+            item.status == "ready" && item.attachment ? [item.attachment] : [],
+        );
+
+        onSendStart({
+            message: {
+                id: client_id,
+                bot_id: bot.id,
+                workspace_id: workspace_id || undefined,
+                author: "user",
+                text: text_sent,
+                created_at: Date.now(),
+                updated_at: Date.now(),
+                attachments,
+                reply_to: reply_to
+                    ? {
+                          id: Number(reply_to.id),
+                          author: reply_to.author == "bot" ? "bot" : "user",
+                          text: reply_to.text || "",
+                      }
+                    : null,
+            },
         });
 
-        setSending(false);
-
-        if (!res.success || !res.singleRes) {
-            setError(res.msg || "Message not sent");
-            return;
-        }
+        /**
+         * The message takes the quote with it, so a new one typed while it
+         * is on its way doesn't inherit it.
+         */
+        onCancelReply?.();
 
         setText("");
         input.clear();
         files.clear();
+
+        const res = await sendBotMessage({
+            bot_id: bot.id,
+            workspace_id,
+            text: text_sent,
+            media_ids,
+            reply_to_message_id: reply_to?.id || null,
+        });
+
+        if (!res.success || !res.singleRes) {
+            setError(res.msg || "Message not sent");
+            restore({ lost_text: text_sent, attachments });
+            onSendFailed({ temp_id: client_id });
+            return;
+        }
+
         onSent({ message: res.singleRes });
     }
 
@@ -233,7 +322,7 @@ export default function Composer({
                     ) : null}
                     <ComposerSendButton
                         disabled={!can_send}
-                        loading={sending || files.uploading}
+                        loading={files.uploading}
                         onClick={send}
                     />
                 </Row>
