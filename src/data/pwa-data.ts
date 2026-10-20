@@ -9,6 +9,21 @@ export const PwaScope = "/";
 export const PwaManifestPath = "/manifest.webmanifest";
 export const PwaServiceWorkerPath = "/sw.js";
 export const PwaOfflinePath = "/offline.html";
+/**
+ * The page a browser gets instead of the app while it downloads a build
+ * it hasn't yet (`handlePrecacheGate`), generated like the offline page.
+ */
+export const PwaLoadingPath = "/loading.html";
+
+/**
+ * The running build's id and files (`handle-build-info.ts`). Each build's
+ * `.bunext/public` files are downloaded into their own cache,
+ * `<prefix><build_id>`, which holds the marker once every file is in.
+ * `public/sw.js` repeats all three.
+ */
+export const PwaBuildInfoPath = "/build-info.json";
+export const PwaPrecacheCachePrefix = "cobble-assets-";
+export const PwaPrecacheMarkerPath = "/__cobble-precached";
 
 export type PwaIcon = {
     src: string;

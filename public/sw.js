@@ -4,13 +4,27 @@
  * The app is server-rendered and private, so authenticated HTML is never
  * cached: navigating offline lands on the generated offline page instead
  * of a stale conversation or a cached login redirect. Only the shell
- * (icons, manifest, offline page) and versioned app assets are cached.
+ * (icons, manifest, offline page) and the app's own code are cached.
+ *
+ * The app's code (`.bunext/public`) is downloaded whole, once per build,
+ * by the loading page (`public/loading.html`, served in place of the app
+ * until the browser has the build's cookie) into that build's cache,
+ * `cobble-assets-<build_id>`, the only one kept. The worker serves the
+ * build's files from it. This file stays the same across deploys.
  *
  * Bump `CACHE_VERSION` when this file changes in a way that must drop the
- * old caches.
+ * old shell cache.
  */
-const CACHE_VERSION = "cobble-v2";
+
+const CACHE_VERSION = "cobble-v3";
 const CACHE_NAME = `cobble-shell-${CACHE_VERSION}`;
+
+/**
+ * `PwaBuildInfoPath` and `PwaPrecacheCachePrefix` in
+ * `src/data/pwa-data.ts`.
+ */
+const BUILD_INFO_URL = "/build-info.json";
+const ASSET_CACHE_PREFIX = "cobble-assets-";
 
 const OFFLINE_URL = "/offline.html";
 
@@ -27,9 +41,15 @@ const SHELL = [
 ];
 
 /**
- * Versioned app code and public assets: safe to refresh in the background.
+ * The build's code: served from its own cache, so a build's files never
+ * mix with another's.
  */
-const ASSET_PREFIXES = ["/.bunext/", "/public/", "/icons/", "/logos/", "/brand/"];
+const BUILD_PREFIX = "/.bunext/public/";
+
+/**
+ * Public assets: safe to refresh in the background.
+ */
+const ASSET_PREFIXES = ["/public/", "/icons/", "/logos/", "/brand/"];
 const ASSET_PATHS = ["/favicon.ico", "/favicon.png", "/apple-touch-icon.png"];
 
 /**
@@ -37,17 +57,7 @@ const ASSET_PATHS = ["/favicon.ico", "/favicon.png", "/apple-touch-icon.png"];
  * auth side effects, and the worker itself.
  */
 const BYPASS_PREFIXES = ["/api/", "/ws", "/media", "/computers/"];
-const BYPASS_PATHS = ["/sw.js", "/manifest.webmanifest", "/auth/logout"];
-
-/**
- * Page scripts and styles bunext names after their content: one at such
- * a path never changes, so it is served from the cache without asking the
- * network again (`src/utils/is-hashed-asset-path.ts` has the same
- * pattern). Each deploy adds new names, so the oldest are dropped past
- * `MAX_HASHED_ASSETS`.
- */
-const HASHED_ASSET = /^\/\.bunext\/public\/pages\/(?:.*\/)?(?:chunk-)?[A-Z0-9]{8}\.(?:js|css)$/;
-const MAX_HASHED_ASSETS = 400;
+const BYPASS_PATHS = ["/sw.js", "/manifest.webmanifest", "/auth/logout", BUILD_INFO_URL];
 
 const DEFAULT_ICON = "/icons/icon-192.png";
 const DEFAULT_BADGE = "/icons/icon-192.png";
@@ -74,6 +84,17 @@ self.addEventListener("install", (event) => {
     );
 });
 
+/**
+ * The cache of the build the worker serves: the one `cobble-assets-*`
+ * cache, since the loading page deletes the others. Looked up every time:
+ * the loading page switches builds while the worker runs.
+ */
+async function grabAssetCacheName() {
+    const keys = await caches.keys();
+
+    return keys.find((key) => key.startsWith(ASSET_CACHE_PREFIX)) || null;
+}
+
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches
@@ -81,7 +102,9 @@ self.addEventListener("activate", (event) => {
             .then((keys) =>
                 Promise.all(
                     keys
-                        .filter((key) => key !== CACHE_NAME)
+                        .filter(
+                            (key) => key !== CACHE_NAME && !key.startsWith(ASSET_CACHE_PREFIX),
+                        )
                         .map((key) => caches.delete(key)),
                 ),
             )
@@ -113,12 +136,12 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    if (!isAssetRequest(url)) return;
-
-    if (HASHED_ASSET.test(url.pathname)) {
+    if (url.pathname.startsWith(BUILD_PREFIX)) {
         event.respondWith(cacheFirst(request));
         return;
     }
+
+    if (!isAssetRequest(url)) return;
 
     event.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
@@ -139,7 +162,11 @@ self.addEventListener("fetch", (event) => {
 });
 
 async function cacheFirst(request) {
-    const cache = await caches.open(CACHE_NAME);
+    const name = await grabAssetCacheName();
+
+    if (!name) return fetch(request);
+
+    const cache = await caches.open(name);
     const cached = await cache.match(request);
 
     if (cached) return cached;
@@ -148,31 +175,15 @@ async function cacheFirst(request) {
 
     if (response.ok && response.type === "basic") {
         await cache.put(request, response.clone()).catch(() => undefined);
-        trimHashedAssets(cache).catch(() => undefined);
     }
 
     return response;
 }
 
 /**
- * Cache keys come back in insertion order, so the first hashed ones are
- * the oldest.
- */
-async function trimHashedAssets(cache) {
-    const hashed = (await cache.keys()).filter((request) =>
-        HASHED_ASSET.test(new URL(request.url).pathname),
-    );
-
-    await Promise.all(
-        hashed
-            .slice(0, Math.max(0, hashed.length - MAX_HASHED_ASSETS))
-            .map((request) => cache.delete(request)),
-    );
-}
-
-/**
- * The page asks for a new version from its update notice. Nothing skips
- * the wait until the user says so.
+ * The page asks for a new version from its update notice: nothing skips
+ * the wait until the user says so. The loading page asks too, since it
+ * isn't the app and nothing of the app's is running.
  */
 self.addEventListener("message", (event) => {
     if (event.data?.type === "SKIP_WAITING") {

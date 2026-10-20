@@ -11,6 +11,9 @@ import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
+import handleBuildInfo from "./functions/server/pwa/handle-build-info";
+import handlePrecacheGate from "./functions/server/pwa/handle-precache-gate";
+import grabPrecacheManifest from "./functions/server/pwa/grab-precache-manifest";
 import compressResponse from "./functions/server/compress-response";
 import serveLocalCa from "./functions/server/serve-local-ca";
 import startHttpRedirect from "./functions/server/start-http-redirect";
@@ -29,6 +32,18 @@ const port = process.env.PORT || 7227;
 
 await enableForeignKeys();
 await bunext.bunextInit();
+
+/**
+ * The running build's id and files, read once: browsers whose build
+ * cookie doesn't match get the loading page first (production only).
+ */
+const precache = grabPrecacheManifest();
+
+if (precache) {
+    bunext.bunextLog.info(
+        `Build ${precache.build_id}: ${precache.files.length} files to precache`,
+    );
+}
 
 /**
  * Web Push needs a key pair; the first start of the main install creates
@@ -110,6 +125,14 @@ const server = Bun.serve({
             const pwa_file = await handlePwaFile({ pathname: url.pathname });
 
             if (pwa_file) return pwa_file;
+
+            const build_info = handleBuildInfo({ pathname: url.pathname });
+
+            if (build_info) return build_info;
+
+            const loading_page = await handlePrecacheGate({ req, url });
+
+            if (loading_page) return loading_page;
 
             const local_ca = await serveLocalCa({ pathname: url.pathname });
 

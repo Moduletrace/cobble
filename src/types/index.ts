@@ -697,6 +697,15 @@ export type BotTextModel = {
     provider_name: string;
 };
 
+/**
+ * One build's `.bunext/public` files, downloaded by the service worker
+ * before the app runs (`grabPrecacheManifest`).
+ */
+export type PrecacheManifest = {
+    build_id: string;
+    files: string[];
+};
+
 export type PagePropsType = {
     user?: User | null;
     user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;

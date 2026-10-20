@@ -7,6 +7,25 @@ export const AppData = {
      */
     ThemeStorageKey: "theme",
     /**
+     * How many of a build's files the loading page downloads at once.
+     */
+    PrecacheConcurrency: 6,
+    /**
+     * How many more times the loading page downloads files it finds
+     * missing from the cache after a pass, before it gives up on them.
+     */
+    PrecacheVerifyPasses: 2,
+    /**
+     * How long the loading page waits for a new service worker to take
+     * over before it reloads into the app anyway.
+     */
+    PrecacheWorkerWaitMs: 10_000,
+    /**
+     * The loading page gives up and lets the app run from the network
+     * when no new file lands for this long.
+     */
+    PrecacheStallMs: 30_000,
+    /**
      * Prefix of the composer's unsent drafts in `localStorage`, one per
      * bot and workspace.
      */
@@ -38,6 +57,13 @@ export const AppData = {
     TlsCaProfileFilename: `${SiteData["SiteSlug"]}-ca.mobileconfig`,
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,
+    /**
+     * The build this browser has been through the loading page for
+     * (`handlePrecacheGate`). Set by the page itself, so not `HttpOnly`;
+     * it holds nothing private.
+     */
+    BuildCookieName: `${SiteData["SiteSlug"]}_build`,
+    BuildCookieMaxAgeSeconds: 365 * 24 * 60 * 60,
     AuthExpiryDays: 60,
     APICrudBasePath: "/api/admin/crud",
     ForcePrivateHeaderKey: `x-${SiteData["SiteSlug"]}-force-private`,

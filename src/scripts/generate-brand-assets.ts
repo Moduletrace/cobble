@@ -2,8 +2,14 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import path from "path";
 import sharp from "sharp";
 import { SiteData } from "../data/site-data";
+import { AppData } from "../data/app-data";
+import { HashedAssetPattern } from "../utils/is-hashed-asset-path";
 import {
+    PwaBuildInfoPath,
     PwaIcons,
+    PwaPrecacheCachePrefix,
+    PwaPrecacheMarkerPath,
+    PwaServiceWorkerPath,
     PwaManifestName,
     PwaManifestPath,
     PwaOfflinePath,
@@ -275,6 +281,273 @@ ${logo}
 }
 
 /**
+ * The page a browser gets instead of the app while it downloads a build
+ * it hasn't yet (`handlePrecacheGate`). The server fills in `{{build}}`
+ * (`{ build_id, total }`). The page downloads every file the running
+ * build lists at `/build-info.json` into that build's cache itself, so it
+ * works whichever service worker version is in charge, then checks every
+ * one is in the cache (downloading any that aren't again, up to
+ * `PrecacheVerifyPasses` more times) before the marker goes in. It drops
+ * the old build's cache and hands over to a new worker waiting behind an
+ * older one (nothing of the app runs here). It then sets the build cookie and
+ * reloads into the app. Without Cache Storage, after a failed download,
+ * or once nothing has landed for `PrecacheStallMs`, it sets the cookie
+ * anyway, so the app runs from the network instead of never opening.
+ */
+function buildLoadingPage({
+    colors,
+    logo,
+}: {
+    colors: ThemeColors;
+    logo: string;
+}) {
+    const name = escapeHtml(SiteData["SiteName"]);
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="${colors.paper}" />
+<meta name="robots" content="noindex" />
+<title>${name}</title>
+<link rel="manifest" href="${PwaManifestPath}" />
+<style>
+:root {
+    --paper: ${colors.paper};
+    --ink: ${colors.ink};
+    --ink-secondary: ${colors.ink_secondary};
+    --hairline: ${colors.hairline};
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: ${colors.dark_paper};
+        --ink: ${colors.dark_ink};
+        --ink-secondary: ${colors.dark_ink_secondary};
+        --hairline: ${colors.dark_hairline};
+    }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+main {
+    width: 100%;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+}
+h1 { margin: 4px 0 0; font-size: 16px; line-height: 24px; }
+p { margin: 0; font-size: 13px; line-height: 18px; color: var(--ink-secondary); }
+.track { width: 100%; height: 4px; border-radius: 999px; background: var(--hairline); overflow: hidden; }
+.bar { width: 0; height: 100%; border-radius: 999px; background: var(--ink); transition: width 200ms; }
+.count { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+</style>
+</head>
+<body>
+<main role="status" aria-live="polite">
+${logo}
+<h1>Getting ${name} ready</h1>
+<p id="note">Saving the app on this device, so it opens fast from now on.</p>
+<div class="track"><div class="bar" id="bar"></div></div>
+<p class="count" id="count"></p>
+</main>
+<script>
+(function (BUILD) {
+    var build_id = BUILD.build_id;
+    var total = BUILD.total;
+    var saved = 0;
+    var last_change = Date.now();
+    var finished = false;
+    var hashed = new RegExp(${JSON.stringify(HashedAssetPattern.source)});
+    var bar = document.getElementById("bar");
+    var count = document.getElementById("count");
+    var note = document.getElementById("note");
+
+    var render = function () {
+        var done = Math.min(saved, total);
+        count.textContent = done + " of " + total + " files";
+        bar.style.width = (total ? Math.round((done / total) * 100) : 100) + "%";
+    };
+
+    var enter = function () {
+        if (finished) return;
+        finished = true;
+        clearInterval(stall_timer);
+        document.cookie =
+            "${AppData["BuildCookieName"]}=" + encodeURIComponent(build_id) +
+            "; Path=/; Max-Age=${AppData["BuildCookieMaxAgeSeconds"]}; SameSite=Lax" +
+            (location.protocol === "https:" ? "; Secure" : "");
+        if (document.cookie.indexOf("${AppData["BuildCookieName"]}=") < 0) {
+            note.textContent =
+                "Turn on cookies for this site to open ${name}.";
+            return;
+        }
+        location.reload();
+    };
+
+    var stall_timer = setInterval(function () {
+        if (Date.now() - last_change > ${AppData["PrecacheStallMs"]}) enter();
+    }, 1000);
+
+    render();
+
+    if (!("caches" in window) || !window.isSecureContext) return enter();
+
+    /**
+     * Resolves once the newest worker is the active one, telling one
+     * that waits behind an older version to take over.
+     */
+    var worker = new Promise(function (resolve) {
+        if (!("serviceWorker" in navigator)) return resolve();
+        setTimeout(resolve, ${AppData["PrecacheWorkerWaitMs"]});
+        var skip = function (w) {
+            if (w && w.state === "installed") w.postMessage({ type: "SKIP_WAITING" });
+        };
+        navigator.serviceWorker
+            .register("${PwaServiceWorkerPath}", { scope: "/", updateViaCache: "none" })
+            .then(function (reg) {
+                return reg
+                    .update()
+                    .catch(function () {})
+                    .then(function () {
+                        return reg;
+                    });
+            })
+            .then(function (reg) {
+                var check = setInterval(function () {
+                    skip(reg.waiting);
+                    if (reg.active && !reg.waiting && !reg.installing) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                }, 200);
+            })
+            .catch(function () {
+                resolve();
+            });
+    });
+
+    var download = fetch("${PwaBuildInfoPath}", { cache: "no-store" })
+        .then(function (response) {
+            if (!response.ok) throw new Error("No build info");
+            return response.json();
+        })
+        .then(function (build) {
+            build_id = build.build_id;
+            total = build.files.length;
+            render();
+            var cache_name = "${PwaPrecacheCachePrefix}" + build_id;
+            return caches
+                .keys()
+                .then(function (keys) {
+                    return Promise.all(
+                        keys
+                            .filter(function (key) {
+                                return key.indexOf("${PwaPrecacheCachePrefix}") === 0 && key !== cache_name;
+                            })
+                            .map(function (key) {
+                                return caches.delete(key);
+                            }),
+                    );
+                })
+                .then(function () {
+                    return caches.open(cache_name);
+                })
+                .then(function (cache) {
+                    return cache.match("${PwaPrecacheMarkerPath}").then(function (marker) {
+                        if (marker) return;
+                        return save(cache, build.files, ${AppData["PrecacheVerifyPasses"]}).then(function () {
+                            return cache.put("${PwaPrecacheMarkerPath}", new Response(build_id));
+                        });
+                    });
+                });
+        });
+
+    /**
+     * Downloads the files the cache doesn't have yet, then checks every
+     * one of them is in it, going again for any that aren't. Rejects when
+     * some are still missing after the last pass, so the marker only
+     * goes in for a complete build.
+     */
+    var save = function (cache, files, passes) {
+        var queue = [];
+        return Promise.all(
+            files.map(function (url) {
+                return cache.match(url).then(function (hit) {
+                    if (hit) return;
+                    queue.push(url);
+                });
+            }),
+        )
+            .then(function () {
+                saved = files.length - queue.length;
+                last_change = Date.now();
+                render();
+                var work = function () {
+                    var url = queue.shift();
+                    if (!url) return Promise.resolve();
+                    return fetch(url, { cache: hashed.test(url) ? "default" : "no-cache" })
+                        .then(function (response) {
+                            if (!response.ok) throw new Error(url + ": " + response.status);
+                            return cache.put(url, response);
+                        })
+                        .then(
+                            function () {
+                                saved += 1;
+                                last_change = Date.now();
+                                render();
+                            },
+                            function () {},
+                        )
+                        .then(work);
+                };
+                var workers = [];
+                for (var i = 0; i < ${AppData["PrecacheConcurrency"]}; i++) workers.push(work());
+                return Promise.all(workers);
+            })
+            .then(function () {
+                note.textContent = "Checking the saved files…";
+                return Promise.all(
+                    files.map(function (url) {
+                        return cache.match(url).then(function (hit) {
+                            return hit ? null : url;
+                        });
+                    }),
+                );
+            })
+            .then(function (results) {
+                var missing = results.filter(Boolean);
+                if (!missing.length) return;
+                if (passes <= 0) throw new Error(missing.length + " files missing");
+                note.textContent = "Saving the app on this device, so it opens fast from now on.";
+                return save(cache, files, passes - 1);
+            });
+    };
+
+    Promise.all([download, worker]).then(enter, enter);
+})({{build}});
+</script>
+</body>
+</html>
+`;
+}
+
+/**
  * The logo inline, so the offline page has no request to make while
  * offline. Its own width and height give way to ours.
  */
@@ -347,6 +620,11 @@ async function main() {
         buildOfflinePage({ colors, logo: inlineLogo(await Bun.file(LOGO_SVG).text()) }),
     );
 
+    writeFileSync(
+        path.join(PUBLIC_DIR, "loading.html"),
+        buildLoadingPage({ colors, logo: inlineLogo(await Bun.file(LOGO_SVG).text()) }),
+    );
+
     console.log("Generated brand and PWA assets from public/logos/logo.svg:");
     console.log("  public/favicon.ico               (16/24/32/48 multi-size)");
     console.log("  public/favicon.png               (32x32)");
@@ -358,6 +636,7 @@ async function main() {
     console.log("  public/icons/maskable-512.png    (maskable, safe zone)");
     console.log("  public/manifest.webmanifest      (name, colors and icons)");
     console.log("  public/offline.html              (self-contained offline page)");
+    console.log("  public/loading.html              (precache loading page)");
 }
 
 main()

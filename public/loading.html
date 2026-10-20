@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#fbfaf7" />
+<meta name="robots" content="noindex" />
+<title>cobble</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<style>
+:root {
+    --paper: #fbfaf7;
+    --ink: #0e1116;
+    --ink-secondary: #5b6470;
+    --hairline: #e8e4dc;
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: #12151a;
+        --ink: #f4f2ec;
+        --ink-secondary: #9ca5b0;
+        --hairline: #2b3138;
+    }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+main {
+    width: 100%;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+}
+h1 { margin: 4px 0 0; font-size: 16px; line-height: 24px; }
+p { margin: 0; font-size: 13px; line-height: 18px; color: var(--ink-secondary); }
+.track { width: 100%; height: 4px; border-radius: 999px; background: var(--hairline); overflow: hidden; }
+.bar { width: 0; height: 100%; border-radius: 999px; background: var(--ink); transition: width 200ms; }
+.count { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+</style>
+</head>
+<body>
+<main role="status" aria-live="polite">
+
+<svg width="48" height="48" role="img" aria-label="cobble" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100">
+  <title>ember-v2</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path d="M95.622 21.857 C96.035 22.501 96.255 23.25 96.255 24.016 C96.255 41.339 96.255 58.661 96.255 75.984 C96.255 76.75 96.035 77.499 95.622 78.143 C95.622 78.143 95.5 78.341 95.434 78.437 C95.125 78.919 94.799 79.389 94.456 79.848 C94.131 80.317 93.788 80.776 93.43 81.221 C93.088 81.679 92.729 82.124 92.356 82.556 C91.998 83 91.624 83.433 91.235 83.85 C90.861 84.282 90.472 84.7 90.069 85.103 C89.68 85.521 89.276 85.925 88.858 86.314 C88.455 86.717 88.037 87.106 87.605 87.48 C87.187 87.869 86.755 88.243 86.311 88.601 C85.879 88.975 85.433 89.333 84.976 89.675 C84.531 90.033 84.072 90.376 83.603 90.701 C83.144 91.044 82.674 91.37 82.192 91.679 C81.721 92.005 81.238 92.315 80.746 92.606 C80.263 92.916 79.768 93.209 79.265 93.483 C78.77 93.776 78.265 94.051 77.751 94.308 C77.246 94.583 76.73 94.841 76.206 95.08 C75.69 95.337 75.165 95.577 74.632 95.798 C74.105 96.038 73.57 96.259 73.029 96.461 C72.493 96.683 71.949 96.886 71.399 97.07 C70.854 97.273 70.301 97.458 69.743 97.622 C69.19 97.807 68.629 97.973 68.064 98.118 C67.502 98.284 66.934 98.431 66.361 98.557 C65.791 98.704 65.216 98.832 64.637 98.939 C64.059 99.067 63.477 99.175 62.892 99.262 C62.306 99.371 61.716 99.459 61.125 99.528 C60.532 99.617 59.935 99.685 59.337 99.734 C58.734 99.804 58.13 99.853 57.524 99.882 C56.91 99.932 56.295 99.961 55.679 99.97 C55.038 100.001 54.396 100.01 53.755 100 C53.114 100.01 52.472 100.001 51.831 99.97 C51.215 99.961 50.6 99.932 49.986 99.882 C49.38 99.853 48.775 99.804 48.173 99.734 C47.575 99.685 46.978 99.617 46.385 99.528 C45.793 99.459 45.204 99.371 44.618 99.262 C44.033 99.175 43.451 99.067 42.873 98.939 C42.294 98.832 41.718 98.704 41.148 98.557 C40.576 98.431 40.008 98.284 39.446 98.118 C38.881 97.973 38.32 97.807 37.766 97.622 C37.209 97.458 36.656 97.273 36.111 97.07 C35.561 96.886 35.017 96.683 34.481 96.461 C33.939 96.259 33.404 96.038 32.878 95.798 C32.345 95.577 31.82 95.337 31.304 95.08 C30.78 94.841 30.264 94.583 29.759 94.308 C29.245 94.051 28.739 93.776 28.245 93.483 C27.741 93.209 27.247 92.916 26.764 92.606 C26.271 92.315 25.789 92.005 25.318 91.679 C24.836 91.37 24.365 91.044 23.907 90.701 C23.438 90.376 22.979 90.033 22.534 89.675 C22.076 89.333 21.631 88.975 21.199 88.601 C20.755 88.243 20.322 87.869 19.905 87.48 C19.473 87.106 19.055 86.717 18.651 86.314 C18.234 85.925 17.83 85.521 17.441 85.103 C17.038 84.7 16.648 84.282 16.275 83.85 C15.886 83.433 15.512 83 15.154 82.556 C14.78 82.124 14.422 81.679 14.08 81.221 C13.722 80.776 13.379 80.317 13.054 79.848 C12.711 79.389 12.385 78.919 12.076 78.437 C11.75 77.966 11.44 77.483 11.148 76.991 C10.839 76.508 10.546 76.014 10.272 75.51 C9.979 75.015 9.704 74.51 9.447 73.996 C9.172 73.491 8.914 72.975 8.675 72.451 C8.418 71.935 8.178 71.41 7.957 70.877 C7.717 70.351 7.496 69.816 7.294 69.274 C7.072 68.738 6.869 68.194 6.685 67.644 C6.482 67.099 6.297 66.546 6.133 65.988 C5.948 65.435 5.782 64.874 5.637 64.309 C5.471 63.747 5.324 63.179 5.198 62.607 C5.051 62.037 4.923 61.461 4.816 60.882 C4.688 60.304 4.58 59.722 4.493 59.137 C4.384 58.551 4.296 57.962 4.227 57.37 C4.138 56.777 4.07 56.18 4.021 55.582 C3.951 54.98 3.902 54.375 3.873 53.769 C3.823 53.155 3.794 52.54 3.785 51.924 C3.754 51.283 3.745 50.641 3.755 50 C3.745 49.359 3.754 48.717 3.785 48.076 C3.794 47.46 3.823 46.845 3.873 46.231 C3.902 45.625 3.951 45.02 4.021 44.418 C4.07 43.82 4.138 43.223 4.227 42.63 C4.296 42.038 4.384 41.449 4.493 40.863 C4.58 40.278 4.688 39.696 4.816 39.118 C4.923 38.539 5.051 37.963 5.198 37.393 C5.324 36.821 5.471 36.253 5.637 35.691 C5.782 35.126 5.948 34.565 6.133 34.012 C6.297 33.454 6.482 32.901 6.685 32.356 C6.869 31.806 7.072 31.262 7.294 30.726 C7.496 30.184 7.717 29.649 7.957 29.123 C8.178 28.59 8.418 28.065 8.675 27.549 C8.914 27.025 9.172 26.509 9.447 26.004 C9.704 25.49 9.979 24.985 10.272 24.49 C10.546 23.986 10.839 23.492 11.148 23.009 C11.44 22.517 11.75 22.034 12.076 21.563 C12.385 21.081 12.711 20.611 13.054 20.152 C13.379 19.683 13.722 19.224 14.08 18.779 C14.422 18.321 14.78 17.876 15.154 17.444 C15.512 17 15.886 16.567 16.275 16.15 C16.648 15.718 17.038 15.3 17.441 14.897 C17.83 14.479 18.234 14.075 18.651 13.686 C19.055 13.283 19.473 12.894 19.905 12.52 C20.322 12.131 20.755 11.757 21.199 11.399 C21.631 11.025 22.076 10.667 22.534 10.325 C22.979 9.967 23.438 9.624 23.907 9.299 C24.365 8.956 24.836 8.63 25.318 8.321 C25.789 7.995 26.271 7.685 26.764 7.394 C27.247 7.084 27.741 6.791 28.245 6.517 C28.739 6.224 29.245 5.949 29.759 5.692 C30.264 5.417 30.78 5.159 31.304 4.92 C31.82 4.663 32.345 4.423 32.878 4.202 C33.404 3.962 33.939 3.741 34.481 3.539 C35.017 3.317 35.561 3.114 36.111 2.93 C36.656 2.727 37.209 2.542 37.766 2.378 C38.32 2.193 38.881 2.027 39.446 1.882 C40.008 1.716 40.576 1.569 41.148 1.443 C41.718 1.296 42.294 1.168 42.873 1.061 C43.451 0.933 44.033 0.825 44.618 0.738 C45.204 0.629 45.793 0.541 46.385 0.472 C46.978 0.383 47.575 0.315 48.173 0.266 C48.775 0.196 49.38 0.147 49.986 0.118 C50.6 0.068 51.215 0.039 51.831 0.03 C52.472 -0.001 53.114 -0.01 53.755 0 C54.396 -0.01 55.038 -0.001 55.679 0.03 C56.295 0.039 56.91 0.068 57.524 0.118 C58.13 0.147 58.734 0.196 59.337 0.266 C59.935 0.315 60.532 0.383 61.125 0.472 C61.716 0.541 62.306 0.629 62.892 0.738 C63.477 0.825 64.059 0.933 64.637 1.061 C65.216 1.168 65.791 1.296 66.361 1.443 C66.934 1.569 67.502 1.716 68.064 1.882 C68.629 2.027 69.19 2.193 69.743 2.378 C70.301 2.542 70.854 2.727 71.399 2.93 C71.949 3.114 72.493 3.317 73.029 3.539 C73.57 3.741 74.105 3.962 74.632 4.202 C75.165 4.423 75.69 4.663 76.206 4.92 C76.73 5.159 77.246 5.417 77.751 5.692 C78.265 5.949 78.77 6.224 79.265 6.517 C79.768 6.791 80.263 7.084 80.746 7.394 C81.238 7.685 81.721 7.995 82.192 8.321 C82.674 8.63 83.144 8.956 83.603 9.299 C84.072 9.624 84.531 9.967 84.976 10.325 C85.433 10.667 85.879 11.025 86.311 11.399 C86.755 11.757 87.187 12.131 87.605 12.52 C88.037 12.894 88.455 13.283 88.858 13.686 C89.276 14.075 89.68 14.479 90.069 14.897 C90.472 15.3 90.861 15.718 91.235 16.15 C91.624 16.567 91.998 17 92.356 17.444 C92.729 17.876 93.088 18.321 93.43 18.779 C93.788 19.224 94.131 19.683 94.456 20.152 C94.799 20.611 95.125 21.081 95.434 21.563 C95.5 21.659 95.622 21.857 95.622 21.857 Z" fill="#e4572e"/>
+    <path d="M27.25 42 C27.25 38.824 29.824 36.25 33 36.25 C36.176 36.25 38.75 38.824 38.75 42 C38.75 45.176 36.176 47.75 33 47.75 C29.824 47.75 27.25 45.176 27.25 42 Z" fill="#0e1116"/>
+    <path d="M61.25 42 C61.25 38.824 63.824 36.25 67 36.25 C70.176 36.25 72.75 38.824 72.75 42 C72.75 45.176 70.176 47.75 67 47.75 C63.824 47.75 61.25 45.176 61.25 42 Z" fill="#0e1116"/>
+  </g>
+</svg>
+
+<h1>Getting cobble ready</h1>
+<p id="note">Saving the app on this device, so it opens fast from now on.</p>
+<div class="track"><div class="bar" id="bar"></div></div>
+<p class="count" id="count"></p>
+</main>
+<script>
+(function (BUILD) {
+    var build_id = BUILD.build_id;
+    var total = BUILD.total;
+    var saved = 0;
+    var last_change = Date.now();
+    var finished = false;
+    var hashed = new RegExp("^\\/\\.bunext\\/public\\/pages\\/(?:.*\\/)?(?:chunk-)?[A-Z0-9]{8}\\.(?:js|css)$");
+    var bar = document.getElementById("bar");
+    var count = document.getElementById("count");
+    var note = document.getElementById("note");
+
+    var render = function () {
+        var done = Math.min(saved, total);
+        count.textContent = done + " of " + total + " files";
+        bar.style.width = (total ? Math.round((done / total) * 100) : 100) + "%";
+    };
+
+    var enter = function () {
+        if (finished) return;
+        finished = true;
+        clearInterval(stall_timer);
+        document.cookie =
+            "cobble_build=" + encodeURIComponent(build_id) +
+            "; Path=/; Max-Age=31536000; SameSite=Lax" +
+            (location.protocol === "https:" ? "; Secure" : "");
+        if (document.cookie.indexOf("cobble_build=") < 0) {
+            note.textContent =
+                "Turn on cookies for this site to open cobble.";
+            return;
+        }
+        location.reload();
+    };
+
+    var stall_timer = setInterval(function () {
+        if (Date.now() - last_change > 30000) enter();
+    }, 1000);
+
+    render();
+
+    if (!("caches" in window) || !window.isSecureContext) return enter();
+
+    /**
+     * Resolves once the newest worker is the active one, telling one
+     * that waits behind an older version to take over.
+     */
+    var worker = new Promise(function (resolve) {
+        if (!("serviceWorker" in navigator)) return resolve();
+        setTimeout(resolve, 10000);
+        var skip = function (w) {
+            if (w && w.state === "installed") w.postMessage({ type: "SKIP_WAITING" });
+        };
+        navigator.serviceWorker
+            .register("/sw.js", { scope: "/", updateViaCache: "none" })
+            .then(function (reg) {
+                return reg
+                    .update()
+                    .catch(function () {})
+                    .then(function () {
+                        return reg;
+                    });
+            })
+            .then(function (reg) {
+                var check = setInterval(function () {
+                    skip(reg.waiting);
+                    if (reg.active && !reg.waiting && !reg.installing) {
+                        clearInterval(check);
+                        resolve();
+                    }
+                }, 200);
+            })
+            .catch(function () {
+                resolve();
+            });
+    });
+
+    var download = fetch("/build-info.json", { cache: "no-store" })
+        .then(function (response) {
+            if (!response.ok) throw new Error("No build info");
+            return response.json();
+        })
+        .then(function (build) {
+            build_id = build.build_id;
+            total = build.files.length;
+            render();
+            var cache_name = "cobble-assets-" + build_id;
+            return caches
+                .keys()
+                .then(function (keys) {
+                    return Promise.all(
+                        keys
+                            .filter(function (key) {
+                                return key.indexOf("cobble-assets-") === 0 && key !== cache_name;
+                            })
+                            .map(function (key) {
+                                return caches.delete(key);
+                            }),
+                    );
+                })
+                .then(function () {
+                    return caches.open(cache_name);
+                })
+                .then(function (cache) {
+                    return cache.match("/__cobble-precached").then(function (marker) {
+                        if (marker) return;
+                        return save(cache, build.files, 2).then(function () {
+                            return cache.put("/__cobble-precached", new Response(build_id));
+                        });
+                    });
+                });
+        });
+
+    /**
+     * Downloads the files the cache doesn't have yet, then checks every
+     * one of them is in it, going again for any that aren't. Rejects when
+     * some are still missing after the last pass, so the marker only
+     * goes in for a complete build.
+     */
+    var save = function (cache, files, passes) {
+        var queue = [];
+        return Promise.all(
+            files.map(function (url) {
+                return cache.match(url).then(function (hit) {
+                    if (hit) return;
+                    queue.push(url);
+                });
+            }),
+        )
+            .then(function () {
+                saved = files.length - queue.length;
+                last_change = Date.now();
+                render();
+                var work = function () {
+                    var url = queue.shift();
+                    if (!url) return Promise.resolve();
+                    return fetch(url, { cache: hashed.test(url) ? "default" : "no-cache" })
+                        .then(function (response) {
+                            if (!response.ok) throw new Error(url + ": " + response.status);
+                            return cache.put(url, response);
+                        })
+                        .then(
+                            function () {
+                                saved += 1;
+                                last_change = Date.now();
+                                render();
+                            },
+                            function () {},
+                        )
+                        .then(work);
+                };
+                var workers = [];
+                for (var i = 0; i < 6; i++) workers.push(work());
+                return Promise.all(workers);
+            })
+            .then(function () {
+                note.textContent = "Checking the saved files…";
+                return Promise.all(
+                    files.map(function (url) {
+                        return cache.match(url).then(function (hit) {
+                            return hit ? null : url;
+                        });
+                    }),
+                );
+            })
+            .then(function (results) {
+                var missing = results.filter(Boolean);
+                if (!missing.length) return;
+                if (passes <= 0) throw new Error(missing.length + " files missing");
+                note.textContent = "Saving the app on this device, so it opens fast from now on.";
+                return save(cache, files, passes - 1);
+            });
+    };
+
+    Promise.all([download, worker]).then(enter, enter);
+})({{build}});
+</script>
+</body>
+</html>
