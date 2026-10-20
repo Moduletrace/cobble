@@ -1,126 +1,167 @@
-# bunext-sqlite
+# Cobble
 
-A preset for [bunext](https://github.com/moduletrace/bunext) running [bun-sqlite](https://github.com/moduletrace/bun-sqlite) as the database management system. Use this as the starting point for new full-stack Bun projects: filesystem routing, SQLite with generated types, password login, an admin CRUD API, WebSockets, cron, audit logging, and email all wired up out of the box.
+A self-hosted crew of small AI worker bots.
 
-## Stack
+Cobble gives you a coordinator bot and a crew of workers, each with its own
+job, models, memory and workspace. The crew talks to you in a chat, shares
+workspaces, runs routines on a schedule, and drives its own computers:
+Docker sandboxes with a browser, terminal, code editor and desktop that a
+bot can use and hand back to you when it needs help.
 
-| Layer     | Choice                                             |
-| --------- | -------------------------------------------------- |
-| Runtime   | Bun (never npm/npx - use `bun`)                    |
-| Framework | `@moduletrace/bunext` (filesystem routing, SSR)    |
-| Database  | `@moduletrace/bun-sqlite` (schema + generated types) |
-| UI        | Tailwind CSS v4 + `twui` component library         |
-| Icons     | `lucide-react`                                     |
-| Validation| `zod` (v4)                                         |
-| Email     | `nodemailer` (React-rendered templates)            |
+It is an install, not a SaaS. One SQLite database, one Docker container, and
+your data on your own machine.
 
-## Requirements
+- Website: [cobble.moduletrace.org](https://cobble.moduletrace.org)
+- Source: [GitHub](https://github.com/Moduletrace/cobble) and [Gitea](https://git.tben.me/Moduletrace/cobble)
+- License: MIT
 
-- Bun >= 1.3
-- No database server required - `bun-sqlite` manages a local SQLite file at `db/<db_name>` (`db/bsqlite` by default).
+## Install
 
-## Local Development
+On a Linux machine with Docker (the installer adds Docker when it is
+missing):
 
-1. `cp .env.example .env` (if present) or create `.env` with `ENCRYPTION_KEY`/`ENCRYPTION_SALT` values.
-2. `bun install`
-3. `bun run db:schema` - creates tables and regenerates `db/types/db.ts`.
-4. `bun run dev` - starts the dev server (default port `7227`).
-5. Open the app. With no accounts yet, every page sends you to `/auth/signup` to create the super admin (user #1). That is the only time signup is shown.
+```bash
+curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash
+```
 
-Headless alternative to step 5: `SEED_SUPER_ADMIN_PASSWORD=... bun run seed` creates the super admin from the CLI (default `super.admin@example.com`, override with `SEED_SUPER_ADMIN_EMAIL`, `SEED_SUPER_ADMIN_USERNAME`, `SEED_SUPER_ADMIN_FIRST_NAME`, `SEED_SUPER_ADMIN_LAST_NAME`).
+Open the address it prints, usually `http://<your-ip>:7227`, and create the
+super admin account. The first signup also creates the coordinator and the
+main computer, which pulls the sandbox image in the background. Give it a
+few minutes.
 
-Log in at `/auth/login` with your email or username and password.
+Then open **Settings > Models**, add an OpenRouter key (or another provider)
+and wait for the model list to sync. This is what the bots think with.
 
-## Available Scripts
+### Requirements
 
-| Purpose                       | Command                            |
-| ----------------------------- | ---------------------------------- |
-| Dev server                    | `bun run dev`                      |
-| Production                    | `bun run start`                    |
-| Type-check only               | `bun run typecheck`                |
-| Run tests                     | `bun run test`                     |
-| Run a single test             | `bun test <path/to/file.test.ts>`  |
-| Regenerate favicon/brand      | `bun run gen:favicon`              |
-| DB schema (tables)            | `bun run db:schema`                |
-| DB admin UI                   | `bun run db:admin`                 |
-| DB backup                     | `bun run db:backup`                |
-| Seed super admin user         | `bun run seed`                     |
-| Query DB (CLI)                | `bun llm-code-assistant/query-db.ts "<sql>"` |
-| Deploy to production          | `./deploy/deploy-prod.sh`          |
+- Linux amd64 or arm64, with Docker. The installer installs Docker from
+  get.docker.com when it is missing.
+- 2 CPU cores, 8 GB RAM and 20 GB free disk for the app plus one computer.
+  Each computer is its own container with its own memory limit.
+- Docker Desktop on macOS works for development and small installs, but
+  Linux is the supported host.
+- Port 7227, or another port with `--port`.
+- HTTPS in front of the app before you expose it to the internet. Web Push
+  and installable PWA features need it. A Cloudflare Tunnel or Caddy in
+  front of `127.0.0.1:7227` is enough.
 
-## App Structure
+The installer binds to `0.0.0.0` so the app is reachable from your phone on
+the same network. Use `--bind 127.0.0.1` when a reverse proxy is the only
+thing that should reach it.
 
-| Directory                      | Purpose                                                       |
-| ------------------------------ | ------------------------------------------------------------- |
-| `db/schema.ts`                 | SQLite schema - the source of truth for `db/types/db.ts`      |
-| `src/server.ts`                | Entrypoint: `bunextInit()`, `Bun.serve` (media, `/ws` auth'd upgrade), cron startup |
-| `src/pages/`                   | Filesystem routes (`__root.server.ts` auth guard, `__root.tsx` layout/context) |
-| `src/pages/api/`               | API routes - incl. the CRUD catch-all at `api/admin/crud/[[...paths]].ts` |
-| `src/websocket/`               | WebSocket handler: upgrade-time auth, room system, event dispatch |
-| `src/cron/`                    | Cron tasks - `Bun.cron` schedules, folder-per-task |
-| `@moduletrace/twui`            | The `twui` component library (external package, shared across projects) |
-| `src/components/general/`      | Shared page components built on twui                          |
-| `src/functions/backend/`       | Server-only logic: auth, DB queries, email, PDF generation, media, logger |
-| `src/functions/frontend/`      | Client-safe: CRUD/fetch handlers, media upload helpers, document actions  |
-| `src/hooks/`                   | Shared React hooks (`use-admin-crud-get`, `use-form-init`, ...) |
-| `src/schemas/`                 | zod request schemas for public/auth endpoints                 |
-| `src/utils/`                   | Utility modules: cookies, crypt, safe-compare, ejson, money   |
-| `src/utils/rbac/`              | RBAC engine: pass-through users + declarative assignment matrix |
-| `src/dict/`                    | Dictionaries: user types (+ assignment matrices), media types, document statuses, websocket rooms, log categories |
-| `src/data/`                    | Static data: `site-data.ts` (brand literals), `app-data.ts` (constants) |
-| `src/scripts/`                 | CLI scripts: brand asset generator, seed                      |
-| `llm-code-assistant/`          | `query-db.ts` - read-only SQL CLI for coding assistants       |
+## Update and uninstall
 
-## Architecture
+The same script is the updater. It keeps the database, media, computers'
+home directories and generated secrets, backs up the database before
+replacing the container, and does nothing when the image has not changed.
 
-### Auth
+```bash
+curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash
+```
 
-- **Auth guard:** `src/pages/__root.server.ts` - runs per request. There are no public pages: anything outside `/admin` and `/auth` redirects to `/admin`. With no accounts, everything redirects to `/auth/signup`; once one exists, signup redirects away. `/admin/*` requires login; `/auth/*` redirects logged-in users.
-- **Session:** encrypted cookie (`AES-256-GCM`, PBKDF2-derived key) + a matching CSRF cookie, verified constant-time on every request (`src/functions/backend/auth/user-auth.ts`). 60-day expiry.
-- **Login:** email or username plus password (`api/auth/password-login.ts`), no email step. Set/change password at `/admin/settings/change-password`. Google login (`api/auth/google-login.ts`) works for existing accounts only when `GOOGLE_CLIENT_ID` is set; it never creates accounts.
-- **Signup:** first-run only (`api/auth/signup.tsx`): creates the super admin with a password and logs them in. Refused once any user exists.
-- **RBAC:** `src/utils/rbac/` - `super_admin` passes everything; other grants/revocations are governed by `UserTypeAssignmentMatrix`/`UserTypeDeletionMatrix` in `src/dict/user-types-dict.ts`.
-- **Audit trail:** every auth event (signup, login, failure, logout) is written to the `logs` table via `src/functions/backend/logger.ts`.
+```bash
+# Stop the app and keep the data
+curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash -s -- --uninstall
 
-### Admin CRUD API
+# Stop the app and delete the data
+curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash -s -- --uninstall --purge
+```
 
-`api/admin/crud/[[...paths]].ts` dispatches `GET/POST/PUT/DELETE` by table name. Tables without a custom handler fall through to generic CRUD (super admin only). Customize a table by adding a folder under `src/pages/api/admin/crud/(tables)/<table>/` with per-method authorization.
+### Options
 
-### Documents (Letters / Emails / Invoices / Quotes)
+| Option                | Meaning                                                        |
+| --------------------- | -------------------------------------------------------------- |
+| `--home DIR`          | Install directory, default `/opt/cobble`                       |
+| `--data-dir DIR`      | Data directory mounted at `/data`, default `HOME/data`         |
+| `--port PORT`         | Host port, default `7227`                                      |
+| `--bind ADDRESS`      | Host address to publish on, default `0.0.0.0`                  |
+| `--image IMAGE`       | Container image, default `ghcr.io/moduletrace/cobble`          |
+| `--version TAG`       | Image tag, default `latest`                                    |
+| `--extra-network NET` | Join another Docker network, for a tunnel or reverse proxy     |
+| `--force`             | Recreate the container even when it is current                 |
+| `--no-pull`           | Use an image that is already on the machine                    |
+| `--skip-backup`       | Update without a database backup                               |
+| `--no-docker-install` | Fail instead of installing Docker                              |
+| `--uninstall`         | Stop and remove the app container                              |
+| `--purge`             | With `--uninstall`, also delete the data directory             |
 
-A complete document suite ships on top of the generic CRUD: `letters`, `emails`, `email_attachments`, `invoices`, `invoice_items`, `quotes`, `quote_items`, `invoice_quotes` tables with admin sections at `/admin/{letters,emails,invoices,quotes}`. Invoices and quotes get auto-generated numbers (from `SiteData["SiteSlug"]`), sortable line items, quote-to-invoice linking, branded PDF generation (`src/functions/backend/pdf/`), and sending via React-rendered HTML email (`src/functions/backend/email/`, shell in `src/email/root.tsx`). See `AGENTS.md` for the full map.
+## Data and settings
 
-### Backups
+Everything that must survive an update lives under the install directory:
 
-Super admins can create, list, download, and restore database snapshots from `/admin/backups` (`src/functions/backend/backups/`, API under `api/admin/backups/`). Backups are written to `db/.backups`; restore accepts a listed snapshot or an uploaded SQLite file. Every action is audit-logged.
+```
+/opt/cobble/
+  .env                  # generated once, mode 600
+  install.conf          # installer state
+  backups/              # pre-update database snapshots
+  data/
+    db/cobble
+    db/.backups/
+    media/
+    computers/<id>/     # each computer's home directory
+```
 
-### Settings
+`.env` holds the port and the encryption keys. The keys encrypt sessions and
+settings, so keep a copy and do not rotate them without re-entering provider
+keys and other secrets. Provider keys, MCP servers, tools and app settings
+are managed in the app, not in `.env`.
 
-`/admin/settings` redirects to `/admin/settings/general` (theme: System, Light or Dark, saved per device). `/admin/settings/profile` is the current user's profile (editable by every logged-in user, including `read_only`). `/admin/settings/change-password` sets or changes the user's own password. The sub pages are listed in the rail (`src/dict/settings-pages-dict.ts`).
+Edit `.env` and run `docker restart cobble` to apply changes. The installer
+only appends missing values and keeps what is already there.
 
-### WebSockets
+The app container is started with the Docker socket mounted and
+`MAIN_SERVER=1`, so it can create computer containers and run cron, the
+queue and Web Push.
 
-`/ws` upgrades only after `userAuth` succeeds; the user session is frozen into the socket. Rooms are declared in `src/dict/websocket-rooms.ts` and managed by the dual-index store in `src/websocket/(data)/rooms.ts`. Client events dispatch through `src/websocket/(functions)/handle-message.ts`; add per-event handlers as `src/websocket/client-requests/<event>/index.ts`. The twui `useWebSocket` hook is the client counterpart.
+## Images
 
-### Cron
+Every release publishes a multi-arch image to both registries:
 
-`src/cron/index.ts` registers tasks (gated to the `MAIN_SERVER` container in production). Each task is a folder with a default-exported async function scheduled with `Bun.cron` through `registerCronJob` (`src/cron/register-cron-job.ts`), which logs before each run and catches errors. Schedules are interpreted in UTC. The bundled heartbeat task doubles as a DB-liveness probe.
+- `ghcr.io/moduletrace/cobble`
+- `git.tben.me/moduletrace/cobble`
 
-## UI Conventions
+Tags are `latest`, the release version, `major.minor` and the commit sha.
+Install from Gitea with
+`--image git.tben.me/moduletrace/cobble`, or build from source with
+`docker build -t cobble:local .` and `--image cobble --version local --no-pull`.
 
-- Build with `twui` components (`Section`, `Container`, `Row`, `Stack`, `Card`, `Button`, ...) and `src/components/general/` - never raw HTML for layout.
-- Themable tokens live only in `src/styles/main.css` (`@theme inline`). No hardcoded hex colors or radii in components.
-- Brand name/slug live only in `src/data/site-data.ts`; the logo mark only in `public/logos/logo.svg`.
+## Development
 
-## Page Directory Rules
+```bash
+cp .env.example .env
+# set ENCRYPTION_KEY and ENCRYPTION_SALT (openssl rand -hex 32)
+bun install
+bun run db:schema
+bun run dev
+```
 
-Route-local code under `src/pages` uses non-routed meta folders: `(sections)`, `(partials)`, `(data)`, `(functions)`, `(utils)`, `(hooks)`. Keep route files thin. Dynamic routes use `[param]`; catch-alls use `[[...paths]]`. Server functions live in `index.server.ts` beside `index.tsx`.
+Open `http://localhost:7227`. With no users, every page goes to
+`/auth/signup` to create the super admin. For a headless setup:
 
-## Verification
+```bash
+SEED_SUPER_ADMIN_PASSWORD=... bun run seed
+```
 
-`bun run typecheck` and `bun run test` are the verification steps (no linter/formatter configured). CI runs both on every push and pull request (`.github/workflows/ci.yml`). Unit tests are colocated `*.test.ts` files run individually with `bun test <file>`.
+| Command              | Purpose                              |
+| -------------------- | ------------------------------------ |
+| `bun run dev`        | Development server                   |
+| `bun run start`      | Production server on the host        |
+| `bun run typecheck`  | Type-check                           |
+| `bun run test`       | Run the test suite                   |
+| `bun run seed`       | Create the super admin from the CLI  |
+| `bun run seed:bots`  | Add a sample crew                    |
+| `bun run db:schema`   | Sync the schema and types           |
+| `bun run gen:favicon` | Regenerate favicons and PWA assets  |
 
-## Maintainer Notes
+The app is Bun, [`@moduletrace/bunext`](https://github.com/Moduletrace/bunext),
+SQLite via [`@moduletrace/bun-sqlite`](https://github.com/Moduletrace/bun-sqlite),
+Tailwind CSS and the `@moduletrace/twui` component library. See
+[AGENTS.md](AGENTS.md) for the full architecture, routes, queue, harness and
+data model.
 
-- `.env` and `secrets/` are gitignored. Never commit them.
-- Don't patch `@moduletrace/twui` in `node_modules` - it is a shared publishable library. Appearance overrides belong in `src/styles/main.css`.
+CI runs type-check and tests on every push and pull request. Releases are
+built by GitHub Actions and pushed to both registries.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

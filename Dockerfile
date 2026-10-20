@@ -1,4 +1,9 @@
-FROM oven/bun:1.3.14-debian
+FROM oven/bun:1.4.3-debian
+
+LABEL org.opencontainers.image.title="Cobble" \
+      org.opencontainers.image.description="A self-hosted crew of small AI worker bots." \
+      org.opencontainers.image.source="https://github.com/Moduletrace/cobble" \
+      org.opencontainers.image.licenses="MIT"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl bash nano wget zip unzip \

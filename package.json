@@ -12,7 +12,6 @@
         "db:backup": "bunx bun-sqlite backup",
         "seed": "bun src/scripts/seed-super-admin.tsx",
         "seed:bots": "bun src/scripts/seed-bots.ts",
-        "deploy:prod": "./deploy/deploy-prod.sh",
         "start": "NODE_ENV=production bun src/server.ts",
         "typecheck": "tsc --noEmit",
         "test": "bun test"
