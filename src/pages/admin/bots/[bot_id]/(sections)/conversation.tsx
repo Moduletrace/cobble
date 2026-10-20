@@ -10,6 +10,7 @@ import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import useLiveBots from "@/src/hooks/use-live-bots";
 import useServerEvent from "@/src/hooks/use-server-event";
 import { BotComputersContext } from "../(data)/bot-computers-context";
+import { CrewBotsContext } from "../(data)/crew-bots-context";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { SpeakMessageContext } from "../(data)/speak-message-context";
 import reactToBotMessage from "../(functions)/react-to-bot-message";
@@ -156,6 +157,7 @@ export default function Conversation() {
     if (!bot?.id || !live_bot) return null;
 
     return (
+        <CrewBotsContext.Provider value={bots}>
         <BotComputersContext.Provider value={bot_computers}>
             <SpeakMessageContext.Provider value={speak}>
                 <BotMessageActionsContext.Provider
@@ -206,5 +208,6 @@ export default function Conversation() {
                 <ComputerViewerModal bot={live_bot} />
             </SpeakMessageContext.Provider>
         </BotComputersContext.Provider>
+        </CrewBotsContext.Provider>
     );
 }

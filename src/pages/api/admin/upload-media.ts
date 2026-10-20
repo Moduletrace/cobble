@@ -112,6 +112,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
         if (reauth) {
             return await loginUser({
                 user_id: Number(user.id),
+                req,
             });
         }
 

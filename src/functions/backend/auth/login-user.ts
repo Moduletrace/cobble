@@ -14,6 +14,7 @@ import type { APIResponseObject } from "@moduletrace/bunext/types";
 import grabMediaURL from "../media/grab-media-url";
 import logEvent, { grabRequestIP } from "../logger";
 import AppError from "@/src/utils/app-error";
+import isSecureRequest from "@/src/utils/is-secure-request";
 
 type Params = {
     user_id: string | number;
@@ -106,17 +107,20 @@ export default async function loginUser({
         });
 
         const maxAge = AppData["AuthExpiryDays"] * 24 * 60 * 60;
+        const secure = req ? isSecureRequest({ req }) : true;
 
         setCookies(res, [
             {
                 name: AppData["AuthKeyCookieName"],
                 value: encrypted_key,
                 maxAge,
+                secure,
             },
             {
                 name: AppData["AuthCSRFCookieName"],
                 value: csrf_key,
                 maxAge,
+                secure,
             },
         ]);
 

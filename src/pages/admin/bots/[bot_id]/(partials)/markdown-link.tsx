@@ -1,14 +1,15 @@
 import type { ComponentProps } from "react";
 import Link from "@moduletrace/twui/layout/Link";
 import { ComputerViewModes, type ComputerViewMode } from "@/src/dict/computer-dict";
-import { ComputerRefHrefPrefix, TakeOverRefHrefPrefix } from "@/src/utils/link-computer-refs";
+import { BotRefHrefPrefix, ComputerRefHrefPrefix, TakeOverRefHrefPrefix } from "@/src/utils/link-computer-refs";
+import BotRefChip from "./bot-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
 import TakeOverChip from "./take-over-chip";
 
 /**
  * A link in a bot message. A computer the bot named (`linkComputerRefs`)
  * becomes its switch button, a take-over request a button that opens the
- * computer; anything else opens in a new tab.
+ * computer, a bot it named a link to that bot's conversation; anything else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
     if (href?.startsWith(ComputerRefHrefPrefix)) {
@@ -30,6 +31,12 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
                 />
             );
         }
+    }
+
+    if (href?.startsWith(BotRefHrefPrefix)) {
+        const bot_id = Number(href.slice(BotRefHrefPrefix.length));
+
+        if (bot_id) return <BotRefChip bot_id={bot_id} />;
     }
 
     return (

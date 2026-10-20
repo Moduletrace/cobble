@@ -6,6 +6,7 @@ import pushBotCreated from "@/src/bots-queue/push-bot-created";
 import createBot from "@/src/functions/backend/db/bots/create-bot";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
 import pickFreeHue from "@/src/utils/pick-free-hue";
+import botRef from "@/src/utils/bot-ref";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -96,7 +97,7 @@ export default function createBotTool({
 
             const where = target?.name ? ` and joins ${target.name}` : "";
 
-            return `${args.name} is on the crew (bot #${bot_id})${where}.${target ? "" : " It has no workspace yet: put it in one with add_bot_to_workspace, or give it a computer with assign_computer."} assign_computer, add_bot_to_workspace and delegate_task take #${bot_id} right away, in this same reply.`;
+            return `${args.name} is on the crew (${botRef({ id: bot_id })})${where}.${target ? "" : " It has no workspace yet: put it in one with add_bot_to_workspace, or give it a computer with assign_computer."} assign_computer, add_bot_to_workspace and delegate_task take bot_id ${bot_id} right away, in this same reply.`;
         },
     };
 }

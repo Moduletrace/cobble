@@ -13,8 +13,14 @@ export const ComputerRefHrefPrefix = "#computer-";
 export const TakeOverRefHrefPrefix = "#take-over-";
 
 /**
+ * The link target a bot ref (`botRef`) becomes, e.g. `#bot-3`. The chat
+ * renders these as links to that bot's conversation.
+ */
+export const BotRefHrefPrefix = "#bot-";
+
+/**
  * Turns every computer ref (`[computer:3]`) and take-over ref
- * (`[take-over:3:browser]`) in a message into a markdown link, so it
+ * (`[take-over:3:browser]`) and bot ref (`[bot:3]`) in a message into a markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button.
  */
 export default function linkComputerRefs({ text }: { text: string }) {
@@ -26,5 +32,6 @@ export default function linkComputerRefs({ text }: { text: string }) {
         .replace(
             /\[take-over:(\d+):([a-z]+)\](?!\()/g,
             (_, id: string, mode: string) => `[take over](${TakeOverRefHrefPrefix}${id}-${mode})`,
-        );
+        )
+        .replace(/\[bot:(\d+)\](?!\()/g, (_, id: string) => `[bot ${id}](${BotRefHrefPrefix}${id})`);
 }

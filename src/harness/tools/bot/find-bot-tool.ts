@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
+import botRef from "@/src/utils/bot-ref";
 import type { HarnessTool } from "../../types";
 
 type Args = {
@@ -17,7 +18,7 @@ type Args = {
 export default function findBotTool(): HarnessTool<Args> {
     return {
         name: "find_bot",
-        description: `Find crew members: by id, name, the one-line role, or words in their core instructions. Returns each match's id, name, kind and role. With no query it lists the crew, up to limit. The coordinator is listed too but can't be deleted.`,
+        description: `Find crew members: by id, name, the one-line role, or words in their core instructions. Returns each match's ref (its id, e.g. [bot:3]), name, kind and role. With no query it lists the crew, up to limit. The coordinator is listed too but can't be deleted.`,
         schema: z.object({
             query: z.string().trim().max(200).optional(),
             limit: z.number().int().min(1).max(50).optional(),
@@ -50,7 +51,7 @@ export default function findBotTool(): HarnessTool<Args> {
             return matches
                 .map(
                     (bot) =>
-                        `#${bot.id} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})`,
+                        `${botRef({ id: bot.id || 0 })} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})`,
                 )
                 .join("\n");
         },

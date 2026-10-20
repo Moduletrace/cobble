@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import botRef from "./bot-ref";
 import computerRef from "./computer-ref";
 import linkComputerRefs from "./link-computer-refs";
 import takeOverRef from "./take-over-ref";
@@ -24,5 +25,13 @@ describe("linkComputerRefs", () => {
                 text: `Please log in to Gmail. ${takeOverRef({ id: 3, mode: "browser" })}`,
             }),
         ).toBe("Please log in to Gmail. [take over](#take-over-3-browser)");
+    });
+
+    test("links every bot a message names", () => {
+        expect(
+            linkComputerRefs({
+                text: `${botRef({ id: 4 })} is on it. See [bot:x] and [bot:5](https://example.com).`,
+            }),
+        ).toBe("[bot 4](#bot-4) is on it. See [bot:x] and [bot:5](https://example.com).");
     });
 });

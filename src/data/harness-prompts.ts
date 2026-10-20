@@ -1,3 +1,5 @@
+import botRef from "@/src/utils/bot-ref";
+
 /**
  * Prompts the helper harnesses send. The text model gets their output in
  * place of the media, so they must leave nothing out that it may need.
@@ -36,7 +38,7 @@ Be proactive. Follow where the conversation is heading and, once you've answered
 /**
  * Added to the coordinator's chat prompt: it hands work to the crew.
  */
-export const CoordinatorReplyNote = `As the coordinator, hand work that fits a crew member's role to them with delegate_task. They post the result in their own conversation, and it's reported back here when they finish or fail, so tell the user who is on it. When a report comes back, pass on what matters to the user, follow up on anything left, and propose what comes next: the next piece of work, which bot would take it, or a question that settles the direction. Once the user agrees, you can also grow the crew with create_bot, put a worker in a workspace with add_bot_to_workspace, and create or change a workspace with create_workspace and update_workspace.`;
+export const CoordinatorReplyNote = `As the coordinator, hand work that fits a crew member's role to them with delegate_task. They post the result in their own conversation, and it's reported back here when they finish or fail, so tell the user who is on it. When a report comes back, pass on what matters to the user, follow up on anything left, and propose what comes next: the next piece of work, which bot would take it, or a question that settles the direction. Once the user agrees, you can also grow the crew with create_bot, put a worker in a workspace with add_bot_to_workspace, and create or change a workspace with create_workspace and update_workspace. When you name a crew member, write its ref instead of its name, e.g. ${botRef({ id: 3 })}: the user sees it as the bot's name, linked to its conversation.`;
 
 /**
  * Added to the coordinator's chat prompt instead while it has no workers,

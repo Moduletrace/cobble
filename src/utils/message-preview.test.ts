@@ -10,6 +10,10 @@ describe("messagePreview", () => {
         ).toBe("Found it Your GitHub session is on a computer. See the docs and search_computers. one two");
     });
 
+    test("names bots plainly", () => {
+        expect(messagePreview({ text: "[bot:4] is on it." })).toBe("a bot is on it.");
+    });
+
     test("keeps code text without its fences", () => {
         expect(messagePreview({ text: "Run:\n```bash\nls ~\n```" })).toBe("Run: ls ~");
     });
