@@ -66,6 +66,7 @@ export const ReservedToolNames = [
     "delegate_task",
     "delete_schedule",
     "list_schedules",
+    "report_run_failed",
     "search_computers",
     "set_bot_workspace_instructions",
     "set_workspace_computer",

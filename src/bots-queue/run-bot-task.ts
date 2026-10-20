@@ -1,5 +1,5 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
-import { TaskRunNote, WorkspaceLearningNote } from "@/src/data/harness-prompts";
+import { ActionCheckNote, ScheduledRunNote, TaskRunNote, WorkspaceLearningNote } from "@/src/data/harness-prompts";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
@@ -11,11 +11,13 @@ import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
+import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import computerRef from "@/src/utils/computer-ref";
 import composeJobBrief from "./compose-job-brief";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import withTakeOverRefs from "./with-take-over-refs";
+import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
 type Params = BotJobContext & {
@@ -34,6 +36,8 @@ type Params = BotJobContext & {
  * computer, that computer's tools (over MCP), until it answers. That answer is the report for the user.
  * When only the user can go on (a login, a captcha), the bot asks them to
  * take over (`ask_user_to_take_over`) and the report needs them.
+ * A scheduled run acts on its own (`ScheduledRunNote`); one that reports
+ * it failed (`report_run_failed`) throws, so the queue retries it.
  * Every model turn is reported as a step (`report`).
  */
 export default async function runBotTask({
@@ -77,6 +81,8 @@ export default async function runBotTask({
             signal,
         }).catch(() => "");
         const take_overs: string[] = [];
+        const scheduled = Boolean(params.schedule_id);
+        let failure = null as string | null;
 
         /**
          * A take-over defaults to the computer the task runs on.
@@ -112,6 +118,7 @@ export default async function runBotTask({
                       }),
                   ]
                 : []),
+            ...(scheduled ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
             ...(computer?.tools || []),
         ];
 
@@ -128,6 +135,8 @@ export default async function runBotTask({
                 prompt,
                 carry_over,
                 TaskRunNote,
+                scheduled ? ScheduledRunNote : "",
+                ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 bot.kind == "coordinator"
                     ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`
@@ -166,6 +175,10 @@ export default async function runBotTask({
             onStep: (step) =>
                 report({ ...step, text: step.text && computer ? computer.redact(step.text) : step.text }),
         });
+
+        if (failure) {
+            throw new ScheduledRunFailedError(computer ? computer.redact(failure) : failure);
+        }
 
         return withTakeOverRefs({
             text: computer ? computer.redact(result.text) : result.text,

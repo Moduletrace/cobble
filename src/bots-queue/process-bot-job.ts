@@ -9,6 +9,8 @@ import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
+import recordCronJobFailure from "@/src/functions/backend/db/cron-jobs/record-cron-job-failure";
+import scheduledRunRetryAt from "@/src/utils/scheduled-run-retry-at";
 import {
     BotComputerBusyStatusLine,
     BotReplyJobTitle,
@@ -56,7 +58,9 @@ type Params = {
  * Runs one claimed job to the end: keeps its lock alive, waits for its
  * computer, runs it, then completes or fails it and pushes the outcome to
  * the user. If the job is cancelled or lost mid-way, its result is
- * dropped.
+ * dropped. A failed scheduled run (a routine) is retried with longer gaps
+ * (`scheduledRunRetryAt`); once out of tries the user is told, and the
+ * schedule keeps why (`recordCronJobFailure`).
  */
 export default async function processBotJob({
     job,
@@ -67,6 +71,8 @@ export default async function processBotJob({
 
     const job_id = job.id;
     const bot_id = job.bot_id;
+    const params = parseJobJson({ text: job.params }) || {};
+    const schedule_id = Number(params.schedule_id) || null;
 
     /**
      * Its face changes only for the user it works for.
@@ -133,7 +139,7 @@ export default async function processBotJob({
 
             return await runner({
                 job,
-                params: parseJobJson({ text: job.params }) || {},
+                params,
                 checkpoint: parseJobJson({ text: job.checkpoint }),
                 signal: controller.signal,
                 update,
@@ -223,11 +229,17 @@ export default async function processBotJob({
             return;
         }
 
+        const message = error instanceof Error ? error.message : String(error);
+        const tries = Number(job.attempts) || 1;
+
         const failed = await failBotJob({
             job_id,
             worker,
-            error: error instanceof Error ? error.message : String(error),
+            error: message,
             fatal: error instanceof BotJobFatalError,
+            failure_message: schedule_id
+                ? `My scheduled run "${job.title || "Scheduled task"}" failed after ${tries} ${tries == 1 ? "try" : "tries"}: ${message}`
+                : undefined,
         }).catch(async (fail_error) => {
             await logError({
                 title: `Bot job #${job_id} couldn't be failed`,
@@ -238,6 +250,19 @@ export default async function processBotJob({
 
         if (failed?.notice) {
             await pushBotNotice({ bot_id, ...failed.notice });
+        }
+
+        if (schedule_id && failed?.status == "failed") {
+            await recordCronJobFailure({ cron_job_id: schedule_id, job_id, error: message }).catch(
+                () => {},
+            );
+        }
+
+        /**
+         * A routine's retry waits long enough for an outage to pass.
+         */
+        if (schedule_id && failed?.status == "pending") {
+            await deferBotJob({ job_id, worker, until: scheduledRunRetryAt({ attempts: failed.attempts }) });
         }
 
         /**

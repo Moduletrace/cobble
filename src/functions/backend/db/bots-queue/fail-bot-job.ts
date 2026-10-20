@@ -24,8 +24,8 @@ type Params = {
 /**
  * Records a failed attempt. The job goes back to the queue with a backoff
  * delay, or, once out of attempts (or `fatal`), is marked failed and the
- * bot tells the user it needs them. Returns the job's new status and the
- * failure notice, if one was sent.
+ * bot tells the user it needs them. Returns the job's new status, the
+ * attempts it has used and the failure notice, if one was sent.
  */
 export default async function failBotJob({
     job_id,
@@ -58,9 +58,10 @@ export default async function failBotJob({
     }
 
     const status = res.singleRes.status;
+    const attempts = Number(res.singleRes.attempts || 0);
 
     if (status != "failed") {
-        return { status, notice: null };
+        return { status, attempts, notice: null };
     }
 
     const notice = await notifyBotJobFailed({
@@ -68,5 +69,5 @@ export default async function failBotJob({
         failure_message,
     });
 
-    return { status, notice };
+    return { status, attempts, notice };
 }

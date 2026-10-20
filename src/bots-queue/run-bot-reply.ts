@@ -1,6 +1,7 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import {
+    ActionCheckNote,
     ChatReplyNote,
     CoordinatorReplyNote,
     CoordinatorSoloNote,
@@ -110,6 +111,7 @@ export default async function runBotReply({
                 prompt,
                 carry_over,
                 ChatReplyNote,
+                ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({
                     computers,

@@ -113,6 +113,11 @@ export const AppData = {
     BotQueueLockTimeoutMs: 10 * 60 * 1000,
     BotQueueBackoffMs: 30 * 1000,
     /**
+     * A failed scheduled run is tried again after this, doubling each time
+     * (`scheduledRunRetryAt`), so a short outage doesn't sink the run.
+     */
+    ScheduledRunRetryMs: 5 * 60 * 1000,
+    /**
      * The queue handler's lock name. Stable across restarts, so on startup
      * it can release the jobs it was running when the process stopped.
      */

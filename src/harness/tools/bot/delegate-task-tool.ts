@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
+import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
 import insertBotMessage from "@/src/functions/backend/db/bots/insert-bot-message";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
@@ -79,6 +80,17 @@ export default function delegateTaskTool({
 
             const computers = await grabBotComputers({ bot_id: worker.id, workspace_id });
             const worker_session = await ensureBotSession({ user_id, bot_id: worker.id, workspace_id });
+            const open = await grabOpenBotTask({
+                bot_id: worker.id,
+                session_id: Number(worker_session.id),
+                title: args.title,
+            });
+
+            if (open) {
+                throw new Error(
+                    `${worker.name} already has task #${open.id} "${args.title}" ${open.status == "pending" ? "queued" : "under way"}. Don't hand it over again; it's reported back here when they finish.`,
+                );
+            }
 
             const job_id = await enqueueBotJob({
                 user_id,

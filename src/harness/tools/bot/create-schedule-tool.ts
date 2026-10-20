@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import createCronJob from "@/src/functions/backend/db/cron-jobs/create-cron-job";
+import grabCronJobs from "@/src/functions/backend/db/cron-jobs/grab-cron-jobs";
+import findDuplicateCronJob from "@/src/utils/find-duplicate-cron-job";
 import describeCronJob from "@/src/utils/describe-cron-job";
 import type { HarnessTool } from "../../types";
 
@@ -44,7 +46,7 @@ export default function createScheduleTool({ user_id, bot_id, workspace_id, comp
             computers.length
                 ? `Runs use the computer you're on when they start unless you pick one: ${listed}.`
                 : `You have no computer here, so runs can't use one.`
-        } Write the instructions as a full brief for a future you with no memory of this chat.`,
+        } Write the instructions as a full brief for a future you with no memory of this chat. Runs carry the brief out without asking the user, so state the action itself ("send the summary to ..."), not a draft for them to approve, unless they asked to approve it.`,
         schema: z.object({
             title: z.string().min(1).max(80).describe(`A short label, e.g. "Morning inbox digest"`),
             instructions: z.string().min(1).max(8000),
@@ -53,6 +55,20 @@ export default function createScheduleTool({ user_id, bot_id, workspace_id, comp
             max_runs: z.number().int().positive().optional().describe("Stop after this many runs; leave out to run until stopped"),
         }),
         run: async ({ args }) => {
+            const twin = findDuplicateCronJob({
+                cron_jobs: await grabCronJobs({ user_id, bot_id }),
+                title: args.title,
+                instructions: args.instructions,
+                schedule: args.schedule,
+                workspace_id,
+            });
+
+            if (twin) {
+                throw new Error(
+                    `This looks like a schedule you already have: ${describeCronJob({ cron_job: twin })}. Change it with update_schedule instead, or give the new one a different title if it really is separate work.`,
+                );
+            }
+
             const cron_job = await createCronJob({
                 user_id,
                 bot_id,
@@ -64,7 +80,7 @@ export default function createScheduleTool({ user_id, bot_id, workspace_id, comp
                 max_runs: args.max_runs,
             });
 
-            return `Schedule saved: ${describeCronJob({ cron_job })}. Tell the user when it runs, in their time, and that they can pause or change it under Routines.`;
+            return `Schedule saved: ${describeCronJob({ cron_job })}. Check it with list_schedules before you confirm it to the user. Tell the user when it runs, in their time, and that they can pause or change it under Routines.`;
         },
     };
 }

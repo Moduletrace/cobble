@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import updateBotSystemPrompt from "@/src/functions/backend/db/bots/update-bot-system-prompt";
 import updateWorkspaceBot from "@/src/functions/backend/db/workspaces/update-workspace-bot";
 import type { HarnessTool } from "../../types";
+import checkSavedText from "./check-saved-text";
 
 type Params = {
     user_id: number | string;
@@ -47,7 +48,13 @@ export default function updateInstructionsTool({
                     bot_id,
                     system_prompt: args.instructions,
                 });
-                return `Instructions for this workspace saved. They apply from your next run here.`;
+                await checkSavedText({
+                    kind: "workspace_instructions",
+                    bot_id,
+                    workspace_id,
+                    expected: args.instructions,
+                });
+                return `Instructions for this workspace saved and checked. They apply from your next run here.`;
             }
 
             await updateBotSystemPrompt({
@@ -55,7 +62,8 @@ export default function updateInstructionsTool({
                 bot_id,
                 system_prompt: args.instructions,
             });
-            return `Core instructions saved. They apply from your next run, everywhere.`;
+            await checkSavedText({ kind: "core_instructions", bot_id, expected: args.instructions });
+            return `Core instructions saved and checked. They apply from your next run, everywhere.`;
         },
     };
 }

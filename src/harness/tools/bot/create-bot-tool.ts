@@ -63,6 +63,19 @@ export default function createBotTool({
                 );
             }
 
+            const twin = (
+                await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
+                    sql: `SELECT id, name FROM bots WHERE lower(trim(name)) = lower(trim(?)) LIMIT 1`,
+                    values: [args.name],
+                })
+            ).payload?.[0];
+
+            if (twin?.id) {
+                throw new Error(
+                    `There's already a bot called ${twin.name} (${botRef({ id: twin.id })}). Change it with update_bot, or pick another name if it's really a different job.`,
+                );
+            }
+
             const hues =
                 (
                     await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({

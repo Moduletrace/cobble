@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
+import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -54,6 +55,14 @@ export default function startTaskTool({
             computer_id: z.number().int().optional(),
         }),
         run: async ({ args }) => {
+            const open = await grabOpenBotTask({ bot_id, session_id, title: args.title });
+
+            if (open) {
+                throw new Error(
+                    `Task #${open.id} "${args.title}" is already ${open.status == "pending" ? "queued" : "under way"}. Don't start it again; its result will be posted here.`,
+                );
+            }
+
             const computer_id = args.computer_id ?? computers[0]?.id ?? undefined;
 
             const job_id = await enqueueBotJob({

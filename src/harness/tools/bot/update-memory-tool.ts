@@ -4,6 +4,7 @@ import updateBotMemory from "@/src/functions/backend/db/bots/update-bot-memory";
 import updateBotUserMemory from "@/src/functions/backend/db/bots/update-bot-user-memory";
 import updateWorkspaceBot from "@/src/functions/backend/db/workspaces/update-workspace-bot";
 import type { HarnessTool } from "../../types";
+import checkSavedText from "./check-saved-text";
 
 type Params = {
     /**
@@ -52,16 +53,19 @@ export default function updateMemoryTool({
         run: async ({ args }) => {
             if (args.scope == "core") {
                 await updateBotMemory({ user_id, bot_id, memory: args.memory });
-                return `Core memory saved.`;
+                await checkSavedText({ kind: "core_memory", bot_id, expected: args.memory });
+                return `Core memory saved and checked.`;
             }
 
             if (workspace_id && args.scope == "workspace") {
                 await updateWorkspaceBot({ user_id, workspace_id, bot_id, memory: args.memory });
-                return `Memory for this workspace saved.`;
+                await checkSavedText({ kind: "workspace_memory", bot_id, workspace_id, expected: args.memory });
+                return `Memory for this workspace saved and checked.`;
             }
 
             await updateBotUserMemory({ user_id, bot_id, memory: args.memory });
-            return `Memory about the user saved.`;
+            await checkSavedText({ kind: "user_memory", bot_id, user_id, expected: args.memory });
+            return `Memory about the user saved and checked.`;
         },
     };
 }
