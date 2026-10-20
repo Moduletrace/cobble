@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cobble installer and updater.
 #
-#   curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash
+#   curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 #
 # The script is idempotent: running it again updates Cobble in place and
 # keeps the data, the database and the generated secrets. It installs
@@ -16,7 +16,7 @@ DEFAULT_PORT="7227"
 DEFAULT_BIND="0.0.0.0"
 DEFAULT_IMAGE="ghcr.io/moduletrace/cobble"
 DEFAULT_VERSION="latest"
-INSTALL_URL="https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh"
+INSTALL_URL="https://url.moduletrace.com/cobble"
 HEALTH_TIMEOUT_SECONDS="${COBBLE_HEALTH_TIMEOUT:-900}"
 BACKUPS_KEPT=5
 

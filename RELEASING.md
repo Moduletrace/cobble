@@ -48,7 +48,7 @@ The repository starts private and is made public at the launch gate below.
 
 11. [ ] Update every install with the one-liner:
 
-        curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash
+        curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 
 ## Launch gate
 

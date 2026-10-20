@@ -23,7 +23,7 @@ On a Linux machine with Docker (the installer adds Docker when it is
 missing):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash
+curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 ```
 
 Open the address it prints, usually `http://<your-ip>:7227`, and create the
@@ -58,15 +58,15 @@ home directories and generated secrets, backs up the database before
 replacing the container, and does nothing when the image has not changed.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash
+curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 ```
 
 ```bash
 # Stop the app and keep the data
-curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash -s -- --uninstall
+curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall
 
 # Stop the app and delete the data
-curl -fsSL https://raw.githubusercontent.com/moduletrace/cobble/main/install.sh | sudo bash -s -- --uninstall --purge
+curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall --purge
 ```
 
 ### Options
