@@ -39,6 +39,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 /test
 /.bunext
 
+# locally generated HTTPS certificates (bun run gen:certs)
+/certs
+
 # bun-sqlite local database + artifacts
 /db/cobble
 /db/.backups

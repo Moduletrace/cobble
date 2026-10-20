@@ -5,8 +5,10 @@ LABEL org.opencontainers.image.title="Cobble" \
       org.opencontainers.image.source="https://github.com/Moduletrace/cobble" \
       org.opencontainers.image.licenses="MIT"
 
+# openssl generates the local CA and certificate the installer serves HTTPS
+# with (`src/scripts/generate-local-certs.ts`).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl bash nano wget zip unzip \
+    && apt-get install -y --no-install-recommends curl bash nano wget zip unzip openssl \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
@@ -31,6 +33,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS "http://localhost:${PORT:-7227}/api/health" || exit 1
+    CMD if [ -n "$TLS_CERT_FILE" ]; then curl -fsSk "https://localhost:${PORT:-7227}/api/health" || exit 1; else curl -fsS "http://localhost:${PORT:-7227}/api/health" || exit 1; fi
 
 ENTRYPOINT ["/entrypoint.sh"]

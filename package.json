@@ -5,7 +5,9 @@
     "private": true,
     "scripts": {
         "dev": "bun src/server.ts",
+        "dev:phone": "bun src/scripts/dev-phone.ts",
         "gen:favicon": "bun src/scripts/generate-brand-assets.ts",
+        "gen:certs": "bun src/scripts/generate-local-certs.ts",
         "build": "bunx bunext build",
         "db:schema": "bunx bun-sqlite schema -t",
         "db:admin": "bunx bun-sqlite admin",

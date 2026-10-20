@@ -1,4 +1,4 @@
-import { HelpSignInTopicId } from "@/src/dict/help-dict";
+import { HelpHttpsTopicId, HelpSignInTopicId } from "@/src/dict/help-dict";
 
 export type HelpTopic = {
     /**
@@ -21,6 +21,40 @@ export type HelpTopic = {
  * common first.
  */
 export const HelpTopics: HelpTopic[] = [
+    {
+        id: HelpHttpsTopicId,
+        title: "The browser says the connection isn't private",
+        summary: `"Your connection is not private", a certificate warning, or an app that won't install or send notifications.`,
+        body: `Cobble serves HTTPS with a certificate signed by a small local authority (a CA) that the installer made on your machine. Browsers only trust it once you have told them to, so the first visit warns.
+
+**Download it on the device.** Open one of these in the device's browser, on the same address you use for Cobble, and accept the warning if it shows:
+
+- **iPhone or iPad:** \`https://<your address>:7227/ca.mobileconfig\`. iOS offers a profile, which is one tap to install.
+- **Everything else:** \`https://<your address>:7227/ca.crt\`.
+
+You can also copy it from the machine Cobble runs on: \`/opt/cobble/certs/ca.crt\` (or wherever it was installed).
+
+### Install it
+
+- **iPhone or iPad:** tap **Allow** on the downloaded profile, install it (it also appears under **Settings > General > VPN & Device Management**), then turn it on under **Settings > General > About > Certificate Trust Settings**. Both steps are needed, even with the one-tap profile.
+- **Android:** **Settings > Security > Encryption & credentials > Install a certificate > CA certificate**, then pick the file.
+- **macOS:** add it to the login keychain and set it to **Always Trust**.
+- **Linux:** copy it into \`/usr/local/share/ca-certificates/\` and run \`sudo update-ca-certificates\`.
+- **Windows:** install it under **Trusted Root Certification Authorities**.
+
+Reload Cobble afterwards. The warning is gone.
+
+### Why it matters
+
+The connection is encrypted either way; the warning is about who signed the certificate. But the browser treats an untrusted address as unsafe, so the installable app, its offline support and Web Push notifications stay off until the CA is trusted. Voice recording and dictation need that safe context too.
+
+### If it still warns
+
+- **You installed the profile but iOS still warns.** The second step, Certificate Trust Settings, was missed. It is a separate switch.
+- **You replaced the CA.** Rerunning the installer with \`--https-regen\` makes a new CA. Remove the old profile and install the new one.
+- **The warning comes back every few months.** The certificate is renewed when the installer runs, but it is still signed by the same CA, so devices keep trusting it.
+- **You have your own certificate.** Installs using \`--https-cert\` and \`--https-key\`, or \`--no-https\` behind a proxy or tunnel, do not need any of this.`,
+    },
     {
         id: HelpSignInTopicId,
         title: "Google won't let me sign in on a computer",

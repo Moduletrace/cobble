@@ -12,6 +12,16 @@ export const AppData = {
      */
     ComposerDraftStorageKey: `${SiteData["SiteSlug"]}_composer_draft`,
     ServerHealthMessage: "Server Running Well",
+    /**
+     * Where a device downloads the local CA that signed the app's
+     * certificate, so it can trust it (`serveLocalCa`): the certificate
+     * and an iOS/macOS profile that installs it, and the names they
+     * download as. Only served with TLS and `TLS_CA_FILE`.
+     */
+    TlsCaPath: "/ca.crt",
+    TlsCaFilename: `${SiteData["SiteSlug"]}-ca.crt`,
+    TlsCaProfilePath: "/ca.mobileconfig",
+    TlsCaProfileFilename: `${SiteData["SiteSlug"]}-ca.mobileconfig`,
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,
     AuthExpiryDays: 60,
