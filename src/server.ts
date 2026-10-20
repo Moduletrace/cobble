@@ -86,9 +86,11 @@ if (
     bunext.bunextLog.info(`Using the development certificate in certs/`);
 }
 
-if (!cert_file && !key_file && process.env.NODE_ENV != "production") {
+if (!cert_file && !key_file) {
     bunext.bunextLog.info(
-        "Serving plain HTTP (run `bun run dev:phone`, or `bun run gen:certs` then restart, for HTTPS)",
+        process.env.NODE_ENV == "production"
+            ? "Serving plain HTTP (set TLS_CERT_FILE and TLS_KEY_FILE for HTTPS)"
+            : "Serving plain HTTP (run `bun run dev:phone`, or `bun run gen:certs` then restart, for HTTPS)",
     );
 }
 

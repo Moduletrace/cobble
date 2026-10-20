@@ -26,6 +26,13 @@ missing):
 curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 ```
 
+HTTPS is on by default, and a fresh install asks before continuing: it
+encrypts the connection, and phones need it to install the app and receive
+notifications. The installer creates a local CA for the machine, so each
+device trusts it once. Answer no, or pass `--no-https`, if a proxy or tunnel
+already handles HTTPS; `--yes` accepts the default without asking. Updates
+keep the mode already chosen.
+
 Open the address it prints, usually `https://<your-ip>:7227`. The
 certificate is signed by a local CA the installer made, so the browser warns
 until you trust it: open `https://<your-ip>:7227/ca.crt` on the device and
@@ -56,11 +63,13 @@ thing that should reach it (with `--no-https`).
 
 ## HTTPS
 
-The installer serves HTTPS by default. It generates a local CA and a
-certificate for this machine into `$COBBLE_HOME/certs` and mounts them into
-the container read only. The CA is kept across updates; the certificate is
-re-issued when the machine's addresses change or it is within 30 days of
-expiring, and a rerun of the updater does both.
+The installer serves HTTPS by default, and a fresh install asks before
+continuing (`--yes` skips the question, `--no-https` answers it, an update
+keeps the saved mode). It generates a local CA and a certificate for this
+machine into `$COBBLE_HOME/certs` and mounts them into the container read
+only. The CA is kept across updates; the certificate is re-issued when the
+machine's addresses change or it is within 30 days of expiring, and a rerun
+of the updater does both.
 
 Trust the CA once on each device. Until it is trusted the browser warns, and
 the installed app, its service worker and Web Push stay off:
@@ -127,6 +136,7 @@ curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall --pu
 | `--no-pull`           | Use an image that is already on the machine                    |
 | `--skip-backup`       | Update without a database backup                               |
 | `--no-docker-install` | Fail instead of installing Docker                              |
+| `--yes`, `-y`         | Accept the defaults without asking (HTTPS on)                  |
 | `--uninstall`         | Stop and remove the app container                              |
 | `--purge`             | With `--uninstall`, also delete the data directory             |
 

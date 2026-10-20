@@ -77,13 +77,17 @@ Options:
   --force                Recreate the container even when it is current
   --skip-backup          Do not back up the database before an update
   --no-docker-install    Fail instead of installing Docker when it is missing
+  --yes, -y              Accept the defaults without asking (HTTPS on)
   --uninstall            Stop and remove the app container
   --purge                With --uninstall, also delete the data directory
   --help                 Show this help
 
 HTTPS:
-  It is on by default. A local CA and a certificate for this machine are
-  generated into HOME/certs. Trust the CA on each device first:
+  It is on by default, and a fresh install asks before continuing. It
+  encrypts the connection, and phones need it to install the app and
+  receive notifications; a proxy or tunnel that already handles HTTPS is
+  the reason to answer no. A local CA and a certificate for this machine
+  are generated into HOME/certs, so each device trusts the CA once:
   https://<this machine>:<port>/ca.crt, or HOME/certs/ca.crt.
   iPhone and iPad install it in one tap from
   https://<this machine>:<port>/ca.mobileconfig.
@@ -144,7 +148,9 @@ esac
 ENV_FILE="$HOME_DIR/.env"
 STATE_FILE="$HOME_DIR/install.conf"
 
+HAD_STATE=0
 if [ -f "$STATE_FILE" ]; then
+    HAD_STATE=1
     # shellcheck disable=SC1090
     . "$STATE_FILE"
 fi
@@ -170,9 +176,11 @@ SKIP_BACKUP=0
 PURGE=0
 HTTPS_DISABLED=0
 HTTPS_FORCE=0
+HTTPS_EXPLICIT=0
 HTTPS_HOSTS_GIVEN=0
 HTTPS_CERT_GIVEN=0
 HTTPS_REGEN=0
+ASSUME_YES=0
 HTTPS_MANAGED=1
 CERTS_CHANGED=0
 CERT_EXPIRY=""
@@ -226,10 +234,12 @@ while [ $# -gt 0 ]; do
         --https)
             HTTPS_ENABLED=1
             HTTPS_FORCE=1
+            HTTPS_EXPLICIT=1
             shift
             ;;
         --no-https)
             HTTPS_DISABLED=1
+            HTTPS_EXPLICIT=1
             shift
             ;;
         --https-host)
@@ -239,20 +249,28 @@ while [ $# -gt 0 ]; do
                 HTTPS_HOSTS="${2:-}"
                 HTTPS_HOSTS_GIVEN=1
             fi
+            HTTPS_EXPLICIT=1
             shift 2
             ;;
         --https-cert)
             HTTPS_CERT_SOURCE="${2:-}"
             HTTPS_CERT_GIVEN=1
+            HTTPS_EXPLICIT=1
             shift 2
             ;;
         --https-key)
             HTTPS_KEY_SOURCE="${2:-}"
             HTTPS_CERT_GIVEN=1
+            HTTPS_EXPLICIT=1
             shift 2
             ;;
         --https-regen)
             HTTPS_REGEN=1
+            HTTPS_EXPLICIT=1
+            shift
+            ;;
+        --yes | -y)
+            ASSUME_YES=1
             shift
             ;;
         --force)
@@ -458,6 +476,50 @@ health_scheme() {
 
 health_url() {
     printf '%s://%s:%s/api/health' "$(health_scheme)" "$(health_host)" "$PORT"
+}
+
+# A fresh install asks about HTTPS and states why; updates keep the saved
+# mode, and any --https* flag (or --yes) skips the question. The prompt
+# reads /dev/tty, never stdin: with `curl | bash` stdin is the script.
+ask_https() {
+    local answer=""
+
+    if [ "$HAD_STATE" = 1 ] || [ "$HTTPS_EXPLICIT" = 1 ] || [ "$ACTION" = "uninstall" ] || [ "$ASSUME_YES" = 1 ]; then
+        return 0
+    fi
+
+    if ! { : </dev/tty; } 2>/dev/null; then
+        printf '\nHTTPS is on by default: it encrypts the connection, and phones need it to install the app and receive notifications. Each device trusts the local certificate once. Pass --no-https if a proxy or tunnel already handles HTTPS.\n\n' >&2
+        return 0
+    fi
+
+    printf '\n' >&2
+    printf 'Cobble can serve HTTPS, and that is the default.\n' >&2
+    printf 'It encrypts the connection, and phones need it to install the app\n' >&2
+    printf 'and receive notifications. The installer creates a local CA for\n' >&2
+    printf 'this machine, so each device trusts it once (on an iPhone: install\n' >&2
+    printf 'the profile, then turn it on under Certificate Trust Settings).\n' >&2
+    printf '\n' >&2
+    printf 'Answer no if a proxy or tunnel already handles HTTPS for Cobble.\n' >&2
+    printf 'Serve HTTPS? [Y/n] ' >&2
+
+    exec 3</dev/tty
+    read -r answer <&3 || answer=""
+    exec 3<&-
+
+    case "$answer" in
+        [nN]*)
+            HTTPS_ENABLED=0
+            HTTPS_HOSTS=""
+            HTTPS_CERT_SOURCE=""
+            HTTPS_KEY_SOURCE=""
+            HTTPS_MANAGED=1
+            printf '\nPlain HTTP. Put HTTPS in front before using it outside this network.\n' >&2
+            ;;
+        *)
+            printf '\nHTTPS on. Trust the certificate on each device before using the app.\n' >&2
+            ;;
+    esac
 }
 
 set_env() {
@@ -861,6 +923,8 @@ uninstall() {
 # ---------------------------------------------------------------- main
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
+
+ask_https
 
 ensure_docker
 
