@@ -27,7 +27,7 @@ This is **Cobble** (`cobble.moduletrace.org`): an open-source crew of small AI w
 | Purpose                          | Command                                                   |
 | -------------------------------- | --------------------------------------------------------- |
 | Dev server                       | `bun run dev` (runs `bun src/server.ts`)                  |
-| Production                       | `bun run start` (`NODE_ENV=production bun src/server.ts`) |
+| Production                       | `bun run start` (`MAIN_SERVER=1 NODE_ENV=production bun src/server.ts`) |
 | Type-check only                  | `bun run typecheck`                                       |
 | Run tests                        | `bun run test`                                            |
 | Regenerate favicon/brand/PWA assets | `bun run gen:favicon` (runs `src/scripts/generate-brand-assets.ts`) |
