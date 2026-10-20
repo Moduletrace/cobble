@@ -10,9 +10,12 @@ import Paper from "@moduletrace/twui/elements/Paper";
 import Container from "@moduletrace/twui/layout/Container";
 import Center from "@moduletrace/twui/layout/Center";
 import { SiteData } from "@/src/data/site-data";
+import { clearHarnessCache } from "@/src/utils/harness-cache";
 
 export default function LogoutPage() {
     useEffect(() => {
+        clearHarnessCache();
+
         setTimeout(() => {
             window.location.pathname = "/auth/login";
         }, 1000);

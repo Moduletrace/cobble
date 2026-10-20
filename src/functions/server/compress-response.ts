@@ -1,8 +1,11 @@
-import { brotliCompressSync, constants } from "node:zlib";
+import { brotliCompress, constants } from "node:zlib";
+import { promisify } from "node:util";
 import { AppData } from "@/src/data/app-data";
 import isCompressibleType from "@/src/utils/is-compressible-type";
 import isHashedAssetPath from "@/src/utils/is-hashed-asset-path";
 import pickContentEncoding, { type ContentEncoding } from "@/src/utils/pick-content-encoding";
+
+const BrotliCompress = promisify(brotliCompress);
 
 type Params = {
     req: Request;
@@ -14,6 +17,12 @@ type Params = {
  * names are their content, so an entry never goes stale.
  */
 const HashedAssetCache = new Map<string, Uint8Array<ArrayBuffer>>();
+let HashedAssetCacheBytes = 0;
+/**
+ * Compressions in progress, so parallel requests for a cold asset share
+ * one pass rather than each blocking a brotli run.
+ */
+const HashedAssetInflight = new Map<string, Promise<Uint8Array<ArrayBuffer>>>();
 
 /**
  * Compresses a text response for a client that takes it, and caches the
@@ -22,8 +31,7 @@ const HashedAssetCache = new Map<string, Uint8Array<ArrayBuffer>>();
  *
  * Page scripts and styles are compressed whole (brotli or gzip) and kept
  * in memory; pages and API responses are gzipped as they stream. Media,
- * streams, small bodies and anything already encoded go out as they
- * are.
+ * streams, small bodies and anything already encoded go out as they are.
  */
 export default async function compressResponse({ req, response }: Params): Promise<Response> {
     const { pathname } = new URL(req.url);
@@ -31,6 +39,11 @@ export default async function compressResponse({ req, response }: Params): Promi
 
     if (hashed) {
         response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+        /**
+         * The same path serves a different body per encoding, so a shared
+         * cache must key on it even when this client gets the plain one.
+         */
+        appendVary({ headers: response.headers });
     }
 
     if (
@@ -58,7 +71,7 @@ export default async function compressResponse({ req, response }: Params): Promi
     headers.set("Content-Encoding", encoding);
     headers.delete("Content-Length");
     headers.delete("Content-Disposition");
-    headers.append("Vary", "Accept-Encoding");
+    appendVary({ headers });
 
     if (hashed) {
         const body = await compressHashedAsset({ pathname, encoding, response });
@@ -90,26 +103,87 @@ async function compressHashedAsset({
         return cached;
     }
 
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const body =
-        encoding == "br"
-            ? new Uint8Array(
-                  brotliCompressSync(bytes, {
-                      params: {
-                          [constants.BROTLI_PARAM_QUALITY]: AppData["CompressBrotliQuality"],
-                          [constants.BROTLI_PARAM_SIZE_HINT]: bytes.length,
-                      },
-                  }),
-              )
-            : Bun.gzipSync(bytes, { level: 9 });
+    const inflight = HashedAssetInflight.get(key);
 
-    HashedAssetCache.set(key, body);
-
-    if (HashedAssetCache.size > AppData["CompressCacheMaxFiles"]) {
-        const oldest = HashedAssetCache.keys().next().value;
-
-        if (oldest) HashedAssetCache.delete(oldest);
+    if (inflight) {
+        response.body?.cancel().catch(() => {});
+        return await inflight;
     }
 
-    return body;
+    const compression = compressBody({ encoding, response });
+
+    HashedAssetInflight.set(key, compression);
+
+    try {
+        const body = await compression;
+
+        rememberHashedAsset({ key, body });
+
+        return body;
+    } finally {
+        HashedAssetInflight.delete(key);
+    }
+}
+
+async function compressBody({
+    encoding,
+    response,
+}: {
+    encoding: ContentEncoding;
+    response: Response;
+}): Promise<Uint8Array<ArrayBuffer>> {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+
+    if (encoding == "gzip") return new Uint8Array(Bun.gzipSync(bytes, { level: 9 }));
+
+    return new Uint8Array(
+        await BrotliCompress(bytes, {
+            params: {
+                [constants.BROTLI_PARAM_QUALITY]: AppData["CompressBrotliQuality"],
+                [constants.BROTLI_PARAM_SIZE_HINT]: bytes.length,
+            },
+        }),
+    );
+}
+
+function rememberHashedAsset({
+    key,
+    body,
+}: {
+    key: string;
+    body: Uint8Array<ArrayBuffer>;
+}) {
+    HashedAssetCache.set(key, body);
+    HashedAssetCacheBytes += body.byteLength;
+
+    while (
+        HashedAssetCache.size > AppData["CompressCacheMaxFiles"] ||
+        HashedAssetCacheBytes > AppData["CompressCacheMaxBytes"]
+    ) {
+        const oldest = HashedAssetCache.keys().next().value;
+
+        if (!oldest) break;
+
+        const dropped = HashedAssetCache.get(oldest);
+
+        HashedAssetCache.delete(oldest);
+        HashedAssetCacheBytes -= dropped?.byteLength || 0;
+    }
+}
+
+/**
+ * Adds `Accept-Encoding` to `Vary` once, whatever the response already
+ * varies on.
+ */
+function appendVary({ headers }: { headers: Headers }) {
+    const vary = headers.get("Vary");
+
+    if (!vary) {
+        headers.set("Vary", "Accept-Encoding");
+        return;
+    }
+
+    if (!vary.split(",").some((part) => part.trim().toLowerCase() == "accept-encoding")) {
+        headers.set("Vary", `${vary}, Accept-Encoding`);
+    }
 }

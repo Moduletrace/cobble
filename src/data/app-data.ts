@@ -12,11 +12,18 @@ export const AppData = {
      */
     ComposerDraftStorageKey: `${SiteData["SiteSlug"]}_composer_draft`,
     /**
-     * Prefix of the chat header's models modal data in `localStorage`, one
-     * per bot and workspace, and how long it is shown before it is fetched
-     * again.
+     * Prefix of the chat header's model data in `localStorage`: one catalog
+     * per user, and one small setting per bot and workspace.
+     * `HarnessCatalogCacheMs` is how long the catalog is shown before it is
+     * fetched again, `HarnessOverviewCacheMs` the setting.
      */
-    HarnessOverviewStorageKey: `${SiteData["SiteSlug"]}_harness_overview`,
+    HarnessCacheStorageKey: `${SiteData["SiteSlug"]}_harness_cache`,
+    HarnessCatalogCacheMs: 60 * 60 * 1000,
+    /**
+     * The per-conversation key an older version wrote. Removed on logout
+     * and by `clearHarnessCache`.
+     */
+    LegacyHarnessOverviewStorageKey: `${SiteData["SiteSlug"]}_harness_overview`,
     HarnessOverviewCacheMs: 10 * 60 * 1000,
     ServerHealthMessage: "Server Running Well",
     /**
@@ -366,12 +373,14 @@ export const AppData = {
     /**
      * Brotli quality for page scripts and styles, compressed once per
      * file and kept in memory (`compressResponse`). 11 is about 25 times
-     * slower for 10% less.
+     * slower for 10% less; 5 is close to 9's size at half the time.
      */
-    CompressBrotliQuality: 9,
+    CompressBrotliQuality: 5,
     /**
-     * How many compressed page scripts and styles stay in memory. A
-     * rebuild names its files anew, so the oldest go first.
+     * How many compressed page scripts and styles, and how many bytes of
+     * them, stay in memory. A rebuild names its files anew, so the oldest
+     * go first.
      */
     CompressCacheMaxFiles: 600,
+    CompressCacheMaxBytes: 32 * 1024 * 1024,
 } as const;

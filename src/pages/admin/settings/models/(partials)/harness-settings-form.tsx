@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Form from "@moduletrace/twui/form/Form";
 import useFormInit from "@/src/hooks/use-form-init";
 import type { HarnessOverview, HarnessSettingsFormObject } from "@/src/types";
@@ -20,6 +20,11 @@ type Props = {
      * The last save's message, kept by the page across the remount.
      */
     notice?: string;
+    /**
+     * Whether there are unsaved edits, so a background refresh can leave
+     * them alone.
+     */
+    onDirtyChange?: (dirty: boolean) => void;
 };
 
 /**
@@ -30,6 +35,7 @@ export default function HarnessSettingsForm({
     harnesses,
     save,
     notice: saved_notice,
+    onDirtyChange,
 }: Props) {
     const saved = toHarnessForm({ harnesses });
     /**
@@ -46,6 +52,10 @@ export default function HarnessSettingsForm({
 
     const changed = changedHarnessSettings({ form, saved });
     const dirty = changed.length > 0;
+
+    useEffect(() => {
+        onDirtyChange?.(dirty);
+    }, [dirty, onDirtyChange]);
 
     const discard = () => {
         setForm(saved);

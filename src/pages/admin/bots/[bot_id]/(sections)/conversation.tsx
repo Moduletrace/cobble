@@ -45,9 +45,13 @@ export default function Conversation() {
     const [messages, setMessages] = useState<BotMessageWithAttachments[]>(
         pageProps?.bot_messages || [],
     );
-    const [session_id, setSessionId] = useState<number | null>(pageProps?.bot_session?.id || null);
+    const [session_id, setSessionId] = useState<number | null>(
+        pageProps?.bot_session?.id || null,
+    );
     const [has_other_unread, setHasOtherUnread] = useState(false);
-    const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(null);
+    const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(
+        null,
+    );
 
     /**
      * A quote picked in one session doesn't follow the thread to another.
@@ -73,7 +77,9 @@ export default function Conversation() {
         computers: pageProps?.bot_computers || [],
     });
 
-    const speak = useSpeakMessage({ enabled: Boolean(pageProps?.bot_voice?.speech) });
+    const speak = useSpeakMessage({
+        enabled: Boolean(pageProps?.bot_voice?.speech),
+    });
 
     const progress = useTaskProgress({
         bot_id: bot?.id || 0,
@@ -100,7 +106,10 @@ export default function Conversation() {
      * moves the thread onto it.
      */
     const startsNewSession = (message: BotMessageWithAttachments) =>
-        Boolean(message.session_id && (!session_id || Number(message.session_id) > session_id));
+        Boolean(
+            message.session_id &&
+            (!session_id || Number(message.session_id) > session_id),
+        );
 
     useServerEvent({
         event: "server:bot-message",
@@ -140,10 +149,15 @@ export default function Conversation() {
      * A reaction toggled here or in another tab: the pushed list replaces
      * the message's own.
      */
-    const applyReactions = ({ message_id, reactions }: BotMessageReactionData) => {
+    const applyReactions = ({
+        message_id,
+        reactions,
+    }: BotMessageReactionData) => {
         setMessages((prev) =>
             prev.map((message) =>
-                Number(message.id) == message_id ? { ...message, reactions } : message,
+                Number(message.id) == message_id
+                    ? { ...message, reactions }
+                    : message,
             ),
         );
     };
@@ -168,7 +182,8 @@ export default function Conversation() {
      */
     const message_actions = useMemo(
         () => ({
-            onReply: ({ message }: { message: BotMessageWithAttachments }) => setReplyTo(message),
+            onReply: ({ message }: { message: BotMessageWithAttachments }) =>
+                setReplyTo(message),
             onReact: reactToMessage,
         }),
         [],
@@ -178,54 +193,63 @@ export default function Conversation() {
 
     return (
         <CrewBotsContext.Provider value={bots}>
-        <CrewWorkspacesContext.Provider value={workspaces}>
-        <BotComputersContext.Provider value={bot_computers}>
-            <SpeakMessageContext.Provider value={speak}>
-                <BotMessageActionsContext.Provider value={message_actions}>
-                    <Stack className="grow min-w-0 h-full gap-0! items-stretch">
-                    <ConversationHeader
-                        bot={live_bot}
-                        workspace={workspace}
-                        has_other_unread={has_other_unread}
-                    />
-                    <MessageThread
-                        bot={live_bot}
-                        messages={messages}
-                        progress={progress.text}
-                        reply_progress={reply_progress}
-                        has_task={Boolean(progress.task_id)}
-                        onQuote={({ text }) => composer.current?.insertQuote({ text })}
-                    />
-                    <Composer
-                        handle_ref={composer}
-                        bot={bot}
-                        workspace_id={workspace_id}
-                        extensions={pageProps?.bot_extensions}
-                        voice={pageProps?.bot_voice}
-                        reply_to={reply_to}
-                        onCancelReply={() => setReplyTo(null)}
-                        onSent={({ message }) => {
-                            setReplyTo(null);
+            <CrewWorkspacesContext.Provider value={workspaces}>
+                <BotComputersContext.Provider value={bot_computers}>
+                    <SpeakMessageContext.Provider value={speak}>
+                        <BotMessageActionsContext.Provider
+                            value={message_actions}
+                        >
+                            <Stack className="grow min-w-0 h-full gap-0! items-stretch">
+                                <ConversationHeader
+                                    bot={live_bot}
+                                    workspace={workspace}
+                                    has_other_unread={has_other_unread}
+                                />
+                                <MessageThread
+                                    bot={live_bot}
+                                    messages={messages}
+                                    progress={progress.text}
+                                    reply_progress={reply_progress}
+                                    has_task={Boolean(progress.task_id)}
+                                    onQuote={({ text }) =>
+                                        composer.current?.insertQuote({ text })
+                                    }
+                                />
+                                <Composer
+                                    handle_ref={composer}
+                                    bot={bot}
+                                    workspace_id={workspace_id}
+                                    extensions={pageProps?.bot_extensions}
+                                    voice={pageProps?.bot_voice}
+                                    reply_to={reply_to}
+                                    onCancelReply={() => setReplyTo(null)}
+                                    onSent={({ message }) => {
+                                        setReplyTo(null);
 
-                            if (startsNewSession(message) && message.session_id != session_id) {
-                                setSessionId(Number(message.session_id));
-                                setMessages([message]);
-                                return;
-                            }
-    
-                            setMessages((prev) =>
-                                prev.some((m) => m.id == message.id)
-                                    ? prev
-                                    : [...prev, message],
-                            );
-                        }}
-                    />
-                    </Stack>
-                </BotMessageActionsContext.Provider>
-                <ComputerViewerModal bot={live_bot} />
-            </SpeakMessageContext.Provider>
-        </BotComputersContext.Provider>
-        </CrewWorkspacesContext.Provider>
+                                        if (
+                                            startsNewSession(message) &&
+                                            message.session_id != session_id
+                                        ) {
+                                            setSessionId(
+                                                Number(message.session_id),
+                                            );
+                                            setMessages([message]);
+                                            return;
+                                        }
+
+                                        setMessages((prev) =>
+                                            prev.some((m) => m.id == message.id)
+                                                ? prev
+                                                : [...prev, message],
+                                        );
+                                    }}
+                                />
+                            </Stack>
+                        </BotMessageActionsContext.Provider>
+                        <ComputerViewerModal bot={live_bot} />
+                    </SpeakMessageContext.Provider>
+                </BotComputersContext.Provider>
+            </CrewWorkspacesContext.Provider>
         </CrewBotsContext.Provider>
     );
 }

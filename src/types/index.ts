@@ -341,6 +341,55 @@ export type HarnessOverviewPayload = {
 };
 
 /**
+ * The install-wide part of a harness overview: what it is for and the
+ * models it can pick. Every bot and workspace shares it, so the models
+ * modal caches one copy per user.
+ */
+export type HarnessCatalog = Pick<
+    HarnessOverview,
+    | "harness"
+    | "title"
+    | "description"
+    | "required"
+    | "automatic"
+    | "providers"
+    | "models"
+>;
+
+export type HarnessCatalogPayload = {
+    harnesses: HarnessCatalog[];
+};
+
+/**
+ * The per-bot (or per-workspace) part of a harness overview: the setting,
+ * what it runs on now, and what the default runs on.
+ */
+export type HarnessSettingOverview = Omit<
+    HarnessOverview,
+    | "title"
+    | "description"
+    | "required"
+    | "automatic"
+    | "providers"
+    | "models"
+> & {
+    /**
+     * A picked model the catalog no longer lists (its provider dropped it).
+     * The merge adds it back so the form can show and keep it.
+     */
+    pinned_model?: HarnessModelOption;
+    /**
+     * The provider the setting is limited to when the catalog has no model
+     * from it, so the form still shows the limit.
+     */
+    unavailable_provider?: HarnessProviderChoice;
+};
+
+export type BotHarnessSettingsPayload = {
+    harnesses: HarnessSettingOverview[];
+};
+
+/**
  * An env as the Environment settings page sees it. `value` is sent only
  * for non-secret envs; secrets are replaced, never read back.
  */

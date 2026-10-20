@@ -11,6 +11,7 @@ import type { BotWithLastMessage } from "@/src/types";
 import useBotSessions from "@/src/hooks/use-bot-sessions";
 import BotSessionRow from "./bot-session-row";
 import HeaderIconButton from "./header-icon-button";
+import LoadingBlock from "@moduletrace/twui/elements/LoadingBlock";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -68,7 +69,7 @@ export default function BotSessionsModal({
             }
             open={open}
             setOpen={setOpen}
-            className="max-w-lg bg-paper p-6 xl:p-10 pt-14!"
+            className="max-w-lg bg-paper p-6 xl:p-10 py-14!"
         >
             <Row className="w-full gap-3! flex-nowrap items-start justify-between">
                 <Stack className="min-w-0 gap-1! items-stretch">
@@ -124,13 +125,15 @@ export default function BotSessionsModal({
                         }
                     />
                 ))}
-                {sessions.sessions.length || sessions.loading ? null : (
+                {sessions.loading ? (
+                    <LoadingBlock className="w-full h-[300px]" />
+                ) : sessions.sessions.length ? (
                     <Span className="px-3 py-6 text-[13px] leading-[18px] text-ink-secondary">
                         {sessions.query.trim()
                             ? `No session matches "${sessions.query.trim()}".`
                             : "No sessions yet."}
                     </Span>
-                )}
+                ) : null}
             </Stack>
         </Modal>
     );

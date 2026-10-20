@@ -33,3 +33,9 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      - name: Build pages
+        run: NODE_ENV=production bunx bunext build
+
+      - name: Check bundle budget
+        run: bun run check:bundle

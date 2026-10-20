@@ -48,14 +48,29 @@ export default function useMessageSelection({ ref }: Params) {
             setSelection({ text, rect: range.getBoundingClientRect() });
         };
 
+        /**
+         * Reading a selection on every scroll event is costly on a phone;
+         * one read per frame is enough.
+         */
+        let frame = 0;
+        const onScroll = () => {
+            if (frame) return;
+
+            frame = requestAnimationFrame(() => {
+                frame = 0;
+                read();
+            });
+        };
+
         document.addEventListener("selectionchange", read);
-        ref.current?.addEventListener("scroll", read, { passive: true });
+        ref.current?.addEventListener("scroll", onScroll, { passive: true });
 
         const scroller = ref.current;
 
         return () => {
             document.removeEventListener("selectionchange", read);
-            scroller?.removeEventListener("scroll", read);
+            scroller?.removeEventListener("scroll", onScroll);
+            if (frame) cancelAnimationFrame(frame);
         };
     }, [ref]);
 

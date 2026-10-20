@@ -26,8 +26,10 @@ type Params = {
  * read) and its messages, the text model it runs on, its computers,
  * tools and MCP servers and active task there, and whether its mic and
  * read-aloud have a model to run on. The full model settings are left to
- * the models modal (`api/admin/bots/harness-overview`): they are most of
- * a page's weight and only that modal uses them.
+ * the models modal: the install-wide catalog (`api/admin/harness/catalog`)
+ * and the conversation's small setting
+ * (`api/admin/bots/harness-overview`). They are most of a page's weight
+ * and only that modal uses them.
  * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationProps({

@@ -17,6 +17,10 @@ import NewSessionButton from "./new-session-button";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
 import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
 import HeaderMetaItem from "./header-meta-item";
+import Span from "@moduletrace/twui/layout/Span";
+import Img from "@moduletrace/twui/layout/Img";
+import grabMediaURL from "@/src/functions/backend/media/grab-media-url";
+import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -34,7 +38,11 @@ type Props = {
  * that open the computers and models modals. Kept here so a save or a
  * switch shows under the name at once.
  */
-export default function ConversationHeader({ bot, workspace, has_other_unread }: Props) {
+export default function ConversationHeader({
+    bot,
+    workspace,
+    has_other_unread,
+}: Props) {
     const { computers } = useContext(BotComputersContext);
     const { pageProps } = useContext(AppContext);
     const [model, setModel] = useState(pageProps?.bot_text_model);
@@ -52,9 +60,27 @@ export default function ConversationHeader({ bot, workspace, has_other_unread }:
                 <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full">
                     {bot.name}
                 </H1>
+                <Row className="flex md:hidden min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
+                    {workspace?.id ? (
+                        <Row className="gap-2! mb-0.5">
+                            <WorkspaceAvatar
+                                image_media_id={workspace?.image_media_id}
+                                size="xs"
+                            />
+                            <Span size="smaller">
+                                {workspace.name || "Workspace"}
+                            </Span>
+                        </Row>
+                    ) : null}
+                </Row>
+
                 <Row className="hidden md:flex min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
                     {workspace?.id ? (
-                        <HeaderMetaItem icon={Layers} label="Workspace" text={workspace.name || "Workspace"} />
+                        <HeaderMetaItem
+                            icon={Layers}
+                            label="Workspace"
+                            text={workspace.name || "Workspace"}
+                        />
                     ) : null}
                     <HeaderMetaItem
                         icon={CpuAi}
@@ -80,17 +106,36 @@ export default function ConversationHeader({ bot, workspace, has_other_unread }:
                     workspace_id={workspace?.id || null}
                     has_other_unread={has_other_unread}
                 />
-                <NewSessionButton bot_id={Number(bot.id)} workspace_id={workspace?.id || null} />
-                <BotComputersModal bot={bot} workspace_name={workspace?.id ? workspace.name || "This workspace" : null} />
+                <NewSessionButton
+                    bot_id={Number(bot.id)}
+                    workspace_id={workspace?.id || null}
+                />
+                <BotComputersModal
+                    bot={bot}
+                    workspace_name={
+                        workspace?.id
+                            ? workspace.name || "This workspace"
+                            : null
+                    }
+                />
                 <span className="hidden md:inline-flex">
                     <BotModelsModal
                         key={bot.id}
                         bot={bot}
                         workspace={workspace}
                         onSaved={(harnesses) => {
-                            const current = harnesses.find((h) => h.harness == "text")?.current;
+                            const current = harnesses.find(
+                                (h) => h.harness == "text",
+                            )?.current;
 
-                            setModel(current ? { name: current.name, provider_name: current.provider_name } : null);
+                            setModel(
+                                current
+                                    ? {
+                                          name: current.name,
+                                          provider_name: current.provider_name,
+                                      }
+                                    : null,
+                            );
                         }}
                     />
                 </span>

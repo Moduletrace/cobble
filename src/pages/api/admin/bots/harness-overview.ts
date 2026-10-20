@@ -1,8 +1,8 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
-import grabConversationHarnessOverview from "@/src/functions/backend/db/harness/grab-conversation-harness-overview";
+import grabConversationHarnessSettings from "@/src/functions/backend/db/harness/grab-conversation-harness-settings";
 import { BotConversationRequestSchema } from "@/src/schemas/bot-schema";
-import type { BotHarnessOverviewPayload } from "@/src/types";
+import type { BotHarnessSettingsPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
@@ -14,12 +14,13 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * What a conversation's models modal edits, loaded when it opens: the
+ * What a conversation's models form edits, loaded when it opens: the
  * coordinator's defaults (super admins), or a worker's or the workspace's
- * models (super admins and admins).
+ * models (super admins and admins). The install-wide catalog comes from
+ * `api/admin/harness/catalog`, so it is cached once rather than per bot.
  */
 export const handler: BunextAPIRouteHandler<
-    APIResponseObject<BotHarnessOverviewPayload>
+    APIResponseObject<BotHarnessSettingsPayload>
 > = async ({ req, body }) => {
     try {
         if (req.method != "POST") {
@@ -50,7 +51,7 @@ export const handler: BunextAPIRouteHandler<
 
         return {
             success: true,
-            singleRes: await grabConversationHarnessOverview({
+            singleRes: await grabConversationHarnessSettings({
                 bot: conversation.bot,
                 workspace_id: scope,
             }),

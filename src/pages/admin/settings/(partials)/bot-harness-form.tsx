@@ -21,6 +21,11 @@ type Props = {
      * Gets the fresh harnesses after each save.
      */
     onSaved?: (harnesses: HarnessOverview[]) => void;
+    /**
+     * Whether the form has unsaved edits, so a background refresh can
+     * leave them alone.
+     */
+    onDirtyChange?: (dirty: boolean) => void;
 };
 
 /**
@@ -29,7 +34,13 @@ type Props = {
  * runs on the defaults, so it saves the defaults themselves, which only a
  * super admin can.
  */
-export default function BotHarnessForm({ bot, workspace_id, harnesses: initial, onSaved }: Props) {
+export default function BotHarnessForm({
+    bot,
+    workspace_id,
+    harnesses: initial,
+    onSaved,
+    onDirtyChange,
+}: Props) {
     const [harnesses, setHarnesses] = useState(initial);
     /**
      * Remounts the form when the data changes under it.
@@ -49,6 +60,7 @@ export default function BotHarnessForm({ bot, workspace_id, harnesses: initial, 
             key={version}
             harnesses={harnesses}
             notice={notice}
+            onDirtyChange={onDirtyChange}
             save={async ({ settings }) => {
                 if (workspace_id) {
                     const res = await saveWorkspaceHarnessSettings({

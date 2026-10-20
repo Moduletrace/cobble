@@ -15,6 +15,12 @@ import MessageReplyQuote from "./message-reply-quote";
 import NeedsYouChip from "./needs-you-chip";
 import SpeakMessageButton from "./speak-message-button";
 
+/**
+ * Kept module-level: a new array on every render makes `react-markdown`
+ * parse the message again.
+ */
+const RemarkPlugins = [remarkGfm];
+
 type Props = {
     message: BotMessageWithAttachments;
     bot_name: string;
@@ -52,7 +58,7 @@ function BotMessageLine({ message, bot_name, at }: Props) {
                 className="w-full gap-2.5! items-start break-words"
             >
                 <Markdown
-                    remarkPlugins={[remarkGfm]}
+                    remarkPlugins={RemarkPlugins}
                     components={MessageMarkdownComponents}
                 >
                     {linkComputerRefs({ text: message.text || "" })}

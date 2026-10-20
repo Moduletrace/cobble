@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -41,6 +41,15 @@ export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
      * The pointer or focus reached the icon: start loading before the click.
      */
     const [warm, setWarm] = useState(false);
+    /**
+     * The form has edits that a background refresh must not replace.
+     */
+    const [dirty, setDirty] = useState(false);
+    /**
+     * The key the form remounts on. It only moves while the form is clean,
+     * so a fetch that lands mid-edit leaves the edits alone.
+     */
+    const [form_key, setFormKey] = useState(0);
 
     const in_workspace = Boolean(workspace?.id);
     const is_coordinator = bot.kind == "coordinator" && !in_workspace;
@@ -50,10 +59,19 @@ export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
     const name = bot.name || "This bot";
 
     const { harnesses, error, version, setHarnesses } = useHarnessOverview({
+        user_id: Number(pageProps?.user?.id || 0),
         bot_id: Number(bot.id),
         workspace_id: workspace?.id || null,
         enabled: (open || warm) && can_edit,
     });
+
+    useEffect(() => {
+        if (!dirty) setFormKey(version);
+    }, [dirty, version]);
+
+    useEffect(() => {
+        if (!open) setDirty(false);
+    }, [open]);
 
     if (!bot.id) return null;
 
@@ -107,10 +125,11 @@ export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
             </Stack>
             {harnesses?.length ? (
                 <BotHarnessForm
-                    key={version}
+                    key={form_key}
                     bot={bot}
                     workspace_id={workspace?.id || null}
                     harnesses={harnesses}
+                    onDirtyChange={setDirty}
                     onSaved={(fresh) => {
                         setHarnesses(fresh);
                         onSaved(fresh);

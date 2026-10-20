@@ -16,7 +16,8 @@
         "seed:bots": "bun src/scripts/seed-bots.ts",
         "start": "NODE_ENV=production bunx bunext build && MAIN_SERVER=1 NODE_ENV=production bun src/server.ts",
         "typecheck": "tsc --noEmit",
-        "test": "bun test"
+        "test": "bun test",
+        "check:bundle": "bun src/scripts/check-bundle-size.ts"
     },
     "devDependencies": {
         "@next/mdx": "^16.3.0",
