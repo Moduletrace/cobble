@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
+import TaskTimeoutError from "@/src/utils/task-timeout-error";
+import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
 import type { HarnessTool, HarnessToolCall } from "../types";
 
@@ -40,12 +42,25 @@ export default async function runToolCall({ call, tools, signal }: Params) {
     }
 
     try {
-        return truncate({
-            text: await tool.run({ args: parsed ? parsed.data : raw, signal }),
+        const text = await withTimeout({
+            timeout_ms: AppData.HarnessToolTimeoutMs,
+            signal,
+            message: `${call.name} took too long and was stopped.`,
+            task: (tool_signal) =>
+                tool.run({
+                    args: parsed ? parsed.data : raw,
+                    signal: tool_signal,
+                }),
         });
+
+        return truncate({ text });
     } catch (error: unknown) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
+        }
+
+        if (error instanceof TaskTimeoutError) {
+            return `Error: ${error.message}`;
         }
 
         return `Error: ${error instanceof Error ? error.message : String(error)}`;

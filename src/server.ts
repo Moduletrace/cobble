@@ -200,6 +200,19 @@ if (tls) {
     }
 }
 
-cron();
-botsQueue();
-liveRelay();
+/**
+ * Background services start after the server is up, and one failing to
+ * start never takes the server (or the others) down with it.
+ */
+try {
+    cron();
+} catch (error) {
+    logError({ title: "Cron couldn't start", error }).catch(() => {});
+}
+
+botsQueue().catch((error) =>
+    logError({ title: "Bots queue couldn't start", error }).catch(() => {}),
+);
+liveRelay().catch((error) =>
+    logError({ title: "Live relay couldn't start", error }).catch(() => {}),
+);

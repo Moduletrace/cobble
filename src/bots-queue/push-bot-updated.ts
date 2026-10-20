@@ -1,4 +1,5 @@
 import grabBotAudience from "@/src/functions/backend/db/access/grab-bot-audience";
+import { logError } from "@/src/functions/backend/logger";
 import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
 import grabBotFace from "@/src/functions/backend/db/bots/grab-bot-face";
 import { sendToUser } from "@/src/websocket/(functions)/send-to-user";
@@ -29,7 +30,8 @@ type Params = {
 /**
  * Pushes `server:bot-updated` to one user, or everyone who sees the bot
  * (`grabBotAudience`), each with their own face, status line and active
- * task with it, never another user's.
+ * task with it, never another user's. Best effort: a push that fails is
+ * logged and never fails the change that caused it.
  */
 export default async function pushBotUpdated({
     bot_id,
@@ -40,6 +42,24 @@ export default async function pushBotUpdated({
 }: Params) {
     if (!bot_id) return;
 
+    try {
+        await push({ bot_id, user_id, users, computer_id, workspace_ids });
+    } catch (error) {
+        await logError({
+            title: "Bot update wasn't pushed",
+            error,
+            metadata: { bot_id },
+        }).catch(() => {});
+    }
+}
+
+async function push({
+    bot_id,
+    user_id,
+    users,
+    computer_id,
+    workspace_ids,
+}: Params) {
     const audience = user_id ? [user_id] : await grabBotAudience({ bot_id });
 
     for (const viewer_id of audience) {

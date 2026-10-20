@@ -123,6 +123,14 @@ export const AppData = {
     BotQueueLockTimeoutMs: 10 * 60 * 1000,
     BotQueueBackoffMs: 30 * 1000,
     /**
+     * One attempt of a job (one model run or task, tools included) gives up
+     * after this long and counts as a failed try, so a call that hangs
+     * without ever answering can't hold the job, its computer or the
+     * conversation forever. The lock is outlived by the heartbeat, so this
+     * is the only thing that stops a live but stuck run.
+     */
+    BotJobAttemptTimeoutMs: 60 * 60 * 1000,
+    /**
      * A failed scheduled run is tried again after this, doubling each time
      * (`scheduledRunRetryAt`), so a short outage doesn't sink the run.
      */
@@ -170,6 +178,13 @@ export const AppData = {
      */
     HarnessMaxCandidates: 5,
     HarnessRequestTimeoutMs: 3 * 60 * 1000,
+    /**
+     * One tool call gives up after this long, whatever the tool is (bot
+     * tools, MCP servers, computers, custom tools), so a tool that ignores
+     * its own limits can't stall the run. Its result comes back as an error
+     * the model can work around.
+     */
+    HarnessToolTimeoutMs: 10 * 60 * 1000,
     /**
      * A model that rate limits or fails is skipped for this long, unless
      * the provider says when to come back (capped at the max).

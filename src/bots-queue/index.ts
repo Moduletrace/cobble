@@ -22,15 +22,34 @@ let timer: ReturnType<typeof setTimeout> | undefined;
  */
 export default async function botsQueue() {
     if (process.env.NODE_ENV == "production" && !process.env.MAIN_SERVER) {
+        /**
+         * Said out loud: a production-mode process without `MAIN_SERVER`
+         * answers requests but never replies, because nothing runs this
+         * queue. `bun run start` sets it.
+         */
+        bunext.bunextLog.info(
+            `Bots queue is off in this process: neither MAIN_SERVER nor development mode is set.`,
+        );
         return;
     }
 
     bunext.bunextLog.watch(`Running Bots Queue ...`);
 
-    const released = await releaseWorkerBotJobs({ worker });
+    /**
+     * Releasing the jobs a restart cut off must never stop the queue: if
+     * it fails, polling still starts, and the lock timeout releases them.
+     */
+    try {
+        const released = await releaseWorkerBotJobs({ worker });
 
-    if (released) {
-        bunext.bunextLog.info(`Bots queue: released ${released} cut-off job(s)`);
+        if (released) {
+            bunext.bunextLog.info(`Bots queue: released ${released} cut-off job(s)`);
+        }
+    } catch (error) {
+        await logError({
+            title: "Bots queue couldn't release cut-off jobs",
+            error,
+        }).catch(() => {});
     }
 
     setBotsQueueWaker({ waker: wake });

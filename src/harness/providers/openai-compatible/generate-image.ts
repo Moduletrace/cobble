@@ -1,3 +1,4 @@
+import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
 import type { HarnessAdapter, HarnessImageOutput } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
@@ -54,7 +55,12 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
                 media_type: item.media_type || "image/png",
             });
         } else if (typeof item?.url == "string") {
-            const download = await fetch(item.url, { signal });
+            const download = await fetch(item.url, {
+                signal: AbortSignal.any([
+                    signal,
+                    AbortSignal.timeout(AppData.HarnessRequestTimeoutMs),
+                ]),
+            });
 
             if (download.ok) {
                 images.push({

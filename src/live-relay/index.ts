@@ -20,14 +20,29 @@ import type { LiveRelayCursor } from "./types";
  * Runs in every server process, ungated.
  */
 export default async function liveRelay() {
-    const latest = async (table: "bot_messages" | "bots_queue_updates") =>
-        Number(
-            (
-                await BunSQLite.sql<{ id: number }>({
-                    sql: `SELECT MAX(id) AS id FROM ${table}`,
-                })
-            ).payload?.[0]?.id,
-        ) || 0;
+    /**
+     * A failed read starts the relay from the beginning instead of not
+     * starting it: clients drop what they already have.
+     */
+    const latest = async (table: "bot_messages" | "bots_queue_updates") => {
+        try {
+            return (
+                Number(
+                    (
+                        await BunSQLite.sql<{ id: number }>({
+                            sql: `SELECT MAX(id) AS id FROM ${table}`,
+                        })
+                    ).payload?.[0]?.id,
+                ) || 0
+            );
+        } catch (error) {
+            await logError({
+                title: `Live relay couldn't read ${table}`,
+                error,
+            }).catch(() => {});
+            return 0;
+        }
+    };
 
     const cursor: LiveRelayCursor = {
         message_id: await latest("bot_messages"),

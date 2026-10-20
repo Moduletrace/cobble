@@ -1,4 +1,5 @@
 import guessModelModalities from "../../catalog/guess-model-modalities";
+import HarnessError from "../../harness-error";
 import type { HarnessAdapter, HarnessCatalogModel } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
 import openRouterModelToCatalog, {
@@ -27,6 +28,18 @@ const listModels: HarnessAdapter["listModels"] = async ({
     });
 
     const json = await res.json().catch(() => null);
+
+    /**
+     * An unreadable list is a failed sync, not an empty catalog: keeping
+     * the models already known beats marking them all unavailable.
+     */
+    if (json === null) {
+        throw new HarnessError({
+            message: `${provider.name || preset.title} returned an unreadable model list.`,
+            retryable: true,
+        });
+    }
+
     const items: any[] = Array.isArray(json?.data)
         ? json.data
         : Array.isArray(json?.models)

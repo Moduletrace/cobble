@@ -1,5 +1,6 @@
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import type { BotFaceChange } from "@/src/functions/backend/db/bots/set-bot-face";
+import { logError } from "@/src/functions/backend/logger";
 import notifyBotMessage from "@/src/push/notify-bot-message";
 import notifyBotFace from "@/src/push/notify-bot-face";
 import pushBotUpdated from "./push-bot-updated";
@@ -23,9 +24,22 @@ type Params = {
  * Pushes a new bot message to the open tabs of the user whose
  * conversation it's in, and a face change to the user it's for
  * (`pushBotUpdated`). A relayed report
- * goes to the conversation it was posted in.
+ * goes to the conversation it was posted in. Best effort: a push that
+ * fails is logged and never fails the job that made the change.
  */
 export default async function pushBotNotice({ bot_id, message, bot, relay }: Params) {
+    try {
+        await push({ bot_id, message, bot, relay });
+    } catch (error) {
+        await logError({
+            title: "Bot notice wasn't pushed",
+            error,
+            metadata: { bot_id, message_id: message?.id || null },
+        }).catch(() => {});
+    }
+}
+
+async function push({ bot_id, message, bot, relay }: Params) {
     if (message) {
         await pushToSessionUser({
             session_id: message.session_id,

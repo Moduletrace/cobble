@@ -1,3 +1,4 @@
+import HarnessError from "../../harness-error";
 import type { HarnessAdapter } from "../../types";
 import providerRequest from "./provider-request";
 
@@ -35,6 +36,19 @@ const transcribe: HarnessAdapter["transcribe"] = async ({
     });
 
     const json = await res.json().catch(() => null);
+
+    /**
+     * A cut-off or malformed answer is a failed call, not silence: saying
+     * it failed lets the harness try the next model instead of handing the
+     * user an empty transcript.
+     */
+    if (json === null) {
+        throw new HarnessError({
+            message: `${candidate.provider.name || "The provider"} returned an unreadable transcript.`,
+            retryable: true,
+            candidate_key: candidate.key,
+        });
+    }
 
     return { text: String(json?.text || "").trim() };
 };

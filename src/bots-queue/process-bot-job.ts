@@ -7,6 +7,7 @@ import updateBotJob from "@/src/functions/backend/db/bots-queue/update-bot-job";
 import insertBotJobUpdate from "@/src/functions/backend/db/bots-queue/insert-bot-job-update";
 import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
+import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
 import recordCronJobFailure from "@/src/functions/backend/db/cron-jobs/record-cron-job-failure";
@@ -85,6 +86,13 @@ export default async function processBotJob({
         await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
     };
     const controller = new AbortController();
+    /**
+     * The deadline is the one abort that is a failure, not a cancellation:
+     * the job's error is then the timeout's, not the "Cancelled." an
+     * aborted model request reports.
+     */
+    const timeout_message = `"${job.title || "The job"}" took too long and was stopped.`;
+    let timed_out = false;
 
     const update: BotJobContext["update"] = async (params) => {
         if (controller.signal.aborted) return false;
@@ -137,13 +145,27 @@ export default async function processBotJob({
                 status_line: job.kind == "reply" ? BotReplyJobTitle : BotTaskStatusLine,
             });
 
-            return await runner({
-                job,
-                params,
-                checkpoint: parseJobJson({ text: job.checkpoint }),
+            /**
+             * A deadline per attempt: the heartbeat keeps the lock alive
+             * for as long as this run takes, so without one a call that
+             * never answers would hold the slot forever.
+             */
+            return await withTimeout({
+                timeout_ms: AppData.BotJobAttemptTimeoutMs,
                 signal: controller.signal,
-                update,
-                report,
+                message: timeout_message,
+                on_timeout: () => {
+                    timed_out = true;
+                },
+                task: (run_signal) =>
+                    runner({
+                        job,
+                        params,
+                        checkpoint: parseJobJson({ text: job.checkpoint }),
+                        signal: run_signal,
+                        update,
+                        report,
+                    }),
             });
         };
 
@@ -229,7 +251,11 @@ export default async function processBotJob({
             return;
         }
 
-        const message = error instanceof Error ? error.message : String(error);
+        const message = timed_out
+            ? timeout_message
+            : error instanceof Error
+              ? error.message
+              : String(error);
         const tries = Number(job.attempts) || 1;
 
         const failed = await failBotJob({
