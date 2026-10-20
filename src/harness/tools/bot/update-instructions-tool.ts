@@ -35,7 +35,7 @@ export default function updateInstructionsTool({
     return {
         name: "update_instructions",
         description: workspace_id
-            ? `Replace your instructions with this full text (markdown). scope "workspace" (the default) is your instructions for this workspace, under "# Your instructions in ..."; "core" is your core instructions, the start of your prompt in every workspace and your own chat. Both are shared: the workspace's with everyone working in it, your core ones with every user you work for. Change them only for how you should work for all of them, such as a standing rule for your job; a preference of this one user goes in your memory of them (update_memory, scope "user"). Keep everything that still applies.`
+            ? `Replace your instructions with this full text (markdown). scope "workspace" (the default) is your instructions for this workspace, under "# Your instructions in ...": yours there, not the workspace's description or context; "core" is your core instructions, the start of your prompt in every workspace and your own chat. Both are shared: the workspace's with everyone working in it, your core ones with every user you work for. Change them only for how you should work for all of them, such as a standing rule for your job; a preference of this one user goes in your memory of them (update_memory, scope "user"). Keep everything that still applies.`
             : `Replace your core instructions with this full text (markdown): the start of your prompt, before any workspace or memory, shared with every user you work for. Change them only for how you should work for every user you work for, such as a standing rule for your job; a preference of this one user goes in your memory of them (update_memory, scope "user"). Keep everything that still applies.`,
         schema: workspace_id
             ? z.object({ instructions, scope: z.enum(["workspace", "core"]).default("workspace") })
@@ -54,7 +54,7 @@ export default function updateInstructionsTool({
                     workspace_id,
                     expected: args.instructions,
                 });
-                return `Instructions for this workspace saved and checked. They apply from your next run here.`;
+                return `Instructions for this workspace saved and checked. They apply from your next run here. They are yours in this workspace, not its context: the workspace's own description and context did not change.`;
             }
 
             await updateBotSystemPrompt({

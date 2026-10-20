@@ -21,11 +21,11 @@ describe("composeBotPrompt", () => {
         ).toBe(
             [
                 "# You are Scout\n\nFind things.",
-                `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe spring launch.\n\nShip by Friday.`,
+                `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.\n\nShip by Friday.`,
                 "# Your instructions in Launch\n\nOwn the changelog.",
                 "# Memory\n\n- Cite sources.",
                 "# Memory about the user\n\n- The user prefers short replies.",
-                "# Memory in Launch\n\n- Marketing signs off on copy.",
+                `# Memory in Launch\n\nYour own notes for this workspace: what you have learned here. They are not the workspace's description or context, which the user sets above; never call them the workspace's record. The user reads them in the workspace's settings, under this bot's row.\n\n- Marketing signs off on copy.`,
             ].join("\n\n"),
         );
     });

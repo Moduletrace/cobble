@@ -30,8 +30,9 @@ type Params = {
  * The full prompt a bot runs with (markdown): its own core instructions,
  * then, in a workspace, the workspace's context and the bot's
  * instructions there, then its core memory, its memory about the user and
- * its memory in the workspace. Empty parts are left out; the workspace
- * heading always shows, so the bot knows where it is.
+ * its memory in the workspace (said to be the bot's own notes, not the
+ * workspace's context). Empty parts are left out; the workspace heading
+ * always shows, so the bot knows where it is.
  */
 export default function composeBotPrompt({
     system_prompt,
@@ -48,12 +49,16 @@ export default function composeBotPrompt({
     }
 
     if (workspace) {
+        const context = [workspace.description?.trim(), workspace.system_prompt?.trim()].filter(
+            Boolean,
+        ) as string[];
+
         parts.push(
             [
                 `# Workspace: ${name}`,
                 `You're working in the workspace "${name}". Follow its context and your instructions for it below, over your general habits where they differ.`,
-                workspace.description?.trim() || "",
-                workspace.system_prompt?.trim() || "",
+                context.length ? "The workspace's context, which the user sets:" : "",
+                ...context,
             ]
                 .filter(Boolean)
                 .join("\n\n"),
@@ -73,7 +78,9 @@ export default function composeBotPrompt({
     }
 
     if (workspace && workspace_bot?.memory?.trim()) {
-        parts.push(`# Memory in ${name}\n\n${workspace_bot.memory.trim()}`);
+        parts.push(
+            `# Memory in ${name}\n\nYour own notes for this workspace: what you have learned here. They are not the workspace's description or context, which the user sets above; never call them the workspace's record. The user reads them in the workspace's settings, under this bot's row.\n\n${workspace_bot.memory.trim()}`,
+        );
     }
 
     return parts.join("\n\n");
