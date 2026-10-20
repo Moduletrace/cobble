@@ -659,6 +659,10 @@ else
     fi
 fi
 TARGET_IMAGE_ID="$(docker image inspect -f '{{.Id}}' "$IMAGE:$VERSION")"
+IMAGE_ARCH="$(docker image inspect -f '{{.Architecture}}' "$IMAGE:$VERSION")"
+if [ "$IMAGE_ARCH" != "$ARCH" ]; then
+    fail "Image $IMAGE:$VERSION is $IMAGE_ARCH but this machine is $ARCH. Pull the multi-arch image instead of --no-pull."
+fi
 
 if [ "$FORCE" = 0 ] && container_matches; then
     connect_extra_network
