@@ -38,8 +38,9 @@ export type KnownEnv = {
  *
  * Not here, and never in the `envs` table: `ENCRYPTION_KEY` and
  * `ENCRYPTION_SALT` (they encrypt the table), and `PORT`, `DATA_DIR`,
- * `MAIN_SERVER` and the `TLS_*` certificate paths (the container's own
- * start-up settings). Those stay in the process environment.
+ * `MAIN_SERVER`, `TLS_DISABLED`, `HTTP_REDIRECT_PORT` and the `TLS_*`
+ * certificate paths (the container's own start-up settings). Those stay in
+ * the process environment.
  */
 export const EnvDict: readonly KnownEnv[] = [
     {
@@ -89,6 +90,8 @@ export const ProcessOnlyEnvKeys = [
     "TLS_CERT_FILE",
     "TLS_KEY_FILE",
     "TLS_CA_FILE",
+    "TLS_DISABLED",
+    "HTTP_REDIRECT_PORT",
 ] as const;
 
 /**

@@ -210,20 +210,23 @@ bun run dev:phone -- --host cobble-laptop.tailnet-name.ts.net
 ```
 
 That generates `certs/` and starts the dev server with it, with no `.env`
-edits. Afterwards a plain `bun run dev` reuses the certificate whenever
-`certs/server.crt` and `certs/server.key` exist (production never does).
-`bun run gen:certs` on its own regenerates them if you need to add a name.
+edits. Afterwards any server, `bun run dev` or `bun run start`, reuses the
+certificate whenever `certs/server.crt` and `certs/server.key` exist; set
+`TLS_DISABLED=1` to serve plain HTTP instead. `bun run gen:certs` on its own
+regenerates them if you need to add a name.
 
 Open `https://<the name you passed>:7227` on the phone and install the CA
 from `https://<the name you passed>:7227/ca.mobileconfig` first. On the
 laptop, trust the same `certs/ca.crt` once, so `https://localhost:7227`
 stops warning.
 
-With `certs/` present the dev server also listens one port above (`7228`)
-for plain HTTP and redirects to the HTTPS page, so a stray
+With a certificate the server also listens one port above (`7228`) for
+plain HTTP and redirects to the HTTPS page, so a stray
 `http://localhost:7228/...` link still lands. The HTTPS port itself cannot
 answer plain HTTP, so `http://localhost:7227` still fails; use
-`DEV_HTTP_PORT` to move the redirect.
+`HTTP_REDIRECT_PORT` to move the redirect. The container publishes only the
+HTTPS port, so the redirect is reachable there only if that second port is
+published.
 
 | Command              | Purpose                              |
 | -------------------- | ------------------------------------ |

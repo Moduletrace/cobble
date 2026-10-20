@@ -14,6 +14,7 @@ import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
 import serveLocalCa from "./functions/server/serve-local-ca";
 import startHttpRedirect from "./functions/server/start-http-redirect";
 import resolveTlsOptions from "./utils/resolve-tls-options";
+import pickTlsFiles from "./utils/pick-tls-files";
 import { ComputerProxyPrefix } from "./dict/computer-dict";
 import ensureDockerNetwork from "./functions/backend/docker/ensure-docker-network";
 import { ensureVapidKeys } from "./push/vapid";
@@ -53,51 +54,45 @@ try {
 }
 
 /**
- * HTTPS when the installer (or a development `.env`) points the server at
- * a certificate. A broken or half-set configuration stops the process
- * rather than quietly serving plain HTTP.
+ * Which certificate to serve with, the same way in every environment: the
+ * `TLS_*` variables when set, else `certs/` (which is also where the
+ * container's `/app/certs` mount lands). Plain HTTP needs `TLS_DISABLED`.
  */
-/**
- * In development, a certificate in `certs/` (made by `bun run gen:certs`,
- * or by `bun run dev:phone`) is used without any `.env` entries, so
- * trying the app on a phone over a VPN is one command.
- */
-const DevCertFile = "certs/server.crt";
-const DevKeyFile = "certs/server.key";
-const DevCaFile = "certs/ca.crt";
+const picked = pickTlsFiles({
+    cert_file: process.env.TLS_CERT_FILE,
+    key_file: process.env.TLS_KEY_FILE,
+    ca_file: process.env.TLS_CA_FILE,
+    disabled: process.env.TLS_DISABLED,
+    fallback_cert_file: "certs/server.crt",
+    fallback_key_file: "certs/server.key",
+    fallback_ca_file: "certs/ca.crt",
+    file_exists: existsSync,
+});
 
-let cert_file = process.env.TLS_CERT_FILE;
-let key_file = process.env.TLS_KEY_FILE;
+if (picked.ca_file) process.env.TLS_CA_FILE = picked.ca_file;
+else delete process.env.TLS_CA_FILE;
 
-if (
-    process.env.NODE_ENV != "production" &&
-    !cert_file &&
-    !key_file &&
-    existsSync(DevCertFile) &&
-    existsSync(DevKeyFile)
-) {
-    cert_file = DevCertFile;
-    key_file = DevKeyFile;
-
-    if (!process.env.TLS_CA_FILE && existsSync(DevCaFile)) {
-        process.env.TLS_CA_FILE = DevCaFile;
-    }
-
-    bunext.bunextLog.info(`Using the development certificate in certs/`);
-}
-
-if (!cert_file && !key_file) {
-    bunext.bunextLog.info(
-        process.env.NODE_ENV == "production"
-            ? "Serving plain HTTP (set TLS_CERT_FILE and TLS_KEY_FILE for HTTPS)"
-            : "Serving plain HTTP (run `bun run dev:phone`, or `bun run gen:certs` then restart, for HTTPS)",
-    );
+switch (picked.source) {
+    case "fallback":
+        bunext.bunextLog.info(`Using the certificate in certs/`);
+        break;
+    case "disabled":
+        bunext.bunextLog.info(`Serving plain HTTP (TLS_DISABLED is set)`);
+        break;
+    case "none":
+        bunext.bunextLog.info(
+            "Serving plain HTTP (no certificate; run `bun run gen:certs`, or set TLS_CERT_FILE and TLS_KEY_FILE)",
+        );
+        break;
 }
 
 let tls: ReturnType<typeof resolveTlsOptions> = undefined;
 
 try {
-    tls = resolveTlsOptions({ cert_file, key_file });
+    tls = resolveTlsOptions({
+        cert_file: picked.cert_file,
+        key_file: picked.key_file,
+    });
 } catch (error) {
     console.error(
         `Can't start without a working TLS certificate: ${error instanceof Error ? error.message : String(error)}`,
@@ -184,21 +179,23 @@ bunext.bunextLog.info(
 );
 
 /**
- * A TLS port cannot answer plain HTTP, so a development `http://` visit
- * is sent to the HTTPS page from the port above it (`startHttpRedirect`).
+ * A TLS port cannot answer plain HTTP, so a plain `http://` visit is sent
+ * to the HTTPS page from the port above it (`startHttpRedirect`). The
+ * container publishes only the HTTPS port, so there it is only reachable
+ * if that second port is published.
  */
-if (tls && process.env.NODE_ENV != "production") {
+if (tls) {
     try {
         const redirect = startHttpRedirect({ https_port: port });
 
         if (redirect) {
             bunext.bunextLog.info(
-                `HTTP redirect on port ${redirect.port} (DEV_HTTP_PORT to change it)`,
+                `HTTP redirect on port ${redirect.port} (HTTP_REDIRECT_PORT to change it)`,
             );
         }
     } catch (error) {
         bunext.bunextLog.info(
-            `Could not start the development HTTP redirect on port ${Number(port) + 1}: ${error instanceof Error ? error.message : String(error)}. Stop the other server or set DEV_HTTP_PORT.`,
+            `Could not start the HTTP redirect on port ${Number(port) + 1}: ${error instanceof Error ? error.message : String(error)}. Stop the other server or set HTTP_REDIRECT_PORT.`,
         );
     }
 }

@@ -963,6 +963,7 @@ ensure_secret ENCRYPTION_SALT
 ensure_env PAGE_LASTMOD_FILE "/data/sitemap-lastmod.json"
 
 if [ "$HTTPS_ENABLED" = 1 ]; then
+    unset_env TLS_DISABLED
     set_env TLS_CERT_FILE /app/certs/server.crt
     set_env TLS_KEY_FILE /app/certs/server.key
     if [ "$HTTPS_MANAGED" = 1 ]; then
@@ -974,6 +975,7 @@ else
     unset_env TLS_CERT_FILE
     unset_env TLS_KEY_FILE
     unset_env TLS_CA_FILE
+    set_env TLS_DISABLED 1
 fi
 
 {
