@@ -160,7 +160,8 @@ Tailwind CSS and the `@moduletrace/twui` component library. See
 data model.
 
 CI runs type-check and tests on every push and pull request. Releases are
-built by GitHub Actions and pushed to both registries.
+built by GitHub Actions and pushed to both registries. See
+[RELEASING.md](RELEASING.md) for the release and launch checklist.
 
 ## License
 
