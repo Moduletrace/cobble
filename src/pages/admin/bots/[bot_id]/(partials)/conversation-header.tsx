@@ -77,7 +77,12 @@ export default function ConversationHeader({
                 <Row className="hidden md:flex min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
                     {workspace?.id ? (
                         <HeaderMetaItem
-                            icon={Layers}
+                            image={
+                                <WorkspaceAvatar
+                                    image_media_id={workspace?.image_media_id}
+                                    size="xs"
+                                />
+                            }
                             label="Workspace"
                             text={workspace.name || "Workspace"}
                         />
