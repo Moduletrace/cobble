@@ -11,6 +11,7 @@ import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
+import compressResponse from "./functions/server/compress-response";
 import serveLocalCa from "./functions/server/serve-local-ca";
 import startHttpRedirect from "./functions/server/start-http-redirect";
 import resolveTlsOptions from "./utils/resolve-tls-options";
@@ -147,7 +148,9 @@ const server = Bun.serve({
                 return;
             }
 
-            return await bunext.bunextRequestHandler({ req, server });
+            const response = await bunext.bunextRequestHandler({ req, server });
+
+            return response ? await compressResponse({ req, response }) : response;
         } catch (error: any) {
             await logError({
                 title: "Unhandled request error",

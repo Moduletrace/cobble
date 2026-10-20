@@ -4,7 +4,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import H1 from "@moduletrace/twui/layout/H1";
 import { CpuAi, Layers, Monitor, Settings } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
+import type { BotWithLastMessage } from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
@@ -26,10 +26,6 @@ type Props = {
      */
     workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
     has_other_unread?: boolean;
-    /**
-     * The bot's models (the defaults for the coordinator).
-     */
-    harnesses?: HarnessOverview[] | null;
 };
 
 /**
@@ -38,12 +34,10 @@ type Props = {
  * that open the computers and models modals. Kept here so a save or a
  * switch shows under the name at once.
  */
-export default function ConversationHeader({ bot, workspace, has_other_unread, harnesses: initial }: Props) {
-    const [harnesses, setHarnesses] = useState(initial);
+export default function ConversationHeader({ bot, workspace, has_other_unread }: Props) {
     const { computers } = useContext(BotComputersContext);
     const { pageProps } = useContext(AppContext);
-
-    const model = harnesses?.find((h) => h.harness == "text")?.current;
+    const [model, setModel] = useState(pageProps?.bot_text_model);
     const computer = computers[0];
     const can_open_settings =
         bot.kind == "coordinator"
@@ -93,8 +87,11 @@ export default function ConversationHeader({ bot, workspace, has_other_unread, h
                         key={bot.id}
                         bot={bot}
                         workspace={workspace}
-                        harnesses={harnesses}
-                        onSaved={setHarnesses}
+                        onSaved={(harnesses) => {
+                            const current = harnesses.find((h) => h.harness == "text")?.current;
+
+                            setModel(current ? { name: current.name, provider_name: current.provider_name } : null);
+                        }}
                     />
                 </span>
                 {can_open_settings ? (

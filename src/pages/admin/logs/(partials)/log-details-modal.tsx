@@ -2,7 +2,7 @@ import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Paper from "@moduletrace/twui/elements/Paper";
 import Tag from "@moduletrace/twui/elements/Tag";
-import LucideIcon from "@moduletrace/twui/elements/lucide-icon";
+import { Trash2 } from "lucide-react";
 import H3 from "@moduletrace/twui/layout/H3";
 import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
@@ -115,7 +115,7 @@ export default function LogDetailsModal({
                         size="small"
                     >
                         <Row className="gap-2! flex-nowrap">
-                            <LucideIcon name="Trash2" size={15} />
+                            <Trash2 size={15} />
                             <Span>Delete log</Span>
                         </Row>
                     </DeleteLogsButton>

@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react";
+import { useMemo, useRef, type RefObject } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type {
     BotMessageWithAttachments,
@@ -38,7 +38,7 @@ type Props = {
  * last one. Text selected in a message can be quoted in the composer.
  */
 export default function MessageThread({ bot, messages, progress, reply_progress, has_task, onQuote }: Props) {
-    const groups = groupMessages({ messages });
+    const groups = useMemo(() => groupMessages({ messages }), [messages]);
     const ref = useRef<HTMLDivElement>(null);
     const { selection, clear } = useMessageSelection({ ref });
 

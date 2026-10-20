@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import FileUpload from "@moduletrace/twui/form/FileUpload";
 import Button from "@moduletrace/twui/layout/Button";
 import Tag from "@moduletrace/twui/elements/Tag";
@@ -47,7 +48,7 @@ export default function UploadRestoreForm() {
                 <Button
                     title="Upload And Restore Backup"
                     color="warning"
-                    beforeIcon="Upload"
+                    beforeIcon={<Upload />}
                     loading={loading}
                     disabled={!file || loading}
                     onClick={() => {

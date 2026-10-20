@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { memo, useContext } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Row from "@moduletrace/twui/layout/Row";
@@ -31,8 +31,11 @@ type Props = {
  * switch the bot to them. A quoted reply sits above it, its reactions
  * below, and a row under it replies, reacts, reads it aloud and shows
  * why it needs you. Its text can be selected and quoted.
+ *
+ * Memoized: a message only renders (and parses its markdown) again when
+ * it changes, not on every live step of the thread.
  */
-export default function BotMessageLine({ message, bot_name, at }: Props) {
+function BotMessageLine({ message, bot_name, at }: Props) {
     const { onReact } = useContext(BotMessageActionsContext);
     const can_speak = Boolean(message.id && message.text?.trim());
 
@@ -73,3 +76,5 @@ export default function BotMessageLine({ message, bot_name, at }: Props) {
         </Stack>
     );
 }
+
+export default memo(BotMessageLine);

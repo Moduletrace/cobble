@@ -6,7 +6,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Span from "@moduletrace/twui/layout/Span";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
-import LucideIcon from "@moduletrace/twui/elements/lucide-icon";
+import { Trash2 } from "lucide-react";
 import dayjs from "dayjs";
 import type { TWUIButtonColorType } from "@moduletrace/twui/layout/Button";
 import {
@@ -79,7 +79,7 @@ export default function LogCard({
                         </Stack>
                     </Row>
                     <DeleteLogsButton ids={[log_id]} afterDelete={afterDelete}>
-                        <LucideIcon name="Trash2" size={16} />
+                        <Trash2 size={16} />
                     </DeleteLogsButton>
                 </Row>
                 {log.plain_text ? (

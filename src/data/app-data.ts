@@ -11,6 +11,13 @@ export const AppData = {
      * bot and workspace.
      */
     ComposerDraftStorageKey: `${SiteData["SiteSlug"]}_composer_draft`,
+    /**
+     * Prefix of the chat header's models modal data in `localStorage`, one
+     * per bot and workspace, and how long it is shown before it is fetched
+     * again.
+     */
+    HarnessOverviewStorageKey: `${SiteData["SiteSlug"]}_harness_overview`,
+    HarnessOverviewCacheMs: 10 * 60 * 1000,
     ServerHealthMessage: "Server Running Well",
     /**
      * Where a device downloads the local CA that signed the app's
@@ -351,4 +358,20 @@ export const AppData = {
      * is offline.
      */
     PushTtlSeconds: 60 * 60,
+    /**
+     * Responses smaller than this go out uncompressed: the encoding
+     * costs more than it saves.
+     */
+    CompressMinBytes: 1024,
+    /**
+     * Brotli quality for page scripts and styles, compressed once per
+     * file and kept in memory (`compressResponse`). 11 is about 25 times
+     * slower for 10% less.
+     */
+    CompressBrotliQuality: 9,
+    /**
+     * How many compressed page scripts and styles stay in memory. A
+     * rebuild names its files anew, so the oldest go first.
+     */
+    CompressCacheMaxFiles: 600,
 } as const;

@@ -3,6 +3,7 @@ import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import Loading from "@moduletrace/twui/elements/Loading";
 import { CpuAi } from "lucide-react";
 import { AppContext } from "@/src/pages/__root";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
@@ -11,6 +12,7 @@ import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "@/src/pages/admin/settings/(partials)/bot-harness-form";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
+import useHarnessOverview from "../(hooks)/use-harness-overview";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -18,7 +20,6 @@ type Props = {
      * The workspace the conversation is in: the modal edits its models.
      */
     workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
-    harnesses?: HarnessOverview[] | null;
     onSaved: (harnesses: HarnessOverview[]) => void;
 };
 
@@ -28,12 +29,18 @@ type Props = {
  * the coordinator that form is the defaults, for super admins only; a
  * worker's (or a workspace's) models are for super admins and admins.
  * Everyone else gets the icon disabled, its title saying why.
+ *
+ * The models load when the pointer or focus reaches the icon, or it
+ * opens (`useHarnessOverview`), shown at once from the last time when
+ * this device has them.
  */
-export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: Props) {
+export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
-
-    if (!harnesses?.length || !bot.id) return null;
+    /**
+     * The pointer or focus reached the icon: start loading before the click.
+     */
+    const [warm, setWarm] = useState(false);
 
     const in_workspace = Boolean(workspace?.id);
     const is_coordinator = bot.kind == "coordinator" && !in_workspace;
@@ -41,6 +48,14 @@ export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: P
         ? isPassThroughUser({ user_types: pageProps?.user_types })
         : canManageCrew({ user_types: pageProps?.user_types });
     const name = bot.name || "This bot";
+
+    const { harnesses, error, version, setHarnesses } = useHarnessOverview({
+        bot_id: Number(bot.id),
+        workspace_id: workspace?.id || null,
+        enabled: (open || warm) && can_edit,
+    });
+
+    if (!bot.id) return null;
 
     const target = (
         <HeaderIconButton
@@ -65,7 +80,11 @@ export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: P
     return (
         <Modal
             target={target}
-            targetWrapperProps={{ className: "shrink-0" }}
+            targetWrapperProps={{
+                className: "shrink-0",
+                onPointerEnter: () => setWarm(true),
+                onFocus: () => setWarm(true),
+            }}
             open={open}
             setOpen={setOpen}
             className="max-w-3xl bg-paper px-6 pt-6 pb-0"
@@ -86,12 +105,24 @@ export default function BotModelsModal({ bot, workspace, harnesses, onSaved }: P
                         : `${name} uses the default models unless you pick its own. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it.`}
                 </Span>
             </Stack>
-            <BotHarnessForm
-                bot={bot}
-                workspace_id={workspace?.id || null}
-                harnesses={harnesses}
-                onSaved={onSaved}
-            />
+            {harnesses?.length ? (
+                <BotHarnessForm
+                    key={version}
+                    bot={bot}
+                    workspace_id={workspace?.id || null}
+                    harnesses={harnesses}
+                    onSaved={(fresh) => {
+                        setHarnesses(fresh);
+                        onSaved(fresh);
+                    }}
+                />
+            ) : error ? (
+                <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">{error}</Span>
+            ) : (
+                <Stack className="w-full py-10 items-center">
+                    <Loading />
+                </Stack>
+            )}
         </Modal>
     );
 }

@@ -1,5 +1,5 @@
 import Tag from "@moduletrace/twui/elements/Tag";
-import LucideIcon from "@moduletrace/twui/elements/lucide-icon";
+import { Trash2 } from "lucide-react";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Span from "@moduletrace/twui/layout/Span";
 import type { BUN_SQLITE_COBBLE_LOGS_JOIN } from "@/src/types/sql-joins";
@@ -100,7 +100,7 @@ export default function LogTableRow({
                     afterDelete={afterDelete}
                     size="small"
                 >
-                    <LucideIcon name="Trash2" size={15} />
+                    <Trash2 size={15} />
                 </DeleteLogsButton>
             </td>
         </tr>

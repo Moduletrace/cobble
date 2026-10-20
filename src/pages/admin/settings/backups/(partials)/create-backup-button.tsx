@@ -1,3 +1,4 @@
+import { DatabaseBackup } from "lucide-react";
 import Button from "@moduletrace/twui/layout/Button";
 import Tag from "@moduletrace/twui/elements/Tag";
 import Row from "@moduletrace/twui/layout/Row";
@@ -30,7 +31,7 @@ export default function CreateBackupButton() {
             {status?.error && <Tag color="error">{status.msg}</Tag>}
             <Button
                 title="Create Backup"
-                beforeIcon="DatabaseBackup"
+                beforeIcon={<DatabaseBackup />}
                 loading={loading}
                 onClick={() => {
                     create_backup();

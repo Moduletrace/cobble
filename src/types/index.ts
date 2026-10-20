@@ -640,6 +640,14 @@ export type BotVoicePayload = {
     speech: boolean;
 };
 
+/**
+ * The text model a conversation's bot runs on now, for its header.
+ */
+export type BotTextModel = {
+    name: string;
+    provider_name: string;
+};
+
 export type PagePropsType = {
     user?: User | null;
     user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
@@ -724,6 +732,11 @@ export type PagePropsType = {
      * (speech) are turned on for the bot there.
      */
     bot_voice?: BotVoicePayload | null;
+    /**
+     * The open conversation's text model (its header). The full model
+     * settings load when the models modal opens.
+     */
+    bot_text_model?: BotTextModel | null;
     workspace_extensions?: BotExtensionsPayload | null;
     envs?: {
         GOOGLE_CLIENT_ID?: string;

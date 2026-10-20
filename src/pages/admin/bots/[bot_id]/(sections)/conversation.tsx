@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
 import type {
@@ -162,6 +162,18 @@ export default function Conversation() {
         if (res.success && res.singleRes) applyReactions(res.singleRes);
     };
 
+    /**
+     * Kept the same across renders, so a live step or a face change
+     * doesn't re-render every message (they read it from context).
+     */
+    const message_actions = useMemo(
+        () => ({
+            onReply: ({ message }: { message: BotMessageWithAttachments }) => setReplyTo(message),
+            onReact: reactToMessage,
+        }),
+        [],
+    );
+
     if (!bot?.id || !live_bot) return null;
 
     return (
@@ -169,18 +181,12 @@ export default function Conversation() {
         <CrewWorkspacesContext.Provider value={workspaces}>
         <BotComputersContext.Provider value={bot_computers}>
             <SpeakMessageContext.Provider value={speak}>
-                <BotMessageActionsContext.Provider
-                    value={{
-                        onReply: ({ message }) => setReplyTo(message),
-                        onReact: reactToMessage,
-                    }}
-                >
+                <BotMessageActionsContext.Provider value={message_actions}>
                     <Stack className="grow min-w-0 h-full gap-0! items-stretch">
                     <ConversationHeader
                         bot={live_bot}
                         workspace={workspace}
                         has_other_unread={has_other_unread}
-                        harnesses={pageProps?.bot_harness_overview?.harnesses}
                     />
                     <MessageThread
                         bot={live_bot}

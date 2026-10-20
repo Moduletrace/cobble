@@ -9,7 +9,7 @@
  * Bump `CACHE_VERSION` when this file changes in a way that must drop the
  * old caches.
  */
-const CACHE_VERSION = "cobble-v1";
+const CACHE_VERSION = "cobble-v2";
 const CACHE_NAME = `cobble-shell-${CACHE_VERSION}`;
 
 const OFFLINE_URL = "/offline.html";
@@ -38,6 +38,16 @@ const ASSET_PATHS = ["/favicon.ico", "/favicon.png", "/apple-touch-icon.png"];
  */
 const BYPASS_PREFIXES = ["/api/", "/ws", "/media", "/computers/"];
 const BYPASS_PATHS = ["/sw.js", "/manifest.webmanifest", "/auth/logout"];
+
+/**
+ * Page scripts and styles bunext names after their content: one at such
+ * a path never changes, so it is served from the cache without asking the
+ * network again (`src/utils/is-hashed-asset-path.ts` has the same
+ * pattern). Each deploy adds new names, so the oldest are dropped past
+ * `MAX_HASHED_ASSETS`.
+ */
+const HASHED_ASSET = /^\/\.bunext\/public\/pages\/(?:.*\/)?(?:chunk-)?[A-Z0-9]{8}\.(?:js|css)$/;
+const MAX_HASHED_ASSETS = 400;
 
 const DEFAULT_ICON = "/icons/icon-192.png";
 const DEFAULT_BADGE = "/icons/icon-192.png";
@@ -105,6 +115,11 @@ self.addEventListener("fetch", (event) => {
 
     if (!isAssetRequest(url)) return;
 
+    if (HASHED_ASSET.test(url.pathname)) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
+
     event.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
             const cached = await cache.match(request);
@@ -122,6 +137,38 @@ self.addEventListener("fetch", (event) => {
         }),
     );
 });
+
+async function cacheFirst(request) {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+
+    if (cached) return cached;
+
+    const response = await fetch(request);
+
+    if (response.ok && response.type === "basic") {
+        await cache.put(request, response.clone()).catch(() => undefined);
+        trimHashedAssets(cache).catch(() => undefined);
+    }
+
+    return response;
+}
+
+/**
+ * Cache keys come back in insertion order, so the first hashed ones are
+ * the oldest.
+ */
+async function trimHashedAssets(cache) {
+    const hashed = (await cache.keys()).filter((request) =>
+        HASHED_ASSET.test(new URL(request.url).pathname),
+    );
+
+    await Promise.all(
+        hashed
+            .slice(0, Math.max(0, hashed.length - MAX_HASHED_ASSETS))
+            .map((request) => cache.delete(request)),
+    );
+}
 
 /**
  * The page asks for a new version from its update notice. Nothing skips

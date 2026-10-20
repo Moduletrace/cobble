@@ -1,5 +1,5 @@
 import Paper from "@moduletrace/twui/elements/Paper";
-import LucideIcon from "@moduletrace/twui/elements/lucide-icon";
+import { Trash2 } from "lucide-react";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
@@ -42,7 +42,7 @@ export default function LogsToolbar({ init }: Props) {
                             size="small"
                         >
                             <Row className="gap-2! flex-nowrap">
-                                <LucideIcon name="Trash2" size={15} />
+                                <Trash2 size={15} />
                                 <Span>Delete selected ({selected_ids.length})</Span>
                             </Row>
                         </DeleteLogsButton>

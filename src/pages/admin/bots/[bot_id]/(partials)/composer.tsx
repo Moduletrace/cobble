@@ -1,4 +1,5 @@
-import { useContext, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { lazy, Suspense, useContext, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import type { Editor } from "@tiptap/react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import P from "@moduletrace/twui/layout/P";
@@ -14,17 +15,24 @@ import sendBotMessage from "../(functions)/send-bot-message";
 import transcribeVoice from "../(functions)/transcribe-voice";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
 import useComposerDraft from "../(hooks)/use-composer-draft";
-import useComposerEditor from "../(hooks)/use-composer-editor";
+import type { ComposerMentionMenu } from "../(hooks)/use-composer-editor";
 import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
-import ComposerEditor from "./composer-editor";
+import ComposerInputFallback from "./composer-input-fallback";
+import type { ComposerInputApi } from "./composer-input";
 import ComposerMentionList from "./composer-mention-list";
 import ComposerReplyPreview from "./composer-reply-preview";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
 import ComposerVoiceButton from "./composer-voice-button";
+
+/**
+ * Tiptap is the heaviest code on the page, so the editor loads on its own
+ * once the page is up; a stand-in holds its place until then.
+ */
+const ComposerInput = lazy(() => import("./composer-input"));
 
 /**
  * What the conversation can do to the composer from outside it.
@@ -60,7 +68,7 @@ type Props = {
 };
 
 /**
- * A Tiptap editor (`useComposerEditor`) writing markdown: Enter sends,
+ * A Tiptap editor (`useComposerEditor`, loaded lazily by `ComposerInput`) writing markdown: Enter sends,
  * Shift+Enter adds a line, a selection can be formatted, `@` mentions a
  * bot and `#` a workspace. Grows to eight lines, then scrolls.
  * Its top rule lines up with the rail's user-row rule; picked files sit
@@ -90,17 +98,16 @@ export default function Composer({
     const workspaces = useContext(CrewWorkspacesContext);
     const send_ref = useRef<() => void>(() => {});
 
-    const input = useComposerEditor({
-        placeholder: `Message ${bot.name}`,
-        bots,
-        workspaces,
-        onChange: ({ markdown }) => setText(markdown),
-        onSubmit: () => send_ref.current(),
-        onFiles: files.add,
-    });
-    const editor = input.editor;
+    const input = useRef<ComposerInputApi | null>(null);
+    const [editor, setEditor] = useState<Editor | null>(null);
+    const [menu, setMenu] = useState<ComposerMentionMenu | null>(null);
+    const placeholder = `Message ${bot.name}`;
 
-    useImperativeHandle(handle_ref, () => ({ insertQuote: input.insertQuote }), [input.insertQuote]);
+    useImperativeHandle(
+        handle_ref,
+        () => ({ insertQuote: ({ text }) => input.current?.insertQuote({ text }) }),
+        [],
+    );
 
     /**
      * The saved draft goes into the editor once per conversation, after
@@ -115,7 +122,7 @@ export default function Composer({
 
         /** Out of React's render, since mention chips mount as it loads. */
         queueMicrotask(() => {
-            input.setMarkdown({ markdown: text });
+            input.current?.setMarkdown({ markdown: text });
             editor.commands.focus("end");
         });
     }, [editor, draft.loaded, draft.key]);
@@ -138,7 +145,7 @@ export default function Composer({
                 return;
             }
 
-            input.insertText({ text: res.singleRes.text });
+            input.current?.insertText({ text: res.singleRes.text });
         },
     });
 
@@ -171,7 +178,7 @@ export default function Composer({
         }
 
         setText("");
-        input.clear();
+        input.current?.clear();
         files.clear();
         onSent({ message: res.singleRes });
     }
@@ -204,7 +211,7 @@ export default function Composer({
                         onCancel={onCancelReply}
                     />
                 ) : null}
-                {input.menu ? <ComposerMentionList menu={input.menu} /> : null}
+                {menu ? <ComposerMentionList menu={menu} /> : null}
                 <Row className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
                     onMouseDown={(e) => {
                         const target = e.target as HTMLElement;
@@ -219,7 +226,21 @@ export default function Composer({
                         disabled={files.full}
                         onFiles={files.add}
                     />
-                    <ComposerEditor editor={editor} invalid={Boolean(error)} title={error} />
+                    <Suspense fallback={<ComposerInputFallback placeholder={placeholder} />}>
+                        <ComposerInput
+                            api_ref={input}
+                            onEditor={setEditor}
+                            onMenu={setMenu}
+                            placeholder={placeholder}
+                            bots={bots}
+                            workspaces={workspaces}
+                            onChange={({ markdown }) => setText(markdown)}
+                            onSubmit={() => send_ref.current()}
+                            onFiles={files.add}
+                            invalid={Boolean(error)}
+                            title={error}
+                        />
+                    </Suspense>
                     {recorder.supported ? (
                         <ComposerVoiceButton
                             state={recorder.state}

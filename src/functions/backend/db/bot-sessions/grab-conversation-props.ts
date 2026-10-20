@@ -1,11 +1,9 @@
-import type { PagePropsType } from "@/src/types";
+import type { BotTextModel, PagePropsType } from "@/src/types";
 import grabBots from "../bots/grab-bots";
 import grabActiveBotTask from "../bots/grab-active-bot-task";
 import grabBotMessages from "../bots/grab-bot-messages";
 import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overview";
 import grabBotComputers from "../computers/grab-bot-computers";
-import grabBotHarnessOverview from "../harness/grab-bot-harness-overview";
-import grabHarnessOverview from "../harness/grab-harness-overview";
 import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import grabUserWorkspaces from "../workspaces/grab-user-workspaces";
 import ensureBotSession from "./ensure-bot-session";
@@ -25,9 +23,11 @@ type Params = {
  * The page props of a conversation (`/admin/bots/<id>` or
  * `/admin/workspaces/<id>/bots/<id>`): the rail's crew (the workspace's
  * in a workspace) and workspaces, the bot, its active session (marked
- * read) and its messages, its models, computers, tools and MCP servers
- * and active task there, and whether its mic and read-aloud have a model
- * to run on.
+ * read) and its messages, the text model it runs on, its computers,
+ * tools and MCP servers and active task there, and whether its mic and
+ * read-aloud have a model to run on. The full model settings are left to
+ * the models modal (`api/admin/bots/harness-overview`): they are most of
+ * a page's weight and only that modal uses them.
  * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationProps({
@@ -60,21 +60,9 @@ export default async function grabConversationProps({
 
     bot.unread = 0;
 
-    /**
-     * The header's models modal: a worker's own settings, or for the
-     * coordinator the defaults it runs on (without the providers). In a
-     * workspace the workspace's own models come first, so what runs now
-     * shows its pick.
-     */
-    const [bot_messages, bot_harness_overview, bot_computers, bot_task, bot_extensions, transcription, speech] = await Promise.all([
+    const [bot_messages, bot_text_model, bot_computers, bot_task, bot_extensions, transcription, speech] = await Promise.all([
         grabBotMessages({ session_id: session.id!, user_id }),
-        (bot.kind == "coordinator" && !scope
-            ? grabHarnessOverview().then(({ harnesses }) => ({ harnesses }))
-            : grabBotHarnessOverview({
-                  bot_id: bot.kind == "coordinator" ? undefined : bot.id,
-                  workspace_id: scope || undefined,
-              })
-        ).catch(() => null),
+        grabTextModel({ bot_id: bot.id, workspace_id: scope }),
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabActiveBotTask({ bot_id: bot.id, session_id: session.id }),
         grabBotExtensionsOverview({ user_id, bot_id: bot.id, workspace_id: scope }),
@@ -89,7 +77,7 @@ export default async function grabConversationProps({
         workspace: conversation.workspace,
         bot_session: session,
         bot_messages,
-        bot_harness_overview,
+        bot_text_model,
         bot_computers,
         bot_task,
         bot_extensions,
@@ -104,4 +92,20 @@ async function hasHarnessModel(params: Parameters<typeof resolveHarnessCandidate
     return await resolveHarnessCandidates(params)
         .then((candidates) => candidates.length > 0)
         .catch(() => false);
+}
+
+/**
+ * The first text model the bot would try there, if any.
+ */
+async function grabTextModel(
+    params: Omit<Parameters<typeof resolveHarnessCandidates>[0], "harness">,
+): Promise<BotTextModel | null> {
+    const [first] = await resolveHarnessCandidates({ ...params, harness: "text" }).catch(() => []);
+
+    if (!first) return null;
+
+    return {
+        name: first.model.name || first.model.slug,
+        provider_name: first.provider.name || first.provider.kind,
+    };
 }

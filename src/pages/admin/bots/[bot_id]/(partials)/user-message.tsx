@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageWithAttachments } from "@/src/types";
 import MessageAttachments from "./message-attachments";
@@ -13,9 +14,10 @@ type Props = {
 /**
  * One user message: the quoted message it answers, its files, then its
  * text (a file-only message has no bubble) and the bot's reactions to it.
- * The user doesn't reply to or react to their own messages.
+ * The user doesn't reply to or react to their own messages. Memoized,
+ * like `BotMessageLine`.
  */
-export default function UserMessage({ message, bot_name }: Props) {
+function UserMessage({ message, bot_name }: Props) {
     return (
         <Stack className="w-full min-w-0 max-w-full items-end gap-1.5!">
             {message.reply_to ? (
@@ -36,3 +38,5 @@ export default function UserMessage({ message, bot_name }: Props) {
         </Stack>
     );
 }
+
+export default memo(UserMessage);
