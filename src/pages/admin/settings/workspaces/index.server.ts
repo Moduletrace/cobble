@@ -2,6 +2,7 @@ import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabCrewSettingsServerProps from "../(functions)/grab-crew-settings-server-props";
+import railWorkspaces from "@/src/utils/rail-workspaces";
 
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const settings = await grabCrewSettingsServerProps(params);
@@ -11,7 +12,9 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     return {
         props: {
             ...settings.props,
-            workspaces: await grabUserWorkspaces({ user_id: settings.props.person.id }),
+            workspaces: railWorkspaces({
+                workspaces: await grabUserWorkspaces({ user_id: settings.props.person.id }),
+            }),
         },
     };
 };

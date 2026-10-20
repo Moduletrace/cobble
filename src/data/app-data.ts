@@ -298,6 +298,20 @@ export const AppData = {
      */
     BotReplyHistoryMessages: 40,
     /**
+     * How many of a session's latest messages the conversation page
+     * renders with; older ones load as the thread is scrolled up.
+     */
+    ConversationFirstMessages: 30,
+    /**
+     * How many older messages each scroll to the top of the thread loads.
+     */
+    ConversationOlderMessages: 30,
+    /**
+     * How much of a bot's last message the rail's lists carry, as plain
+     * text (`messagePreview`): a row shows one line of it.
+     */
+    RailPreviewMaxChars: 160,
+    /**
      * A session with this many messages is closed when the user writes
      * again, and the message starts the next one (carrying a summary).
      */

@@ -22,6 +22,7 @@ import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
 import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
 import useSpeakMessage from "../(hooks)/use-speak-message";
+import useOlderMessages from "../(hooks)/use-older-messages";
 import ConversationHeader from "../(partials)/conversation-header";
 import MessageThread from "../(partials)/message-thread";
 import Composer, { type ComposerHandle } from "../(partials)/composer";
@@ -35,7 +36,8 @@ import ComputerViewerModal from "../(partials)/computer-viewer-modal";
  * buttons in the thread, so a switch from either shows in both; either
  * can open one in the viewer. Bot messages can be read aloud, one at a
  * time. Text selected in the thread can be quoted in the composer, which
- * mentions the crew and workspaces the user sees.
+ * mentions the crew and workspaces the user sees. The page brings the
+ * session's latest messages; older ones load as the thread scrolls up.
  */
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
@@ -97,6 +99,19 @@ export default function Conversation() {
         bot_id: bot?.id || 0,
         session_id,
         task: pageProps?.bot_task || null,
+    });
+
+    const older = useOlderMessages({
+        session_id,
+        has_more: Boolean(pageProps?.bot_messages_more),
+        first_message_id: Number(messages[0]?.id) || null,
+        onLoaded: ({ messages: older_messages }) =>
+            setMessages((prev) => [
+                ...older_messages.filter(
+                    (message) => !prev.some((m) => m.id == message.id),
+                ),
+                ...prev,
+            ]),
     });
 
     const thread_messages = useMemo(
@@ -239,6 +254,7 @@ export default function Conversation() {
                                     reply_progress={reply_progress}
                                     receiving={pending_messages.length > 0}
                                     has_task={Boolean(progress.task_id)}
+                                    older={older}
                                     onQuote={({ text }) =>
                                         composer.current?.insertQuote({ text })
                                     }

@@ -6,6 +6,8 @@ import grabWorkspaceComputers from "@/src/functions/backend/db/workspaces/grab-w
 import { AdminHomePath } from "@/src/dict/admin-sections-dict";
 import type { PagePropsType, PageQueryObject } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
+import railBots from "@/src/utils/rail-bots";
+import railWorkspaces from "@/src/utils/rail-workspaces";
 
 /**
  * A workspace's dashboard: its picture, context, latest activity, bots and
@@ -38,12 +40,14 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             grabWorkspaceActivity({ user_id: user.id, workspace_id }),
         ]);
 
+    const crew = railBots({ bots: workspace_bots });
+
     return {
         props: {
-            workspaces,
+            workspaces: railWorkspaces({ workspaces }),
             workspace,
-            bots: workspace_bots,
-            workspace_bots,
+            bots: crew,
+            workspace_bots: crew,
             workspace_computers,
             workspace_activity,
         },

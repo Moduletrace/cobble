@@ -6,6 +6,8 @@ import grabUserComputer from "@/src/functions/backend/db/computers/grab-user-com
 import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabCrewSettingsServerProps from "../../(functions)/grab-crew-settings-server-props";
+import railBots from "@/src/utils/rail-bots";
+import railWorkspaces from "@/src/utils/rail-workspaces";
 
 /**
  * One computer's settings: its state and resources, direct bot access,
@@ -52,8 +54,8 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         props: {
             ...settings.props,
             computer,
-            bots,
-            workspaces,
+            bots: railBots({ bots }),
+            workspaces: railWorkspaces({ workspaces }),
             computer_bots: access.bots,
             computer_workspaces: access.workspaces,
         },

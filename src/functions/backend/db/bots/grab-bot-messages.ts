@@ -10,6 +10,10 @@ type Params = {
     session_id: number | string;
     limit?: number;
     /**
+     * Only messages older than this one, for loading further back.
+     */
+    before_id?: number | null;
+    /**
      * Whose conversation it is, so a reaction can show as the user's own.
      * Left out for the bot's own history reads, which don't need it.
      */
@@ -17,12 +21,14 @@ type Params = {
 };
 
 /**
- * The latest messages of a session, oldest first, with their attachments,
+ * The latest messages of a session (or the latest before `before_id`),
+ * oldest first, with their attachments,
  * what each replies to, and (when `user_id` is given) its reactions.
  */
 export default async function grabBotMessages({
     session_id,
     limit = 100,
+    before_id,
     user_id,
 }: Params): Promise<BotMessageWithAttachments[]> {
     let sql = ``;
@@ -30,13 +36,18 @@ export default async function grabBotMessages({
     sql += `SELECT * FROM (\n`;
     sql += `    SELECT * FROM bot_messages\n`;
     sql += `    WHERE session_id = ?\n`;
+
+    if (before_id) {
+        sql += `    AND (created_at, id) < (SELECT created_at, id FROM bot_messages WHERE id = ?)\n`;
+    }
+
     sql += `    ORDER BY created_at DESC, id DESC\n`;
     sql += `    LIMIT ?\n`;
     sql += `) ORDER BY created_at ASC, id ASC\n`;
 
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_MESSAGES>({
         sql,
-        values: [session_id, limit],
+        values: before_id ? [session_id, before_id, limit] : [session_id, limit],
     });
 
     const messages = res.payload || [];

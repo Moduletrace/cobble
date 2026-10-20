@@ -1,4 +1,8 @@
+import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
+import { AppData } from "@/src/data/app-data";
 import type { BotTextModel, PagePropsType } from "@/src/types";
+import railBots from "@/src/utils/rail-bots";
+import railWorkspaces from "@/src/utils/rail-workspaces";
 import grabBots from "../bots/grab-bots";
 import grabActiveBotTask from "../bots/grab-active-bot-task";
 import grabBotMessages from "../bots/grab-bot-messages";
@@ -23,7 +27,8 @@ type Params = {
  * The page props of a conversation (`/admin/bots/<id>` or
  * `/admin/workspaces/<id>/bots/<id>`): the rail's crew (the workspace's
  * in a workspace) and workspaces, the bot, its active session (marked
- * read) and its messages, the text model it runs on, its computers,
+ * read) and its latest `AppData.ConversationFirstMessages` messages (the
+ * thread loads older ones as it scrolls), the text model it runs on, its computers,
  * tools and MCP servers and active task there, and whether its mic and
  * read-aloud have a model to run on. The full model settings are left to
  * the models modal: the install-wide catalog (`api/admin/harness/catalog`)
@@ -63,7 +68,11 @@ export default async function grabConversationProps({
     bot.unread = 0;
 
     const [bot_messages, bot_text_model, bot_computers, bot_task, bot_extensions, transcription, speech] = await Promise.all([
-        grabBotMessages({ session_id: session.id!, user_id }),
+        grabBotMessages({
+            session_id: session.id!,
+            user_id,
+            limit: AppData.ConversationFirstMessages + 1,
+        }),
         grabTextModel({ bot_id: bot.id, workspace_id: scope }),
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabActiveBotTask({ bot_id: bot.id, session_id: session.id }),
@@ -72,19 +81,30 @@ export default async function grabConversationProps({
         hasHarnessModel({ harness: "speech", bot_id: bot.id, workspace_id: scope }),
     ]);
 
+    const bot_messages_more = bot_messages.length > AppData.ConversationFirstMessages;
+
     return {
-        bots,
-        bot,
-        workspaces,
-        workspace: conversation.workspace,
+        bots: railBots({ bots }),
+        bot: railBots({ bots: [bot] })[0],
+        workspaces: railWorkspaces({ workspaces }),
+        workspace: conversation.workspace ? withoutContext(conversation.workspace) : null,
         bot_session: session,
-        bot_messages,
+        bot_messages: bot_messages_more ? bot_messages.slice(1) : bot_messages,
+        bot_messages_more,
         bot_text_model,
         bot_computers,
         bot_task,
         bot_extensions,
         bot_voice: { transcription, speech },
     };
+}
+
+/**
+ * The open workspace without its shared context, which the conversation
+ * never shows (the bot reads it from the database).
+ */
+function withoutContext({ system_prompt, ...workspace }: BUN_SQLITE_COBBLE_WORKSPACES) {
+    return workspace;
 }
 
 /**

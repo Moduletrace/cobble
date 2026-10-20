@@ -12,6 +12,7 @@ import type {
     APIResponseObject,
     BunextAPIRouteHandler,
 } from "@moduletrace/bunext/types";
+import railBots from "@/src/utils/rail-bots";
 
 /**
  * The crew's workers that aren't in a workspace yet, for the workspace
@@ -48,9 +49,11 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotWithLastMessage
 
         return {
             success: true,
-            payload: bots.filter(
-                (bot) => bot.kind != "coordinator" && !members.some((member) => member.id == bot.id),
-            ),
+            payload: railBots({
+                bots: bots.filter(
+                    (bot) => bot.kind != "coordinator" && !members.some((member) => member.id == bot.id),
+                ),
+            }),
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

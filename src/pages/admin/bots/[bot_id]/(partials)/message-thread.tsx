@@ -8,6 +8,7 @@ import useMessageSelection from "../(hooks)/use-message-selection";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
 import MessageGroupBlock from "./message-group-block";
+import OlderMessagesLoader from "./older-messages-loader";
 import QuoteSelectionButton from "./quote-selection-button";
 
 type Props = {
@@ -33,6 +34,15 @@ type Props = {
      * Quotes text selected in a message in the composer.
      */
     onQuote?: (params: { text: string }) => void;
+    /**
+     * The session's older messages, loaded at the top of the thread.
+     */
+    older?: {
+        has_more: boolean;
+        loading: boolean;
+        error?: string;
+        loadOlder: () => void;
+    };
 };
 
 /**
@@ -40,6 +50,8 @@ type Props = {
  * upward. Empty space belongs at the top. New messages announce politely.
  * While the bot works on a reply or a task, a status row sits under the
  * last one. Text selected in a message can be quoted in the composer.
+ * Older messages load as it scrolls to the top; the reversed column keeps
+ * the view where it was as they land above it.
  */
 export default function MessageThread({
     bot,
@@ -49,6 +61,7 @@ export default function MessageThread({
     receiving,
     has_task,
     onQuote,
+    older,
 }: Props) {
     const groups = useMemo(() => groupMessages({ messages }), [messages]);
     const ref = useRef<HTMLDivElement>(null);
@@ -64,6 +77,13 @@ export default function MessageThread({
                 aria-label={`Conversation with ${bot.name}`}
                 className="w-full max-w-container mx-auto gap-4! items-stretch px-3 md:px-6 pt-6 pb-6"
             >
+                {older?.has_more ? (
+                    <OlderMessagesLoader
+                        loading={older.loading}
+                        error={older.error}
+                        onLoad={older.loadOlder}
+                    />
+                ) : null}
                 {groups.map((group) => (
                     <MessageGroupBlock
                         key={group.key}

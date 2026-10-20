@@ -1,4 +1,11 @@
-import { useContext, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import {
+    useContext,
+    useEffect,
+    useImperativeHandle,
+    useRef,
+    useState,
+    type Ref,
+} from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import P from "@moduletrace/twui/layout/P";
@@ -125,7 +132,11 @@ export default function Composer({
     });
     const editor = input.editor;
 
-    useImperativeHandle(handle_ref, () => ({ insertQuote: input.insertQuote }), [input.insertQuote]);
+    useImperativeHandle(
+        handle_ref,
+        () => ({ insertQuote: input.insertQuote }),
+        [input.insertQuote],
+    );
 
     /**
      * The saved draft goes into the editor once per conversation, after
@@ -134,7 +145,8 @@ export default function Composer({
     const applied_key = useRef<string | null>(null);
 
     useEffect(() => {
-        if (!editor || !draft.loaded || applied_key.current == draft.key) return;
+        if (!editor || !draft.loaded || applied_key.current == draft.key)
+            return;
 
         applied_key.current = draft.key;
 
@@ -156,7 +168,11 @@ export default function Composer({
         onRecorded: async ({ audio }) => {
             if (!bot.id) return;
 
-            const res = await transcribeVoice({ bot_id: bot.id, workspace_id, audio });
+            const res = await transcribeVoice({
+                bot_id: bot.id,
+                workspace_id,
+                audio,
+            });
 
             if (!res.success || !res.singleRes?.text) {
                 recorder.setError(res.msg || "Couldn't write that out");
@@ -294,7 +310,8 @@ export default function Composer({
                     />
                 ) : null}
                 {input.menu ? <ComposerMentionList menu={input.menu} /> : null}
-                <Row className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
+                <Row
+                    className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
                     onMouseDown={(e) => {
                         const target = e.target as HTMLElement;
 
@@ -308,7 +325,13 @@ export default function Composer({
                         disabled={files.full}
                         onFiles={files.add}
                     />
-                    <ComposerEditor editor={editor} invalid={Boolean(error)} title={error} />
+
+                    <ComposerEditor
+                        editor={editor}
+                        invalid={Boolean(error)}
+                        title={error}
+                    />
+
                     {recorder.supported ? (
                         <ComposerVoiceButton
                             state={recorder.state}
@@ -327,11 +350,18 @@ export default function Composer({
                     />
                 </Row>
                 {recorder.error ? (
-                    <P role="alert" className="w-full max-w-container mx-auto px-3 md:px-6 -mt-5 pb-3 text-xs text-ink-secondary">
+                    <P
+                        role="alert"
+                        className="w-full max-w-container mx-auto px-3 md:px-6 -mt-5 pb-3 text-xs text-ink-secondary"
+                    >
                         {recorder.error}
                     </P>
                 ) : null}
-                <ComposerTools bot={bot} workspace_id={workspace_id} initial={extensions} />
+                <ComposerTools
+                    bot={bot}
+                    workspace_id={workspace_id}
+                    initial={extensions}
+                />
             </Stack>
         </Stack>
     );

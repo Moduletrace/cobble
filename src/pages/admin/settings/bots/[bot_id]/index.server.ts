@@ -10,6 +10,8 @@ import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness
 import grabBotWorkspaces from "@/src/functions/backend/db/workspaces/grab-bot-workspaces";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabCrewSettingsServerProps from "../../(functions)/grab-crew-settings-server-props";
+import railBots from "@/src/utils/rail-bots";
+import railWorkspaces from "@/src/utils/rail-workspaces";
 
 /**
  * One bot's settings: its details, models, workspaces, computers, tools
@@ -63,8 +65,8 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         props: {
             ...settings.props,
             bot,
-            bots,
-            workspaces,
+            bots: railBots({ bots }),
+            workspaces: railWorkspaces({ workspaces }),
             bot_workspaces,
             bot_computers,
             computers: all_computers,

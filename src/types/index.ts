@@ -666,6 +666,15 @@ export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
 /**
  * `server:bot-reaction` data: a message's reactions changed.
  */
+/**
+ * A page of a session's older messages, oldest first, and whether there
+ * are older still.
+ */
+export type OlderBotMessagesData = {
+    messages: BotMessageWithAttachments[];
+    has_more: boolean;
+};
+
 export type BotMessageReactionData = {
     message_id: number;
     reactions: BotMessageReaction[];
@@ -725,6 +734,10 @@ export type PagePropsType = {
     bots?: BotWithLastMessage[] | null;
     bot?: BotWithLastMessage | null;
     bot_messages?: BotMessageWithAttachments[] | null;
+    /**
+     * The session has messages older than `bot_messages`.
+     */
+    bot_messages_more?: boolean | null;
     /**
      * The open conversation's active session.
      */

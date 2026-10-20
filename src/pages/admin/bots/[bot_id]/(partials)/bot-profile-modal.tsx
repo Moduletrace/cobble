@@ -1,5 +1,6 @@
 import { useContext, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
+import Loading from "@moduletrace/twui/elements/Loading";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -10,6 +11,7 @@ import type { BotWithLastMessage } from "@/src/types";
 import BotForm from "@/src/layouts/bots/(partials)/bot-form";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
+import useBotInstructions from "../(hooks)/use-bot-instructions";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -18,12 +20,17 @@ type Props = {
 /**
  * The header's avatar: opens the bot's profile (picture, name, job,
  * colour, instructions) to edit, for super admins and admins. Everyone
- * else sees the avatar alone.
+ * else sees the avatar alone. The instructions load when it opens.
  */
 export default function BotProfileModal({ bot }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
     const name = bot.name || "This bot";
+    const can_edit = canManageCrew({ user_types: pageProps?.user_types });
+    const { system_prompt, error } = useBotInstructions({
+        bot_id: Number(bot.id) || 0,
+        enabled: open && can_edit,
+    });
 
     const avatar = (
         <BotAvatar
@@ -34,7 +41,7 @@ export default function BotProfileModal({ bot }: Props) {
         />
     );
 
-    if (!canManageCrew({ user_types: pageProps?.user_types })) {
+    if (!can_edit) {
         return <Stack className="shrink-0">{avatar}</Stack>;
     }
 
@@ -65,9 +72,15 @@ export default function BotProfileModal({ bot }: Props) {
                         : `${name}'s core instructions apply everywhere. What it does in one workspace is set on that workspace's page.`}
                 </Span>
             </Stack>
-            {open ? (
-                <BotForm bot={bot} onCancel={() => setOpen(false)} />
-            ) : null}
+            {!open ? null : system_prompt != undefined ? (
+                <BotForm bot={{ ...bot, system_prompt }} onCancel={() => setOpen(false)} />
+            ) : error ? (
+                <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">{error}</Span>
+            ) : (
+                <Stack className="w-full py-10 items-center">
+                    <Loading />
+                </Stack>
+            )}
         </Modal>
     );
 }

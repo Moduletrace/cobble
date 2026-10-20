@@ -77,6 +77,12 @@ export const BotSessionIdRequestSchema = z.object({
 
 export type BotSessionIdRequest = z.infer<typeof BotSessionIdRequestSchema>;
 
+export const OlderBotMessagesRequestSchema = BotSessionIdRequestSchema.extend({
+    before_id: z.coerce.number().int().positive("Pick a message"),
+});
+
+export type OlderBotMessagesRequest = z.infer<typeof OlderBotMessagesRequestSchema>;
+
 export const BotConversationRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot"),
     workspace_id: WorkspaceIdField,

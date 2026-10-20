@@ -6,6 +6,8 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import type { PagePropsType } from "@/src/types";
 import crewRole from "@/src/utils/rbac/crew-role";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
+import railBots from "@/src/utils/rail-bots";
+import railWorkspaces from "@/src/utils/rail-workspaces";
 
 /**
  * Opens a conversation. The super admin lands on the coordinator, which
@@ -44,5 +46,5 @@ export const server: BunextPageServerFn<PagePropsType> = async ({ req }) => {
         return { redirect: { destination: `/admin/workspaces/${workspaces[0].id}` } };
     }
 
-    return { props: { bots, workspaces } };
+    return { props: { bots: railBots({ bots }), workspaces: railWorkspaces({ workspaces }) } };
 };
