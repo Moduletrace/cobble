@@ -1,5 +1,7 @@
 # Cobble
 
+[![CI](https://github.com/Moduletrace/cobble/actions/workflows/ci.yml/badge.svg)](https://github.com/Moduletrace/cobble/actions/workflows/ci.yml)
+
 A self-hosted crew of small AI worker bots.
 
 Cobble gives you a coordinator bot and a crew of workers, each with its own

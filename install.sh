@@ -379,6 +379,7 @@ container_matches() {
     [ "$(docker_socket_mounted)" = "$DOCKER_SOCKET" ] || return 1
     [ "$(docker inspect -f '{{with index .HostConfig.PortBindings "'"$PORT"'/tcp"}}{{range .}}{{.HostIp}}:{{.HostPort}}{{end}}{{end}}' "$CONTAINER")" = "$BIND:$PORT" ] || return 1
     [ "$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$CONTAINER")" = "unless-stopped" ] || return 1
+    [ "$(docker inspect -f '{{.HostConfig.Init}}' "$CONTAINER")" = "true" ] || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "MAIN_SERVER=1" || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "PORT=$PORT" || return 1
     docker inspect -f '{{range $name, $net := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$CONTAINER" | grep -qx "$NETWORK" || return 1
