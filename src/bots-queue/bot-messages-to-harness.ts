@@ -1,5 +1,6 @@
 import type { HarnessContentPart, HarnessMessage } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
+import describeMessageRefs, { type MessageRefNames } from "@/src/utils/describe-message-refs";
 
 type Params = {
     messages: Pick<
@@ -11,6 +12,11 @@ type Params = {
      * messages are only named.
      */
     parts?: Map<number, HarnessContentPart[]>;
+    /**
+     * Names of the bots and workspaces the user's messages mention
+     * (`grabMessageRefNames`), told to the bot after each one.
+     */
+    refs?: MessageRefNames;
 };
 
 type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
@@ -22,12 +28,12 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * repeated roles. Leading bot messages are dropped so the conversation
  * starts with the user. A turn that is only text stays a string.
  */
-export default function botMessagesToHarness({ messages, parts }: Params): HarnessMessage[] {
+export default function botMessagesToHarness({ messages, parts, refs }: Params): HarnessMessage[] {
     const turns: Turn[] = [];
 
     for (const message of messages) {
         const role = message.author == "user" ? "user" : "assistant";
-        const content = messageParts({ message, role, parts });
+        const content = messageParts({ message, role, parts, refs });
 
         if (!content.length) continue;
         if (!turns.length && role == "assistant") continue;
@@ -59,12 +65,16 @@ function messageParts({
     message,
     role,
     parts,
+    refs,
 }: {
     message: Params["messages"][number];
     role: Turn["role"];
     parts?: Params["parts"];
+    refs?: Params["refs"];
 }): HarnessContentPart[] {
-    const text = replyContext({ message, text: message.text?.trim() || "" });
+    const own = message.text?.trim() || "";
+    const mentions = role == "user" && refs && own ? describeMessageRefs({ text: own, names: refs }) : "";
+    const text = replyContext({ message, text: mentions ? `${own}\n\n${mentions}` : own });
     const content: HarnessContentPart[] = text ? [{ type: "text", text }] : [];
 
     if (role == "assistant" || !message.attachments?.length) return content;

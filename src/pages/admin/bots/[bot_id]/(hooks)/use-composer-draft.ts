@@ -7,13 +7,14 @@ type Params = {
 };
 
 /**
- * The composer's text, kept in `localStorage` per bot and workspace until
- * it's sent, so a reload or leaving the conversation doesn't lose it.
- * Read after mount, since the page renders on the server first.
+ * The composer's text (markdown), kept in `localStorage` per bot and
+ * workspace until it's sent, so a reload or leaving the conversation
+ * doesn't lose it. Read after mount, since the page renders on the server
+ * first; `loaded` turns true once it has been, for that `key`.
  */
 export default function useComposerDraft({ bot_id, workspace_id }: Params) {
     const key = composerDraftKey({ bot_id, workspace_id, part: "text" });
-    const [draft, setDraft] = useState({ key, text: "" });
+    const [draft, setDraft] = useState({ key, text: "", loaded: false });
 
     useEffect(() => {
         let text = "";
@@ -22,11 +23,11 @@ export default function useComposerDraft({ bot_id, workspace_id }: Params) {
             text = localStorage.getItem(key) || "";
         } catch {}
 
-        setDraft({ key, text });
+        setDraft({ key, text, loaded: true });
     }, [key]);
 
     const setText = (text: string) => {
-        setDraft({ key, text });
+        setDraft({ key, text, loaded: true });
 
         try {
             if (text) localStorage.setItem(key, text);
@@ -34,8 +35,12 @@ export default function useComposerDraft({ bot_id, workspace_id }: Params) {
         } catch {}
     };
 
+    const current = draft.key == key;
+
     return {
-        text: draft.key == key ? draft.text : "",
+        key,
+        text: current ? draft.text : "",
+        loaded: current && draft.loaded,
         setText,
     };
 }

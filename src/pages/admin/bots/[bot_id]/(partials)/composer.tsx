@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useContext, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import Textarea from "@moduletrace/twui/form/Textarea";
 import P from "@moduletrace/twui/layout/P";
 import type {
     BotExtensionsPayload,
@@ -9,19 +8,33 @@ import type {
     BotVoicePayload,
     BotWithLastMessage,
 } from "@/src/types";
+import { CrewBotsContext } from "../(data)/crew-bots-context";
+import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
 import sendBotMessage from "../(functions)/send-bot-message";
 import transcribeVoice from "../(functions)/transcribe-voice";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
 import useComposerDraft from "../(hooks)/use-composer-draft";
-import useAutoGrowTextarea from "../(hooks)/use-auto-grow-textarea";
+import useComposerEditor from "../(hooks)/use-composer-editor";
 import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
+import ComposerEditor from "./composer-editor";
+import ComposerMentionList from "./composer-mention-list";
 import ComposerReplyPreview from "./composer-reply-preview";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
 import ComposerVoiceButton from "./composer-voice-button";
+
+/**
+ * What the conversation can do to the composer from outside it.
+ */
+export type ComposerHandle = {
+    /**
+     * Quotes text from the thread at the cursor.
+     */
+    insertQuote: (params: { text: string }) => void;
+};
 
 type Props = {
     bot: BotWithLastMessage;
@@ -43,10 +56,13 @@ type Props = {
     reply_to?: BotMessageWithAttachments | null;
     onCancelReply?: () => void;
     onSent: (params: { message: BotMessageWithAttachments }) => void;
+    handle_ref?: Ref<ComposerHandle>;
 };
 
 /**
- * Enter sends, Shift+Enter adds a line. Grows to eight lines, then scrolls.
+ * A Tiptap editor (`useComposerEditor`) writing markdown: Enter sends,
+ * Shift+Enter adds a line, a selection can be formatted, `@` mentions a
+ * bot and `#` a workspace. Grows to eight lines, then scrolls.
  * Its top rule lines up with the rail's user-row rule; picked files sit
  * just above it. A click anywhere on the row focuses the input. Files can
  * also be pasted or dropped in. Unsent text is kept per conversation
@@ -62,21 +78,53 @@ export default function Composer({
     reply_to,
     onCancelReply,
     onSent,
+    handle_ref,
 }: Props) {
-    const { text, setText } = useComposerDraft({ bot_id: bot.id, workspace_id });
+    const draft = useComposerDraft({ bot_id: bot.id, workspace_id });
+    const { text, setText } = draft;
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string>();
     const files = useComposerAttachments({ bot_id: bot.id, workspace_id });
     const online = useOnlineStatus();
-    const input_ref = useRef<HTMLTextAreaElement>(null);
+    const bots = useContext(CrewBotsContext);
+    const workspaces = useContext(CrewWorkspacesContext);
+    const send_ref = useRef<() => void>(() => {});
 
-    useAutoGrowTextarea({ ref: input_ref, value: text });
+    const input = useComposerEditor({
+        placeholder: `Message ${bot.name}`,
+        bots,
+        workspaces,
+        onChange: ({ markdown }) => setText(markdown),
+        onSubmit: () => send_ref.current(),
+        onFiles: files.add,
+    });
+    const editor = input.editor;
+
+    useImperativeHandle(handle_ref, () => ({ insertQuote: input.insertQuote }), [input.insertQuote]);
+
+    /**
+     * The saved draft goes into the editor once per conversation, after
+     * it's read; typing saves it back from then on.
+     */
+    const applied_key = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!editor || !draft.loaded || applied_key.current == draft.key) return;
+
+        applied_key.current = draft.key;
+
+        /** Out of React's render, since mention chips mount as it loads. */
+        queueMicrotask(() => {
+            input.setMarkdown({ markdown: text });
+            editor.commands.focus("end");
+        });
+    }, [editor, draft.loaded, draft.key]);
 
     /**
      * Picking a message to reply to puts the cursor back in the input.
      */
     useEffect(() => {
-        if (reply_to) input_ref.current?.focus();
+        if (reply_to) editor?.commands.focus();
     }, [reply_to]);
 
     const recorder = useVoiceRecorder({
@@ -90,7 +138,7 @@ export default function Composer({
                 return;
             }
 
-            insertText({ insert: res.singleRes.text });
+            input.insertText({ text: res.singleRes.text });
         },
     });
 
@@ -100,30 +148,6 @@ export default function Composer({
         !files.uploading &&
         recorder.state == "idle" &&
         online;
-
-    /**
-     * Puts dictated text at the cursor (or the end), spaced from what's
-     * around it, and leaves the cursor after it.
-     */
-    function insertText({ insert }: { insert: string }) {
-        const el = input_ref.current;
-        const start = el ? el.selectionStart : text.length;
-        const end = el ? el.selectionEnd : text.length;
-        const before = text.slice(0, start);
-        const after = text.slice(end);
-        const piece =
-            (before && !/\s$/.test(before) ? " " : "") +
-            insert +
-            (after && !/^\s/.test(after) ? " " : "");
-        const cursor = before.length + piece.length;
-
-        setText(before + piece + after);
-
-        requestAnimationFrame(() => {
-            input_ref.current?.focus();
-            input_ref.current?.setSelectionRange(cursor, cursor);
-        });
-    }
 
     async function send() {
         if (!can_send || !bot.id) return;
@@ -147,18 +171,12 @@ export default function Composer({
         }
 
         setText("");
+        input.clear();
         files.clear();
         onSent({ message: res.singleRes });
     }
 
-    function handleKeyDown(
-        e: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
-    ) {
-        if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-            e.preventDefault();
-            send();
-        }
-    }
+    send_ref.current = send;
 
     return (
         <Stack
@@ -167,7 +185,8 @@ export default function Composer({
                 if (e.dataTransfer.types.includes("Files")) e.preventDefault();
             }}
             onDrop={(e) => {
-                if (!e.dataTransfer.files.length) return;
+                /** Dropped on the editor, which took the files already. */
+                if (e.defaultPrevented || !e.dataTransfer.files.length) return;
 
                 e.preventDefault();
                 files.add({ files: [...e.dataTransfer.files] });
@@ -185,49 +204,22 @@ export default function Composer({
                         onCancel={onCancelReply}
                     />
                 ) : null}
+                {input.menu ? <ComposerMentionList menu={input.menu} /> : null}
                 <Row className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
                     onMouseDown={(e) => {
                         const target = e.target as HTMLElement;
 
-                        if (target.closest("button, textarea")) return;
+                        if (target.closest("button, [contenteditable]")) return;
 
                         e.preventDefault();
-                        input_ref.current?.focus();
+                        editor?.commands.focus();
                     }}
                 >
                     <ComposerAttachButton
                         disabled={files.full}
                         onFiles={files.add}
                     />
-                    <Textarea
-                        name="message"
-                        componentRef={input_ref}
-                        aria-label={`Message ${bot.name}`}
-                        placeholder={`Message ${bot.name}`}
-                        rows={1}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onPaste={(e) => {
-                            const pasted = [...e.clipboardData.files];
-
-                            if (!pasted.length) return;
-
-                            e.preventDefault();
-                            files.add({ files: pasted });
-                        }}
-                        aria-invalid={error ? true : undefined}
-                        title={error}
-                        className="field-sizing-content min-h-5 max-h-[160px] resize-none overflow-y-auto text-sm leading-5 text-ink placeholder:text-ink-secondary"
-                        wrapperWrapperProps={{
-                            className: "grow min-w-0 self-center z-auto! hover:z-auto!",
-                        }}
-                        wrapperProps={{
-                            className:
-                                "p-0! outline-0! border-0! bg-transparent! dark:bg-transparent! rounded-none",
-                        }}
-                        autoFocus
-                    />
+                    <ComposerEditor editor={editor} invalid={Boolean(error)} title={error} />
                     {recorder.supported ? (
                         <ComposerVoiceButton
                             state={recorder.state}

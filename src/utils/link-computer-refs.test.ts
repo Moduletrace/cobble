@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import botRef from "./bot-ref";
+import workspaceRef from "./workspace-ref";
 import computerRef from "./computer-ref";
 import linkComputerRefs from "./link-computer-refs";
 import takeOverRef from "./take-over-ref";
@@ -33,5 +34,13 @@ describe("linkComputerRefs", () => {
                 text: `${botRef({ id: 4 })} is on it. See [bot:x] and [bot:5](https://example.com).`,
             }),
         ).toBe("[bot 4](#bot-4) is on it. See [bot:x] and [bot:5](https://example.com).");
+    });
+
+    test("links every workspace a message names", () => {
+        expect(
+            linkComputerRefs({
+                text: `Added to ${workspaceRef({ id: 2 })}. Not [workspace:x] or [workspace:3](https://example.com).`,
+            }),
+        ).toBe("Added to [workspace 2](#workspace-2). Not [workspace:x] or [workspace:3](https://example.com).");
     });
 });

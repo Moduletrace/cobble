@@ -12,6 +12,7 @@ describe("messagePreview", () => {
 
     test("names bots plainly", () => {
         expect(messagePreview({ text: "[bot:4] is on it." })).toBe("a bot is on it.");
+        expect(messagePreview({ text: "Moved to [workspace:2]." })).toBe("Moved to a workspace.");
     });
 
     test("keeps code text without its fences", () => {

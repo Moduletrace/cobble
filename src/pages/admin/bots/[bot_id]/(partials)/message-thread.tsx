@@ -1,11 +1,14 @@
+import { useRef, type RefObject } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type {
     BotMessageWithAttachments,
     BotWithLastMessage,
 } from "@/src/types";
+import useMessageSelection from "../(hooks)/use-message-selection";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
 import MessageGroupBlock from "./message-group-block";
+import QuoteSelectionButton from "./quote-selection-button";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -22,19 +25,27 @@ type Props = {
      * This session has an active task.
      */
     has_task?: boolean;
+    /**
+     * Quotes text selected in a message in the composer.
+     */
+    onQuote?: (params: { text: string }) => void;
 };
 
 /**
  * Bottom-anchored: the stack sits 24px above the composer rule and grows
  * upward. Empty space belongs at the top. New messages announce politely.
  * While the bot works on a reply or a task, a status row sits under the
- * last one.
+ * last one. Text selected in a message can be quoted in the composer.
  */
-export default function MessageThread({ bot, messages, progress, reply_progress, has_task }: Props) {
+export default function MessageThread({ bot, messages, progress, reply_progress, has_task, onQuote }: Props) {
     const groups = groupMessages({ messages });
+    const ref = useRef<HTMLDivElement>(null);
+    const { selection, clear } = useMessageSelection({ ref });
 
     return (
-        <Stack className="grow min-h-0 gap-0! items-stretch overflow-y-auto flex-col-reverse">
+        <Stack
+            componentRef={ref as RefObject<HTMLDivElement>}
+            className="grow min-h-0 gap-0! items-stretch overflow-y-auto flex-col-reverse">
             <Stack
                 role="log"
                 aria-live="polite"
@@ -56,6 +67,15 @@ export default function MessageThread({ bot, messages, progress, reply_progress,
                     has_task={has_task}
                 />
             </Stack>
+            {selection && onQuote ? (
+                <QuoteSelectionButton
+                    selection={selection}
+                    onQuote={() => {
+                        onQuote({ text: selection.text });
+                        clear();
+                    }}
+                />
+            ) : null}
         </Stack>
     );
 }

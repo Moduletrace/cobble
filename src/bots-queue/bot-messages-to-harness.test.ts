@@ -133,3 +133,17 @@ describe("botMessagesToHarness with files", () => {
         ).toEqual([{ role: "user", content: `[Attached earlier: "shot.png"]` }]);
     });
 });
+
+describe("botMessagesToHarness with mentions", () => {
+    test("names the bots and workspaces a user message mentions", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [message("user", "ask [bot:3]"), message("bot", "[bot:3] is on it")],
+                refs: { bots: new Map([[3, { name: "Ada" }]]), workspaces: new Map() },
+            }),
+        ).toEqual([
+            { role: "user", content: "ask [bot:3]\n\n[Mentions: [bot:3] is Ada]" },
+            { role: "assistant", content: "[bot:3] is on it" },
+        ]);
+    });
+});

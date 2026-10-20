@@ -1,0 +1,21 @@
+{
+    "name": "use-sync-external-store",
+    "version": "1.7.0-esm",
+    "description": "ESM stand-in for use-sync-external-store on React 19, which has useSyncExternalStore built in. The page bundler keeps react external, so the upstream CommonJS require(\"react\") can't load in the browser.",
+    "license": "MIT",
+    "type": "module",
+    "sideEffects": false,
+    "exports": {
+        ".": "./index.js",
+        "./with-selector": "./with-selector.js",
+        "./with-selector.js": "./with-selector.js",
+        "./shim": "./index.js",
+        "./shim/index.js": "./index.js",
+        "./shim/with-selector": "./with-selector.js",
+        "./shim/with-selector.js": "./with-selector.js",
+        "./package.json": "./package.json"
+    },
+    "peerDependencies": {
+        "react": ">=18"
+    }
+}

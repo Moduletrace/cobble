@@ -16,6 +16,8 @@ WORKDIR /app
 RUN echo 'alias ll="ls -laF"' >/root/.bashrc
 
 COPY package.json bun.lock ./
+# Local packages the lockfile installs from (`file:` dependencies)
+COPY packages ./packages
 RUN bun install --frozen-lockfile
 
 COPY . /app/.

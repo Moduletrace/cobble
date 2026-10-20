@@ -7,6 +7,7 @@ import type { BotMessageWithAttachments } from "@/src/types";
 import linkComputerRefs from "@/src/utils/link-computer-refs";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { MessageMarkdownComponents } from "../(data)/message-markdown-components";
+import { QuotableAttribute } from "../(hooks)/use-message-selection";
 import GroupTimestamp from "./group-timestamp";
 import MessageActions from "./message-actions";
 import MessageReactions from "./message-reactions";
@@ -29,7 +30,7 @@ type Props = {
  * rendered). Computers it names (`computerRef`) show as buttons that
  * switch the bot to them. A quoted reply sits above it, its reactions
  * below, and a row under it replies, reacts, reads it aloud and shows
- * why it needs you.
+ * why it needs you. Its text can be selected and quoted.
  */
 export default function BotMessageLine({ message, bot_name, at }: Props) {
     const { onReact } = useContext(BotMessageActionsContext);
@@ -43,7 +44,10 @@ export default function BotMessageLine({ message, bot_name, at }: Props) {
                     bot_name={bot_name}
                 />
             ) : null}
-            <Stack className="w-full gap-2.5! items-start break-words">
+            <Stack
+                {...{ [QuotableAttribute]: "" }}
+                className="w-full gap-2.5! items-start break-words"
+            >
                 <Markdown
                     remarkPlugins={[remarkGfm]}
                     components={MessageMarkdownComponents}

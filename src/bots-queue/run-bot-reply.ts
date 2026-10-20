@@ -17,6 +17,7 @@ import composeComputersNote from "./compose-computers-note";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import loadAttachmentParts from "./load-attachment-parts";
+import grabMessageRefNames from "@/src/functions/backend/db/bots/grab-message-ref-names";
 import withTakeOverRefs from "./with-take-over-refs";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
@@ -124,6 +125,10 @@ export default async function runBotReply({
             messages: botMessagesToHarness({
                 messages: history,
                 parts: await loadAttachmentParts({ messages: history }),
+                refs: await grabMessageRefNames({
+                    texts: history.filter((m) => m.author == "user").map((m) => m.text || ""),
+                    user_id,
+                }),
             }),
             tools: [...tools, ...extensions.tools],
             max_steps: AppData.BotReplyMaxToolSteps,

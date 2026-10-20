@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
 import type {
@@ -9,8 +9,10 @@ import { AppContext } from "@/src/pages/__root";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import useLiveBots from "@/src/hooks/use-live-bots";
 import useServerEvent from "@/src/hooks/use-server-event";
+import useLiveWorkspaces from "@/src/layouts/bots/(hooks)/use-live-workspaces";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import { CrewBotsContext } from "../(data)/crew-bots-context";
+import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { SpeakMessageContext } from "../(data)/speak-message-context";
 import reactToBotMessage from "../(functions)/react-to-bot-message";
@@ -21,7 +23,7 @@ import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
 import useSpeakMessage from "../(hooks)/use-speak-message";
 import ConversationHeader from "../(partials)/conversation-header";
 import MessageThread from "../(partials)/message-thread";
-import Composer from "../(partials)/composer";
+import Composer, { type ComposerHandle } from "../(partials)/composer";
 import ComputerViewerModal from "../(partials)/computer-viewer-modal";
 
 /**
@@ -31,7 +33,8 @@ import ComputerViewerModal from "../(partials)/computer-viewer-modal";
  * The bot's computers are shared with the header's modal and the computer
  * buttons in the thread, so a switch from either shows in both; either
  * can open one in the viewer. Bot messages can be read aloud, one at a
- * time.
+ * time. Text selected in the thread can be quoted in the composer, which
+ * mentions the crew and workspaces the user sees.
  */
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
@@ -59,6 +62,11 @@ export default function Conversation() {
         workspace_id,
     });
     const live_bot = bots.find((b) => b.id == bot?.id) || bot;
+    const workspaces = useLiveWorkspaces({
+        workspaces: pageProps?.workspaces || [],
+        open_workspace_id: workspace_id || undefined,
+    });
+    const composer = useRef<ComposerHandle>(null);
     const bot_computers = useBotComputers({
         bot_id: bot?.id || 0,
         workspace_id,
@@ -158,6 +166,7 @@ export default function Conversation() {
 
     return (
         <CrewBotsContext.Provider value={bots}>
+        <CrewWorkspacesContext.Provider value={workspaces}>
         <BotComputersContext.Provider value={bot_computers}>
             <SpeakMessageContext.Provider value={speak}>
                 <BotMessageActionsContext.Provider
@@ -179,8 +188,10 @@ export default function Conversation() {
                         progress={progress.text}
                         reply_progress={reply_progress}
                         has_task={Boolean(progress.task_id)}
+                        onQuote={({ text }) => composer.current?.insertQuote({ text })}
                     />
                     <Composer
+                        handle_ref={composer}
                         bot={bot}
                         workspace_id={workspace_id}
                         extensions={pageProps?.bot_extensions}
@@ -208,6 +219,7 @@ export default function Conversation() {
                 <ComputerViewerModal bot={live_bot} />
             </SpeakMessageContext.Provider>
         </BotComputersContext.Provider>
+        </CrewWorkspacesContext.Provider>
         </CrewBotsContext.Provider>
     );
 }

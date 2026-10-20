@@ -292,6 +292,10 @@ export const AppData = {
      */
     ComposerVoiceMaxMs: 5 * 60 * 1000,
     /**
+     * Most bots or workspaces the composer's mention menu lists at once.
+     */
+    ComposerMentionMaxItems: 6,
+    /**
      * Most of a bot message read aloud; the rest is cut.
      */
     SpeechMaxChars: 4000,
