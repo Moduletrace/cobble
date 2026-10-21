@@ -4,6 +4,7 @@ import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot
 import insertUserMessage from "@/src/functions/backend/db/bots/insert-user-message";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import grabAttachableMedia from "@/src/functions/backend/db/bots/grab-attachable-media";
+import storeChatAttachments from "@/src/functions/backend/db/bot-files/store-chat-attachments";
 import enqueueBotReply from "@/src/functions/backend/db/bots-queue/enqueue-bot-reply";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import wakeBotsQueue from "@/src/bots-queue/wake-bots-queue";
@@ -90,6 +91,17 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             workspace_id: conversation.workspace_id,
             text,
             reply_to,
+            media,
+        });
+
+        /**
+         * The files join the conversation's folder, so a later run can
+         * search what the user sent now.
+         */
+        await storeChatAttachments({
+            bot_id: bot.id,
+            workspace_id: conversation.workspace_id,
+            user_id: user.id,
             media,
         });
 

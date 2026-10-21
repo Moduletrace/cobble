@@ -25,10 +25,17 @@ export const BotRefHrefPrefix = "#bot-";
 export const WorkspaceRefHrefPrefix = "#workspace-";
 
 /**
+ * The link target a file ref (`fileRef`) becomes, e.g. `#file-12`. The
+ * chat renders these as a chip that opens the file.
+ */
+export const FileRefHrefPrefix = "#file-";
+
+/**
  * Turns every computer ref (`[computer:3]`) and take-over ref
- * (`[take-over:3:browser]`), bot ref (`[bot:3]`) and workspace ref
- * (`[workspace:2]`) in a message into a markdown link, so it
- * survives markdown rendering as a link the chat can swap for a button.
+ * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
+ * (`[workspace:2]`) and file ref (`[file:12]`) in a message into a
+ * markdown link, so it survives markdown rendering as a link the chat can
+ * swap for a button or chip.
  */
 export default function linkComputerRefs({ text }: { text: string }) {
     return text
@@ -44,5 +51,6 @@ export default function linkComputerRefs({ text }: { text: string }) {
         .replace(
             /\[workspace:(\d+)\](?!\()/g,
             (_, id: string) => `[workspace ${id}](${WorkspaceRefHrefPrefix}${id})`,
-        );
+        )
+        .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`);
 }

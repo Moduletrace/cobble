@@ -196,6 +196,7 @@ export default async function processBotJob({
             result: outcome.result,
             needs_you: outcome.needs_you,
             silent: outcome.silent,
+            attachments: outcome.attachments,
         });
 
         await pushBotNotice({ bot_id, ...completion });

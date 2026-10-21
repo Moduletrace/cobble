@@ -4,7 +4,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import grabMessagesMedia from "./grab-messages-media";
 import grabMessagesReactions from "./grab-messages-reactions";
 import grabMessagesReplies from "./grab-messages-replies";
-import mediaToAttachment from "./media-to-attachment";
+import mediaToAttachment, { grabAttachmentFileIds } from "./media-to-attachment";
 
 type Params = {
     session_id: number | string;
@@ -61,6 +61,14 @@ export default async function grabBotMessages({
             : Promise.resolve(new Map()),
     ]);
 
+    /**
+     * Files that live in a bot's folder carry their `bot_files` id, so a
+     * chip opens the file rather than only its bytes.
+     */
+    const file_ids = await grabAttachmentFileIds({
+        media_ids: [...media.values()].flat().map((file) => Number(file.id)),
+    });
+
     return messages.map((message) => {
         const id = Number(message.id);
         const files = media.get(id);
@@ -69,7 +77,14 @@ export default async function grabBotMessages({
         return {
             ...message,
             ...(files
-                ? { attachments: files.map((file) => mediaToAttachment({ media: file })) }
+                ? {
+                      attachments: files.map((file) =>
+                          mediaToAttachment({
+                              media: file,
+                              file_id: file_ids.get(Number(file.id)),
+                          }),
+                      ),
+                  }
                 : {}),
             ...(reply_to ? { reply_to } : {}),
             ...(user_id ? { reactions: reactions.get(id) || [] } : {}),

@@ -40,6 +40,11 @@ export const BunSQLiteTables = [
     "user_presence",
     "push_subscriptions",
     "envs",
+    "bot_files",
+    "bot_file_chunks",
+    "bot_file_vectors",
+    "file_ingest_queue",
+    "app_settings",
 ] as const
 
 export type BUN_SQLITE_COBBLE_USERS = {
@@ -156,7 +161,7 @@ export type BUN_SQLITE_COBBLE_MEDIA_PARADIGMS = {
      */
     updated_at?: number | "";
     media_id?: number | "";
-    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "bot-image" | "workspace-image" | "";
+    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "bot-image" | "workspace-image" | "bot-file" | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOTS = {
@@ -968,7 +973,7 @@ export type BUN_SQLITE_COBBLE_HARNESS_SETTINGS = {
      * The time when the record was updated. (Unix Timestamp)
      */
     updated_at?: number | "";
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "embedding" | "";
     /** 
      * harness_models row picked by a super admin. Null picks automatically. Not a foreign key, so removing a provider leaves the setting
      */
@@ -1008,7 +1013,7 @@ export type BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS = {
      * The worker bot that overrides the default. The coordinator always uses the defaults
      */
     bot_id?: number | "";
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "embedding" | "";
     /** 
      * harness_models row picked for this bot. Null picks automatically. Not a foreign key, like harness_settings
      */
@@ -1048,7 +1053,7 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS = {
      * The workspace
      */
     workspace_id?: number | "";
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "embedding" | "";
     /** 
      * harness_models row picked for this workspace. Null picks automatically. Not a foreign key, like harness_settings
      */
@@ -1418,4 +1423,176 @@ export type BUN_SQLITE_COBBLE_ENVS = {
     expose_to_computers?: 0 | 1 | "";
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS
+export type BUN_SQLITE_COBBLE_BOT_FILES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The bot that wrote or received it. Goes with the bot
+     */
+    bot_id?: number | "";
+    /** 
+     * Which directory it's in: a bot's own or a workspace's shared one
+     */
+    scope?: "bot" | "workspace" | "";
+    /** 
+     * The bot id (scope bot) or workspace id (scope workspace) owning the directory. Not a foreign key, so a row outlives a workspace but its files are cleaned up with it
+     */
+    owner_id?: number | "";
+    /** 
+     * The private `media` row holding the bytes. Not a foreign key: the catalog row can outlive it (a failed cleanup) and is then listed as missing
+     */
+    media_id?: number | "";
+    /** 
+     * Path inside the directory, forward slashes, e.g. reports/q3.md
+     */
+    path?: string;
+    name?: string;
+    /** 
+     * The folder part of `path`, empty at the top
+     */
+    folder?: string;
+    mime_type?: string;
+    media_type?: "image" | "video" | "document" | "audio" | "";
+    /** 
+     * Bytes on disk
+     */
+    size?: number | "";
+    /** 
+     * What it is for: an upload, something the bot wrote, a generated image or PDF
+     */
+    purpose?: "upload" | "writing" | "image" | "pdf" | "artifact" | "";
+    /** 
+     * How it got here: the user attached it to a message, the bot wrote it, or a tool made it
+     */
+    source?: "chat-upload" | "bot-write" | "tool" | "";
+    /** 
+     * When its text was chunked and embedded. Null: not ingested (yet)
+     */
+    ingested_at?: number | "";
+    /** 
+     * Why the last ingestion failed, when it did
+     */
+    ingest_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_BOT_FILE_CHUNKS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    file_id?: number | "";
+    scope?: "bot" | "workspace" | "";
+    /** 
+     * The bot or workspace the file belongs to, so a search filters without a join
+     */
+    owner_id?: number | "";
+    chunk_index?: number | "";
+    text?: string;
+    /** 
+     * A rough count (characters / 4), for trimming results
+     */
+    token_estimate?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_FILE_VECTORS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Normalized, padded or cut to `AppData.EmbeddingDimensions`
+     */
+    embedding?: Float32Array<ArrayBuffer> | Buffer<ArrayBuffer> | null;
+    chunk_id?: number | "";
+    file_id?: number | "";
+    scope?: string;
+    owner_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The `bot_files` row to (re)ingest
+     */
+    file_id?: number | "";
+    /** 
+     * The state of the job. (pending | processing | completed | failed)
+     */
+    status?: string;
+    /** 
+     * The number of times the job has been claimed.
+     */
+    attempts?: number | "";
+    /** 
+     * The time from which the job can be claimed. (Unix Timestamp)
+     */
+    available_at?: number | "";
+    /** 
+     * The time when the job was claimed. (Unix Timestamp)
+     */
+    locked_at?: number | "";
+    /** 
+     * The worker that claimed the job.
+     */
+    locked_by?: string;
+    /** 
+     * The error from the last failed attempt.
+     */
+    last_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_APP_SETTINGS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    key?: string;
+    value?: string;
+}
+
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_BOT_FILE_CHUNKS & BUN_SQLITE_COBBLE_BOT_FILE_VECTORS & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS

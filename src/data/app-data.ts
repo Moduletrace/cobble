@@ -374,6 +374,65 @@ export const AppData = {
      */
     SpeechMaxChars: 4000,
     /**
+     * Bot files: a bot's own directory and a workspace's shared one live
+     * under `DATA_DIR` (`DATA_DIR/bots/<id>`, `DATA_DIR/workspaces/<id>`),
+     * on the data volume, never on a computer.
+     */
+    BotDataDir: "bots",
+    WorkspaceDataDir: "workspaces",
+    /**
+     * The per-owner quota when the General settings page has none saved.
+     */
+    BotFileQuotaMb: 1024,
+    /**
+     * One file a bot writes in one call, and the most of a file a read
+     * hands back at once (the rest comes with an offset).
+     */
+    BotFileWriteMaxChars: 200_000,
+    BotFileReadMaxChars: 40_000,
+    BotFileListMaxItems: 200,
+    BotFileNameMaxChars: 120,
+    BotFilePathMaxChars: 400,
+    /**
+     * Most folders deep a path may go, so nothing buries a file.
+     */
+    BotFilePathMaxDepth: 8,
+    /**
+     * The files modal and the bot's file list: one page of them.
+     */
+    BotFilesPageSize: 50,
+    /**
+     * Ingesting a bot file: how much text one chunk holds, how much of the
+     * previous chunk it repeats, and the largest file it reads at all.
+     */
+    ChunkTargetChars: 1200,
+    ChunkOverlapChars: 200,
+    IngestMaxBytes: 20 * 1024 * 1024,
+    /**
+     * The fixed width of every vector, whatever the embedding model
+     * returns: shorter vectors are padded with zeros and longer ones cut,
+     * then all are normalized. Changing it needs
+     * `bunx bun-sqlite schema --vector` and a full re-ingest.
+     */
+    EmbeddingDimensions: 1536,
+    /**
+     * Texts sent to the embedding model per call, and per run of the
+     * ingestion worker.
+     */
+    EmbeddingBatchSize: 32,
+    EmbeddingMaxInputChars: 8000,
+    /**
+     * How many chunks a file search returns, and how many more it asks
+     * the vector index for before filtering to the run's scopes.
+     */
+    RagTopChunks: 8,
+    RagOverFetch: 4,
+    RagMaxK: 60,
+    FileIngestPollMs: 5000,
+    FileIngestConcurrency: 2,
+    FileIngestWorker: "ingest",
+    FileIngestMaxAttempts: 2,
+    /**
      * What a speech model reads when a voice is tried in the model settings.
      */
     VoicePreviewText: "Hi there. This is how I'll sound when I read my replies aloud.",

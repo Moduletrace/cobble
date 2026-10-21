@@ -5,6 +5,7 @@ import sanitizeUserBio from "@/src/functions/backend/db/users/sanitize-user-bio"
 import grabUserPasswordHash from "@/src/functions/backend/auth/grab-user-password-hash";
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
+import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
 
 type Params = Parameters<BunextPageServerFn<PagePropsType>>[0];
 
@@ -40,6 +41,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
         props: {
             person: sanitizeUserBio({ user: user_res.singleRes }),
             has_password,
+            storage_quota: await grabStorageQuotaOverview().catch(() => null),
         },
     };
 }

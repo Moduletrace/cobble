@@ -1,5 +1,6 @@
 import type { HarnessAdapter } from "../../types";
 import chat from "./chat";
+import embed from "./embed";
 import generateImage from "./generate-image";
 import listModels from "./list-models";
 import speak from "./speak";
@@ -15,6 +16,7 @@ const OpenAICompatibleAdapter: HarnessAdapter = {
     transcribe,
     speak,
     generateImage,
+    embed,
     listModels,
 };
 

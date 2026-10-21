@@ -47,7 +47,9 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
     const [name, setName] = useState(bot?.name || "");
     const [role, setRole] = useState(bot?.role || "");
     const [hue, setHue] = useState<BotHue>(
-        () => (bot?.hue as BotHue) || pickFreeHue({ taken: crew.map((b) => b.hue) }),
+        () =>
+            (bot?.hue as BotHue) ||
+            pickFreeHue({ taken: crew.map((b) => b.hue) }),
     );
     const [system_prompt, setSystemPrompt] = useState(bot?.system_prompt || "");
     const [join, setJoin] = useState(!bot && Boolean(workspace?.id));
@@ -57,7 +59,14 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
 
     const submit = async () => {
         if (loading) return;
-        if (!window.confirm(bot?.id ? `Save changes to ${bot.name || "this bot"}?` : `Add ${name || "this bot"} to your crew?`)) return;
+        if (
+            !window.confirm(
+                bot?.id
+                    ? `Save changes to ${bot.name || "this bot"}?`
+                    : `Add ${name || "this bot"} to your crew?`,
+            )
+        )
+            return;
 
         setLoading(true);
         setError(undefined);
@@ -66,13 +75,21 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
         const res = bot?.id
             ? await postAdminApi<BUN_SQLITE_COBBLE_BOTS>({
                   path: "bots/update-bot",
-                  body: { bot_id: bot.id, name: name || bot.name, role, hue, system_prompt },
+                  body: {
+                      bot_id: bot.id,
+                      name: name || bot.name,
+                      role,
+                      hue,
+                      system_prompt,
+                  },
               })
             : await postAdminApi<{ bot_id: number }>({
                   path: "bots/create-bot",
                   body: { name, role, hue, system_prompt, workspace_id },
               });
-        const bot_id = bot?.id || (res.singleRes as { bot_id?: number } | undefined)?.bot_id;
+        const bot_id =
+            bot?.id ||
+            (res.singleRes as { bot_id?: number } | undefined)?.bot_id;
 
         if (!res.success || !bot_id) {
             setLoading(false);
@@ -91,7 +108,10 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
 
             if (!image_res?.success) {
                 setLoading(false);
-                setError(image_res?.msg || "The bot is saved, but its picture isn't. Try another image.");
+                setError(
+                    image_res?.msg ||
+                        "The bot is saved, but its picture isn't. Try another image.",
+                );
                 return;
             }
 
@@ -162,12 +182,16 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                         info="One line, shown under its name."
                         onChange={(e) => setRole(e.target.value)}
                     />
-                    <BotHuePicker hue={hue} disabled={loading} onChange={setHue} />
+                    <BotHuePicker
+                        hue={hue}
+                        disabled={loading}
+                        onChange={setHue}
+                    />
                 </>
             )}
             <CodeEditor
                 mode="markdown"
-                className="h-40"
+                className="h-[300px]"
                 title="Instructions"
                 placeholder="You research topics for the user. Find good sources, read them, and report back with a short summary and links."
                 content={system_prompt}

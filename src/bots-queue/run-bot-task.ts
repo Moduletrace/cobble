@@ -1,5 +1,11 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
-import { ActionCheckNote, ScheduledRunNote, TaskRunNote, WorkspaceLearningNote } from "@/src/data/harness-prompts";
+import {
+    ActionCheckNote,
+    BotFilesNote,
+    ScheduledRunNote,
+    TaskRunNote,
+    WorkspaceLearningNote,
+} from "@/src/data/harness-prompts";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
@@ -11,6 +17,7 @@ import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
+import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import computerRef from "@/src/utils/computer-ref";
 import composeJobBrief from "./compose-job-brief";
@@ -81,6 +88,10 @@ export default async function runBotTask({
             signal,
         }).catch(() => "");
         const take_overs: string[] = [];
+        /**
+         * Files the bot wrote and asked to send with its report.
+         */
+        const attachments: number[] = [];
         const scheduled = Boolean(params.schedule_id);
         let failure = null as string | null;
 
@@ -120,6 +131,13 @@ export default async function runBotTask({
                 : []),
             ...(scheduled ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
             ...(computer?.tools || []),
+            ...(await grabBotFileTools({
+                bot,
+                user_id,
+                workspace_id,
+                session_id,
+                onAttach: ({ media_id }) => attachments.push(media_id),
+            })),
         ];
 
         extensions = await openBotExtensions({
@@ -136,6 +154,7 @@ export default async function runBotTask({
                 carry_over,
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
+                BotFilesNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 bot.kind == "coordinator"
@@ -180,10 +199,13 @@ export default async function runBotTask({
             throw new ScheduledRunFailedError(computer ? computer.redact(failure) : failure);
         }
 
-        return withTakeOverRefs({
-            text: computer ? computer.redact(result.text) : result.text,
-            refs: take_overs,
-        });
+        return {
+            ...withTakeOverRefs({
+                text: computer ? computer.redact(result.text) : result.text,
+                refs: take_overs,
+            }),
+            attachments: attachments.length ? attachments : undefined,
+        };
     } finally {
         await extensions?.close();
         await computer?.close();

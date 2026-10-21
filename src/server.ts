@@ -6,6 +6,7 @@ import userAuth from "./functions/backend/auth/user-auth";
 import type { WebSocketSession } from "./websocket/types";
 import { logError, grabRequestIP } from "./functions/backend/logger";
 import botsQueue from "./bots-queue";
+import fileIngest from "./file-ingest";
 import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
@@ -163,6 +164,9 @@ try {
 
 botsQueue().catch((error) =>
     logError({ title: "Bots queue couldn't start", error }).catch(() => {}),
+);
+fileIngest().catch((error) =>
+    logError({ title: "File ingest couldn't start", error }).catch(() => {}),
 );
 liveRelay().catch((error) =>
     logError({ title: "Live relay couldn't start", error }).catch(() => {}),

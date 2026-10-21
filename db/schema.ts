@@ -18,6 +18,7 @@ import { Harnesses } from "@/src/dict/harness-dict";
 import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
 import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
+import { BotFilePurposes, BotFileScopes, BotFileSources } from "@/src/dict/bot-file-dict";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms } from "@/src/dict/env-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
@@ -2319,6 +2320,233 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_envs_paradigm_key",
                     indexTableFields: ["paradigm", "key"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_files",
+            tableDescription: `A file a bot saved or the user gave it: the catalog row for bytes on the data volume, under \`DATA_DIR/bots/<id>\` or \`DATA_DIR/workspaces/<id>\`. The bytes are a private \`media\` row (paradigm \`bot-file\`), so they're served like other media and deleted with the row. Never on a computer's filesystem`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that wrote or received it. Goes with the bot`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_files_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "scope",
+                    fieldDescription: `Which directory it's in: a bot's own or a workspace's shared one`,
+                    dataType: "TEXT",
+                    options: BotFileScopes.map((s) => s.value),
+                    defaultValue: "bot",
+                },
+                {
+                    fieldName: "owner_id",
+                    fieldDescription: `The bot id (scope bot) or workspace id (scope workspace) owning the directory. Not a foreign key, so a row outlives a workspace but its files are cleaned up with it`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "media_id",
+                    fieldDescription: `The private \`media\` row holding the bytes. Not a foreign key: the catalog row can outlive it (a failed cleanup) and is then listed as missing`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "path",
+                    fieldDescription: `Path inside the directory, forward slashes, e.g. reports/q3.md`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "name",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "folder",
+                    fieldDescription: `The folder part of \`path\`, empty at the top`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "mime_type",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "media_type",
+                    dataType: "TEXT",
+                    options: MediaTypes.map((it) => it.value),
+                },
+                {
+                    fieldName: "size",
+                    fieldDescription: `Bytes on disk`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "purpose",
+                    fieldDescription: `What it is for: an upload, something the bot wrote, a generated image or PDF`,
+                    dataType: "TEXT",
+                    options: BotFilePurposes.map((p) => p.value),
+                    defaultValue: "writing",
+                },
+                {
+                    fieldName: "source",
+                    fieldDescription: `How it got here: the user attached it to a message, the bot wrote it, or a tool made it`,
+                    dataType: "TEXT",
+                    options: BotFileSources.map((s) => s.value),
+                    defaultValue: "bot-write",
+                },
+                {
+                    fieldName: "ingested_at",
+                    fieldDescription: `When its text was chunked and embedded. Null: not ingested (yet)`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "ingest_error",
+                    fieldDescription: `Why the last ingestion failed, when it did`,
+                    dataType: "TEXT",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_file_per_path",
+                    constraintName: "One file per directory and path",
+                    constraintTableFields: [{ value: "scope" }, { value: "owner_id" }, { value: "path" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_files_owner",
+                    indexTableFields: ["scope", "owner_id", "folder"],
+                },
+                {
+                    indexName: "idx_bot_files_media_id",
+                    indexTableFields: ["media_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_file_chunks",
+            tableDescription: `A piece of a bot file's text, the unit a search returns. Replaced whole when the file is ingested again`,
+            fields: [
+                {
+                    fieldName: "file_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_files",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_file_chunks_file_fk",
+                    },
+                },
+                {
+                    fieldName: "scope",
+                    dataType: "TEXT",
+                    options: BotFileScopes.map((s) => s.value),
+                },
+                {
+                    fieldName: "owner_id",
+                    fieldDescription: `The bot or workspace the file belongs to, so a search filters without a join`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "chunk_index",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "text",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "token_estimate",
+                    fieldDescription: `A rough count (characters / 4), for trimming results`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_file_chunks_file_id",
+                    indexTableFields: ["file_id", "chunk_index"],
+                },
+                {
+                    indexName: "idx_bot_file_chunks_owner",
+                    indexTableFields: ["scope", "owner_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_file_vectors",
+            tableDescription: `sqlite-vec vectors of a file's chunks, at \`AppData.EmbeddingDimensions\` wide whatever the model returns. A vec0 table is only recreated with \`bunx bun-sqlite schema --vector\`, so the entrypoint never passes it`,
+            isVector: true,
+            vectorType: "vec0",
+            fields: [
+                {
+                    fieldName: "embedding",
+                    fieldDescription: `Normalized, padded or cut to \`AppData.EmbeddingDimensions\``,
+                    dataType: "BLOB",
+                    isVector: true,
+                    vectorSize: AppData.EmbeddingDimensions,
+                },
+                {
+                    fieldName: "chunk_id",
+                    dataType: "INTEGER",
+                    sideCar: true,
+                },
+                {
+                    fieldName: "file_id",
+                    dataType: "INTEGER",
+                    sideCar: true,
+                },
+                {
+                    fieldName: "scope",
+                    dataType: "TEXT",
+                    sideCar: true,
+                },
+                {
+                    fieldName: "owner_id",
+                    dataType: "INTEGER",
+                    sideCar: true,
+                },
+            ],
+        },
+        {
+            tableName: "file_ingest_queue",
+            tableDescription: `Files waiting to have their text chunked and embedded. A queue, so a restart never strands a file and an upload never waits on a model. A finished job is deleted: \`bot_files.ingested_at\` and \`ingest_error\` keep the outcome`,
+            isQueue: {
+                maxAttempts: 3,
+                lockTimeout: 10 * 60 * 1000,
+                backoff: 30_000,
+                deleteOnComplete: true,
+            },
+            fields: [
+                {
+                    fieldName: "file_id",
+                    fieldDescription: `The \`bot_files\` row to (re)ingest`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_file_ingest_queue_file_id",
+                    indexTableFields: ["file_id"],
+                },
+            ],
+        },
+        {
+            tableName: "app_settings",
+            tableDescription: `Install-wide settings the app reads that aren't envs: an env's value is handed to bots and computers, which a storage quota must never be`,
+            fields: [
+                {
+                    fieldName: "key",
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "value",
+                    dataType: "TEXT",
                 },
             ],
         },

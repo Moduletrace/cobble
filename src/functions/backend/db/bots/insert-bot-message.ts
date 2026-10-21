@@ -13,6 +13,11 @@ type Params = {
     workspace_id?: number | null;
     text: string;
     needs_you?: boolean;
+    /**
+     * Files the bot saved and sent with it (`media` ids): a PDF it made, a
+     * generated image, a document it wrote.
+     */
+    media_ids?: number[];
 };
 
 /**
@@ -25,6 +30,7 @@ export default async function insertBotMessage({
     workspace_id,
     text,
     needs_you,
+    media_ids = [],
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
     const needs_you_flag = needs_you ? 1 : 0;
@@ -50,6 +56,13 @@ export default async function insertBotMessage({
 
     if (!res.success || !id) {
         throw new Error(`Failed to save message: ${res.msg}`);
+    }
+
+    for (const media_id of media_ids) {
+        await BunSQLite.sql({
+            sql: `INSERT INTO bot_message_media (created_at, updated_at, message_id, media_id) VALUES (?, ?, ?, ?)`,
+            values: [now, now, id, media_id],
+        }).catch(() => {});
     }
 
     await BunSQLite.sql({

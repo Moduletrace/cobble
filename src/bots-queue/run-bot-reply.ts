@@ -2,6 +2,7 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
+    BotFilesNote,
     ChatReplyNote,
     CoordinatorReplyNote,
     CoordinatorSoloNote,
@@ -12,6 +13,7 @@ import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
+import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import botMessagesToHarness from "./bot-messages-to-harness";
 import composeComputersNote from "./compose-computers-note";
@@ -76,6 +78,18 @@ export default async function runBotReply({
     }).catch(() => "");
 
     const take_overs: string[] = [];
+    /**
+     * Files the bot wrote and asked to send with its reply.
+     */
+    const attachments: number[] = [];
+
+    const file_tools = await grabBotFileTools({
+        bot,
+        user_id,
+        workspace_id,
+        session_id,
+        onAttach: ({ media_id }) => attachments.push(media_id),
+    });
 
     const tools = await grabBotChatTools({
         bot,
@@ -111,6 +125,7 @@ export default async function runBotReply({
                 prompt,
                 carry_over,
                 ChatReplyNote,
+                BotFilesNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({
@@ -132,7 +147,7 @@ export default async function runBotReply({
                     user_id,
                 }),
             }),
-            tools: [...tools, ...extensions.tools],
+            tools: [...tools, ...file_tools, ...extensions.tools],
             max_steps: AppData.BotReplyMaxToolSteps,
             bot_id: bot.id,
             workspace_id,
@@ -140,7 +155,10 @@ export default async function runBotReply({
             onStep: report,
         });
 
-        return withTakeOverRefs({ text: result.text, refs: take_overs });
+        return {
+            ...withTakeOverRefs({ text: result.text, refs: take_overs }),
+            attachments: attachments.length ? attachments : undefined,
+        };
     } finally {
         await extensions.close();
     }

@@ -1,4 +1,5 @@
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
+import purgeStorage, { grabStorageMediaIds } from "@/src/functions/backend/db/bot-files/purge-storage";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserWorkspace from "./grab-user-workspace";
@@ -22,6 +23,14 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
         throw new AppError(`Workspace not found.`);
     }
 
+    /**
+     * Read before the delete: the shared files' rows go with the workspace.
+     */
+    const file_media_ids = await grabStorageMediaIds({
+        scope: "workspace",
+        owner_id: workspace.id!,
+    }).catch(() => []);
+
     const res = await BunSQLite.sql({
         sql: `DELETE FROM workspaces WHERE id = ?`,
         values: [workspace.id],
@@ -34,6 +43,15 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
     if (workspace.image_media_id) {
         await deleteMedia({ id: workspace.image_media_id, user_id: Number(user_id) }).catch(() => {});
     }
+
+    /**
+     * The bots' shared folder there goes with it.
+     */
+    await purgeStorage({
+        scope: "workspace",
+        owner_id: workspace.id!,
+        media_ids: file_media_ids,
+    });
 
     return workspace;
 }

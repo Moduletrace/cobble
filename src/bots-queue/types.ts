@@ -40,6 +40,11 @@ export type BotJobOutcome = {
      * Finish without posting `result` (a reply with nothing left to answer).
      */
     silent?: boolean;
+    /**
+     * Files the bot wrote and asked to send with its message (`media`
+     * ids), attached to the result message.
+     */
+    attachments?: number[];
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

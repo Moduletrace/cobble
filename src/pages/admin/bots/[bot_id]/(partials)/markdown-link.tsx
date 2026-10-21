@@ -4,11 +4,13 @@ import { ComputerViewModes, type ComputerViewMode } from "@/src/dict/computer-di
 import {
     BotRefHrefPrefix,
     ComputerRefHrefPrefix,
+    FileRefHrefPrefix,
     TakeOverRefHrefPrefix,
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
 import BotRefChip from "./bot-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
+import FileRefChip from "./file-ref-chip";
 import TakeOverChip from "./take-over-chip";
 import WorkspaceRefChip from "./workspace-ref-chip";
 
@@ -16,7 +18,8 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * A link in a bot message. A computer the bot named (`linkComputerRefs`)
  * becomes its switch button, a take-over request a button that opens the
  * computer, a bot it named a link to that bot's conversation, a workspace
- * a link to that workspace; anything else opens in a new tab.
+ * a link to that workspace, a file it saved a chip that opens it; anything
+ * else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
     if (href?.startsWith(ComputerRefHrefPrefix)) {
@@ -50,6 +53,12 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
         const workspace_id = Number(href.slice(WorkspaceRefHrefPrefix.length));
 
         if (workspace_id) return <WorkspaceRefChip workspace_id={workspace_id} />;
+    }
+
+    if (href?.startsWith(FileRefHrefPrefix)) {
+        const file_id = Number(href.slice(FileRefHrefPrefix.length));
+
+        if (file_id) return <FileRefChip file_id={file_id} />;
     }
 
     return (

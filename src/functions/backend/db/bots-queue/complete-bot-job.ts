@@ -26,6 +26,10 @@ type Params = {
      * Finish without posting a message.
      */
     silent?: boolean;
+    /**
+     * Files the bot saved and asked to send with it (`media` ids).
+     */
+    attachments?: number[];
 };
 
 /**
@@ -43,6 +47,7 @@ export default async function completeBotJob({
     result,
     needs_you,
     silent,
+    attachments,
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
 
@@ -81,6 +86,7 @@ export default async function completeBotJob({
               workspace_id: job.workspace_id || null,
               text: result,
               needs_you,
+              media_ids: attachments,
           });
 
     const user_id = await grabJobUserId({ job });

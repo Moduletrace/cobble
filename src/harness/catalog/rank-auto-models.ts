@@ -28,7 +28,7 @@ type Params<T extends HarnessCatalogModel> = {
  *
  * Within a group, benchmarked models come first by intelligence index,
  * then the rest: full-size before small variants, newest first. None for
- * a harness that isn't `automatic` (transcription, speech).
+ * a harness that isn't `automatic` (transcription, speech, embeddings).
  */
 export default function rankAutoModels<T extends HarnessCatalogModel>({
     models,

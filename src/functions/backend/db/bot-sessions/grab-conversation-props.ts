@@ -7,6 +7,7 @@ import grabBots from "../bots/grab-bots";
 import grabActiveBotTask from "../bots/grab-active-bot-task";
 import grabBotMessages from "../bots/grab-bot-messages";
 import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overview";
+import grabConversationFiles from "../bot-files/grab-conversation-files";
 import grabBotComputers from "../computers/grab-bot-computers";
 import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import grabUserWorkspaces from "../workspaces/grab-user-workspaces";
@@ -67,7 +68,7 @@ export default async function grabConversationProps({
 
     bot.unread = 0;
 
-    const [bot_messages, bot_text_model, bot_computers, bot_task, bot_extensions, transcription, speech] = await Promise.all([
+    const [bot_messages, bot_text_model, bot_computers, bot_task, bot_extensions, bot_files, transcription, speech] = await Promise.all([
         grabBotMessages({
             session_id: session.id!,
             user_id,
@@ -77,6 +78,7 @@ export default async function grabConversationProps({
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabActiveBotTask({ bot_id: bot.id, session_id: session.id }),
         grabBotExtensionsOverview({ user_id, bot_id: bot.id, workspace_id: scope }),
+        grabConversationFiles({ bot_id: bot.id, workspace_id: scope }),
         hasHarnessModel({ harness: "transcription", bot_id: bot.id, workspace_id: scope }),
         hasHarnessModel({ harness: "speech", bot_id: bot.id, workspace_id: scope }),
     ]);
@@ -95,6 +97,7 @@ export default async function grabConversationProps({
         bot_computers,
         bot_task,
         bot_extensions,
+        bot_files,
         bot_voice: { transcription, speech },
     };
 }

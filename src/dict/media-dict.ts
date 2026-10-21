@@ -42,4 +42,8 @@ export const MediaParadigms = [
         title: "Workspace Image",
         value: "workspace-image",
     },
+    {
+        title: "Bot File",
+        value: "bot-file",
+    },
 ] as const;

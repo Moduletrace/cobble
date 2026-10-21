@@ -203,6 +203,25 @@ export type HarnessImageOutput = {
     media_type: string;
 };
 
+export type HarnessEmbedParams = {
+    candidate: HarnessCandidate;
+    /**
+     * The texts to embed, in order. Their vectors come back in the same
+     * order, at whatever width the model produces (the caller fits them
+     * to `AppData.EmbeddingDimensions`).
+     */
+    input: string[];
+    signal: AbortSignal;
+};
+
+export type HarnessEmbedResult = {
+    vectors: number[][];
+    /**
+     * The provider's usage, when it reports it.
+     */
+    usage?: HarnessUsage;
+};
+
 /**
  * How the harness talks to one kind of provider. Every call takes the
  * candidate it runs on and an abort signal.
@@ -214,6 +233,7 @@ export type HarnessAdapter = {
     generateImage: (
         params: HarnessImageParams,
     ) => Promise<{ images: HarnessImageOutput[] }>;
+    embed: (params: HarnessEmbedParams) => Promise<HarnessEmbedResult>;
     listModels: (params: {
         provider: HarnessProviderConfig;
         signal?: AbortSignal;

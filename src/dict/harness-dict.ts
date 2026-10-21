@@ -2,8 +2,9 @@
  * The harnesses: what a model is used for. Each harness has one model
  * setting (`harness_settings`). Text is the brain and can't be turned off;
  * the others are helpers it calls on. `automatic` ones pick a free model
- * themselves when none is picked; the rest (transcription, speech) are
- * not available until one is, since free picks there rarely work.
+ * themselves when none is picked; the rest (transcription, speech,
+ * embeddings) are not available until one is, since free picks there
+ * rarely work.
  */
 export const Harnesses = [
     {
@@ -39,6 +40,13 @@ export const Harnesses = [
         value: "image",
         automatic: true,
         description: `Makes images when a bot is asked for one.`,
+        required: false,
+    },
+    {
+        title: "Embeddings",
+        value: "embedding",
+        automatic: false,
+        description: `Turns the files bots save into vectors, so they can search them. Without one, searching falls back to plain text matching.`,
         required: false,
     },
 ] as const;

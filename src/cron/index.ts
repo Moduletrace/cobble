@@ -5,6 +5,7 @@ import cronSyncHarnessModels from "./sync-harness-models";
 import syncComputers from "./sync-computers";
 import syncMcpServers from "./sync-mcp-servers";
 import runCronJobs from "./run-cron-jobs";
+import ingestPendingFiles from "./ingest-pending-files";
 import registerCronJob from "./register-cron-job";
 
 export default function cron() {
@@ -52,6 +53,13 @@ export default function cron() {
         schedule: "* * * * *",
         task: runCronJobs,
         run_on_start: true,
+        quiet: true,
+    });
+
+    registerCronJob({
+        title: "ingest-pending-files",
+        schedule: "*/10 * * * *",
+        task: ingestPendingFiles,
         quiet: true,
     });
 }

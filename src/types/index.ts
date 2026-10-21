@@ -623,6 +623,38 @@ export type EnvsOverviewPayload = {
 };
 
 /**
+ * A bot file as the chat's files modal lists it.
+ */
+export type PublicBotFile = {
+    id: number;
+    name: string;
+    path: string;
+    size: number;
+    media_type: string;
+    purpose: string;
+    scope: string;
+    owner_id: number;
+    ingested_at?: number;
+    ingest_error?: string;
+    created_at: number;
+    /**
+     * Where the bytes are served (`/media/private/<media id>`).
+     */
+    url: string;
+};
+
+/**
+ * A conversation's files, with the directory's usage against its quota.
+ */
+export type BotFileScopesPayload = {
+    files: PublicBotFile[];
+    folders: { scope: string; owner_id: number; path: string }[];
+    usage: { bytes: number; files: number };
+    quota_bytes: number;
+    quota_mb: number;
+};
+
+/**
  * A worker bot's model settings page data, also returned when it saves.
  */
 /**
@@ -634,6 +666,10 @@ export type BotMessageAttachment = {
     media_type: MediaType;
     url: string;
     thumbnail_url?: string;
+    /**
+     * The bot file it is, when it was saved in one of the bot's folders.
+     */
+    file_id?: number;
 };
 
 /**
@@ -794,10 +830,26 @@ export type PagePropsType = {
     harness_overview?: HarnessOverviewPayload | null;
     bot_harness_overview?: BotHarnessOverviewPayload | null;
     envs_overview?: EnvsOverviewPayload | null;
+    /**
+     * What bots keep on disk: the per-folder quota and its usage (the
+     * General settings page).
+     */
+    storage_quota?: {
+        setting_key: string;
+        quota_mb: number;
+        total_bytes: number;
+        total_files: number;
+        folders: number;
+    } | null;
     push_overview?: PushOverview | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
     bot_extensions?: BotExtensionsPayload | null;
+    /**
+     * The open conversation's files (a bot's own, or a workspace's shared
+     * ones), for the files modal and the chips that name one.
+     */
+    bot_files?: BotFileScopesPayload | null;
     /**
      * Whether the open conversation's mic (transcription) and read-aloud
      * (speech) are turned on for the bot there.
