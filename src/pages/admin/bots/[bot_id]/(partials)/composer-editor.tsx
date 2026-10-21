@@ -1,6 +1,7 @@
 import { EditorContent, type Editor } from "@tiptap/react";
 import ComposerFormatBubble from "./composer-format-bubble";
 import LoadingBlock from "@moduletrace/twui/elements/LoadingBlock";
+import Row from "@moduletrace/twui/layout/Row";
 
 type Props = {
     editor: Editor | null;
@@ -25,7 +26,9 @@ export default function ComposerEditor({ editor, invalid, title }: Props) {
             {editor ? (
                 <ComposerFormatBubble editor={editor} />
             ) : (
-                <LoadingBlock className="w-full h-[30px] -ml-6" />
+                <Row className="w-full opacity-50">
+                    <LoadingBlock className="w-full h-[30px] -ml-4 lg:-ml-6" />
+                </Row>
             )}
         </>
     );

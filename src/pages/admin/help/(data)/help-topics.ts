@@ -1,4 +1,4 @@
-import { HelpHttpsTopicId, HelpSignInTopicId } from "@/src/dict/help-dict";
+import { HelpSecureConnectionTopicId, HelpSignInTopicId } from "@/src/dict/help-dict";
 
 export type HelpTopic = {
     /**
@@ -22,38 +22,21 @@ export type HelpTopic = {
  */
 export const HelpTopics: HelpTopic[] = [
     {
-        id: HelpHttpsTopicId,
-        title: "The browser says the connection isn't private",
-        summary: `"Your connection is not private", a certificate warning, or an app that won't install or send notifications.`,
-        body: `Cobble serves HTTPS with a certificate signed by a small local authority (a CA) that the installer made on your machine. Browsers only trust it once you have told them to, so the first visit warns.
+        id: HelpSecureConnectionTopicId,
+        title: "The app needs a secure connection",
+        summary: `A browser warning, the app won't install, or notifications and voice stay off.`,
+        body: `Cobble serves plain HTTP and expects HTTPS in front of it: a reverse proxy (Caddy, nginx, Traefik) or a tunnel (Cloudflare Tunnel, Tailscale Serve). Browsers treat plain HTTP as unsafe, so the installable app, its offline support, Web Push notifications and voice recording stay off until the address is HTTPS.
 
-**Download it on the device.** Open one of these in the device's browser, on the same address you use for Cobble, and accept the warning if it shows:
+### Point the proxy at Cobble
 
-- **iPhone or iPad:** \`https://<your address>:7227/ca.mobileconfig\`. iOS offers a profile, which is one tap to install.
-- **Everything else:** \`https://<your address>:7227/ca.crt\`.
+The proxy should reach the app at \`http://<this machine>:7227\` (or the port given with \`--port\`), and it should set \`X-Forwarded-Proto: https\`. Cobble reads that header to mark the sign-in cookies \`Secure\` and to build the right links. Caddy does it by default; with nginx add \`proxy_set_header X-Forwarded-Proto $scheme;\` to the location block.
 
-You can also copy it from the machine Cobble runs on: \`/opt/cobble/certs/ca.crt\` (or wherever it was installed).
+### If it still doesn't work
 
-### Install it
-
-- **iPhone or iPad:** tap **Allow** on the downloaded profile, install it (it also appears under **Settings > General > VPN & Device Management**), then turn it on under **Settings > General > About > Certificate Trust Settings**. Both steps are needed, even with the one-tap profile.
-- **Android:** **Settings > Security > Encryption & credentials > Install a certificate > CA certificate**, then pick the file.
-- **macOS:** add it to the login keychain and set it to **Always Trust**.
-- **Linux:** copy it into \`/usr/local/share/ca-certificates/\` and run \`sudo update-ca-certificates\`.
-- **Windows:** install it under **Trusted Root Certification Authorities**.
-
-Reload Cobble afterwards. The warning is gone.
-
-### Why it matters
-
-The connection is encrypted either way; the warning is about who signed the certificate. But the browser treats an untrusted address as unsafe, so the installable app, its offline support and Web Push notifications stay off until the CA is trusted. Voice recording and dictation need that safe context too.
-
-### If it still warns
-
-- **You installed the profile but iOS still warns.** The second step, Certificate Trust Settings, was missed. It is a separate switch.
-- **You replaced the CA.** Rerunning the installer with \`--https-regen\` makes a new CA. Remove the old profile and install the new one.
-- **The warning comes back every few months.** The certificate is renewed when the installer runs, but it is still signed by the same CA, so devices keep trusting it.
-- **You have your own certificate.** Installs using \`--https-cert\` and \`--https-key\`, or \`--no-https\` behind a proxy or tunnel, do not need any of this.`,
+- **You opened the plain HTTP address.** Use the HTTPS address your proxy serves. \`http://\` will always be treated as unsafe.
+- **The certificate warning comes from the proxy.** It is using a self-signed or expired certificate. Fix that on the proxy: Cobble never sees the certificate.
+- **Sign-in doesn't stick, or downloads fail.** The proxy is not passing \`X-Forwarded-Proto\` (see above), or it is dropping cookies.
+- **WebSocket updates don't arrive.** The proxy must pass the upgrade on \`/ws\` as well as ordinary requests.`,
     },
     {
         id: HelpSignInTopicId,

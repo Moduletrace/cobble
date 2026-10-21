@@ -1,5 +1,4 @@
 import bunext from "@moduletrace/bunext";
-import { existsSync } from "fs";
 import handleMediaServer from "./functions/server/media/handle-media-server";
 import cron from "./cron";
 import { websocket } from "./websocket";
@@ -15,10 +14,6 @@ import handleBuildInfo from "./functions/server/pwa/handle-build-info";
 import handlePrecacheGate from "./functions/server/pwa/handle-precache-gate";
 import grabPrecacheManifest from "./functions/server/pwa/grab-precache-manifest";
 import compressResponse from "./functions/server/compress-response";
-import serveLocalCa from "./functions/server/serve-local-ca";
-import startHttpRedirect from "./functions/server/start-http-redirect";
-import resolveTlsOptions from "./utils/resolve-tls-options";
-import pickTlsFiles from "./utils/pick-tls-files";
 import { ComputerProxyPrefix } from "./dict/computer-dict";
 import ensureDockerNetwork from "./functions/backend/docker/ensure-docker-network";
 import { ensureVapidKeys } from "./push/vapid";
@@ -70,54 +65,11 @@ try {
 }
 
 /**
- * Which certificate to serve with, the same way in every environment: the
- * `TLS_*` variables when set, else `certs/` (which is also where the
- * container's `/app/certs` mount lands). Plain HTTP needs `TLS_DISABLED`.
+ * The app always serves plain HTTP and leaves TLS to whatever sits in
+ * front of it (a reverse proxy or tunnel). `isSecureRequest` reads the
+ * proxy's `X-Forwarded-Proto` so cookies still get `Secure`.
  */
-const picked = pickTlsFiles({
-    cert_file: process.env.TLS_CERT_FILE,
-    key_file: process.env.TLS_KEY_FILE,
-    ca_file: process.env.TLS_CA_FILE,
-    disabled: process.env.TLS_DISABLED,
-    fallback_cert_file: "certs/server.crt",
-    fallback_key_file: "certs/server.key",
-    fallback_ca_file: "certs/ca.crt",
-    file_exists: existsSync,
-});
-
-if (picked.ca_file) process.env.TLS_CA_FILE = picked.ca_file;
-else delete process.env.TLS_CA_FILE;
-
-switch (picked.source) {
-    case "fallback":
-        bunext.bunextLog.info(`Using the certificate in certs/`);
-        break;
-    case "disabled":
-        bunext.bunextLog.info(`Serving plain HTTP (TLS_DISABLED is set)`);
-        break;
-    case "none":
-        bunext.bunextLog.info(
-            "Serving plain HTTP (no certificate; run `bun run gen:certs`, or set TLS_CERT_FILE and TLS_KEY_FILE)",
-        );
-        break;
-}
-
-let tls: ReturnType<typeof resolveTlsOptions> = undefined;
-
-try {
-    tls = resolveTlsOptions({
-        cert_file: picked.cert_file,
-        key_file: picked.key_file,
-    });
-} catch (error) {
-    console.error(
-        `Can't start without a working TLS certificate: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    process.exit(1);
-}
-
 const server = Bun.serve({
-    ...(tls ? { tls } : {}),
     async fetch(req, server) {
         try {
             const url = new URL(req.url);
@@ -133,10 +85,6 @@ const server = Bun.serve({
             const loading_page = await handlePrecacheGate({ req, url });
 
             if (loading_page) return loading_page;
-
-            const local_ca = await serveLocalCa({ pathname: url.pathname });
-
-            if (local_ca) return local_ca;
 
             if (url.pathname.startsWith("/media")) {
                 try {
@@ -193,38 +141,15 @@ const server = Bun.serve({
     port,
     /**
      * Fail loudly on a second dev server instead of letting Bun's default
-     * port sharing split requests between an old and a new process (one
-     * might be plain HTTP while the other is HTTPS).
+     * port sharing split requests between an old and a new process.
      */
     reusePort: false,
     idleTimeout: development ? 80 : undefined,
 });
 
 bunext.bunextLog.info(
-    `Server running on ${tls ? "https" : "http"}://${server.hostname}:${server.port} ...`,
+    `Server running on http://${server.hostname}:${server.port} ...`,
 );
-
-/**
- * A TLS port cannot answer plain HTTP, so a plain `http://` visit is sent
- * to the HTTPS page from the port above it (`startHttpRedirect`). The
- * container publishes only the HTTPS port, so there it is only reachable
- * if that second port is published.
- */
-if (tls) {
-    try {
-        const redirect = startHttpRedirect({ https_port: port });
-
-        if (redirect) {
-            bunext.bunextLog.info(
-                `HTTP redirect on port ${redirect.port} (HTTP_REDIRECT_PORT to change it)`,
-            );
-        }
-    } catch (error) {
-        bunext.bunextLog.info(
-            `Could not start the HTTP redirect on port ${Number(port) + 1}: ${error instanceof Error ? error.message : String(error)}. Stop the other server or set HTTP_REDIRECT_PORT.`,
-        );
-    }
-}
 
 /**
  * Background services start after the server is up, and one failing to

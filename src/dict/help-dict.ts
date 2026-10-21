@@ -9,6 +9,6 @@ export const HelpPath = "/admin/help";
 export const HelpSignInTopicId = "sign-in-with-cookies";
 
 /**
- * Trusting the local HTTPS certificate on a device.
+ * Reaching the app over HTTPS through a proxy or tunnel.
  */
-export const HelpHttpsTopicId = "https-certificate";
+export const HelpSecureConnectionTopicId = "secure-connection";

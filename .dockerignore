@@ -9,7 +9,6 @@ node_modules
 .data
 .bunext
 .bun-sqlite
-certs
 db/cobble
 db/.backups
 db/.exports

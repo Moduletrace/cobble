@@ -9,9 +9,8 @@
 # container with the docker socket mounted, so the app can create the
 # computers it runs.
 #
-# HTTPS is on by default: a local CA and a certificate for this machine are
-# generated into HOME/certs and mounted into the container, which keeps the
-# data and the certificate across updates. `--no-https` serves plain HTTP.
+# The app serves plain HTTP: put a reverse proxy or tunnel in front of it
+# for HTTPS.
 set -Eeuo pipefail
 
 CONTAINER="cobble"
@@ -77,28 +76,17 @@ Options:
   --force                Recreate the container even when it is current
   --skip-backup          Do not back up the database before an update
   --no-docker-install    Fail instead of installing Docker when it is missing
-  --yes, -y              Accept the defaults without asking (HTTPS on)
+  --yes, -y              Accept the defaults without asking
   --uninstall            Stop and remove the app container
   --purge                With --uninstall, also delete the data directory
   --help                 Show this help
 
 HTTPS:
-  It is on by default, and a fresh install asks before continuing. It
-  encrypts the connection, and phones need it to install the app and
-  receive notifications; a proxy or tunnel that already handles HTTPS is
-  the reason to answer no. A local CA and a certificate for this machine
-  are generated into HOME/certs, so each device trusts the CA once:
-  https://<this machine>:<port>/ca.crt, or HOME/certs/ca.crt.
-  iPhone and iPad install it in one tap from
-  https://<this machine>:<port>/ca.mobileconfig.
-
-  --no-https             Serve plain HTTP (for a proxy or tunnel in front)
-  --https                Serve HTTPS (the default; re-enables after --no-https)
-  --https-host VALUE     A name or IP the certificate covers (repeatable),
-                         e.g. a VPN's DNS name
-  --https-cert FILE      Use your own certificate instead of the local CA
-  --https-key FILE       Its private key (given with --https-cert)
-  --https-regen          Replace the local CA and the certificate
+  The app serves plain HTTP on the published port. Put a reverse proxy or
+  tunnel in front of it for HTTPS, and point that proxy at
+  http://<this machine>:<port>. Phones need HTTPS to install the app and
+  receive notifications, so expose Cobble through the proxy rather than
+  its bare port.
 
 The data directory holds the database, media and every computer's home
 directory. It is kept when the container is removed. Settings live in
@@ -148,9 +136,7 @@ esac
 ENV_FILE="$HOME_DIR/.env"
 STATE_FILE="$HOME_DIR/install.conf"
 
-HAD_STATE=0
 if [ -f "$STATE_FILE" ]; then
-    HAD_STATE=1
     # shellcheck disable=SC1090
     . "$STATE_FILE"
 fi
@@ -162,11 +148,6 @@ IMAGE="${COBBLE_IMAGE:-}"
 VERSION="${COBBLE_VERSION:-}"
 EXTRA_NETWORK="${COBBLE_EXTRA_NETWORK:-}"
 DOCKER_SOCKET="${COBBLE_DOCKER_SOCKET:-${DOCKER_SOCKET:-/var/run/docker.sock}}"
-# HTTPS is the default. The state file keeps a `--no-https` install off.
-HTTPS_ENABLED="${COBBLE_HTTPS:-1}"
-HTTPS_HOSTS="${COBBLE_HTTPS_HOSTS:-}"
-HTTPS_CERT_SOURCE="${COBBLE_HTTPS_CERT:-}"
-HTTPS_KEY_SOURCE="${COBBLE_HTTPS_KEY:-}"
 
 ACTION="install"
 FORCE=0
@@ -174,16 +155,7 @@ NO_PULL=0
 NO_DOCKER_INSTALL=0
 SKIP_BACKUP=0
 PURGE=0
-HTTPS_DISABLED=0
-HTTPS_FORCE=0
-HTTPS_EXPLICIT=0
-HTTPS_HOSTS_GIVEN=0
-HTTPS_CERT_GIVEN=0
-HTTPS_REGEN=0
 ASSUME_YES=0
-HTTPS_MANAGED=1
-CERTS_CHANGED=0
-CERT_EXPIRY=""
 
 env_get() {
     local key="$1"
@@ -231,43 +203,16 @@ while [ $# -gt 0 ]; do
             EXTRA_NETWORK="${2:-}"
             shift 2
             ;;
-        --https)
-            HTTPS_ENABLED=1
-            HTTPS_FORCE=1
-            HTTPS_EXPLICIT=1
+        # Accepted from older scripts and docs, then ignored: HTTPS is the
+        # proxy's job now, and a value that still pointed at a certificate
+        # should not be dropped silently.
+        --https | --no-https | --https-regen)
+            warn "$1 is no longer needed: Cobble serves plain HTTP. Put a proxy or tunnel in front for HTTPS."
             shift
             ;;
-        --no-https)
-            HTTPS_DISABLED=1
-            HTTPS_EXPLICIT=1
-            shift
-            ;;
-        --https-host)
-            if [ "$HTTPS_HOSTS_GIVEN" = 1 ]; then
-                HTTPS_HOSTS="$HTTPS_HOSTS ${2:-}"
-            else
-                HTTPS_HOSTS="${2:-}"
-                HTTPS_HOSTS_GIVEN=1
-            fi
-            HTTPS_EXPLICIT=1
+        --https-host | --https-cert | --https-key)
+            warn "$1 is no longer needed: Cobble serves plain HTTP. Put a proxy or tunnel in front for HTTPS."
             shift 2
-            ;;
-        --https-cert)
-            HTTPS_CERT_SOURCE="${2:-}"
-            HTTPS_CERT_GIVEN=1
-            HTTPS_EXPLICIT=1
-            shift 2
-            ;;
-        --https-key)
-            HTTPS_KEY_SOURCE="${2:-}"
-            HTTPS_CERT_GIVEN=1
-            HTTPS_EXPLICIT=1
-            shift 2
-            ;;
-        --https-regen)
-            HTTPS_REGEN=1
-            HTTPS_EXPLICIT=1
-            shift
             ;;
         --yes | -y)
             ASSUME_YES=1
@@ -346,45 +291,10 @@ if [ "$PURGE" = 1 ] && [ "$ACTION" != "uninstall" ]; then
     fail "--purge only works with --uninstall"
 fi
 
-if [ "$HTTPS_DISABLED" = 1 ]; then
-    [ "$HTTPS_FORCE" = 1 ] && fail "--https and --no-https cannot both be given"
-    if [ "$HTTPS_REGEN" = 1 ] || [ "$HTTPS_CERT_GIVEN" = 1 ] || [ "$HTTPS_HOSTS_GIVEN" = 1 ]; then
-        fail "--no-https cannot be combined with the other --https options"
-    fi
-    HTTPS_ENABLED=0
-    HTTPS_HOSTS=""
-    HTTPS_CERT_SOURCE=""
-    HTTPS_KEY_SOURCE=""
-else
-    if [ "$HTTPS_FORCE" = 1 ] || [ "$HTTPS_REGEN" = 1 ] || [ "$HTTPS_CERT_GIVEN" = 1 ] || [ "$HTTPS_HOSTS_GIVEN" = 1 ]; then
-        HTTPS_ENABLED=1
-    fi
-    if [ -n "$HTTPS_CERT_SOURCE" ] || [ -n "$HTTPS_KEY_SOURCE" ]; then
-        [ -n "$HTTPS_CERT_SOURCE" ] && [ -n "$HTTPS_KEY_SOURCE" ] || fail "--https-cert and --https-key must be given together"
-        [ "$HTTPS_REGEN" = 1 ] && fail "--https-regen only works with the certificate the installer generates"
-        [ -f "$HTTPS_CERT_SOURCE" ] || fail "Certificate not found: $HTTPS_CERT_SOURCE"
-        [ -f "$HTTPS_KEY_SOURCE" ] || fail "Key not found: $HTTPS_KEY_SOURCE"
-        case "$HTTPS_CERT_SOURCE" in /*) ;; *) HTTPS_CERT_SOURCE="$PWD/$HTTPS_CERT_SOURCE" ;; esac
-        case "$HTTPS_KEY_SOURCE" in /*) ;; *) HTTPS_KEY_SOURCE="$PWD/$HTTPS_KEY_SOURCE" ;; esac
-        HTTPS_MANAGED=0
-    else
-        HTTPS_MANAGED=1
-    fi
-fi
-
-if [ -n "$HTTPS_HOSTS" ]; then
-    for https_host in $HTTPS_HOSTS; do
-        case "$https_host" in
-            *[!A-Za-z0-9.:_-]*) fail "--https-host is not a hostname or IP address: $https_host" ;;
-        esac
-    done
-fi
-
 ENV_FILE="$HOME_DIR/.env"
 STATE_FILE="$HOME_DIR/install.conf"
 DATA_DIR="${DATA_DIR%/}"
 BACKUP_DIR="$HOME_DIR/backups"
-CERTS_DIR="$HOME_DIR/certs"
 
 # ---------------------------------------------------------------- platform
 
@@ -415,19 +325,9 @@ fi
 
 ENV_MOUNT="$ENV_FILE:/app/.env:ro"
 DATA_MOUNT="$DATA_DIR:/data"
-CERTS_MOUNT="$CERTS_DIR:/certs"
-# The app only needs the certificate, its key and the CA (for /ca.crt);
-# the CA's own key stays out of the container.
-CERT_MOUNT_RO="$CERTS_DIR/server.crt:/app/certs/server.crt:ro"
-KEY_MOUNT_RO="$CERTS_DIR/server.key:/app/certs/server.key:ro"
-CA_MOUNT_RO="$CERTS_DIR/ca.crt:/app/certs/ca.crt:ro"
 if [ -n "$SELINUX_SUFFIX" ]; then
     ENV_MOUNT="$ENV_FILE:/app/.env:ro,z"
     DATA_MOUNT="$DATA_DIR:/data,z"
-    CERTS_MOUNT="$CERTS_DIR:/certs,z"
-    CERT_MOUNT_RO="$CERTS_DIR/server.crt:/app/certs/server.crt:ro,z"
-    KEY_MOUNT_RO="$CERTS_DIR/server.key:/app/certs/server.key:ro,z"
-    CA_MOUNT_RO="$CERTS_DIR/ca.crt:/app/certs/ca.crt:ro,z"
 fi
 
 # ---------------------------------------------------------------- helpers
@@ -466,60 +366,8 @@ unset_env() {
     rm -f "$ENV_FILE.bak"
 }
 
-health_scheme() {
-    if [ "$HTTPS_ENABLED" = 1 ]; then
-        printf 'https'
-    else
-        printf 'http'
-    fi
-}
-
 health_url() {
-    printf '%s://%s:%s/api/health' "$(health_scheme)" "$(health_host)" "$PORT"
-}
-
-# A fresh install asks about HTTPS and states why; updates keep the saved
-# mode, and any --https* flag (or --yes) skips the question. The prompt
-# reads /dev/tty, never stdin: with `curl | bash` stdin is the script.
-ask_https() {
-    local answer=""
-
-    if [ "$HAD_STATE" = 1 ] || [ "$HTTPS_EXPLICIT" = 1 ] || [ "$ACTION" = "uninstall" ] || [ "$ASSUME_YES" = 1 ]; then
-        return 0
-    fi
-
-    if ! { : </dev/tty; } 2>/dev/null; then
-        printf '\nHTTPS is on by default: it encrypts the connection, and phones need it to install the app and receive notifications. Each device trusts the local certificate once. Pass --no-https if a proxy or tunnel already handles HTTPS.\n\n' >&2
-        return 0
-    fi
-
-    printf '\n' >&2
-    printf 'Cobble can serve HTTPS, and that is the default.\n' >&2
-    printf 'It encrypts the connection, and phones need it to install the app\n' >&2
-    printf 'and receive notifications. The installer creates a local CA for\n' >&2
-    printf 'this machine, so each device trusts it once (on an iPhone: install\n' >&2
-    printf 'the profile, then turn it on under Certificate Trust Settings).\n' >&2
-    printf '\n' >&2
-    printf 'Answer no if a proxy or tunnel already handles HTTPS for Cobble.\n' >&2
-    printf 'Serve HTTPS? [Y/n] ' >&2
-
-    exec 3</dev/tty
-    read -r answer <&3 || answer=""
-    exec 3<&-
-
-    case "$answer" in
-        [nN]*)
-            HTTPS_ENABLED=0
-            HTTPS_HOSTS=""
-            HTTPS_CERT_SOURCE=""
-            HTTPS_KEY_SOURCE=""
-            HTTPS_MANAGED=1
-            printf '\nPlain HTTP. Put HTTPS in front before using it outside this network.\n' >&2
-            ;;
-        *)
-            printf '\nHTTPS on. Trust the certificate on each device before using the app.\n' >&2
-            ;;
-    esac
+    printf 'http://%s:%s/api/health' "$(health_host)" "$PORT"
 }
 
 set_env() {
@@ -580,29 +428,16 @@ container_matches() {
     if [ -n "$EXTRA_NETWORK" ]; then
         docker inspect -f '{{range $name, $net := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$CONTAINER" | grep -qx "$EXTRA_NETWORK" || return 1
     fi
-    if [ "$HTTPS_ENABLED" = 1 ]; then
-        [ "$(mounted_source /app/certs/server.crt)" = "$CERTS_DIR/server.crt" ] || return 1
-        [ "$(mounted_source /app/certs/server.key)" = "$CERTS_DIR/server.key" ] || return 1
-        docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "TLS_CERT_FILE=/app/certs/server.crt" || return 1
-        docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "TLS_KEY_FILE=/app/certs/server.key" || return 1
-        if [ "$HTTPS_MANAGED" = 1 ]; then
-            [ "$(mounted_source /app/certs/ca.crt)" = "$CERTS_DIR/ca.crt" ] || return 1
-            docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "TLS_CA_FILE=/app/certs/ca.crt" || return 1
-        else
-            if [ -n "$(mounted_source /app/certs/ca.crt)" ]; then
-                return 1
-            fi
-            if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "TLS_CA_FILE=/app/certs/ca.crt"; then
-                return 1
-            fi
-        fi
-    else
-        if [ -n "$(mounted_source /app/certs/server.crt)" ] || [ -n "$(mounted_source /app/certs/server.key)" ] || [ -n "$(mounted_source /app/certs/ca.crt)" ]; then
-            return 1
-        fi
-        if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -q "^TLS_CERT_FILE="; then
-            return 1
-        fi
+    # An install from before TLS was removed: its container holds the old
+    # certificate mounts and envs, so recreate it rather than report it
+    # current.
+    if [ -n "$(mounted_source /app/certs/server.crt)" ] ||
+        [ -n "$(mounted_source /app/certs/server.key)" ] ||
+        [ -n "$(mounted_source /app/certs/ca.crt)" ]; then
+        return 1
+    fi
+    if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -q "^TLS_"; then
+        return 1
     fi
     return 0
 }
@@ -627,7 +462,7 @@ wait_for_health() {
     url="$(health_url)"
     say "Waiting for Cobble to answer at $url"
     while [ "$start" -lt "$HEALTH_TIMEOUT_SECONDS" ]; do
-        if curl -fsSk --max-time 3 -o /dev/null "$url" 2>/dev/null; then
+        if curl -fsS --max-time 3 -o /dev/null "$url" 2>/dev/null; then
             ok "Cobble is healthy"
             return 0
         fi
@@ -640,89 +475,6 @@ wait_for_health() {
     done
     docker logs --tail 120 "$CONTAINER" 2>&1 || true
     fail "Cobble did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s"
-}
-
-validate_certs() {
-    local mount="$CERTS_DIR:/certs:ro"
-    local script out
-    if [ -n "$SELINUX_SUFFIX" ]; then
-        mount="$mount,z"
-    fi
-
-    script='set -e
-for file in /certs/server.crt /certs/server.key; do
-    [ -s "$file" ] || { echo "$file is missing"; exit 1; }
-done
-cert_public="$(openssl x509 -noout -pubkey -in /certs/server.crt)"
-key_public="$(openssl pkey -pubout -in /certs/server.key 2>/dev/null || openssl rsa -pubout -in /certs/server.key 2>/dev/null)"
-[ -n "$cert_public" ] && [ "$cert_public" = "$key_public" ] || { echo "the certificate and key do not match"; exit 1; }
-openssl x509 -noout -checkend 0 -in /certs/server.crt >/dev/null || { echo "the certificate has expired"; exit 1; }
-if [ -f /certs/ca.crt ]; then
-    openssl verify -CAfile /certs/ca.crt /certs/server.crt >/dev/null || { echo "the certificate is not signed by the local CA"; exit 1; }
-fi
-openssl x509 -noout -enddate -in /certs/server.crt | sed -e "s/^notAfter=//"'
-
-    if ! out="$(docker run --rm -v "$mount" --entrypoint sh "$IMAGE:$VERSION" -c "$script" 2>&1)"; then
-        fail "The certificate can't be used: $(printf '%s\n' "$out" | tail -n 1)"
-    fi
-
-    CERT_EXPIRY="$(printf '%s\n' "$out" | tail -n 1)"
-}
-
-prepare_certs() {
-    CERTS_CHANGED=0
-    mkdir -p "$CERTS_DIR"
-    chmod 700 "$CERTS_DIR"
-
-    if [ "$HTTPS_MANAGED" = 0 ]; then
-        if [ ! -f "$CERTS_DIR/server.crt" ] || [ ! -f "$CERTS_DIR/server.key" ] ||
-            ! cmp -s "$HTTPS_CERT_SOURCE" "$CERTS_DIR/server.crt" ||
-            ! cmp -s "$HTTPS_KEY_SOURCE" "$CERTS_DIR/server.key"; then
-            CERTS_CHANGED=1
-        fi
-        cp -f "$HTTPS_CERT_SOURCE" "$CERTS_DIR/server.crt"
-        cp -f "$HTTPS_KEY_SOURCE" "$CERTS_DIR/server.key"
-        chmod 644 "$CERTS_DIR/server.crt"
-        chmod 600 "$CERTS_DIR/server.key"
-        rm -f "$CERTS_DIR/ca.crt" "$CERTS_DIR/ca.key" "$CERTS_DIR/ca.srl" "$CERTS_DIR/sans.txt"
-        validate_certs
-        ok "Using the certificate at $HTTPS_CERT_SOURCE"
-        return 0
-    fi
-
-    local args=(--out /certs --no-detect)
-    local ip name fqdn host out
-    for ip in $(host_ips); do
-        args+=(--host "$ip")
-    done
-    name="$(hostname 2>/dev/null || true)"
-    if [ -n "$name" ]; then
-        args+=(--host "$name" --host "$name.local")
-    fi
-    fqdn="$(hostname -f 2>/dev/null || true)"
-    if [ -n "$fqdn" ] && [ "$fqdn" != "$name" ]; then
-        args+=(--host "$fqdn")
-    fi
-    for host in $HTTPS_HOSTS; do
-        args+=(--host "$host")
-    done
-    if [ "$HTTPS_REGEN" = 1 ]; then
-        args+=(--regen)
-    fi
-
-    say "Preparing the HTTPS certificate"
-    if ! out="$(docker run --rm -v "$CERTS_MOUNT" --entrypoint bun "$IMAGE:$VERSION" src/scripts/generate-local-certs.ts "${args[@]}" 2>&1)"; then
-        printf '%s\n' "$out" >&2
-        fail "Could not generate the certificate. An older image has no certificate generator: pull the current image (drop --no-pull) and rerun."
-    fi
-    printf '%s\n' "$out" | sed -e 's/^/    /'
-
-    case "$out" in
-        *"certs: unchanged"*) CERTS_CHANGED=0 ;;
-        *) CERTS_CHANGED=1 ;;
-    esac
-
-    validate_certs
 }
 
 backup_database() {
@@ -817,21 +569,6 @@ run_container() {
         -e "PORT=$PORT"
     )
 
-    if [ "$HTTPS_ENABLED" = 1 ]; then
-        mounts+=(
-            -v "$CERT_MOUNT_RO"
-            -v "$KEY_MOUNT_RO"
-        )
-        envs+=(
-            -e TLS_CERT_FILE=/app/certs/server.crt
-            -e TLS_KEY_FILE=/app/certs/server.key
-        )
-        if [ "$HTTPS_MANAGED" = 1 ]; then
-            mounts+=(-v "$CA_MOUNT_RO")
-            envs+=(-e TLS_CA_FILE=/app/certs/ca.crt)
-        fi
-    fi
-
     docker run -d \
         --name "$CONTAINER" \
         --restart unless-stopped \
@@ -924,8 +661,6 @@ uninstall() {
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
 
-ask_https
-
 ensure_docker
 
 if [ "$ACTION" = "uninstall" ]; then
@@ -962,21 +697,13 @@ ensure_secret ENCRYPTION_KEY
 ensure_secret ENCRYPTION_SALT
 ensure_env PAGE_LASTMOD_FILE "/data/sitemap-lastmod.json"
 
-if [ "$HTTPS_ENABLED" = 1 ]; then
-    unset_env TLS_DISABLED
-    set_env TLS_CERT_FILE /app/certs/server.crt
-    set_env TLS_KEY_FILE /app/certs/server.key
-    if [ "$HTTPS_MANAGED" = 1 ]; then
-        set_env TLS_CA_FILE /app/certs/ca.crt
-    else
-        unset_env TLS_CA_FILE
-    fi
-else
-    unset_env TLS_CERT_FILE
-    unset_env TLS_KEY_FILE
-    unset_env TLS_CA_FILE
-    set_env TLS_DISABLED 1
-fi
+# Installs from before TLS was removed may still carry these; the app
+# ignores them, so drop them rather than leave a stale decoration.
+unset_env TLS_CERT_FILE
+unset_env TLS_KEY_FILE
+unset_env TLS_CA_FILE
+unset_env TLS_DISABLED
+unset_env HTTP_REDIRECT_PORT
 
 {
     printf 'COBBLE_DATA_DIR=%q\n' "$DATA_DIR"
@@ -986,10 +713,6 @@ fi
     printf 'COBBLE_VERSION=%q\n' "$VERSION"
     printf 'COBBLE_EXTRA_NETWORK=%q\n' "$EXTRA_NETWORK"
     printf 'COBBLE_DOCKER_SOCKET=%q\n' "$DOCKER_SOCKET"
-    printf 'COBBLE_HTTPS=%q\n' "$HTTPS_ENABLED"
-    printf 'COBBLE_HTTPS_HOSTS=%q\n' "$HTTPS_HOSTS"
-    printf 'COBBLE_HTTPS_CERT=%q\n' "$HTTPS_CERT_SOURCE"
-    printf 'COBBLE_HTTPS_KEY=%q\n' "$HTTPS_KEY_SOURCE"
 } >"$STATE_FILE"
 chmod 600 "$STATE_FILE"
 
@@ -1011,15 +734,11 @@ if [ "$IMAGE_ARCH" != "$ARCH" ]; then
     fail "Image $IMAGE:$VERSION is $IMAGE_ARCH but this machine is $ARCH. Pull the multi-arch image instead of --no-pull."
 fi
 
-if [ "$HTTPS_ENABLED" = 1 ]; then
-    prepare_certs
-fi
-
-if [ "$FORCE" = 0 ] && [ "$CERTS_CHANGED" = 0 ] && container_matches; then
+if [ "$FORCE" = 0 ] && container_matches; then
     connect_extra_network
-    if curl -fsSk --max-time 3 -o /dev/null "$(health_url)" 2>/dev/null; then
+    if curl -fsS --max-time 3 -o /dev/null "$(health_url)" 2>/dev/null; then
         ok "Cobble is already up to date"
-        say "Healthy at $(health_scheme)://$(health_host):$PORT"
+        say "Healthy at http://$(health_host):$PORT"
         exit 0
     fi
     warn "The container is running but not answering; recreating it"
@@ -1039,38 +758,19 @@ connect_extra_network
 wait_for_health
 
 ok "Cobble is running"
-SCHEME="$(health_scheme)"
 printf '\n'
 printf '  %s%s%s\n' "$C_BOLD" "Open Cobble" "$C_RESET"
 if [ "$BIND" = "0.0.0.0" ]; then
     while IFS= read -r ip; do
-        [ -n "$ip" ] && printf '    %s://%s:%s\n' "$SCHEME" "$ip" "$PORT"
+        [ -n "$ip" ] && printf '    http://%s:%s\n' "$ip" "$PORT"
     done < <(host_ips)
 fi
-printf '    %s://127.0.0.1:%s\n' "$SCHEME" "$PORT"
+printf '    http://127.0.0.1:%s\n' "$PORT"
 printf '\n'
-if [ "$HTTPS_ENABLED" = 1 ]; then
-    printf '  Certificate\n'
-    if [ "$HTTPS_MANAGED" = 1 ]; then
-        printf '    Signed by a local CA on this machine. Trust it once on\n'
-        printf '    each device, then reload: the installed app and\n'
-        printf '    notifications need it.\n'
-        printf '      %s://<the address above>:%s/ca.crt\n' "$SCHEME" "$PORT"
-        printf '      %s://<the address above>:%s/ca.mobileconfig (iPhone/iPad)\n' "$SCHEME" "$PORT"
-        printf '      or copy %s\n' "$CERTS_DIR/ca.crt"
-    else
-        printf '    Using your certificate at %s\n' "$HTTPS_CERT_SOURCE"
-    fi
-    if [ -n "$CERT_EXPIRY" ]; then
-        printf '    Expires: %s\n' "$CERT_EXPIRY"
-    fi
-    printf '\n'
-fi
-if [ "$HTTPS_ENABLED" = 1 ] && [ "$HTTPS_MANAGED" = 1 ]; then
-    printf '  First visit: install the certificate, then create the super admin account.\n'
-else
-    printf '  First visit: create the super admin account.\n'
-fi
+printf '  Put a reverse proxy or tunnel in front for HTTPS, and open that\n'
+printf '  address instead. The installed app and notifications need it.\n'
+printf '\n'
+printf '  First visit: create the super admin account.\n'
 printf '  Data:        %s\n' "$DATA_DIR"
 printf '  Settings:    %s\n' "$ENV_FILE"
 printf '  Backups:     %s\n' "$BACKUP_DIR"
@@ -1079,9 +779,5 @@ printf '  Update:      curl -fsSL %s | sudo bash\n' "$INSTALL_URL"
 printf '  Uninstall:   curl -fsSL %s | sudo bash -s -- --uninstall\n' "$INSTALL_URL"
 printf '\n'
 if [ "$BIND" = "0.0.0.0" ]; then
-    if [ "$HTTPS_ENABLED" = 1 ]; then
-        printf '  %sThis port is reachable on your network. A device that does not trust the certificate shows a warning. Put a proxy or tunnel in front before exposing it to the internet.%s\n\n' "$C_DIM" "$C_RESET"
-    else
-        printf '  %sThis port is reachable on your network. Put HTTPS in front before exposing it to the internet.%s\n\n' "$C_DIM" "$C_RESET"
-    fi
+    printf '  %sThis port is reachable on your network, without encryption. Put a proxy or tunnel in front of it for HTTPS.%s\n\n' "$C_DIM" "$C_RESET"
 fi

@@ -61,11 +61,9 @@ Before the first public release:
 - [ ] The GHCR package is public.
 - [ ] The first release is installed on the real host and a signup, a chat
       reply, a computer and a routine have been exercised.
-- [ ] A plain `curl | bash` install ends on `https://`, `/ca.crt`
-      downloads, and a device that trusted the CA installs the app, gets a
-      live chat socket and can turn on notifications.
-- [ ] `--no-https` behind a proxy, and `--https-cert`/`--https-key` with a
-      real certificate, were each tried once.
+- [ ] A plain `curl | bash` install answers on `http://<host>:7227`, and
+      the same install behind a reverse proxy serves HTTPS, installs the
+      app, gets a live chat socket and can turn on notifications.
 
 ## Rollback
 
