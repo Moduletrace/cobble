@@ -362,3 +362,7 @@ footer .twui-anchor.active {
 #admin-main h6 {
     @apply text-xs!;
 }
+
+.conversation-user-bubble a {
+    @apply text-blue-400 dark:text-blue-600;
+}
