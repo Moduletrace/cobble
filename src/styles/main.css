@@ -1,5 +1,18 @@
 @import "@moduletrace/twui/base.css";
 
+/* Doc and prompt strings mention refs like `[file:12]`, which Tailwind would
+   read as an arbitrary-property utility and emit as `file: 12` (esbuild then
+   warns it is not a CSS property). None of these files holds a className. */
+@source not "../../AGENTS.md";
+@source not "../../db/**";
+@source not "../**/*.test.ts";
+@source not "../**/*.test.tsx";
+@source not "../data/harness-prompts.ts";
+@source not "../utils/file-ref.ts";
+@source not "../utils/link-computer-refs.ts";
+@source not "../harness/tools/storage/list-files-tool.ts";
+@source not "../harness/tools/storage/storage-tool-context.ts";
+
 /* Cobble design tokens (handoff `tokens/tokens.css`). Light on `:root`, dark
    on `.dark` (twui's dark variant). Exposed to Tailwind in `@theme inline`. */
 :root {

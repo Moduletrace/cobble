@@ -61,7 +61,9 @@ try {
     await ensureDockerNetwork();
 } catch (error) {
     await logError({ title: "Docker isn't available", error }).catch(() => {});
-    console.error(`Can't start without docker: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+        `Can't start without docker: ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exit(1);
 }
 
@@ -122,7 +124,9 @@ const server = Bun.serve({
 
             const response = await bunext.bunextRequestHandler({ req, server });
 
-            return response ? await compressResponse({ req, response }) : response;
+            return response
+                ? await compressResponse({ req, response })
+                : response;
         } catch (error: any) {
             await logError({
                 title: "Unhandled request error",
