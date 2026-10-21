@@ -5,9 +5,9 @@ import { twMerge } from "tailwind-merge";
 import profileImageUrls from "@/src/utils/profile-image-urls";
 
 const WorkspaceAvatarSizes = {
-    xs: { box: "size-[18px] rounded-[4px]", icon: 12 },
-    sm: { box: "size-8 rounded-default-sm", icon: 16 },
-    lg: { box: "size-14 rounded-default", icon: 24 },
+    xs: { box: "size-[18px] min-w-[18px] rounded-[4px]", icon: 12 },
+    sm: { box: "size-8 min-w-8 rounded-default-sm", icon: 16 },
+    lg: { box: "size-14 min-w-14 rounded-default", icon: 24 },
 } as const;
 
 type Props = {

@@ -57,35 +57,40 @@ export default function ConversationHeader({
                     {bot.name}
                 </H1>
 
-                {workspace?.id ? (
-                    <Row className="min-w-0 w-full gap-2! flex-nowrap">
-                        <WorkspaceAvatar
-                            image_media_id={workspace.image_media_id}
-                            size="xs"
-                        />
-                        <Span size="smaller" className="truncate">
-                            {workspace.name || "Workspace"}
-                        </Span>
-                    </Row>
-                ) : null}
-
-                <Row className="min-w-0 w-full gap-x-1! md:gap-x-3! gap-y-0! flex-nowrap">
-                    <HeaderMetaItem
-                        icon={CpuAi}
-                        label="Model"
-                        text={
-                            model
-                                ? `${model.name} · ${model.provider_name}`
-                                : "No model set up"
-                        }
-                    />
-                    {computer_name ? (
-                        <HeaderMetaItem
-                            icon={Monitor}
-                            label="Computer"
-                            text={computer_name}
-                        />
+                <Row className="flex-nowrap w-full">
+                    {workspace?.id ? (
+                        <Row className="min-w-0 gap-2! flex-nowrap">
+                            <WorkspaceAvatar
+                                image_media_id={workspace.image_media_id}
+                                size="xs"
+                            />
+                            <Span
+                                size="smaller"
+                                className="truncate hidden xl:block"
+                            >
+                                {workspace.name || "Workspace"}
+                            </Span>
+                        </Row>
                     ) : null}
+
+                    <Row className="min-w-0 gap-x-1! md:gap-x-3! gap-y-0! flex-nowrap grow">
+                        <HeaderMetaItem
+                            icon={CpuAi}
+                            label="Model"
+                            text={
+                                model
+                                    ? `${model.name} · ${model.provider_name}`
+                                    : "No model set up"
+                            }
+                        />
+                        {computer_name ? (
+                            <HeaderMetaItem
+                                icon={Monitor}
+                                label="Computer"
+                                text={computer_name}
+                            />
+                        ) : null}
+                    </Row>
                 </Row>
             </Stack>
 
