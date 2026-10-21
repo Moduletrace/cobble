@@ -9,6 +9,36 @@ const PwaFiles: Record<string, string> = {
 };
 
 /**
+ * Development serves a worker that takes itself out instead of `sw.js`.
+ * A production deploy leaves a worker on the device that keeps serving
+ * its build's code cache first, and development never precaches or
+ * updates anything, so a page opened from the dev server would go on
+ * running the old build. The page clears it too
+ * (`clear-development-service-worker.ts`); this catches every other
+ * registration path (Web Push, the loading page, an old background tab).
+ */
+const DevelopmentServiceWorker = `self.addEventListener("install", () => {
+    self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+    event.waitUntil(
+        (async () => {
+            await self.registration.unregister().catch(() => undefined);
+            if ("caches" in self) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map((key) => caches.delete(key)));
+            }
+            const clients = await self.clients.matchAll({ type: "window" });
+            for (const client of clients) {
+                if ("navigate" in client) await client.navigate(client.url).catch(() => undefined);
+            }
+        })(),
+    );
+});
+`;
+
+/**
  * Serves the service worker and the manifest with headers bunext's public
  * handler can't give them: neither may be cached by a browser or a CDN,
  * or a deploy waits an hour to reach installed apps. Only these two files
@@ -23,9 +53,14 @@ export default async function handlePwaFile({
 
     if (!file_name) return null;
 
+    const development_stub =
+        file_name == "sw.js" && process.env.NODE_ENV != "production"
+            ? DevelopmentServiceWorker
+            : null;
+
     const file = Bun.file(path.join(PUBLIC_DIR, file_name));
 
-    if (!(await file.exists())) {
+    if (!development_stub && !(await file.exists())) {
         return new Response("Not Found", { status: 404 });
     }
 
@@ -42,7 +77,7 @@ export default async function handlePwaFile({
         headers.set("Service-Worker-Allowed", "/");
     }
 
-    const response = new Response(file, { headers });
+    const response = new Response(development_stub || file, { headers });
 
     /**
      * `Bun.file` adds a filename disposition; a manifest is inline data.
