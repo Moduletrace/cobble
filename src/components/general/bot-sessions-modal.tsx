@@ -1,4 +1,9 @@
-import { useState, type ComponentProps, type ReactNode } from "react";
+import {
+    useEffect,
+    useState,
+    type ComponentProps,
+    type ReactNode,
+} from "react";
 import Input from "@moduletrace/twui/form/Input";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Button from "@moduletrace/twui/layout/Button";
@@ -25,6 +30,10 @@ type Props = {
      */
     target?: ReactNode;
     target_wrapper_props?: ComponentProps<typeof Modal>["targetWrapperProps"];
+    /**
+     * Runs as it opens, e.g. closing the menu it was opened from.
+     */
+    on_open?: () => void;
 };
 
 /**
@@ -39,6 +48,7 @@ export default function BotSessionsModal({
     has_other_unread,
     target,
     target_wrapper_props,
+    on_open,
 }: Props) {
     const [open, setOpen] = useState(false);
     const sessions = useBotSessions({
@@ -47,6 +57,12 @@ export default function BotSessionsModal({
         open,
     });
     const name = bot.name || "the bot";
+
+    useEffect(() => {
+        if (open) {
+            on_open?.();
+        }
+    }, [open]);
 
     return (
         <Modal

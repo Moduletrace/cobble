@@ -2,25 +2,20 @@ import { useContext, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import H1 from "@moduletrace/twui/layout/H1";
-import { CpuAi, Layers, Monitor, Settings } from "lucide-react";
+import Span from "@moduletrace/twui/layout/Span";
+import Button from "@moduletrace/twui/layout/Button";
+import Dropdown from "@moduletrace/twui/elements/Dropdown";
+import useStatus from "@moduletrace/twui/hooks/useStatus";
+import { CpuAi, EllipsisVertical, Monitor } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage } from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
-import canManageCrew from "@/src/utils/rbac/can-manage-crew";
-import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
-import { BotComputersContext } from "../(data)/bot-computers-context";
-import BotComputersModal from "./bot-computers-modal";
-import BotModelsModal from "./bot-models-modal";
-import BotProfileModal from "./bot-profile-modal";
-import BotSessionsModal from "@/src/components/general/bot-sessions-modal";
-import NewSessionButton from "./new-session-button";
-import HeaderIconButton from "@/src/components/general/header-icon-button";
-import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
-import HeaderMetaItem from "./header-meta-item";
-import Span from "@moduletrace/twui/layout/Span";
-import Img from "@moduletrace/twui/layout/Img";
-import grabMediaURL from "@/src/functions/backend/media/grab-media-url";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
+import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
+import { BotComputersContext } from "../(data)/bot-computers-context";
+import BotProfileModal from "./bot-profile-modal";
+import ConversationHeaderMenu from "./conversation-header-menu";
+import HeaderMetaItem from "./header-meta-item";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -33,10 +28,11 @@ type Props = {
 };
 
 /**
- * 64px header. Under the name, what the bot runs on: its text model and
- * provider, and the computer it's on. On the right, ghost icon buttons
- * that open the computers and models modals. Kept here so a save or a
- * switch shows under the name at once.
+ * 64px header. Under the name, what the bot runs on: its model and the
+ * computer it's on. On the right, one menu holding everything the header
+ * used to show as icons: sessions, a new session, the computer, the models
+ * and the bot's settings. Kept here so a save or a switch shows under the
+ * name at once.
  */
 export default function ConversationHeader({
     bot,
@@ -46,47 +42,34 @@ export default function ConversationHeader({
     const { computers } = useContext(BotComputersContext);
     const { pageProps } = useContext(AppContext);
     const [model, setModel] = useState(pageProps?.bot_text_model);
+    const { open: open_menu, setOpen: set_open_menu } = useStatus();
     const computer = computers[0];
-    const can_open_settings =
-        bot.kind == "coordinator"
-            ? isPassThroughUser({ user_types: pageProps?.user_types })
-            : canManageCrew({ user_types: pageProps?.user_types });
+    const computer_name = computer?.id
+        ? computer.name || `Computer ${computer.id}`
+        : null;
 
     return (
         <Row className="h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3 md:px-6 border-0 border-b border-solid border-hairline">
             <RailDrawerButton />
             <BotProfileModal bot={bot} />
             <Stack className="min-w-0 gap-0!">
-                <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full">
+                <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full line-clamp-1">
                     {bot.name}
                 </H1>
-                <Row className="flex md:hidden min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
-                    {workspace?.id ? (
-                        <Row className="gap-2! mb-0.5">
-                            <WorkspaceAvatar
-                                image_media_id={workspace?.image_media_id}
-                                size="xs"
-                            />
-                            <Span size="smaller">
-                                {workspace.name || "Workspace"}
-                            </Span>
-                        </Row>
-                    ) : null}
-                </Row>
 
-                <Row className="hidden md:flex min-w-0 w-full gap-x-3! gap-y-0! flex-nowrap">
-                    {workspace?.id ? (
-                        <HeaderMetaItem
-                            image={
-                                <WorkspaceAvatar
-                                    image_media_id={workspace?.image_media_id}
-                                    size="xs"
-                                />
-                            }
-                            label="Workspace"
-                            text={workspace.name || "Workspace"}
+                {workspace?.id ? (
+                    <Row className="min-w-0 w-full gap-2! flex-nowrap">
+                        <WorkspaceAvatar
+                            image_media_id={workspace.image_media_id}
+                            size="xs"
                         />
-                    ) : null}
+                        <Span size="smaller" className="truncate">
+                            {workspace.name || "Workspace"}
+                        </Span>
+                    </Row>
+                ) : null}
+
+                <Row className="min-w-0 w-full gap-x-1! md:gap-x-3! gap-y-0! flex-nowrap">
                     <HeaderMetaItem
                         icon={CpuAi}
                         label="Model"
@@ -96,39 +79,42 @@ export default function ConversationHeader({
                                 : "No model set up"
                         }
                     />
-                    {computer?.id ? (
+                    {computer_name ? (
                         <HeaderMetaItem
                             icon={Monitor}
                             label="Computer"
-                            text={computer.name || `Computer ${computer.id}`}
+                            text={computer_name}
                         />
                     ) : null}
                 </Row>
             </Stack>
-            <Row className="ml-auto shrink-0 gap-1! flex-nowrap justify-end">
-                <BotSessionsModal
-                    bot={bot}
-                    workspace_id={workspace?.id || null}
-                    has_other_unread={has_other_unread}
-                />
-                <NewSessionButton
-                    bot_id={Number(bot.id)}
-                    workspace_id={workspace?.id || null}
-                />
-                <BotComputersModal
-                    bot={bot}
-                    workspace_name={
-                        workspace?.id
-                            ? workspace.name || "This workspace"
-                            : null
+
+            <Row className="ml-auto shrink-0 flex-nowrap justify-end">
+                <Dropdown
+                    position="bottom-right"
+                    externalOpen={open_menu}
+                    externalSetOpen={set_open_menu}
+                    target={
+                        <Button
+                            title="Bot menu"
+                            aria-label="Bot menu"
+                            aria-haspopup="menu"
+                            type="button"
+                            variant="ghost"
+                            color="text"
+                            className="shrink-0 p-2! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken rounded-default transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
+                        >
+                            <EllipsisVertical size={18} aria-hidden />
+                        </Button>
                     }
-                />
-                <span className="hidden md:inline-flex">
-                    <BotModelsModal
-                        key={bot.id}
+                >
+                    <ConversationHeaderMenu
                         bot={bot}
                         workspace={workspace}
-                        onSaved={(harnesses) => {
+                        has_other_unread={has_other_unread}
+                        computer_name={computer_name}
+                        model_name={model?.name}
+                        on_model_saved={(harnesses) => {
                             const current = harnesses.find(
                                 (h) => h.harness == "text",
                             )?.current;
@@ -142,17 +128,9 @@ export default function ConversationHeader({
                                     : null,
                             );
                         }}
+                        on_open={() => set_open_menu(false)}
                     />
-                </span>
-                {can_open_settings ? (
-                    <span className="hidden md:inline-flex">
-                        <HeaderIconButton
-                            icon={Settings}
-                            title={`${bot.name || "This bot"}'s settings`}
-                            href={`/admin/settings/bots/${bot.id}`}
-                        />
-                    </span>
-                ) : null}
+                </Dropdown>
             </Row>
         </Row>
     );

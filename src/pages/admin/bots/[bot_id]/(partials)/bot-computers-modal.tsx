@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -8,6 +8,7 @@ import type { BotWithLastMessage } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputerOption from "./bot-computer-option";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
+import HeaderMenuItem from "./header-menu-item";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -16,35 +17,75 @@ type Props = {
      * changes the workspace's default for every bot there.
      */
     workspace_name?: string | null;
+    /**
+     * A row in the conversation header's menu instead of an icon beside it.
+     */
+    menu?: boolean;
+    /**
+     * The computer the bot is on, on its menu row.
+     */
+    menu_hint?: string | null;
+    /**
+     * A menu row closing the menu as it opens the modal.
+     */
+    on_open?: () => void;
 };
 
 /**
- * The header's computer icon, beside the model icon: opens what the bot's
+ * The header's computer icon (or its menu row): opens what the bot's
  * computers are, the one it's on checked, and with more than one,
  * switches it. Each can be opened in the viewer.
  */
-export default function BotComputersModal({ bot, workspace_name }: Props) {
+export default function BotComputersModal({
+    bot,
+    workspace_name,
+    menu,
+    menu_hint,
+    on_open,
+}: Props) {
     const { computers, switching_id, error, switchComputer, openComputer } =
         useContext(BotComputersContext);
     const [open, setOpen] = useState(false);
 
     const current = computers[0];
 
+    useEffect(() => {
+        if (open) on_open?.();
+    }, [open]);
+
     if (!current?.id) return null;
 
     const name = bot.name || "This bot";
     const can_switch = computers.length > 1;
 
+    const title = can_switch
+        ? `Switch ${name}'s computer`
+        : `About ${name}'s computer`;
+
     return (
         <Modal
             target={
-                <HeaderIconButton
-                    icon={Monitor}
-                    title={can_switch ? `Switch ${name}'s computer` : `About ${name}'s computer`}
-                    loading={Boolean(switching_id)}
-                />
+                menu ? (
+                    <HeaderMenuItem
+                        icon={Monitor}
+                        title="Computer"
+                        hint={
+                            menu_hint ||
+                            current.name ||
+                            `Computer ${current.id}`
+                        }
+                        description={title}
+                        loading={Boolean(switching_id)}
+                    />
+                ) : (
+                    <HeaderIconButton
+                        icon={Monitor}
+                        title={title}
+                        loading={Boolean(switching_id)}
+                    />
+                )
             }
-            targetWrapperProps={{ className: "shrink-0" }}
+            targetWrapperProps={{ className: menu ? "w-full" : "shrink-0" }}
             open={open}
             setOpen={setOpen}
             className="max-w-lg bg-paper p-6"

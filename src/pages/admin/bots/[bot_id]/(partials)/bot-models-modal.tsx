@@ -12,6 +12,7 @@ import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "@/src/pages/admin/settings/(partials)/bot-harness-form";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
+import HeaderMenuItem from "./header-menu-item";
 import useHarnessOverview from "../(hooks)/use-harness-overview";
 
 type Props = {
@@ -20,21 +21,40 @@ type Props = {
      * The workspace the conversation is in: the modal edits its models.
      */
     workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
+    /**
+     * A row in the conversation header's menu instead of an icon beside it.
+     */
+    menu?: boolean;
+    /**
+     * The text model the bot runs on, on its menu row.
+     */
+    menu_hint?: string | null;
+    /**
+     * A menu row closing the menu as it opens the modal.
+     */
+    on_open?: () => void;
     onSaved: (harnesses: HarnessOverview[]) => void;
 };
 
 /**
- * The header's model icon: opens every model the bot uses (text, media
- * reading, transcription, speech, images) in the Models settings form. On
- * the coordinator that form is the defaults, for super admins only; a
- * worker's (or a workspace's) models are for super admins and admins.
- * Everyone else gets the icon disabled, its title saying why.
+ * The header's model icon (or its menu row): opens every model the bot uses
+ * (text, media reading, transcription, speech, images) in the Models
+ * settings form. On the coordinator that form is the defaults, for super
+ * admins only; a worker's (or a workspace's) models are for super admins
+ * and admins. Everyone else gets it disabled, its title saying why.
  *
- * The models load when the pointer or focus reaches the icon, or it
- * opens (`useHarnessOverview`), shown at once from the last time when
- * this device has them.
+ * The models load when the pointer or focus reaches it, or it opens
+ * (`useHarnessOverview`), shown at once from the last time when this device
+ * has them.
  */
-export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
+export default function BotModelsModal({
+    bot,
+    workspace,
+    menu,
+    menu_hint,
+    on_open,
+    onSaved,
+}: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
     /**
@@ -71,26 +91,31 @@ export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
 
     useEffect(() => {
         if (!open) setDirty(false);
+        else on_open?.();
     }, [open]);
 
     if (!bot.id) return null;
 
-    const target = (
-        <HeaderIconButton
+    const title = can_edit
+        ? in_workspace
+            ? `Change ${workspace?.name || "the workspace"}'s models`
+            : is_coordinator
+              ? "Change the default models"
+              : `Change ${name}'s models`
+        : is_coordinator
+          ? `${name} uses the default models. A super admin can change them in Settings, under Models.`
+          : `An admin can change the models ${name} uses.`;
+
+    const target = menu ? (
+        <HeaderMenuItem
             icon={CpuAi}
-            title={
-                can_edit
-                    ? in_workspace
-                        ? `Change ${workspace?.name || "the workspace"}'s models`
-                        : is_coordinator
-                        ? "Change the default models"
-                        : `Change ${name}'s models`
-                    : is_coordinator
-                    ? `${name} uses the default models. A super admin can change them in Settings, under Models.`
-                    : `An admin can change the models ${name} uses.`
-            }
+            title="Models"
+            hint={menu_hint}
+            description={title}
             disabled={!can_edit}
         />
+    ) : (
+        <HeaderIconButton icon={CpuAi} title={title} disabled={!can_edit} />
     );
 
     if (!can_edit) return target;
@@ -99,7 +124,7 @@ export default function BotModelsModal({ bot, workspace, onSaved }: Props) {
         <Modal
             target={target}
             targetWrapperProps={{
-                className: "shrink-0",
+                className: menu ? "w-full" : "shrink-0",
                 onPointerEnter: () => setWarm(true),
                 onFocus: () => setWarm(true),
             }}
