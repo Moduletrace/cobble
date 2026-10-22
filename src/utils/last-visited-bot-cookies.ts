@@ -31,11 +31,11 @@ export default function lastVisitedBotCookies({
             secure,
             maxAge: AppData["LastVisitedCookieMaxAgeSeconds"],
         },
-        {
-            name: AppData["LastVisitedWorkspaceCookieName"],
-            value: workspace_id ? String(workspace_id) : "",
-            secure,
-            maxAge: AppData["LastVisitedCookieMaxAgeSeconds"],
-        },
+        // {
+        //     name: AppData["LastVisitedWorkspaceCookieName"],
+        //     value: workspace_id ? String(workspace_id) : "",
+        //     secure,
+        //     maxAge: AppData["LastVisitedCookieMaxAgeSeconds"],
+        // },
     ];
 }
