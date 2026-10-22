@@ -34,20 +34,34 @@ type Props = {
 };
 
 const Descriptions: Record<EnvScope["paradigm"], string> = {
-    general: "Set everywhere. A workspace, a bot or a computer can set the same key to override it.",
-    workspace: "For every bot working here. Beats general, loses to the bot's own.",
-    computer: "For this computer only. Beats a workspace, loses to the bot's own.",
+    general:
+        "Set everywhere. A workspace, a bot or a computer can set the same key to override it.",
+    workspace:
+        "For every bot working here. Beats general, loses to the bot's own.",
+    computer:
+        "For this computer only. Beats a workspace, loses to the bot's own.",
     bot: "For this bot only, everywhere it works. Beats the workspace, the computer and general.",
 };
 
 /**
  * The envs bots and computers use, in one scope, with an add form.
  */
-export default function EnvsGroup({ scope, envs, scoped, title, status, onChanged, onError }: Props) {
+export default function EnvsGroup({
+    scope,
+    envs,
+    scoped,
+    title,
+    status,
+    onChanged,
+    onError,
+}: Props) {
     const [adding, setAdding] = useState(false);
 
     return (
-        <SettingsGroup title={title || "Envs"} description={Descriptions[scope.paradigm]}>
+        <SettingsGroup
+            title={title || "Envs"}
+            description={Descriptions[scope.paradigm]}
+        >
             <SettingsList is_empty={!envs.length} empty="Nothing set here yet.">
                 {envs.map((env) => (
                     <EnvRow
