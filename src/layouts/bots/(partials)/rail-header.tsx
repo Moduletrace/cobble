@@ -3,6 +3,7 @@ import Link from "@moduletrace/twui/layout/Link";
 import Wordmark from "@/src/components/general/wordmark";
 import LogoIcon from "@/src/components/general/logo-icon";
 import RailAddButton from "./rail-add-button";
+import RailThemeToggle from "./rail-theme-toggle";
 import { twMerge } from "tailwind-merge";
 import { useContext } from "react";
 import { AppContext } from "@/src/pages/__root";
@@ -47,7 +48,10 @@ export default function RailHeader({ show_add = true }: Props) {
                     </>
                 )}
             </Link>
-            {show_add ? <RailAddButton /> : null}
+            <Row className="hidden @rail:flex shrink-0 flex-nowrap items-center gap-1! border-0">
+                <RailThemeToggle />
+                {show_add ? <RailAddButton /> : null}
+            </Row>
         </Row>
     );
 }
