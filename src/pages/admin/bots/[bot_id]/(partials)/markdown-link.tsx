@@ -8,9 +8,11 @@ import {
     TakeOverRefHrefPrefix,
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
+import { parsePathRefHref } from "@/src/utils/path-ref";
 import BotRefChip from "./bot-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
 import FileRefChip from "./file-ref-chip";
+import PathRefChip from "./path-ref-chip";
 import TakeOverChip from "./take-over-chip";
 import WorkspaceRefChip from "./workspace-ref-chip";
 
@@ -60,6 +62,10 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
 
         if (file_id) return <FileRefChip file_id={file_id} />;
     }
+
+    const path_ref = parsePathRefHref({ href });
+
+    if (path_ref) return <PathRefChip spec={path_ref.spec} path={path_ref.path} />;
 
     return (
         <Link

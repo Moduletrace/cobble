@@ -79,6 +79,7 @@ export const JobStepToolLabels: Record<string, string> = {
     sandbox_write_file: "Writing a file",
     sandbox_file_operations: "Working with files",
     search_computers: "Searching the computers",
+    import_file: "Copying a file from the computer",
     ask_user_to_take_over: "Asking you to take over",
     start_task: "Starting a task",
     delegate_task: "Handing work to the crew",
