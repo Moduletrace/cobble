@@ -21,7 +21,11 @@ export default function StorageQuotaForm({ storage }: Props) {
     const [dirty, setDirty] = useState(false);
     const [value, setValue] = useState(String(storage?.quota_mb ?? ""));
     const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState<{ msg?: string; error?: boolean; success?: boolean }>();
+    const [status, setStatus] = useState<{
+        msg?: string;
+        error?: boolean;
+        success?: boolean;
+    }>();
 
     const save = async () => {
         setLoading(true);
@@ -35,14 +39,20 @@ export default function StorageQuotaForm({ storage }: Props) {
         setLoading(false);
 
         if (!res?.success || !res.singleRes) {
-            setStatus({ error: true, msg: res?.msg || `Couldn't save the quota.` });
+            setStatus({
+                error: true,
+                msg: res?.msg || `Couldn't save the quota.`,
+            });
             return;
         }
 
         setOverview(res.singleRes);
         setValue(String(res.singleRes.quota_mb));
         setDirty(false);
-        setStatus({ success: true, msg: `Saved: ${res.singleRes.quota_mb} MB per folder.` });
+        setStatus({
+            success: true,
+            msg: `Saved: ${res.singleRes.quota_mb} MB per folder.`,
+        });
     };
 
     return (
@@ -58,13 +68,16 @@ export default function StorageQuotaForm({ storage }: Props) {
                     label="Megabytes per folder"
                     type="number"
                     min={0}
-                    step={1}
-                    value={value}
+                    step={8}
+                    numberText
+                    rawNumber
+                    defaultValue={value}
                     onChange={(event) => {
                         setValue(event.target.value);
                         setDirty(true);
                         setStatus(undefined);
                     }}
+                    suffix={`MB`}
                     info="A bot's own folder and each workspace's folder each get this much. A write past it is refused, so the bot clears space first."
                 />
                 {overview ? (

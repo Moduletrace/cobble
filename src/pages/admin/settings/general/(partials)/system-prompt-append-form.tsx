@@ -2,9 +2,9 @@ import { useState } from "react";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import Form from "@moduletrace/twui/form/Form";
-import Textarea from "@moduletrace/twui/form/Textarea";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import CodeEditor from "@/src/components/general/code-editor";
 import { AppData } from "@/src/data/app-data";
 import type { SystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
 import SettingsSaveBar from "../../(partials)/settings-save-bar";
@@ -21,6 +21,11 @@ export default function SystemPromptAppendForm({ appendix }: Props) {
     const [overview, setOverview] = useState(appendix || undefined);
     const [dirty, setDirty] = useState(false);
     const [value, setValue] = useState(appendix?.text ?? "");
+    /**
+     * The editor only reads `content` when it mounts, so a discard remounts
+     * it with the saved text.
+     */
+    const [editor_key, setEditorKey] = useState(0);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState<{ msg?: string; error?: boolean; success?: boolean }>();
 
@@ -60,16 +65,15 @@ export default function SystemPromptAppendForm({ appendix }: Props) {
             className="w-full gap-3! items-stretch"
         >
             <Stack className="w-full gap-1! items-stretch">
-                <Textarea
-                    id="system-prompt-append"
-                    label="Appendix"
+                <CodeEditor
+                    key={`appendix-${editor_key}`}
+                    mode="markdown"
+                    className="h-52"
                     title="Appendix"
-                    showLabel
-                    rows={6}
                     placeholder={"Never invent sources.\nAlways say which computer a task ran on."}
-                    value={value}
-                    onChange={(event) => {
-                        setValue(event.target.value);
+                    content={value}
+                    onChange={(next) => {
+                        setValue(next);
                         setDirty(true);
                         setStatus(undefined);
                     }}
@@ -86,6 +90,7 @@ export default function SystemPromptAppendForm({ appendix }: Props) {
                 save_label="Save appendix"
                 onDiscard={() => {
                     setValue(overview?.text ?? "");
+                    setEditorKey((prev) => prev + 1);
                     setDirty(false);
                     setStatus(undefined);
                 }}
