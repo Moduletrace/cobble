@@ -31,11 +31,19 @@ export const WorkspaceRefHrefPrefix = "#workspace-";
 export const FileRefHrefPrefix = "#file-";
 
 /**
+ * The link target a path ref (`pathRef`) becomes, e.g.
+ * `#path-computer%3A3%3Aseo%2Fraw`. The chat renders it as a chip that
+ * opens that folder in the files browser.
+ */
+export const PathRefHrefPrefix = "#path-";
+
+/**
  * Turns every computer ref (`[computer:3]`) and take-over ref
  * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
- * (`[workspace:2]`) and file ref (`[file:12]`) in a message into a
- * markdown link, so it survives markdown rendering as a link the chat can
- * swap for a button or chip.
+ * (`[workspace:2]`), file ref (`[file:12]`) and path ref
+ * (`[path:computer:3:seo/raw]`) in a message into a markdown link, so it
+ * survives markdown rendering as a link the chat can swap for a button or
+ * chip.
  */
 export default function linkComputerRefs({ text }: { text: string }) {
     return text
@@ -52,5 +60,11 @@ export default function linkComputerRefs({ text }: { text: string }) {
             /\[workspace:(\d+)\](?!\()/g,
             (_, id: string) => `[workspace ${id}](${WorkspaceRefHrefPrefix}${id})`,
         )
-        .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`);
+        .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
+        .replace(/\[path:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>
+            `[${path}](${PathRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}:${path}`)})`,
+        )
+        .replace(/\[path:([a-z]+):(\d+)\](?!\()/g, (_, volume: string, owner: string) =>
+            `[${volume} ${owner}](${PathRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}`)})`,
+        );
 }

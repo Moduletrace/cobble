@@ -418,6 +418,17 @@ export const AppData = {
      */
     BotFilesPageSize: 50,
     /**
+     * The files browser at `/admin/files`: how many entries one folder
+     * shows, and the most of a file it hands back at once.
+     */
+    StorageBrowserPageSize: 200,
+    StorageBrowserReadMaxBytes: 50 * 1024 * 1024,
+    /**
+     * The most a bot copies off a computer into its own files in one
+     * call, so a folder of raw evidence can't fill the data volume.
+     */
+    BotFileImportMaxBytes: 20 * 1024 * 1024,
+    /**
      * Ingesting a bot file: how much text one chunk holds, how much of the
      * previous chunk it repeats, and the largest file it reads at all.
      */

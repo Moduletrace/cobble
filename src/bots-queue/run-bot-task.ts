@@ -2,6 +2,7 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
     BotFilesNote,
+    ComputerFilesNote,
     ScheduledRunNote,
     TasksNote,
     TaskRunNote,
@@ -17,10 +18,12 @@ import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
+import importFileTool from "@/src/harness/tools/computer/import-file-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import computerRef from "@/src/utils/computer-ref";
+import grabStorageScopes from "@/src/utils/storage-access";
 import composeJobBrief from "./compose-job-brief";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
@@ -139,6 +142,20 @@ export default async function runBotTask({
                 : []),
             ...(scheduled ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
             ...(computer?.tools || []),
+            ...(job.computer_id
+                ? [
+                      importFileTool({
+                          computer_id: job.computer_id,
+                          scopes: grabStorageScopes({
+                              bot_id: bot.id,
+                              bot_kind: bot.kind,
+                              workspace_id,
+                          }),
+                          bot_id: bot.id,
+                          user_id,
+                      }),
+                  ]
+                : []),
             ...(await grabBotFileTools({
                 bot,
                 user_id,
@@ -163,6 +180,7 @@ export default async function runBotTask({
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
                 BotFilesNote,
+                ComputerFilesNote({ computer_id: job.computer_id || 0 }),
                 TasksNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
