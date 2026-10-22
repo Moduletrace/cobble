@@ -37,8 +37,13 @@ export default function findBotTool(): HarnessTool<Args> {
             const matches = (
                 query
                     ? all.filter((bot) =>
-                          [bot.id ? String(bot.id) : "", bot.name, bot.role, bot.system_prompt].some(
-                              (field) => (field || "").toLowerCase().includes(query),
+                          [
+                              bot.id ? String(bot.id) : "",
+                              bot.name,
+                              bot.role,
+                              bot.system_prompt,
+                          ].some((field) =>
+                              (field || "").toLowerCase().includes(query),
                           ),
                       )
                     : all
@@ -51,7 +56,7 @@ export default function findBotTool(): HarnessTool<Args> {
             return matches
                 .map(
                     (bot) =>
-                        `${botRef({ id: bot.id || 0 })} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})`,
+                        `${botRef({ id: bot.id || 0 })} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})\n## Instructions:\n${bot.system_prompt}`,
                 )
                 .join("\n");
         },
