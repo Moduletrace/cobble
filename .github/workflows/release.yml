@@ -14,20 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # One leg per registry, so a registry having a bad day (Cloudflare rate
-  # limits git.tben.me's blob uploads) can never fail the release image that
-  # the installer installs from by default.
   image:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - registry: ghcr.io
-            soft: "false"
-          - registry: git.tben.me
-            soft: "true"
-    continue-on-error: ${{ matrix.soft }}
     steps:
       - uses: actions/checkout@v4
 
@@ -36,18 +24,16 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        if: matrix.registry == 'ghcr.io'
         uses: docker/login-action@v3
         with:
-          registry: ${{ matrix.registry }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Gitea
-        if: matrix.registry == 'git.tben.me'
         uses: docker/login-action@v3
         with:
-          registry: ${{ matrix.registry }}
+          registry: git.tben.me
           username: ${{ secrets.GITEA_USERNAME }}
           password: ${{ secrets.GITEA_TOKEN }}
 
@@ -56,37 +42,63 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          REGISTRY: ${{ matrix.registry }}
         run: |
           set -euo pipefail
           sha="sha-${GITHUB_SHA::12}"
           if [ "$EVENT" = "release" ] && [ -n "$RELEASE_TAG" ]; then
             version="$RELEASE_TAG"
             minor="$(printf '%s' "$version" | sed -E 's/^v?([0-9]+)\.([0-9]+).*/\1.\2/')"
-            tags="$(printf '%s\n' \
-              "${REGISTRY}/moduletrace/cobble:latest" \
-              "${REGISTRY}/moduletrace/cobble:${version}" \
-              "${REGISTRY}/moduletrace/cobble:${minor}" \
-              "${REGISTRY}/moduletrace/cobble:${sha}")"
+            ghcr="$(printf '%s\n' \
+              "ghcr.io/moduletrace/cobble:latest" \
+              "ghcr.io/moduletrace/cobble:${version}" \
+              "ghcr.io/moduletrace/cobble:${minor}" \
+              "ghcr.io/moduletrace/cobble:${sha}")"
+            gitea="$(printf '%s\n' \
+              "git.tben.me/moduletrace/cobble:latest" \
+              "git.tben.me/moduletrace/cobble:${version}" \
+              "git.tben.me/moduletrace/cobble:${minor}" \
+              "git.tben.me/moduletrace/cobble:${sha}")"
           else
-            tags="$(printf '%s\n' \
-              "${REGISTRY}/moduletrace/cobble:${sha}")"
+            ghcr="ghcr.io/moduletrace/cobble:${sha}"
+            gitea="git.tben.me/moduletrace/cobble:${sha}"
           fi
           {
-            echo "tags<<EOF"
-            echo "$tags"
+            echo "ghcr<<EOF"
+            echo "$ghcr"
+            echo "EOF"
+            echo "gitea<<EOF"
+            echo "$gitea"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build and push
+      # The registry the installer defaults to, so this one must succeed.
+      - name: Build and push to GHCR
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: ${{ steps.tags.outputs.ghcr }}
           provenance: false
           sbom: false
-          cache-from: type=gha,scope=${{ matrix.registry }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.registry }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The mirror's registry, from the image just built: no second build,
+      # and Cloudflare rate limiting git.tben.me (429/1015 on blob uploads)
+      # can never fail a release the installer depends on.
+      - name: Mirror to Gitea
+        continue-on-error: true
+        env:
+          GITEA_TAGS: ${{ steps.tags.outputs.gitea }}
+          GHCR_IMAGES: ${{ steps.tags.outputs.ghcr }}
+        run: |
+          set -euo pipefail
+          first_ghcr="$(printf '%s\n' "$GHCR_IMAGES" | head -n1)"
+          args=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            args+=(--tag "${tag}")
+          done <<< "$GITEA_TAGS"
+          docker buildx imagetools create "${args[@]}" "${first_ghcr}"
