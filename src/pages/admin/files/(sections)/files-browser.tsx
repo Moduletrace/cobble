@@ -45,7 +45,7 @@ export default function FilesBrowser({
 }: Props) {
     return (
         <Row className="w-full mt-6 gap-6! flex-wrap items-start lg:flex-nowrap">
-            <Stack className="w-full lg:w-[280px] shrink-0 items-stretch">
+            <Stack className="w-full lg:w-[180px] shrink-0 items-stretch">
                 <H2 className="mb-2 text-[18px]! leading-6 font-bold tracking-normal text-ink">
                     Folders
                 </H2>
