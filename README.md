@@ -195,6 +195,7 @@ Everything that must survive an update lives under the install directory:
   .env                  # generated once, mode 600
   install.conf          # installer state
   backups/              # pre-update database snapshots
+  backups-archives/     # whole-data archives, from Settings > Backups
   data/
     db/cobble
     db/.backups/
@@ -212,6 +213,16 @@ are managed in the app, not in `.env`.
 Edit `.env` and run `docker restart cobble` to apply changes. The installer
 only appends missing values and keeps what is already there, apart from the
 port it manages.
+
+Settings > Backups makes two kinds of copy. Database snapshots (bun-sqlite's
+`backup` command) stay in `data/db/.backups` and can be restored from the
+app. Whole-data archives are a `tar.gz` of the entire `data/` directory,
+written to `backups-archives/` (mounted at `/backups-archives`, the
+`BACKUP_ARCHIVE_DIR` setting); every entry sits under one folder named after
+the archive, so extracting one by hand drops a single folder. Each group
+can create a copy, restore from one (a listed row, or a file uploaded from
+the button beside Create), download it and delete it; the newest five
+archives are kept.
 
 The app container is started with the Docker socket mounted and
 `MAIN_SERVER=1`, so it can create computer containers and run cron, the

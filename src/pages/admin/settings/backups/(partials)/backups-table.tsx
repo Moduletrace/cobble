@@ -4,14 +4,11 @@ import { BackupsTableColumns } from "../(data)/backups-table-columns";
 import BackupTableRow from "./backup-table-row";
 import BackupsTableHeadCell from "./backups-table-head-cell";
 
-export type BackupsTableMode = "view" | "restore";
-
 type Props = {
     backups: DbBackup[];
-    mode: BackupsTableMode;
 };
 
-export default function BackupsTable({ backups, mode }: Props) {
+export default function BackupsTable({ backups }: Props) {
     return (
         <Paper className="p-0 gap-0 overflow-x-auto">
             <table className="w-full text-sm">
@@ -24,11 +21,7 @@ export default function BackupsTable({ backups, mode }: Props) {
                 </thead>
                 <tbody>
                     {backups.map((backup) => (
-                        <BackupTableRow
-                            backup={backup}
-                            mode={mode}
-                            key={backup.name}
-                        />
+                        <BackupTableRow backup={backup} key={backup.name} />
                     ))}
                 </tbody>
             </table>

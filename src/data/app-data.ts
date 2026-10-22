@@ -483,6 +483,14 @@ export const AppData = {
      */
     PushTtlSeconds: 60 * 60,
     /**
+     * Whole-data archives (Settings > Backups): the file name prefix and
+     * how many of them are kept, newest first. They live outside
+     * `DATA_DIR` (`BACKUP_ARCHIVE_DIR`), never in the database's own
+     * `db/.backups` directory, which keeps its bun-sqlite snapshots.
+     */
+    DataBackupNamePrefix: "cobble-data-",
+    DataBackupsKept: 5,
+    /**
      * Responses smaller than this go out uncompressed: the encoding
      * costs more than it saves.
      */

@@ -1,5 +1,6 @@
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import grabDbBackups from "@/src/functions/backend/backups/grab-db-backups";
+import grabDataBackups from "@/src/functions/backend/backups/grab-data-backups";
 import { SettingsDefaultPath } from "@/src/dict/settings-pages-dict";
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
@@ -9,8 +10,8 @@ type Params = Parameters<BunextPageServerFn<PagePropsType>>[0];
 
 /**
  * Shared server props for the `/admin/settings/backups` sub-pages: the
- * saved snapshots. Super admins only; everyone else lands on the general
- * settings.
+ * saved database snapshots and the whole-data archives. Super admins
+ * only; everyone else lands on the general settings.
  */
 export default async function grabBackupsServerProps(params: Params) {
     const settings = await grabSettingsServerProps(params);
@@ -30,6 +31,7 @@ export default async function grabBackupsServerProps(params: Params) {
         props: {
             ...settings.props,
             backups: grabDbBackups(),
+            data_backups: grabDataBackups(),
         },
     };
 }

@@ -865,6 +865,17 @@ export type DbBackup = {
     size: number;
 };
 
+/**
+ * A tar.gz archive of the whole `DATA_DIR` in `BACKUP_ARCHIVE_DIR`
+ * (outside the data volume), newest first. Restoring one is an offline
+ * operation: the app only creates, lists and downloads them.
+ */
+export type DataBackup = {
+    name: string;
+    created_at: number;
+    size: number;
+};
+
 export type BotVoicePayload = {
     transcription: boolean;
     speech: boolean;
@@ -967,6 +978,7 @@ export type PagePropsType = {
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;
+    data_backups?: DataBackup[] | null;
     harness_overview?: HarnessOverviewPayload | null;
     bot_harness_overview?: BotHarnessOverviewPayload | null;
     envs_overview?: EnvsOverviewPayload | null;

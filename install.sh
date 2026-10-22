@@ -295,6 +295,9 @@ ENV_FILE="$HOME_DIR/.env"
 STATE_FILE="$HOME_DIR/install.conf"
 DATA_DIR="${DATA_DIR%/}"
 BACKUP_DIR="$HOME_DIR/backups"
+# Whole-data archives made in the app (Settings > Backups). They live
+# outside DATA_DIR, so an archive never contains another one.
+BACKUP_ARCHIVE_DIR_HOST="$HOME_DIR/backups-archives"
 
 # ---------------------------------------------------------------- platform
 
@@ -325,9 +328,11 @@ fi
 
 ENV_MOUNT="$ENV_FILE:/app/.env:ro"
 DATA_MOUNT="$DATA_DIR:/data"
+BACKUP_ARCHIVE_MOUNT="$BACKUP_ARCHIVE_DIR_HOST:/backups-archives"
 if [ -n "$SELINUX_SUFFIX" ]; then
     ENV_MOUNT="$ENV_FILE:/app/.env:ro,z"
     DATA_MOUNT="$DATA_DIR:/data,z"
+    BACKUP_ARCHIVE_MOUNT="$BACKUP_ARCHIVE_DIR_HOST:/backups-archives,z"
 fi
 
 # ---------------------------------------------------------------- helpers
@@ -418,12 +423,14 @@ container_matches() {
     [ "$(container_image_id)" = "$TARGET_IMAGE_ID" ] || return 1
     [ "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Source}}{{end}}{{end}}' "$CONTAINER")" = "$DATA_DIR" ] || return 1
     [ "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/app/.env"}}{{.Source}}{{end}}{{end}}' "$CONTAINER")" = "$ENV_FILE" ] || return 1
+    [ "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/backups-archives"}}{{.Source}}{{end}}{{end}}' "$CONTAINER")" = "$BACKUP_ARCHIVE_DIR_HOST" ] || return 1
     [ "$(docker_socket_mounted)" = "$DOCKER_SOCKET" ] || return 1
     [ "$(docker inspect -f '{{with index .HostConfig.PortBindings "'"$PORT"'/tcp"}}{{range .}}{{.HostIp}}:{{.HostPort}}{{end}}{{end}}' "$CONTAINER")" = "$BIND:$PORT" ] || return 1
     [ "$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$CONTAINER")" = "unless-stopped" ] || return 1
     [ "$(docker inspect -f '{{.HostConfig.Init}}' "$CONTAINER")" = "true" ] || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "MAIN_SERVER=1" || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "PORT=$PORT" || return 1
+    docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "BACKUP_ARCHIVE_DIR=/backups-archives" || return 1
     docker inspect -f '{{range $name, $net := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$CONTAINER" | grep -qx "$NETWORK" || return 1
     if [ -n "$EXTRA_NETWORK" ]; then
         docker inspect -f '{{range $name, $net := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$CONTAINER" | grep -qx "$EXTRA_NETWORK" || return 1
@@ -562,11 +569,13 @@ run_container() {
     local mounts=(
         -v "$ENV_MOUNT"
         -v "$DATA_MOUNT"
+        -v "$BACKUP_ARCHIVE_MOUNT"
         -v "$DOCKER_SOCKET:/var/run/docker.sock"
     )
     local envs=(
         -e MAIN_SERVER=1
         -e "PORT=$PORT"
+        -e BACKUP_ARCHIVE_DIR=/backups-archives
     )
 
     docker run -d \
@@ -667,8 +676,8 @@ if [ "$ACTION" = "uninstall" ]; then
     uninstall
 fi
 
-mkdir -p "$HOME_DIR" "$DATA_DIR" "$BACKUP_DIR"
-chmod 755 "$HOME_DIR" "$DATA_DIR" "$BACKUP_DIR"
+mkdir -p "$HOME_DIR" "$DATA_DIR" "$BACKUP_DIR" "$BACKUP_ARCHIVE_DIR_HOST"
+chmod 755 "$HOME_DIR" "$DATA_DIR" "$BACKUP_DIR" "$BACKUP_ARCHIVE_DIR_HOST"
 
 if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
     say "Creating the $NETWORK network"
@@ -707,6 +716,7 @@ unset_env HTTP_REDIRECT_PORT
 
 {
     printf 'COBBLE_DATA_DIR=%q\n' "$DATA_DIR"
+    printf 'COBBLE_BACKUP_ARCHIVE_DIR=%q\n' "$BACKUP_ARCHIVE_DIR_HOST"
     printf 'COBBLE_PORT=%q\n' "$PORT"
     printf 'COBBLE_BIND=%q\n' "$BIND"
     printf 'COBBLE_IMAGE=%q\n' "$IMAGE"
@@ -774,6 +784,7 @@ printf '  First visit: create the super admin account.\n'
 printf '  Data:        %s\n' "$DATA_DIR"
 printf '  Settings:    %s\n' "$ENV_FILE"
 printf '  Backups:     %s\n' "$BACKUP_DIR"
+printf '  Archives:    %s\n' "$BACKUP_ARCHIVE_DIR_HOST"
 printf '  Logs:        docker logs -f %s\n' "$CONTAINER"
 printf '  Update:      curl -fsSL %s | sudo bash\n' "$INSTALL_URL"
 printf '  Uninstall:   curl -fsSL %s | sudo bash -s -- --uninstall\n' "$INSTALL_URL"

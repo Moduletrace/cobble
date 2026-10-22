@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.title="Cobble" \
 
 # The app serves plain HTTP; HTTPS is the reverse proxy's job.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl bash nano wget zip unzip \
+    && apt-get install -y --no-install-recommends curl bash nano wget zip unzip tar gzip \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production

@@ -70,6 +70,10 @@ Before the first public release:
 - Images are tagged with the release version, so an older tag can be
   installed with `--version vX.Y.Z`.
 - The installer keeps the last five database backups in
-  `$COBBLE_HOME/backups`.
-- Restore a backup from **Settings > Backups** in the app, or restore the
-  files with the app stopped.
+  `$COBBLE_HOME/backups`. Whole-data archives from Settings > Backups live
+  in `$COBBLE_HOME/backups-archives`; they are kept, not pruned by the
+  installer.
+- Restore a backup from **Settings > Backups** in the app: a database
+  snapshot, or a whole-data archive (which replaces every folder, the
+  snapshots included, takes a safety archive first and restarts the app).
+  A snapshot can also be restored with the app stopped.

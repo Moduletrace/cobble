@@ -2,16 +2,13 @@ import Span from "@moduletrace/twui/layout/Span";
 import formatBytes from "@/src/utils/format-bytes";
 import type { DbBackup } from "@/src/types";
 import dayjs from "dayjs";
-import type { BackupsTableMode } from "./backups-table";
-import DownloadBackupButton from "./download-backup-button";
-import RestoreBackupButton from "./restore-backup-button";
+import DbBackupRowActions from "./db-backup-row-actions";
 
 type Props = {
     backup: DbBackup;
-    mode: BackupsTableMode;
 };
 
-export default function BackupTableRow({ backup, mode }: Props) {
+export default function BackupTableRow({ backup }: Props) {
     return (
         <tr className="border-t border-slate-200 dark:border-white/10">
             <td className="px-4 py-2.5 max-w-0 w-full">
@@ -34,11 +31,7 @@ export default function BackupTableRow({ backup, mode }: Props) {
                 </Span>
             </td>
             <td className="px-4 py-2 text-right whitespace-nowrap">
-                {mode == "restore" ? (
-                    <RestoreBackupButton backup={backup} />
-                ) : (
-                    <DownloadBackupButton backup={backup} />
-                )}
+                <DbBackupRowActions backup={backup} />
             </td>
         </tr>
     );

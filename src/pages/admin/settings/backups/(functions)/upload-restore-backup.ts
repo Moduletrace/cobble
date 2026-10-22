@@ -4,7 +4,8 @@ type Params = {
 
 /**
  * Sends the file as multipart form data (not base64 JSON) so large dumps
- * aren't inflated.
+ * aren't inflated. The server saves it into the snapshots list, then
+ * restores it.
  */
 export default async function uploadRestoreBackup({ file }: Params) {
     const confirm_msg = `Restore the database from "${file.name}"?\n\nAll current data will be replaced with the data in this file. This cannot be undone. Consider creating a fresh backup first.`;

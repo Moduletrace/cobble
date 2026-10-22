@@ -34,7 +34,6 @@ export type SettingsPage = {
 
 export const SettingsComputersPath = "/admin/settings/computers";
 export const SettingsBackupsPath = "/admin/settings/backups";
-export const SettingsBackupsRestorePath = `${SettingsBackupsPath}/restore`;
 
 /**
  * The `/admin/settings/*` sub pages, listed in the rail on every settings
