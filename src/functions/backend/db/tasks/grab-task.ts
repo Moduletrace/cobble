@@ -25,7 +25,7 @@ export default async function grabTask({ user_id, task_id }: Params): Promise<Ta
     const face = botFaceSql({ user_id, alias: "b", prefix: "bot_" });
 
     const row_res = await BunSQLite.sql<TaskDetail>({
-        sql: `SELECT t.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue,
+        sql: `SELECT t.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone,
                 b.image_media_id AS bot_image_media_id, ${face.sql}, w.name AS workspace_name
             FROM tasks t
             LEFT JOIN bots b ON b.id = t.bot_id

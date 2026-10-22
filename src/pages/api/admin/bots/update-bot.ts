@@ -13,8 +13,8 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * Saves one of the session user's bots (name, job, hue, instructions).
- * Returns the bot.
+ * Saves one of the session user's bots (name, job, colour, stone,
+ * instructions). Returns the bot.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_BOTS>> = async ({ req, body }) => {
     try {
@@ -32,12 +32,12 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BUN_SQLITE_COBBLE_
             throw new AppError(`This user can only read records.`);
         }
 
-        const { bot_id, name, role, hue, system_prompt } = parseWithSchema({
+        const { bot_id, name, role, color, stone, system_prompt } = parseWithSchema({
             schema: UpdateBotRequestSchema,
             data: body,
         });
 
-        const bot = await updateBot({ user_id: user.id, bot_id, name, role, hue, system_prompt });
+        const bot = await updateBot({ user_id: user.id, bot_id, name, role, color, stone, system_prompt });
 
         await logEvent({
             title: "Bot changed",

@@ -1,3 +1,5 @@
+import BunSQLite from "@moduletrace/bun-sqlite";
+import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import grabBotAudience from "@/src/functions/backend/db/access/grab-bot-audience";
 import { logError } from "@/src/functions/backend/logger";
 import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
@@ -61,6 +63,13 @@ async function push({
     workspace_ids,
 }: Params) {
     const audience = user_id ? [user_id] : await grabBotAudience({ bot_id });
+    /** Its colour and stone, so a recolour reaches every open tab. */
+    const identity = (
+        await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
+            sql: `SELECT color, stone FROM bots WHERE id = ? LIMIT 1`,
+            values: [bot_id],
+        })
+    ).payload?.[0];
 
     for (const viewer_id of audience) {
         if (users && !users.has(String(viewer_id))) continue;
@@ -72,6 +81,8 @@ async function push({
                 data: {
                     id: Number(bot_id),
                     ...(await grabBotFace({ bot_id, user_id: viewer_id })),
+                    color: identity?.color || null,
+                    stone: identity?.stone || null,
                     ...(computer_id !== undefined ? { computer_id: computer_id || null } : {}),
                     ...(workspace_ids !== undefined ? { workspace_ids } : {}),
                     task: await grabActiveBotTask({ bot_id, user_id: viewer_id }),

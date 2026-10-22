@@ -189,7 +189,15 @@ export type BUN_SQLITE_COBBLE_BOTS = {
      */
     kind?: "worker" | "coordinator" | "";
     /** 
-     * Permanent identity hue. Null for the coordinator
+     * The bot's identity colour, a `#rrggbb` string. Null for the coordinator, which stays hue-less
+     */
+    color?: string;
+    /** 
+     * Which flat-cut stone the bot renders in its colour. The shape no longer follows the colour
+     */
+    stone?: "ember" | "amber" | "moss" | "teal" | "cobalt" | "violet" | "rose" | "";
+    /** 
+     * Historical: the palette hue from before `color` and `stone`. Only read as a fallback for a bot saved before them, and backfilled by `move-bot-colour-to-owners`
      */
     hue?: "ember" | "amber" | "moss" | "teal" | "cobalt" | "violet" | "rose" | "";
     /** 

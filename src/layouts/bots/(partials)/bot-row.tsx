@@ -5,7 +5,8 @@ import Span from "@moduletrace/twui/layout/Span";
 import { twMerge } from "tailwind-merge";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotWithLastMessage } from "@/src/types";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import messagePreview from "@/src/utils/message-preview";
 import relativeTime from "@/src/utils/relative-time";
 import UnreadDot from "./unread-dot";
@@ -31,7 +32,7 @@ type Props = {
  * RailBotCard, which also holds the sessions.
  */
 export default function BotRow({ bot, href, selected, subtitle }: Props) {
-    const hue = (bot.hue || null) as BotHue | null;
+    const stone_props = botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue });
     const snippet =
         bot.status_line ||
         subtitle ||
@@ -52,7 +53,7 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
                 selected && "hover:bg-transparent hover:dark:bg-transparent",
             )}
         >
-            <BotAvatar image_media_id={bot.image_media_id} hue={hue} face={(bot.face || "idle") as BotFace} />
+            <BotAvatar image_media_id={bot.image_media_id} {...stone_props} face={(bot.face || "idle") as BotFace} />
             <Stack className="hidden @rail:flex grow min-w-0 gap-0!">
                 <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
                     {bot.name}
@@ -67,7 +68,7 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
                         {relativeTime({ at: Number(at) })}
                     </Span>
                 ) : null}
-                {bot.unread && hue ? <UnreadDot hue={hue} /> : null}
+                {bot.unread && stone_props.color ? <UnreadDot color={stone_props.color} /> : null}
             </Stack>
         </Link>
     );

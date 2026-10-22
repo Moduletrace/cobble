@@ -1,6 +1,7 @@
 import Span from "@moduletrace/twui/layout/Span";
 import BotAvatar from "@/src/components/general/bot-avatar";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
 import type { WorkspaceActivityItem } from "@/src/types";
 import messagePreview from "@/src/utils/message-preview";
@@ -26,7 +27,7 @@ export default function WorkspaceActivityRow({ workspace_id, item }: Props) {
             avatar={
                 <BotAvatar
                     image_media_id={item.bot_image_media_id}
-                    hue={(item.bot_hue || null) as BotHue | null}
+                    {...botStoneProps({ color: item.bot_color, stone: item.bot_stone, hue: item.bot_hue })}
                     face={(item.bot_face || "idle") as BotFace}
                 />
             }

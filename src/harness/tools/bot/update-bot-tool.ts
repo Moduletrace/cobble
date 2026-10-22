@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
-import type { BotHue } from "@/src/dict/bot-dict";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import updateBot from "@/src/functions/backend/db/bots/update-bot";
+import { paletteColor, resolveBotStone } from "@/src/utils/bot-color";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -24,7 +24,8 @@ type Args = {
 /**
  * Lets the coordinator change an existing crew member: its name, its
  * one-line job, and its core instructions (the start of its prompt in its
- * own chat and in every workspace). Its hue and picture stay as they are.
+ * own chat and in every workspace). Its colour, stone and picture stay as
+ * they are.
  * Workspace-only instructions have their own tool
  * (`set_bot_workspace_instructions`).
  */
@@ -71,7 +72,13 @@ export default function updateBotTool({ user_id, workers }: Params): HarnessTool
                 bot_id: worker.id,
                 name: args.name ?? worker.name ?? "Bot",
                 role: args.role ?? worker.role ?? "",
-                hue: (worker.hue || "ember") as BotHue,
+                /**
+                 * Never changed here: the user's pick is theirs. A bot saved
+                 * before colours were free keeps the colour it showed.
+                 */
+                color:
+                    worker.color || paletteColor({ hue: worker.hue }) || "#e4572e",
+                stone: resolveBotStone({ stone: worker.stone, hue: worker.hue }),
                 system_prompt: args.instructions ?? worker.system_prompt ?? "",
             });
 

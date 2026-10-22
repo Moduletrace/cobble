@@ -1,6 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS, BunSQLiteTables } from "@/db/types/db";
-import type { BotHue } from "@/src/dict/bot-dict";
+import type { BotStoneShape } from "@/src/dict/bot-dict";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 import attachDefaultExtensions from "../extensions/attach-default-extensions";
@@ -12,7 +12,14 @@ type Params = {
     user_id: number | string;
     name: string;
     role?: string;
-    hue: BotHue;
+    /**
+     * Its identity colour, `#rrggbb`.
+     */
+    color: string;
+    /**
+     * Which flat-cut stone it's drawn on.
+     */
+    stone: BotStoneShape;
     /**
      * Its core instructions (markdown).
      */
@@ -26,7 +33,7 @@ type Params = {
  * computer of its own until it's given one; in a workspace it uses the
  * workspace's.
  */
-export default async function createBot({ user_id, name, role, hue, system_prompt }: Params) {
+export default async function createBot({ user_id, name, role, color, stone, system_prompt }: Params) {
     await assertCrewManager({ user_id });
 
     assertPromptLength({ label: "Instructions", text: system_prompt });
@@ -41,7 +48,8 @@ export default async function createBot({ user_id, name, role, hue, system_promp
                 user_id: Number(user_id),
                 name,
                 kind: "worker",
-                hue,
+                color,
+                stone,
                 role: role || undefined,
                 system_prompt,
             },

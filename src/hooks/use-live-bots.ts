@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_BOT_MESSAGES, BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import type {
     BotCreatedData,
     BotRemovedData,
@@ -78,7 +78,19 @@ export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: 
 
                 return prev.map((bot) =>
                     bot.id == data.id
-                        ? { ...bot, face: data.face, status_line: data.status_line }
+                        ? {
+                              ...bot,
+                              face: data.face,
+                              status_line: data.status_line,
+                              ...(data.color !== undefined
+                                  ? { color: data.color || undefined }
+                                  : {}),
+                              ...(data.stone !== undefined
+                                  ? {
+                                        stone: (data.stone || "") as BUN_SQLITE_COBBLE_BOTS["stone"],
+                                    }
+                                  : {}),
+                          }
                         : bot,
                 );
             }),

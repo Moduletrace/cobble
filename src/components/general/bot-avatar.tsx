@@ -29,7 +29,7 @@ type Props = ComponentProps<typeof BotStone> & {
 /**
  * A bot's avatar: its custom picture when it has one (a rounded square,
  * never a circle, so it isn't mistaken for a person), else its stone. Its
- * hue still marks it everywhere else, e.g. the unread dot.
+ * colour still marks it everywhere else, e.g. the unread dot.
  */
 export default function BotAvatar({ image_media_id, src: picked, ...stone }: Props) {
     const saved = profileImageUrls({ media_id: image_media_id });

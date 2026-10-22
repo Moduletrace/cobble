@@ -6,6 +6,7 @@ import {
     BotKinds,
     BotMessageAuthors,
     BotSessionStatuses,
+    BotStoneShapes,
     BotTaskStatuses,
     BotTaskStepStates,
 } from "@/src/dict/bot-dict";
@@ -222,8 +223,20 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     defaultValue: "worker",
                 },
                 {
+                    fieldName: "color",
+                    fieldDescription: `The bot's identity colour, a \`#rrggbb\` string. Null for the coordinator, which stays hue-less`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "stone",
+                    fieldDescription: `Which flat-cut stone the bot renders in its colour. The shape no longer follows the colour`,
+                    dataType: "TEXT",
+                    options: BotStoneShapes.map((bs) => bs.value),
+                    defaultValue: "ember",
+                },
+                {
                     fieldName: "hue",
-                    fieldDescription: `Permanent identity hue. Null for the coordinator`,
+                    fieldDescription: `Historical: the palette hue from before \`color\` and \`stone\`. Only read as a fallback for a bot saved before them, and backfilled by \`move-bot-colour-to-owners\``,
                     dataType: "TEXT",
                     options: BotHues.map((bh) => bh.value),
                 },

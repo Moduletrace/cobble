@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { BotHues } from "@/src/dict/bot-dict";
 import BotStone from "./bot-stone";
 
 type Props = {
@@ -13,7 +14,8 @@ type Props = {
 export default function LogoIcon({ icon_size = 40, img_props }: Props) {
     return (
         <BotStone
-            hue="ember"
+            color={BotHues[0].color}
+            stone={BotHues[0].value}
             size={icon_size}
             label="Logo Icon"
             className={img_props?.className}

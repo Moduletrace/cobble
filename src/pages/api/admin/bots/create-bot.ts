@@ -33,13 +33,13 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<{ bot_id: number }
             throw new AppError(`This user can only read records.`);
         }
 
-        const { name, role, hue, system_prompt, workspace_id } = parseWithSchema({ schema: CreateBotRequestSchema, data: body });
+        const { name, role, color, stone, system_prompt, workspace_id } = parseWithSchema({ schema: CreateBotRequestSchema, data: body });
 
         if (workspace_id && !(await grabUserWorkspace({ workspace_id, user_id: user.id }))?.id) {
             throw new AppError(`Workspace not found.`);
         }
 
-        const bot_id = await createBot({ user_id: user.id, name, role, hue, system_prompt });
+        const bot_id = await createBot({ user_id: user.id, name, role, color, stone, system_prompt });
 
         if (workspace_id) {
             await addBotToWorkspace({ user_id: user.id, workspace_id, bot_id });

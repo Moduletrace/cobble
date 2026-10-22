@@ -35,7 +35,7 @@ export default async function grabCronJobs({ user_id, bot_id, cron_job_id }: Par
     }
 
     const res = await BunSQLite.sql<CronJobWithNames>({
-        sql: `SELECT c.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, ${face.sql},
+        sql: `SELECT c.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone, ${face.sql},
                 b.image_media_id AS bot_image_media_id, w.name AS workspace_name
             FROM cron_jobs c
             JOIN bots b ON b.id = c.bot_id

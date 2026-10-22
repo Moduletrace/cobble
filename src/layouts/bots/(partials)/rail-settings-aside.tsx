@@ -5,7 +5,8 @@ import ComputerIconTile from "@/src/components/general/computer-icon-tile";
 import UserAvatar from "@/src/components/general/user-avatar";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import { UserTypes } from "@/src/dict/user-types-dict";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import {
     SettingsRecordBack,
     SettingsRecordSections,
@@ -91,7 +92,7 @@ export default function RailSettingsAside({ pathname }: Props) {
         avatar = (
             <BotAvatar
                 image_media_id={bot.image_media_id}
-                hue={(bot.hue || null) as BotHue | null}
+                {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
                 face={(bot.face || "idle") as BotFace}
             />
         );

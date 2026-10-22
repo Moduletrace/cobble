@@ -1,39 +1,89 @@
 /**
- * Bot identity hues. A bot keeps its hue for life; a hue never means state.
- * The coordinator has no hue.
+ * The palette a bot starts from: a suggested colour and the stone shape that
+ * goes with it. A bot's colour is free (any `#rrggbb`), so these are only
+ * the tiles the picker offers and the colours a new bot is given. Shape is
+ * stored separately (`bots.stone`), so a custom colour keeps its stone.
  */
 export const BotHues = [
     {
         title: "Ember",
         value: "ember",
+        color: "#e4572e",
     },
     {
         title: "Amber",
         value: "amber",
+        color: "#e9a23b",
     },
     {
         title: "Moss",
         value: "moss",
+        color: "#7fae3c",
     },
     {
         title: "Teal",
         value: "teal",
+        color: "#16a394",
     },
     {
         title: "Cobalt",
         value: "cobalt",
+        color: "#3b7dd8",
     },
     {
         title: "Violet",
         value: "violet",
+        color: "#7c5cd6",
     },
     {
         title: "Rose",
         value: "rose",
+        color: "#d6538c",
     },
 ] as const;
 
+/**
+ * Historical palette name. Kept for `bots.hue`, which is only read as a
+ * fallback for a bot saved before `color` and `stone` existed.
+ */
 export type BotHue = (typeof BotHues)[number]["value"];
+
+/**
+ * The stone shapes. One flat cut each, from the handoff icon set. Shape is
+ * the bot's own, independent of its colour.
+ */
+export const BotStoneShapes = [
+    {
+        title: "Ember stone",
+        value: "ember",
+    },
+    {
+        title: "Amber stone",
+        value: "amber",
+    },
+    {
+        title: "Moss stone",
+        value: "moss",
+    },
+    {
+        title: "Teal stone",
+        value: "teal",
+    },
+    {
+        title: "Cobalt stone",
+        value: "cobalt",
+    },
+    {
+        title: "Violet stone",
+        value: "violet",
+    },
+    {
+        title: "Rose stone",
+        value: "rose",
+    },
+] as const;
+
+export type BotStoneShape = (typeof BotStoneShapes)[number]["value"];
 
 export const BotKinds = [
     {

@@ -6,14 +6,15 @@ import CodeEditor from "@/src/components/general/code-editor";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import ImagePickField from "@/src/components/general/image-pick-field";
 import { AppContext } from "@/src/pages/__root";
-import type { BotHue } from "@/src/dict/bot-dict";
+import type { BotStoneShape } from "@/src/dict/bot-dict";
 import setProfileImage from "@/src/functions/frontend/set-profile-image";
 import postAdminApi from "../(functions)/post-admin-api";
 import usePickedImage from "../(hooks)/use-picked-image";
-import pickFreeHue from "@/src/utils/pick-free-hue";
+import { resolveBotColor, resolveBotStone } from "@/src/utils/bot-color";
+import pickFreeColor from "@/src/utils/pick-free-color";
 import AddFormActions from "./add-form-actions";
+import BotColourPicker from "./bot-colour-picker";
 import BotFormPreview from "./bot-form-preview";
-import BotHuePicker from "./bot-hue-picker";
 
 type Props = {
     /**
@@ -46,10 +47,14 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
 
     const [name, setName] = useState(bot?.name || "");
     const [role, setRole] = useState(bot?.role || "");
-    const [hue, setHue] = useState<BotHue>(
+    /** The colour and stone a new bot starts with: the palette's next free one. */
+    const [color, setColor] = useState(
         () =>
-            (bot?.hue as BotHue) ||
-            pickFreeHue({ taken: crew.map((b) => b.hue) }),
+            resolveBotColor({ color: bot?.color, hue: bot?.hue }) ||
+            pickFreeColor({ taken: crew.map((b) => b.color) }).color,
+    );
+    const [stone, setStone] = useState<BotStoneShape>(() =>
+        resolveBotStone({ stone: bot?.stone, hue: bot?.hue }),
     );
     const [system_prompt, setSystemPrompt] = useState(bot?.system_prompt || "");
     const [join, setJoin] = useState(!bot && Boolean(workspace?.id));
@@ -79,13 +84,14 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                       bot_id: bot.id,
                       name: name || bot.name,
                       role,
-                      hue,
+                      color,
+                      stone,
                       system_prompt,
                   },
               })
             : await postAdminApi<{ bot_id: number }>({
                   path: "bots/create-bot",
-                  body: { name, role, hue, system_prompt, workspace_id },
+                  body: { name, role, color, stone, system_prompt, workspace_id },
               });
         const bot_id =
             bot?.id ||
@@ -148,7 +154,8 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                     <BotFormPreview
                         name={name}
                         role={role}
-                        hue={is_coordinator ? null : hue}
+                        color={is_coordinator ? null : color}
+                        stone={stone}
                         image_media_id={image.image_media_id}
                         picked_src={image.data_url}
                     />
@@ -182,10 +189,14 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                         info="One line, shown under its name."
                         onChange={(e) => setRole(e.target.value)}
                     />
-                    <BotHuePicker
-                        hue={hue}
+                    <BotColourPicker
+                        color={color}
+                        stone={stone}
                         disabled={loading}
-                        onChange={setHue}
+                        onChange={({ color: picked, stone: picked_stone }) => {
+                            setColor(picked);
+                            setStone(picked_stone);
+                        }}
                     />
                 </>
             )}

@@ -24,6 +24,8 @@ export default async function grabWorkspaceActivity({
                 b.name AS bot_name,
                 b.image_media_id AS bot_image_media_id,
                 b.hue AS bot_hue,
+                b.color AS bot_color,
+                b.stone AS bot_stone,
                 ${face.sql},
                 (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = s.id) AS message_count,
                 (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text

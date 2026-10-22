@@ -1,5 +1,6 @@
 import BotAvatar from "@/src/components/general/bot-avatar";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import type { CronJobWithNames } from "@/src/types";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
 import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
@@ -29,7 +30,7 @@ export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete 
             avatar={
                 <BotAvatar
                     image_media_id={cron_job.bot_image_media_id}
-                    hue={(cron_job.bot_kind == "coordinator" ? null : cron_job.bot_hue || null) as BotHue | null}
+                    {...botStoneProps({ color: cron_job.bot_color, stone: cron_job.bot_stone, hue: cron_job.bot_hue })}
                     face={(cron_job.bot_face || "idle") as BotFace}
                 />
             }

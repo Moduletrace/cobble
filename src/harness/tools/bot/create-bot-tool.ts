@@ -5,7 +5,7 @@ import { AppData } from "@/src/data/app-data";
 import pushBotCreated from "@/src/bots-queue/push-bot-created";
 import createBot from "@/src/functions/backend/db/bots/create-bot";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
-import pickFreeHue from "@/src/utils/pick-free-hue";
+import pickFreeColor from "@/src/utils/pick-free-color";
 import botRef from "@/src/utils/bot-ref";
 import type { HarnessTool } from "../../types";
 
@@ -76,19 +76,24 @@ export default function createBotTool({
                 );
             }
 
-            const hues =
+            const colors =
                 (
                     await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
-                        sql: `SELECT hue FROM bots`,
+                        sql: `SELECT color FROM bots`,
                         values: [],
                     })
                 ).payload || [];
+
+            const { color, stone } = pickFreeColor({
+                taken: colors.map((bot) => bot.color),
+            });
 
             const bot_id = await createBot({
                 user_id,
                 name: args.name,
                 role: args.role,
-                hue: pickFreeHue({ taken: hues.map((bot) => bot.hue) }),
+                color,
+                stone,
                 system_prompt: args.instructions,
             });
 

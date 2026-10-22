@@ -5,7 +5,8 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { MessageSquare, NotebookPen, X } from "lucide-react";
 import BotAvatar from "@/src/components/general/bot-avatar";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import type { WorkspaceBot } from "@/src/types";
 
 type Props = {
@@ -47,7 +48,7 @@ export default function WorkspaceBotRow({
         <Row className="w-full min-h-14 gap-3! flex-nowrap items-center px-3 py-2">
             <BotAvatar
                 image_media_id={bot.image_media_id}
-                hue={(bot.hue || null) as BotHue | null}
+                {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
                 face={(bot.face || "idle") as BotFace}
             />
             <Link

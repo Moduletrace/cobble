@@ -15,7 +15,7 @@ type Props = (typeof BotHues)[number] & {
  * One colour tile: a stone in that hue over its name. Selected is a strong
  * border, so it never depends on the colour alone.
  */
-export default function BotHueOption({ title, value, selected, disabled, onSelect }: Props) {
+export default function BotColourOption({ title, value, color, selected, disabled, onSelect }: Props) {
     return (
         <Button
             title={title}
@@ -35,8 +35,18 @@ export default function BotHueOption({ title, value, selected, disabled, onSelec
             )}
         >
             <Stack className="w-full min-w-0 gap-1! items-center">
-                <BotStone hue={value} face={selected ? "done" : "idle"} size={28} />
-                <Span className={twMerge("text-xs leading-4 text-ink-secondary truncate", selected && "font-bold text-ink")}>
+                <BotStone
+                    color={color}
+                    stone={value}
+                    face={selected ? "done" : "idle"}
+                    size={28}
+                />
+                <Span
+                    className={twMerge(
+                        "text-xs leading-4 text-ink-secondary truncate",
+                        selected && "font-bold text-ink",
+                    )}
+                >
                     {title}
                 </Span>
             </Stack>

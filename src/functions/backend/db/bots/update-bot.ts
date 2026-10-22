@@ -1,5 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BotHue } from "@/src/dict/bot-dict";
+import type { BotStoneShape } from "@/src/dict/bot-dict";
 import AppError from "@/src/utils/app-error";
 import assertPromptLength from "@/src/utils/assert-prompt-length";
 import grabUserBot from "./grab-user-bot";
@@ -10,16 +10,31 @@ type Params = {
     bot_id: number | string;
     name: string;
     role?: string;
-    hue: BotHue;
+    /**
+     * Its identity colour, `#rrggbb`.
+     */
+    color: string;
+    /**
+     * Which flat-cut stone it's drawn on.
+     */
+    stone: BotStoneShape;
     system_prompt: string;
 };
 
 /**
- * Saves one of the user's bots: name, job, hue and core instructions. The
- * coordinator keeps its name and stays hue-less, so only its instructions
- * change. Returns the saved bot.
+ * Saves one of the user's bots: name, job, colour, stone and core
+ * instructions. The coordinator keeps its name and stays hue-less, so only
+ * its instructions change. Returns the saved bot.
  */
-export default async function updateBot({ user_id, bot_id, name, role, hue, system_prompt }: Params) {
+export default async function updateBot({
+    user_id,
+    bot_id,
+    name,
+    role,
+    color,
+    stone,
+    system_prompt,
+}: Params) {
     await assertCrewManager({ user_id });
 
     assertPromptLength({ label: "Instructions", text: system_prompt });
@@ -37,8 +52,8 @@ export default async function updateBot({ user_id, bot_id, name, role, hue, syst
         });
     } else {
         await BunSQLite.sql({
-            sql: `UPDATE bots SET name = ?, role = ?, hue = ?, system_prompt = ?, updated_at = ? WHERE id = ?`,
-            values: [name, role || null, hue, system_prompt, Date.now(), bot.id],
+            sql: `UPDATE bots SET name = ?, role = ?, color = ?, stone = ?, system_prompt = ?, updated_at = ? WHERE id = ?`,
+            values: [name, role || null, color, stone, system_prompt, Date.now(), bot.id],
         });
     }
 

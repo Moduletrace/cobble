@@ -13,6 +13,7 @@ import type {
     BotMessageAuthor,
     BotTaskStepState,
 } from "@/src/dict/bot-dict";
+import { paletteColor } from "@/src/utils/bot-color";
 import setBotFace from "@/src/functions/backend/db/bots/set-bot-face";
 import ensureCoordinatorBot from "@/src/functions/backend/db/bots/ensure-coordinator-bot";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
@@ -49,6 +50,10 @@ type SeedTask = {
 
 type SeedBot = {
     name: string;
+    /**
+     * The palette entry it's drawn with, which gives it both its colour and
+     * its stone. Null for the coordinator.
+     */
     hue: BotHue | null;
     role: string | null;
     face: BotFace;
@@ -221,7 +226,8 @@ async function insertBot({
                 user_id,
                 name: bot.name,
                 kind: bot.hue ? "worker" : "coordinator",
-                hue: bot.hue || undefined,
+                color: paletteColor({ hue: bot.hue }) || undefined,
+                stone: bot.hue || undefined,
                 role: bot.role || undefined,
             },
         ],

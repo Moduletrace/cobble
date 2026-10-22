@@ -83,6 +83,8 @@ export type CronJobWithNames = BUN_SQLITE_COBBLE_CRON_JOBS & {
     bot_name?: string | null;
     bot_kind?: string | null;
     bot_hue?: string | null;
+    bot_color?: string | null;
+    bot_stone?: string | null;
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
@@ -96,6 +98,8 @@ export type TaskWithNames = BUN_SQLITE_COBBLE_TASKS & {
     bot_name?: string | null;
     bot_kind?: string | null;
     bot_hue?: string | null;
+    bot_color?: string | null;
+    bot_stone?: string | null;
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
@@ -160,6 +164,8 @@ export type WorkspaceActivityItem = BUN_SQLITE_COBBLE_BOT_SESSIONS & {
     bot_name?: string | null;
     bot_image_media_id?: number | null;
     bot_hue?: string | null;
+    bot_color?: string | null;
+    bot_stone?: string | null;
     bot_face?: string | null;
 };
 
@@ -275,6 +281,12 @@ export type BotUpdatedData = {
      * change). A workspace's crew drops a bot that's no longer in it.
      */
     workspace_ids?: number[];
+    /**
+     * Its colour and stone, when the push read them (a recolour, or any bot
+     * change): every rail row and avatar takes them without a reload.
+     */
+    color?: string | null;
+    stone?: string | null;
 };
 
 /**

@@ -6,7 +6,8 @@ import Button from "@moduletrace/twui/layout/Button";
 import type { TaskWithNames } from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import BotAvatar from "@/src/components/general/bot-avatar";
-import type { BotFace, BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import { TaskStatuses } from "@/src/dict/task-dict";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import relativeTime from "@/src/utils/relative-time";
@@ -40,7 +41,7 @@ export default function TaskListItem({ task, onOpen, onStatusChange, busy }: Pro
         <Row className="w-full gap-3! flex-nowrap items-start px-3 py-3 border-0 border-b border-solid border-hairline last:border-b-0">
             <BotAvatar
                 image_media_id={task.bot_image_media_id}
-                hue={(task.bot_kind == "coordinator" ? null : task.bot_hue || null) as BotHue | null}
+                {...botStoneProps({ color: task.bot_color, stone: task.bot_stone, hue: task.bot_hue })}
                 face={(task.bot_face || "idle") as BotFace}
                 size={28}
             />

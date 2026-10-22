@@ -83,7 +83,7 @@ export default async function grabTasks({
     const face = botFaceSql({ user_id: user_id || 0, alias: "b", prefix: "bot_" });
 
     const res = await BunSQLite.sql<TaskWithNames>({
-        sql: `SELECT t.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue,
+        sql: `SELECT t.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone,
                 b.image_media_id AS bot_image_media_id, ${face.sql}, w.name AS workspace_name,
                 (SELECT n.text FROM task_notes n WHERE n.task_id = t.id ORDER BY n.id DESC LIMIT 1) AS latest_note,
                 (SELECT COUNT(*) FROM task_media tm WHERE tm.task_id = t.id) AS media_count

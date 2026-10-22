@@ -1,6 +1,7 @@
 import BotAvatar from "@/src/components/general/bot-avatar";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
-import type { BotHue } from "@/src/dict/bot-dict";
+import type { BotFace } from "@/src/dict/bot-dict";
+import botStoneProps from "@/src/utils/bot-stone-props";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "@/src/types/sql-joins";
 import parseUserTypes from "@/src/utils/parse-user-types";
@@ -37,7 +38,11 @@ export default function UserAccessGroups({ person, crew_bots, crew_workspaces, o
                     subtitle: bot.role,
                     href: `/admin/settings/bots/${bot.id}`,
                     avatar: (
-                        <BotAvatar image_media_id={bot.image_media_id} hue={(bot.hue || null) as BotHue | null} face="idle" />
+                        <BotAvatar
+                            image_media_id={bot.image_media_id}
+                            {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
+                            face="idle"
+                        />
                     ),
                 }))}
                 onUpdated={onUpdated}

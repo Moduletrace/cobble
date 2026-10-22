@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import {
-    BotHues,
     BotMessageReactions,
-    type BotHue,
+    BotStoneShapes,
     type BotMessageReactionEmoji,
+    type BotStoneShape,
 } from "@/src/dict/bot-dict";
 
 /**
@@ -115,7 +115,18 @@ export type ListBotSessionsRequest = z.infer<typeof ListBotSessionsRequestSchema
 export const CreateBotRequestSchema = z.object({
     name: z.string().trim().min(1, "Give the bot a name").max(40, "Keep the name under 40 characters"),
     role: z.string().trim().max(120, "Keep the role to one line").default(""),
-    hue: z.enum(BotHues.map((h) => h.value) as [BotHue, ...BotHue[]]),
+    /**
+     * Its identity colour, `#rrggbb`.
+     */
+    color: z
+        .string()
+        .trim()
+        .toLowerCase()
+        .regex(/^#[0-9a-f]{6}$/, "Pick a colour like #7c5cd6"),
+    /**
+     * Which flat-cut stone it's drawn on.
+     */
+    stone: z.enum(BotStoneShapes.map((s) => s.value) as [BotStoneShape, ...BotStoneShape[]]),
     system_prompt: z
         .string()
         .trim()
