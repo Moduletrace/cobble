@@ -1,6 +1,8 @@
 import { memo } from "react";
+import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageWithAttachments } from "@/src/types";
+import CopyMessageButton from "./copy-message-button";
 import MessageAttachments from "./message-attachments";
 import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
@@ -14,8 +16,8 @@ type Props = {
 /**
  * One user message: the quoted message it answers, its files, then its
  * text (a file-only message has no bubble) and the bot's reactions to it.
- * The user doesn't reply to or react to their own messages. Memoized,
- * like `BotMessageLine`.
+ * The user doesn't reply to or react to their own messages, but they can
+ * copy one. Memoized, like `BotMessageLine`.
  */
 function UserMessage({ message, bot_name }: Props) {
     return (
@@ -34,6 +36,11 @@ function UserMessage({ message, bot_name }: Props) {
                     message_id={message.id}
                     reactions={message.reactions}
                 />
+            ) : null}
+            {message.text ? (
+                <Row className="gap-3! items-center">
+                    <CopyMessageButton text={message.text} />
+                </Row>
             ) : null}
         </Stack>
     );

@@ -62,7 +62,7 @@ export const AppData = {
      * them.
      */
     LastVisitedBotCookieName: `${SiteData["SiteSlug"]}_last_visited_bot_id`,
-    LastVisitedWorkspaceCookieName: `${SiteData["SiteSlug"]}_last_visited_workspace_id`,
+    // LastVisitedWorkspaceCookieName: `${SiteData["SiteSlug"]}_last_visited_workspace_id`,
     LastVisitedCookieMaxAgeSeconds: 365 * 24 * 60 * 60,
     AuthExpiryDays: 60,
     APICrudBasePath: "/api/admin/crud",
@@ -395,6 +395,11 @@ export const AppData = {
      * Most bots or workspaces the composer's mention menu lists at once.
      */
     ComposerMentionMaxItems: 6,
+    /**
+     * How long a message's copy button shows a check after it copied the
+     * message, before it goes back to the copy icon.
+     */
+    CopyConfirmationMs: 1500,
     /**
      * Most of a bot message read aloud; the rest is cut.
      */
