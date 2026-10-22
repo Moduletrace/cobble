@@ -41,7 +41,7 @@ export const SettingsRecordSections: Record<
         { title: "Models", url: "#models", Icon: CpuAi },
         { title: "Workspaces", url: "#workspaces", Icon: Layers },
         { title: "Computers", url: "#computers", Icon: Monitor },
-        { title: "Delete", url: "#delete", Icon: Trash2 },
+        { title: "Danger Zone", url: "#danger-zone", Icon: CircleAlert },
     ],
     workspaces: [
         { title: "Picture", url: "#picture", Icon: Image },
@@ -49,7 +49,7 @@ export const SettingsRecordSections: Record<
         { title: "Bots", url: "#bots", Icon: Bot },
         { title: "Computers", url: "#computers", Icon: Monitor },
         { title: "Models", url: "#models", Icon: CpuAi },
-        { title: "Delete", url: "#delete", Icon: Trash2 },
+        { title: "Danger Zone", url: "#danger-zone", Icon: CircleAlert },
     ],
     users: [
         { title: "Overview", url: "#overview", Icon: Info },

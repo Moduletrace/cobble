@@ -17,17 +17,24 @@ type Props = {
 export default function RailPagesList({ pathname }: Props) {
     const { pageProps } = useContext(AppContext);
     const current = pathname?.replace(/\/$/, "");
-    const is_super_admin = isPassThroughUser({ user_types: pageProps?.user_types });
+    const is_super_admin = isPassThroughUser({
+        user_types: pageProps?.user_types,
+    });
 
     return (
         <>
             <RailBackLink />
-            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
-            {RailPages.filter((page) => is_super_admin || !page.super_admin_only).map((page) => (
+            {/* <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" /> */}
+            {RailPages.filter(
+                (page) => is_super_admin || !page.super_admin_only,
+            ).map((page) => (
                 <RailSettingsLink
                     key={page.url}
                     {...page}
-                    selected={current == page.url || Boolean(current?.startsWith(`${page.url}/`))}
+                    selected={
+                        current == page.url ||
+                        Boolean(current?.startsWith(`${page.url}/`))
+                    }
                 />
             ))}
         </>

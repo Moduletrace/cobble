@@ -16,6 +16,7 @@ import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotProfileModal from "./bot-profile-modal";
 import ConversationHeaderMenu from "./conversation-header-menu";
 import HeaderMetaItem from "./header-meta-item";
+import BackButton from "@/src/components/general/back-button";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -48,9 +49,12 @@ export default function ConversationHeader({
         ? computer.name || `Computer ${computer.id}`
         : null;
 
+    const is_workspace = pageProps?.url?.pathname.includes(`/workspaces/`);
+
     return (
         <Row className="h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3 md:px-6 border-0 border-b border-solid border-hairline">
             <RailDrawerButton />
+            {is_workspace ? <BackButton /> : null}
             <BotProfileModal bot={bot} />
             <Stack className="min-w-0 gap-0!">
                 <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full line-clamp-1">

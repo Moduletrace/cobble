@@ -13,6 +13,7 @@ type Props = {
      * Only `className` applies: it sets the wordmark colour.
      */
     text_props?: ComponentProps<typeof Span>;
+    no_link?: boolean;
 };
 
 /**
@@ -22,21 +23,30 @@ export default function Logo({
     icon_size = 36,
     text_props,
     text_wrapper_props,
+    no_link,
 }: Props) {
+    const content = (
+        <Row className="gap-2.5! flex-nowrap items-center">
+            <LogoIcon icon_size={icon_size} />
+            <Stack
+                {...text_wrapper_props}
+                className={twMerge("gap-0!", text_wrapper_props?.className)}
+            >
+                <Wordmark
+                    height={Math.round(icon_size * 0.5)}
+                    className={text_props?.className}
+                />
+            </Stack>
+        </Row>
+    );
+
+    if (no_link) {
+        return content;
+    }
+
     return (
         <a href="/" className="logo-link">
-            <Row className="gap-2.5! flex-nowrap items-center">
-                <LogoIcon icon_size={icon_size} />
-                <Stack
-                    {...text_wrapper_props}
-                    className={twMerge("gap-0!", text_wrapper_props?.className)}
-                >
-                    <Wordmark
-                        height={Math.round(icon_size * 0.5)}
-                        className={text_props?.className}
-                    />
-                </Stack>
-            </Row>
+            {content}
         </a>
     );
 }

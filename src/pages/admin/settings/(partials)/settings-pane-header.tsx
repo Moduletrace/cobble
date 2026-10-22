@@ -4,6 +4,8 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import H1 from "@moduletrace/twui/layout/H1";
 import Span from "@moduletrace/twui/layout/Span";
 import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
+import BackButton from "@/src/components/general/back-button";
+import { twMerge } from "tailwind-merge";
 
 type Props = {
     title: string;
@@ -25,13 +27,29 @@ export default function SettingsPaneHeader({
     action,
 }: Props) {
     return (
-        <Row className="h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3 md:px-6 border-0 border-b border-solid border-hairline">
+        <Row
+            className={twMerge(
+                "h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3",
+                "md:px-6 border-0 border-b border-solid border-hairline",
+            )}
+        >
             <RailDrawerButton />
+            <BackButton />
             <Stack className="min-w-0 gap-0!">
-                <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate">
+                <H1
+                    className={twMerge(
+                        "text-lg! leading-6! tracking-normal! font-bold text-ink truncate line-clamp-1",
+                        "whitespace-nowrap w-full",
+                    )}
+                >
                     {title}
                 </H1>
-                <Span className="text-[13px] leading-[18px] text-ink-secondary truncate">
+                <Span
+                    className={twMerge(
+                        "text-[13px] leading-[18px] text-ink-secondary truncate",
+                        "line-clamp-1 whitespace-nowrap w-full",
+                    )}
+                >
                     {description}
                 </Span>
             </Stack>

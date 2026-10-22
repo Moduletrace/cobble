@@ -79,9 +79,6 @@ export default function App({
     return (
         <AppContext.Provider value={appContextObject}>
             <Layout
-                // no_header_divider={
-                //     url?.pathname ? ["/"].includes(url.pathname) : undefined
-                // }
                 blank={
                     url?.pathname
                         ? ["/auth/logout"].includes(url.pathname)

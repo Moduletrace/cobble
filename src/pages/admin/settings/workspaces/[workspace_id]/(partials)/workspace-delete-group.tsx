@@ -19,12 +19,20 @@ export default function WorkspaceDeleteGroup({ workspace }: Props) {
     const name = workspace.name || "this workspace";
 
     const remove = async () => {
-        if (!window.confirm(`Delete ${name} and every conversation in it? Its bots and computers stay.`)) return;
+        if (
+            !window.confirm(
+                `Delete ${name} and every conversation in it? Its bots and computers stay.`,
+            )
+        )
+            return;
 
         setLoading(true);
         setError(undefined);
 
-        const res = await postAdminApi({ path: "workspaces/delete-workspace", body: { workspace_id: workspace.id } });
+        const res = await postAdminApi({
+            path: "workspaces/delete-workspace",
+            body: { workspace_id: workspace.id },
+        });
 
         if (res.success) {
             window.location.href = "/admin/settings/workspaces";
@@ -37,9 +45,9 @@ export default function WorkspaceDeleteGroup({ workspace }: Props) {
 
     return (
         <SettingsGroup
-            id="delete"
-            title="Delete"
-            description="Deletes the workspace and its conversations. Its bots and computers stay yours."
+            id="danger-zone"
+            title="Danger Zone"
+            description="Irreversible actions live here. Be careful."
         >
             <Button
                 title={`Delete ${name}`}
@@ -54,7 +62,9 @@ export default function WorkspaceDeleteGroup({ workspace }: Props) {
             >
                 Delete workspace
             </Button>
-            <SettingsStatus status={error ? { error: true, msg: error } : undefined} />
+            <SettingsStatus
+                status={error ? { error: true, msg: error } : undefined}
+            />
         </SettingsGroup>
     );
 }

@@ -29,7 +29,12 @@ type Props = {
  * page), the coordinator working in it, then the workspace's bots. Every
  * conversation here runs with the workspace's context.
  */
-export default function RailWorkspaceList({ workspace, bots, selected_id, on_workspace_page }: Props) {
+export default function RailWorkspaceList({
+    workspace,
+    bots,
+    selected_id,
+    on_workspace_page,
+}: Props) {
     const { openLinkBots } = useContext(AddFlowContext);
     const coordinator = bots.find((bot) => bot.kind === "coordinator");
     const workers = bots.filter((bot) => bot.kind !== "coordinator");
@@ -38,11 +43,16 @@ export default function RailWorkspaceList({ workspace, bots, selected_id, on_wor
     return (
         <>
             <RailBackLink
-                title={on_workspace_page ? "All bots" : `Back to ${workspace.name}`}
+                title={
+                    on_workspace_page ? "All bots" : `Back to ${workspace.name}`
+                }
                 href={on_workspace_page ? undefined : base}
             />
-            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
-            <WorkspaceRow workspace={{ ...workspace, unread: 0 }} selected={on_workspace_page} />
+            {/* <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" /> */}
+            <WorkspaceRow
+                workspace={{ ...workspace, unread: 0 }}
+                selected={on_workspace_page}
+            />
             {coordinator ? (
                 <RailBotCard selected={coordinator.id === selected_id}>
                     <CoordinatorRow
@@ -61,7 +71,12 @@ export default function RailWorkspaceList({ workspace, bots, selected_id, on_wor
                 </RailBotCard>
             ) : null}
             <RailBotsSection
-                action={<RailSectionAddButton title="Add bots to this workspace" onClick={openLinkBots} />}
+                action={
+                    <RailSectionAddButton
+                        title="Add bots to this workspace"
+                        onClick={openLinkBots}
+                    />
+                }
                 title="Workspace bots"
                 workers={workers}
                 selected_id={on_workspace_page ? undefined : selected_id}

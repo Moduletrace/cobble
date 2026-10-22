@@ -3,6 +3,8 @@ import path from "node:path";
 import { AppData } from "@/src/data/app-data";
 import AppError from "@/src/utils/app-error";
 
+const empty_folder_text = `Empty Folder`;
+
 type Params = {
     /**
      * The volume's absolute root (`resolveStorageSpec`'s `root`), already
@@ -48,7 +50,10 @@ export type ResolvedStoragePath = {
  * the bot's tools); a caller that needs an existing file checks it
  * afterwards.
  */
-export default function resolveStoragePath({ root, path: requested }: Params): ResolvedStoragePath {
+export default function resolveStoragePath({
+    root,
+    path: requested,
+}: Params): ResolvedStoragePath {
     const resolved_root = path.resolve(root);
     const raw = (requested || "").trim().replace(/\\/g, "/");
 
@@ -57,19 +62,26 @@ export default function resolveStoragePath({ root, path: requested }: Params): R
     }
 
     if (raw.startsWith("/") || /^[a-zA-Z]:/.test(raw)) {
-        throw new AppError(`Use a path inside the folder, not an absolute one.`);
+        throw new AppError(
+            `Use a path inside the folder, not an absolute one.`,
+        );
     }
 
-    const segments = raw.split("/").map((segment) => segment.trim()).filter(Boolean);
+    const segments = raw
+        .split("/")
+        .map((segment) => segment.trim())
+        .filter(Boolean);
 
     for (const segment of segments) {
         if (segment == "." || segment == "..") {
-            throw new AppError(`That path isn't valid: it must stay inside the folder.`);
+            throw new AppError(empty_folder_text);
         }
     }
 
     if (segments.length > AppData.BotFilePathMaxDepth) {
-        throw new AppError(`That path is too deep: at most ${AppData.BotFilePathMaxDepth} folders.`);
+        throw new AppError(
+            `That path is too deep: at most ${AppData.BotFilePathMaxDepth} folders.`,
+        );
     }
 
     const relative = segments.join("/");
@@ -81,7 +93,7 @@ export default function resolveStoragePath({ root, path: requested }: Params): R
     const absolute = path.join(resolved_root, ...segments);
 
     if (!isInsideRoot({ root: resolved_root, absolute })) {
-        throw new AppError(`That path isn't valid: it must stay inside the folder.`);
+        throw new AppError(empty_folder_text);
     }
 
     guardRealPath({ root: resolved_root, absolute });
@@ -99,7 +111,9 @@ export default function resolveStoragePath({ root, path: requested }: Params): R
  * symlink (or any other reason).
  */
 function guardRealPath({ root, absolute }: { root: string; absolute: string }) {
-    const real_root = existsSync(root) ? realpathSync(root) : path.resolve(root);
+    const real_root = existsSync(root)
+        ? realpathSync(root)
+        : path.resolve(root);
     let probe = absolute;
 
     while (!existsSync(probe)) {
@@ -113,16 +127,25 @@ function guardRealPath({ root, absolute }: { root: string; absolute: string }) {
     const real_probe = realpathSync(probe);
 
     if (!isInsideRoot({ root: real_root, absolute: real_probe })) {
-        throw new AppError(`That path isn't valid: it must stay inside the folder.`);
+        throw new AppError(empty_folder_text);
     }
 }
 
 /**
  * Whether a path is inside a root, before it exists.
  */
-export function isInsideRoot({ root, absolute }: { root: string; absolute: string }) {
+export function isInsideRoot({
+    root,
+    absolute,
+}: {
+    root: string;
+    absolute: string;
+}) {
     const resolved_root = path.resolve(root);
     const resolved = path.resolve(absolute);
 
-    return resolved == resolved_root || resolved.startsWith(`${resolved_root}${path.sep}`);
+    return (
+        resolved == resolved_root ||
+        resolved.startsWith(`${resolved_root}${path.sep}`)
+    );
 }

@@ -25,7 +25,7 @@ export default function RailSettingsList({ pathname }: Props) {
     return (
         <>
             <RailBackLink />
-            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
+            {/* <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" /> */}
             {SettingsPages.filter((page) =>
                 page.can_view
                     ? page.can_view({ user_types: pageProps?.user_types })

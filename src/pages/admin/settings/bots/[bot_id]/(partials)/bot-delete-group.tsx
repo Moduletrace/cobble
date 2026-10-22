@@ -45,9 +45,9 @@ export default function BotDeleteGroup({ bot }: Props) {
 
     return (
         <SettingsGroup
-            id="delete"
-            title="Delete"
-            description="Deletes the bot with its conversations, tasks and models."
+            id="danger-zone"
+            title="Danger Zone"
+            description="Dangerous section. Actions here are irreversible. Tread carefully"
         >
             <Button
                 title={`Delete ${name}`}

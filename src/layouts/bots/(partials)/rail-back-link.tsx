@@ -17,6 +17,8 @@ export default function RailBackLink({
     title = `Back to ${SiteData["SiteSlug"]}`,
     href = AdminHomePath,
 }: Props) {
+    return null;
+
     return (
         <Link
             href={href}

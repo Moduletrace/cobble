@@ -64,7 +64,8 @@ export default function RailSettingsAside({ pathname }: Props) {
                 ? Boolean(pageProps?.bot_harness_overview?.harnesses?.length)
                 : record.kind == "workspaces"
                   ? Boolean(
-                        pageProps?.workspace_harness_overview?.harnesses?.length,
+                        pageProps?.workspace_harness_overview?.harnesses
+                            ?.length,
                     )
                   : true;
         }
@@ -101,9 +102,7 @@ export default function RailSettingsAside({ pathname }: Props) {
 
         title = workspace.name || `Workspace ${workspace.id}`;
         subtitle = workspace.description || "A workspace";
-        avatar = (
-            <WorkspaceAvatar image_media_id={workspace.image_media_id} />
-        );
+        avatar = <WorkspaceAvatar image_media_id={workspace.image_media_id} />;
     } else if (record.kind == "users") {
         const person = pageProps?.target_person;
 
@@ -139,7 +138,7 @@ export default function RailSettingsAside({ pathname }: Props) {
     return (
         <>
             <RailBackLink title={back.title} href={back.href} />
-            <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" />
+            {/* <Divider className="shrink-0 mx-1 @rail:mx-3 my-2 w-auto border-hairline dark:border-hairline" /> */}
             <RailSettingsRecordRow
                 avatar={avatar}
                 title={title}
