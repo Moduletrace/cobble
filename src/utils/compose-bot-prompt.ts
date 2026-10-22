@@ -11,6 +11,11 @@ type WorkspaceBotPrompt = {
 
 type Params = {
     system_prompt?: string | null;
+    /**
+     * The install-wide text every bot gets, right after its own core
+     * instructions (Settings > General).
+     */
+    appendix?: string | null;
     memory?: string | null;
     /**
      * What the bot remembers about the user it's working with.
@@ -28,14 +33,15 @@ type Params = {
 
 /**
  * The full prompt a bot runs with (markdown): its own core instructions,
- * then, in a workspace, the workspace's context and the bot's
- * instructions there, then its core memory, its memory about the user and
- * its memory in the workspace (said to be the bot's own notes, not the
- * workspace's context). Empty parts are left out; the workspace heading
- * always shows, so the bot knows where it is.
+ * then the install-wide appendix, then, in a workspace, the workspace's
+ * context and the bot's instructions there, then its core memory, its
+ * memory about the user and its memory in the workspace (said to be the
+ * bot's own notes, not the workspace's context). Empty parts are left out;
+ * the workspace heading always shows, so the bot knows where it is.
  */
 export default function composeBotPrompt({
     system_prompt,
+    appendix,
     memory,
     user_memory,
     workspace,
@@ -46,6 +52,10 @@ export default function composeBotPrompt({
 
     if (system_prompt?.trim()) {
         parts.push(system_prompt.trim());
+    }
+
+    if (appendix?.trim()) {
+        parts.push(`# Install-wide instructions\n\n${appendix.trim()}`);
     }
 
     if (workspace) {

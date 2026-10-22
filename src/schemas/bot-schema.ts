@@ -13,6 +13,17 @@ import {
  */
 const WorkspaceIdField = z.coerce.number().int().positive().nullish();
 
+export const SaveSystemPromptAppendRequestSchema = z.object({
+    text: z
+        .string()
+        .trim()
+        .max(
+            AppData.PromptMaxLength,
+            `Keep it under ${AppData.PromptMaxLength} characters`,
+        )
+        .default(""),
+});
+
 export const SendBotMessageRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot to message"),
     workspace_id: WorkspaceIdField,

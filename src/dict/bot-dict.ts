@@ -55,6 +55,12 @@ export type BotKind = (typeof BotKinds)[number]["value"];
 export const CoordinatorBotName = "Coordinator";
 
 /**
+ * The `app_settings` key holding the install-wide text appended to every
+ * bot's prompt, right after its own core instructions.
+ */
+export const BotSystemPromptAppendSettingKey = "bot_system_prompt_append";
+
+/**
  * A bot's face is its status. There are no badges or spinners.
  */
 export const BotFaces = [

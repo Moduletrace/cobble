@@ -30,6 +30,31 @@ describe("composeBotPrompt", () => {
         );
     });
 
+    test("puts the install-wide appendix right after the core instructions", () => {
+        expect(
+            composeBotPrompt({
+                system_prompt: "Core.",
+                appendix: "Never invent sources.",
+                workspace: { name: "Launch", description: "The spring launch." },
+                memory: "- Cite sources.",
+            }),
+        ).toBe(
+            [
+                "Core.",
+                "# Install-wide instructions\n\nNever invent sources.",
+                `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.`,
+                "# Memory\n\n- Cite sources.",
+            ].join("\n\n"),
+        );
+    });
+
+    test("shows an appendix on its own and ignores a blank one", () => {
+        expect(composeBotPrompt({ appendix: "Be brief." })).toBe(
+            "# Install-wide instructions\n\nBe brief.",
+        );
+        expect(composeBotPrompt({ system_prompt: "Core.", appendix: "   " })).toBe("Core.");
+    });
+
     test("leaves out empty parts and has no workspace outside one", () => {
         expect(
             composeBotPrompt({

@@ -993,6 +993,14 @@ export type PagePropsType = {
         total_files: number;
         folders: number;
     } | null;
+    /**
+     * The install-wide text appended to every bot's prompt (the General
+     * settings page).
+     */
+    system_prompt_append?: {
+        setting_key: string;
+        text: string;
+    } | null;
     push_overview?: PushOverview | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;

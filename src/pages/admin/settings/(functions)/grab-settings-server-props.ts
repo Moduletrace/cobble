@@ -6,6 +6,7 @@ import grabUserPasswordHash from "@/src/functions/backend/auth/grab-user-passwor
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
+import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
 
 type Params = Parameters<BunextPageServerFn<PagePropsType>>[0];
 
@@ -42,6 +43,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             person: sanitizeUserBio({ user: user_res.singleRes }),
             has_password,
             storage_quota: await grabStorageQuotaOverview().catch(() => null),
+            system_prompt_append: await grabSystemPromptAppendOverview().catch(() => null),
         },
     };
 }

@@ -1,5 +1,6 @@
 import composeBotPrompt from "@/src/utils/compose-bot-prompt";
 import AppError from "@/src/utils/app-error";
+import grabSystemPromptAppend from "../app-settings/grab-system-prompt-append";
 import grabWorkspaceBot from "../workspaces/grab-workspace-bot";
 import grabBotUserMemory from "./grab-bot-user-memory";
 import grabUserBot from "./grab-user-bot";
@@ -19,8 +20,9 @@ type Params = {
 
 /**
  * The full prompt for one of the user's bots (`composeBotPrompt`): its
- * core instructions and memory, what it remembers about this user, and in
- * a workspace that workspace's context and what the bot has for it.
+ * core instructions, the install-wide appendix, its memory, what it
+ * remembers about this user, and in a workspace that workspace's context
+ * and what the bot has for it.
  */
 export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });
@@ -39,6 +41,7 @@ export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: P
 
     return composeBotPrompt({
         system_prompt: bot.system_prompt,
+        appendix: await grabSystemPromptAppend(),
         memory: bot.memory,
         user_memory: await grabBotUserMemory({ bot_id: bot.id, user_id }),
         workspace: found?.workspace,
