@@ -5,12 +5,14 @@ import clientUploadMediaHandler from "@/src/functions/frontend/client-upload-med
 import type useFormInit from "@/src/hooks/use-form-init";
 import type { UserFormObject } from "@/src/types";
 import { ProfileFields } from "../(data)/profile-fields";
+import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 
 type Params = ReturnType<typeof useFormInit<UserFormObject>> & {
     onSaved: (params: {
         saved: UserFormObject;
         photo_src?: string;
         msg: string;
+        success?: boolean;
     }) => void;
 };
 
@@ -87,7 +89,14 @@ export default async function submitProfileForm({
             }
         }
 
-        onSaved({ saved, photo_src: image?.imageBase64Full, msg: "Saved." });
+        const reauth = await fetchApi(`/api/admin/reauth`);
+
+        onSaved({
+            saved,
+            photo_src: image?.imageBase64Full,
+            msg: "Saved.",
+            success: true,
+        });
     } catch (error: any) {
         setStatus({
             error: true,

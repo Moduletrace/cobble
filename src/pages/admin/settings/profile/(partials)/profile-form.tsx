@@ -25,8 +25,7 @@ export default function ProfileForm({ person }: Props) {
     );
     const [saved_photo_src, setSavedPhotoSrc] = useState(() =>
         person.profile_media_id
-            ? grabMediaURL({ media: { id: person.profile_media_id } })
-                  .media_url
+            ? grabMediaURL({ media: { id: person.profile_media_id } }).media_url
             : undefined,
     );
     /**
@@ -39,8 +38,7 @@ export default function ProfileForm({ person }: Props) {
         existing: saved,
         existing_full: { id: person.id },
     });
-    const { form, setForm, image, setImage, loading, status, setStatus } =
-        init;
+    const { form, setForm, image, setImage, loading, status, setStatus } = init;
 
     const dirty = isProfileDirty({ form, existing: saved, image });
     const initials = [saved.first_name, saved.last_name]
@@ -70,6 +68,8 @@ export default function ProfileForm({ person }: Props) {
                         setImage(undefined);
                         if (photo_src) setSavedPhotoSrc(photo_src);
                         setNotice(msg);
+
+                        window.location.reload();
                     },
                 });
             }}
@@ -87,7 +87,10 @@ export default function ProfileForm({ person }: Props) {
                 />
             </SettingsGroup>
 
-            <SettingsGroup title="Name" description="How you appear in the app.">
+            <SettingsGroup
+                title="Name"
+                description="How you appear in the app."
+            >
                 <Row className="w-full grid sm:grid-cols-2 gap-4!">
                     <ProfileTextField
                         form={form}
@@ -145,7 +148,10 @@ export default function ProfileForm({ person }: Props) {
                 />
             </SettingsGroup>
 
-            <SettingsGroup title="Role" description="Set when your account was made.">
+            <SettingsGroup
+                title="Role"
+                description="Set when your account was made."
+            >
                 <ProfileRoleRow user_types={person.user_types} />
             </SettingsGroup>
 
