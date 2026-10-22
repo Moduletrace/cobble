@@ -8,6 +8,7 @@ import WorkspaceAboutGroup from "../(partials)/workspace-about-group";
 import WorkspaceActivityGroup from "../(partials)/workspace-activity-group";
 import WorkspaceBotsListGroup from "../(partials)/workspace-bots-list-group";
 import WorkspaceComputersListGroup from "../(partials)/workspace-computers-list-group";
+import WorkspaceTasksGroup from "../(partials)/workspace-tasks-group";
 
 /**
  * A workspace's dashboard: a read-only summary of its picture and context,
@@ -38,6 +39,10 @@ export default function WorkspaceDashboard() {
             }
         >
             <WorkspaceAboutGroup workspace={workspace} />
+            <WorkspaceTasksGroup
+                workspace_id={workspace_id}
+                tasks={pageProps?.workspace_tasks || []}
+            />
             <WorkspaceActivityGroup
                 workspace_id={workspace_id}
                 activity={pageProps?.workspace_activity || []}

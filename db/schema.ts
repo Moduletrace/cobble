@@ -23,6 +23,7 @@ import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/type
 import { EnvParadigms } from "@/src/dict/env-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
 import { CustomToolKinds, CustomToolStatuses } from "@/src/dict/custom-tool-dict";
+import { TaskAuthors, TaskMediaKinds, TaskOrigins, TaskStatuses } from "@/src/dict/task-dict";
 
 const schema: BUN_SQLITE_DatabaseSchemaType = {
     tables: [
@@ -599,6 +600,194 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             indexes: [
                 {
                     indexName: "idx_bot_task_steps_task_id",
+                    indexTableFields: ["task_id"],
+                },
+            ],
+        },
+        {
+            tableName: "tasks",
+            tableDescription: `The crew's to-do list: work that is tracked until it's done, one collection per bot and one per workspace (exactly one of \`bot_id\` and \`workspace_id\` is set). A workspace's tasks are visible to every bot working there and to the coordinator; the coordinator reaches every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`, 
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot the task belongs to; null for a workspace's task`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "tasks_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace the task belongs to (its bots all see it); null for a bot's own`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "tasks_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "title",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "description",
+                    fieldDescription: `The brief (markdown): what to do, where, and how you'll know it's done`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: TaskStatuses.map((ts) => ts.value),
+                    defaultValue: "todo",
+                },
+                {
+                    fieldName: "blocked_reason",
+                    fieldDescription: `What the user has to do to unblock it; only meaningful while \`status\` is blocked`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "origin",
+                    fieldDescription: `Whether the user added it by hand or a bot created it`,
+                    dataType: "TEXT",
+                    options: TaskOrigins.map((to) => to.value),
+                    defaultValue: "user",
+                },
+                {
+                    fieldName: "created_by_bot_id",
+                    fieldDescription: `The bot that created it, when a bot did. Not a foreign key: the task stays if the bot goes`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "created_by_user_id",
+                    fieldDescription: `The user who created it by hand, or whose run created it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "completed_at",
+                    fieldDescription: `Unix ms when it was done or cancelled; null while it's open`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_tasks_bot_id_status",
+                    indexTableFields: ["bot_id", "status"],
+                },
+                {
+                    indexName: "idx_tasks_workspace_id_status",
+                    indexTableFields: ["workspace_id", "status"],
+                },
+            ],
+        },
+        {
+            tableName: "task_media",
+            tableDescription: `A file linked to a task: the deliverable it produced, or something it needs to do the work. The bytes are a private \`media\` row (paradigm \`task-media\`), served at \`/media/private/<id>\` to whoever reaches the task`,
+            fields: [
+                {
+                    fieldName: "task_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "tasks",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "task_media_task_fk",
+                    },
+                },
+                {
+                    fieldName: "media_id",
+                    fieldDescription: `The private \`media\` row holding the bytes`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "media",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "task_media_media_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_file_id",
+                    fieldDescription: `The \`bot_files\` row the bytes came from, when they live in a bot's or workspace's folder. Not a foreign key: the file's own cleanup handles its bytes`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "kind",
+                    fieldDescription: `What the file is for: a deliverable the task produced, or a reference it works from`,
+                    dataType: "TEXT",
+                    options: TaskMediaKinds.map((tmk) => tmk.value),
+                    defaultValue: "deliverable",
+                },
+                {
+                    fieldName: "name",
+                    fieldDescription: `The name shown to the user`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "added_by_bot_id",
+                    fieldDescription: `The bot that linked it, when a bot did. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_link_per_task_media",
+                    constraintName: "A file is linked to a task once",
+                    constraintTableFields: [{ value: "task_id" }, { value: "media_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_task_media_task_id",
+                    indexTableFields: ["task_id"],
+                },
+                {
+                    indexName: "idx_task_media_media_id",
+                    indexTableFields: ["media_id"],
+                },
+            ],
+        },
+        {
+            tableName: "task_notes",
+            tableDescription: `A task's progress log: what the user or a bot did or found, oldest first. A note is how a bot keeps the user up to date between status changes`,
+            fields: [
+                {
+                    fieldName: "task_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "tasks",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "task_note_task_fk",
+                    },
+                },
+                {
+                    fieldName: "author",
+                    dataType: "TEXT",
+                    options: TaskAuthors.map((ta) => ta.value),
+                    defaultValue: "bot",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that wrote it, when a bot did. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "text",
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_task_notes_task_id",
                     indexTableFields: ["task_id"],
                 },
             ],

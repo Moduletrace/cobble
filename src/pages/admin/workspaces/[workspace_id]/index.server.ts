@@ -3,6 +3,7 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import grabWorkspaceActivity from "@/src/functions/backend/db/workspaces/grab-workspace-activity";
 import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
 import grabWorkspaceComputers from "@/src/functions/backend/db/workspaces/grab-workspace-computers";
+import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import { AdminHomePath } from "@/src/dict/admin-sections-dict";
 import type { PagePropsType, PageQueryObject } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
@@ -33,11 +34,12 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
 
     const workspace_id = Number(workspace.id);
 
-    const [workspace_bots, workspace_computers, workspace_activity] =
+    const [workspace_bots, workspace_computers, workspace_activity, workspace_tasks] =
         await Promise.all([
             grabWorkspaceBots({ user_id: user.id, workspace_id }),
             grabWorkspaceComputers({ workspace_id }),
             grabWorkspaceActivity({ user_id: user.id, workspace_id }),
+            grabTasks({ user_id: user.id, only_workspace_id: workspace_id }),
         ]);
 
     const crew = railBots({ bots: workspace_bots });
@@ -50,6 +52,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspace_bots: crew,
             workspace_computers,
             workspace_activity,
+            workspace_tasks,
         },
     };
 };

@@ -6,6 +6,7 @@ import path from "node:path";
 import userAuth from "../../backend/auth/user-auth";
 import grabSharedPictureMedia from "@/src/functions/backend/db/access/grab-shared-picture-media";
 import grabBotFileMedia from "@/src/functions/backend/db/bot-files/grab-bot-file-media";
+import grabTaskMediaFile from "@/src/functions/backend/db/tasks/grab-task-media-file";
 
 const { DATA_DIR } = grabDirNames();
 
@@ -54,6 +55,7 @@ export default async function handleMediaServer({
             media_res.singleRes ||
             (media_id ? await grabSharedPictureMedia({ media_id, user_id: user.id! }) : null) ||
             (media_id ? await grabBotFileMedia({ media_id, user_id: user.id! }) : null) ||
+            (media_id ? await grabTaskMediaFile({ media_id, user_id: user.id! }) : null) ||
             undefined;
     } else {
         const media_res = await BunSQLite.select<

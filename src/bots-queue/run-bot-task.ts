@@ -3,6 +3,7 @@ import {
     ActionCheckNote,
     BotFilesNote,
     ScheduledRunNote,
+    TasksNote,
     TaskRunNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
@@ -104,7 +105,14 @@ export default async function runBotTask({
         ];
 
         const tools = [
-            ...grabBotTools({ user_id, bot_id: bot.id, workspace_id, computers, session_id }),
+            ...(await grabBotTools({
+                user_id,
+                bot_id: bot.id,
+                workspace_id,
+                computers,
+                session_id,
+                is_coordinator: bot.kind == "coordinator",
+            })),
             ...(bot.kind == "coordinator"
                 ? [
                       createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
@@ -155,6 +163,7 @@ export default async function runBotTask({
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
                 BotFilesNote,
+                TasksNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 bot.kind == "coordinator"

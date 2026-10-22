@@ -9,6 +9,9 @@ import type {
     BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_CRON_JOBS,
     BUN_SQLITE_COBBLE_MEDIA,
+    BUN_SQLITE_COBBLE_TASK_MEDIA,
+    BUN_SQLITE_COBBLE_TASK_NOTES,
+    BUN_SQLITE_COBBLE_TASKS,
     BUN_SQLITE_COBBLE_USER_TYPES,
     BUN_SQLITE_COBBLE_USERS,
     BUN_SQLITE_COBBLE_WORKSPACES,
@@ -82,6 +85,52 @@ export type CronJobWithNames = BUN_SQLITE_COBBLE_CRON_JOBS & {
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
+};
+
+/**
+ * A task with what a list shows beside it: the bot and workspace it belongs
+ * to, and its latest note.
+ */
+export type TaskWithNames = BUN_SQLITE_COBBLE_TASKS & {
+    bot_name?: string | null;
+    bot_kind?: string | null;
+    bot_hue?: string | null;
+    bot_face?: string | null;
+    bot_image_media_id?: number | null;
+    workspace_name?: string | null;
+    /**
+     * Its newest note's text, for the row's second line.
+     */
+    latest_note?: string | null;
+    /**
+     * How many files it carries.
+     */
+    media_count?: number | null;
+};
+
+/**
+ * A file linked to a task, joined with the `media` row it's served from.
+ */
+export type TaskFile = BUN_SQLITE_COBBLE_TASK_MEDIA & {
+    media_type?: string | null;
+    mime_type?: string | null;
+    /**
+     * The `media` row's title, when the link has no name of its own.
+     */
+    media_title?: string | null;
+    /**
+     * Whether the `media` row is still there.
+     */
+    missing?: boolean;
+};
+
+/**
+ * A task with its notes and files: what the task modal and the workspace's
+ * tasks group render.
+ */
+export type TaskDetail = TaskWithNames & {
+    notes: BUN_SQLITE_COBBLE_TASK_NOTES[];
+    files: TaskFile[];
 };
 
 /**
@@ -810,6 +859,10 @@ export type PagePropsType = {
      * A workspace's dashboard: the user's latest sessions there.
      */
     workspace_activity?: WorkspaceActivityItem[] | null;
+    /**
+     * A workspace's dashboard: its shared to-do list.
+     */
+    workspace_tasks?: TaskWithNames[] | null;
     /**
      * The computer a settings page manages, with its access.
      */

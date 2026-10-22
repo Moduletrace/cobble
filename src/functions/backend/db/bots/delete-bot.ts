@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
 import purgeStorage, { grabStorageMediaIds } from "@/src/functions/backend/db/bot-files/purge-storage";
+import { grabTaskMediaIds } from "@/src/functions/backend/db/tasks/purge-task-media";
 import AppError from "@/src/utils/app-error";
 import grabUserBot from "./grab-user-bot";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
@@ -29,11 +30,13 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
     }
 
     /**
-     * Read before the delete: the files' rows go with the bot.
+     * Read before the delete: the files' rows go with the bot, and so do its
+     * tasks and the links to what they filed.
      */
     const file_media_ids = await grabStorageMediaIds({ scope: "bot", owner_id: bot.id! }).catch(
         () => [],
     );
+    const task_media_ids = await grabTaskMediaIds({ bot_id: bot.id! }).catch(() => []);
 
     const res = await BunSQLite.sql({ sql: `DELETE FROM bots WHERE id = ?`, values: [bot.id] });
 
@@ -44,6 +47,14 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
     if (bot.image_media_id) {
         await deleteMedia({ id: bot.image_media_id, user_id: Number(user_id) }).catch(() => {});
     }
+
+    /**
+     * What the bot's tasks filed and no folder owns (a chat upload): the
+     * links went with the tasks, so these bytes would be stranded.
+     */
+    await deleteMedia({ ids: task_media_ids, user_id: Number(user_id), can_delete_all_media: true }).catch(
+        () => {},
+    );
 
     /**
      * Its folder goes with it: the bytes, their `media` rows and the search

@@ -6,6 +6,8 @@ import {
     ChatReplyNote,
     CoordinatorReplyNote,
     CoordinatorSoloNote,
+    TasksNote,
+    TaskReminderNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
@@ -126,6 +128,8 @@ export default async function runBotReply({
                 carry_over,
                 ChatReplyNote,
                 BotFilesNote,
+                TasksNote,
+                TaskReminderNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({

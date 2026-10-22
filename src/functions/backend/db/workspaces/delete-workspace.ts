@@ -1,5 +1,6 @@
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
 import purgeStorage, { grabStorageMediaIds } from "@/src/functions/backend/db/bot-files/purge-storage";
+import { grabTaskMediaIds } from "@/src/functions/backend/db/tasks/purge-task-media";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserWorkspace from "./grab-user-workspace";
@@ -30,6 +31,10 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
         scope: "workspace",
         owner_id: workspace.id!,
     }).catch(() => []);
+    /**
+     * And what its tasks filed outside a folder.
+     */
+    const task_media_ids = await grabTaskMediaIds({ workspace_id: workspace.id! }).catch(() => []);
 
     const res = await BunSQLite.sql({
         sql: `DELETE FROM workspaces WHERE id = ?`,
@@ -43,6 +48,13 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
     if (workspace.image_media_id) {
         await deleteMedia({ id: workspace.image_media_id, user_id: Number(user_id) }).catch(() => {});
     }
+
+    /**
+     * What the workspace's tasks filed and no folder owns (a chat upload).
+     */
+    await deleteMedia({ ids: task_media_ids, user_id: Number(user_id), can_delete_all_media: true }).catch(
+        () => {},
+    );
 
     /**
      * The bots' shared folder there goes with it.

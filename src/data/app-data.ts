@@ -195,6 +195,22 @@ export const AppData = {
      */
     CronJobBatchSize: 50,
     /**
+     * Tasks (the crew's to-do list, `tasks`): the longest title, brief and
+     * note, how many one bot or workspace can hold, and how many files one
+     * task carries.
+     */
+    TaskTitleMaxLength: 120,
+    TaskDescriptionMaxLength: 8000,
+    TaskNoteMaxLength: 2000,
+    TaskMaxPerScope: 200,
+    TaskMediaMaxPerTask: 20,
+    /**
+     * Open tasks a chat reply carries as a digest for its reminder, and how
+     * many `list_tasks` hands back at once.
+     */
+    TaskReminderDigestCount: 3,
+    TaskListToolLimit: 20,
+    /**
      * Automatic model picks (`rankAutoModels`). A free model from outside
      * `AutoModelVendorPreference` must have at least this much context, and
      * this intelligence index or, unscored, this many billion parameters.

@@ -44,21 +44,21 @@ your data on your own machine.
 
 ## Features
 
-| Area | What you get |
-| --- | --- |
-| Crew | One coordinator and as many workers as you need, each with a name, a role, a hue and its own core instructions |
-| Rail | The coordinator, your recent workers and their latest sessions, then your workspaces, each row carrying its status line |
-| Chat | Markdown with @-mentions for bots and #-mentions for workspaces, replies and quotes, reactions, attachments, older messages on scroll, drafts kept locally |
-| Header | The bot's model, provider and computer at a glance, one click from either, and its picture, instructions and settings on the avatar |
-| Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard |
-| Memory | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works |
-| Routines | Cron schedules per bot, written in chat, that queue a task on its own |
-| Computers | Docker sandboxes with browser, terminal, code editor and desktop, opened from the chat and handed back to you mid-task |
-| Files | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply |
-| Models | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness |
-| Voice | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice |
-| Tools | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces |
-| App | Installable PWA with Web Push, dark mode, and a rail built for a phone |
+| Area       | What you get                                                                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Crew       | One coordinator and as many workers as you need, each with a name, a role, a hue and its own core instructions                                             |
+| Rail       | The coordinator, your recent workers and their latest sessions, then your workspaces, each row carrying its status line                                    |
+| Chat       | Markdown with @-mentions for bots and #-mentions for workspaces, replies and quotes, reactions, attachments, older messages on scroll, drafts kept locally |
+| Header     | The bot's model, provider and computer at a glance, one click from either, and its picture, instructions and settings on the avatar                        |
+| Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard                              |
+| Memory     | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works                                                            |
+| Routines   | Cron schedules per bot, written in chat, that queue a task on its own                                                                                      |
+| Computers  | Docker sandboxes with browser, terminal, code editor and desktop, opened from the chat and handed back to you mid-task                                     |
+| Files      | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply                                                      |
+| Models     | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness                       |
+| Voice      | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice                                                |
+| Tools      | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces                                                  |
+| App        | Installable PWA with Web Push, dark mode, and a rail built for a phone                                                                                     |
 
 ## Screenshots
 
@@ -91,7 +91,7 @@ and wait for the model list to sync. This is what the bots think with.
 
 - Linux amd64 or arm64, with Docker. The installer installs Docker from
   get.docker.com when it is missing.
-- 2 CPU cores, 8 GB RAM and 20 GB free disk for the app plus one computer.
+- 2 CPU cores, 4 GB RAM and 20 GB free disk for the app plus one computer.
   Each computer is its own container with its own memory limit.
 - Docker Desktop on macOS works for development and small installs, but
   Linux is the supported host.
@@ -140,22 +140,22 @@ curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall --pu
 
 ### Options
 
-| Option                | Meaning                                                        |
-| --------------------- | -------------------------------------------------------------- |
-| `--home DIR`          | Install directory, default `/opt/cobble`                       |
-| `--data-dir DIR`      | Data directory mounted at `/data`, default `HOME/data`         |
-| `--port PORT`         | Host port, default `7227`                                      |
-| `--bind ADDRESS`      | Host address to publish on, default `0.0.0.0`                  |
-| `--image IMAGE`       | Container image, default `ghcr.io/moduletrace/cobble`          |
-| `--version TAG`       | Image tag, default `latest`                                    |
-| `--extra-network NET` | Join another Docker network, for a tunnel or reverse proxy     |
-| `--force`             | Recreate the container even when it is current                 |
-| `--no-pull`           | Use an image that is already on the machine                    |
-| `--skip-backup`       | Update without a database backup                               |
-| `--no-docker-install` | Fail instead of installing Docker                              |
-| `--yes`, `-y`         | Accept the defaults without asking                             |
-| `--uninstall`         | Stop and remove the app container                              |
-| `--purge`             | With `--uninstall`, also delete the data directory             |
+| Option                | Meaning                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| `--home DIR`          | Install directory, default `/opt/cobble`                   |
+| `--data-dir DIR`      | Data directory mounted at `/data`, default `HOME/data`     |
+| `--port PORT`         | Host port, default `7227`                                  |
+| `--bind ADDRESS`      | Host address to publish on, default `0.0.0.0`              |
+| `--image IMAGE`       | Container image, default `ghcr.io/moduletrace/cobble`      |
+| `--version TAG`       | Image tag, default `latest`                                |
+| `--extra-network NET` | Join another Docker network, for a tunnel or reverse proxy |
+| `--force`             | Recreate the container even when it is current             |
+| `--no-pull`           | Use an image that is already on the machine                |
+| `--skip-backup`       | Update without a database backup                           |
+| `--no-docker-install` | Fail instead of installing Docker                          |
+| `--yes`, `-y`         | Accept the defaults without asking                         |
+| `--uninstall`         | Stop and remove the app container                          |
+| `--purge`             | With `--uninstall`, also delete the data directory         |
 
 ## How it fits together
 
@@ -251,17 +251,17 @@ the app from a phone, run a proxy or tunnel in front of it (see
 [HTTPS](#https)); the installed app, Web Push and voice need that secure
 context.
 
-| Command               | Purpose                              |
-| --------------------- | ------------------------------------ |
-| `bun run dev`         | Development server                   |
-| `bun run start`       | Production server on the host        |
-| `bun run typecheck`   | Type-check                           |
-| `bun run test`        | Run the test suite                   |
-| `bun run check:bundle`| Bundle budget after a build          |
-| `bun run seed`        | Create the super admin from the CLI  |
-| `bun run seed:bots`   | Add a sample crew                    |
-| `bun run db:schema`   | Sync the schema and types            |
-| `bun run gen:favicon` | Regenerate favicons and PWA assets   |
+| Command                | Purpose                             |
+| ---------------------- | ----------------------------------- |
+| `bun run dev`          | Development server                  |
+| `bun run start`        | Production server on the host       |
+| `bun run typecheck`    | Type-check                          |
+| `bun run test`         | Run the test suite                  |
+| `bun run check:bundle` | Bundle budget after a build         |
+| `bun run seed`         | Create the super admin from the CLI |
+| `bun run seed:bots`    | Add a sample crew                   |
+| `bun run db:schema`    | Sync the schema and types           |
+| `bun run gen:favicon`  | Regenerate favicons and PWA assets  |
 
 Plain Node does not work: the app runs on Bun. The stack is Bun,
 [`@moduletrace/bunext`](https://github.com/Moduletrace/bunext) for

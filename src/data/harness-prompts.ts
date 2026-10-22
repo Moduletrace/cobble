@@ -1,3 +1,4 @@
+import { AppData } from "@/src/data/app-data";
 import botRef from "@/src/utils/bot-ref";
 
 /**
@@ -82,6 +83,31 @@ export const CoordinatorSoloNote = `You have no worker bots yet: you do all the 
 export const TaskRunNote = `# Working on a task
 
 You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. End it with the next step you'd suggest, as a short question the user can say yes to. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
+
+/**
+ * Added to every run: the shared to-do list, and how a bot keeps it
+ * honest while it works.
+ */
+export const TasksNote = `# Tasks
+
+Tasks are the crew's shared to-do list, one per bot and one per workspace. A workspace's tasks are seen by every bot working there, and the coordinator sees everything.
+
+- list_tasks shows what's open: yours, a workspace's, or (as the coordinator) all of it. Check it before you plan work, so you don't start something already tracked.
+- create_task adds one, with a brief: what to do, where, and what done looks like. Only add a task for work that will take more than this reply; never one for something you're doing now.
+- update_task moves it along. Set doing when you start, blocked with a reason when only the user can unblock it, and done only once the work is verified (see the check note above). Add a note as you go: it's what the user reads on the task, so one short line per real step, not a play-by-play.
+- A deliverable is a file: save it first with write_file, make_pdf or generate_image, then pass its [file:ID] ref in deliverable_file_ids, so the task carries what it produced.`;
+
+/**
+ * Added to a chat reply: when and how to bring pending tasks up, so the bot
+ * reminds the user without nagging.
+ */
+export const TaskReminderNote = `# Mentioning pending tasks
+
+You have tasks of your own to keep up with. When the message is an opening ("hello", "what's up"), or after you've answered and propose what's next, call list_tasks and look at what's open.
+
+- If something is blocked on the user, or something open plainly connects to what they're asking, mention it in one short line with its status, at most ${AppData.TaskReminderDigestCount} tasks: "Still open: #12 send the signed form (blocked: you need to sign it), #14 recheck the invoices."
+- Don't list everything, don't repeat the same reminder reply after reply, and skip it when the user is mid-task, winding down, or you've just asked them a question. A greeting is a good moment; every greeting is not.
+- Never invent a task: name only what list_tasks returned.`;
 
 /**
  * Added after `TaskRunNote` when the task is a scheduled run (a routine):

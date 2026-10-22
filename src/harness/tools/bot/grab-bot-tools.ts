@@ -1,5 +1,6 @@
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import type { HarnessTool } from "../../types";
+import grabBotTaskTools from "./tasks/grab-bot-task-tools";
 import createScheduleTool from "./create-schedule-tool";
 import deleteScheduleTool from "./delete-schedule-tool";
 import listSchedulesTool from "./list-schedules-tool";
@@ -25,6 +26,11 @@ type Params = {
      * The session being answered, so the bot can react to its messages.
      */
     session_id?: number | string;
+    /**
+     * Whether the run is the coordinator, which reaches every task and can
+     * add to any bot's or workspace's list.
+     */
+    is_coordinator?: boolean;
 };
 
 /**
@@ -32,13 +38,14 @@ type Params = {
  * works: its memory and instructions, its schedules, and in a workspace
  * with several computers switching the default one.
  */
-export default function grabBotTools({
+export default async function grabBotTools({
     user_id,
     bot_id,
     workspace_id,
     computers = [],
     session_id,
-}: Params): HarnessTool[] {
+    is_coordinator,
+}: Params): Promise<HarnessTool[]> {
     return [
         updateMemoryTool({ user_id, bot_id, workspace_id }),
         updateInstructionsTool({ user_id, bot_id, workspace_id }),
@@ -50,5 +57,11 @@ export default function grabBotTools({
         ...(workspace_id && computers.length > 1
             ? [setWorkspaceComputerTool({ user_id, workspace_id, computers })]
             : []),
+        ...(await grabBotTaskTools({
+            user_id,
+            bot_id,
+            is_coordinator: Boolean(is_coordinator),
+            workspace_id,
+        })),
     ];
 }

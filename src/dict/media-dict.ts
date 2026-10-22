@@ -46,4 +46,8 @@ export const MediaParadigms = [
         title: "Bot File",
         value: "bot-file",
     },
+    {
+        title: "Task Media",
+        value: "task-media",
+    },
 ] as const;

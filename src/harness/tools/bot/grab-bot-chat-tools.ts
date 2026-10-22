@@ -74,7 +74,14 @@ export default async function grabBotChatTools({
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
-        ...grabBotTools({ user_id, bot_id, workspace_id, computers, session_id }),
+        ...(await grabBotTools({
+            user_id,
+            bot_id,
+            workspace_id,
+            computers,
+            session_id,
+            is_coordinator: bot.kind == "coordinator",
+        })),
         startTaskTool({
             user_id,
             bot_id,
