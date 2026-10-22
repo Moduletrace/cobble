@@ -7,6 +7,12 @@ The repository starts private and is made public at the launch gate below.
 
 - [ ] `GITEA_USERNAME` and `GITEA_TOKEN` are set as GitHub Actions secrets.
       The token needs package write on the Gitea `Moduletrace` org.
+- [ ] `scripts/publish-gitea.sh` can reach Gitea: either `GITEA_TOKEN` is
+      exported locally, or `tea login add` has been run for the host (the
+      script then reads the token from `~/.config/tea/config.yml`). It needs
+      `write:repository` on the repository to create the release.
+- [ ] `scripts/publish-github.sh` can publish releases: `gh auth login` has
+      been run, and the token has `repo` scope.
 - [ ] The Gitea repository exists at `git.tben.me/Moduletrace/cobble` and
       `main` is pushed to both remotes.
 - [ ] The GHCR package is made public after the first image push
@@ -15,6 +21,16 @@ The repository starts private and is made public at the launch gate below.
       public `Moduletrace` org.
 
 ## Every release
+
+The two publish scripts below do steps 1 to 3, 6 and 10 for you: they run the
+same checks, tag `HEAD` with `package.json`'s version, push `main` and the tag,
+and create the release object. Everything else is still hand work.
+
+`scripts/publish-github.sh` publishes to GitHub and, by publishing the
+release, starts the image build. `scripts/publish-gitea.sh` publishes the same
+release to the Gitea mirror. Both accept `--version VERSION` (defaulting to
+`package.json`), `--branch`, `--yes`, `--dry-run` and `--skip-checks`; run
+them in that order, since only the GitHub release builds images.
 
 1. [ ] `bun run typecheck` and `bun run test` pass locally.
 2. [ ] CI is green on `main` in GitHub Actions.
@@ -27,12 +43,17 @@ The repository starts private and is made public at the launch gate below.
        - `--uninstall` keeps data, `--uninstall --purge` removes it
 5. [ ] Update the version if the release changes it, including
        `package.json`'s `version` (the image reports it on Settings > General
-       when it isn't built from a release tag).
+       when it isn't built from a release tag, and the publish scripts tag
+       with it).
 6. [ ] Tag and publish a GitHub release:
 
-       git tag v0.1.0
-       git push origin main --tags
-       gh release create v0.1.0 --title v0.1.0 --generate-notes
+       scripts/publish-github.sh                 # or: bun run publish:github
+
+       # by hand, the script does this:
+       git tag -a v0.1.0 -m v0.1.0
+       git push origin main
+       git push origin refs/tags/v0.1.0
+       gh release create v0.1.0 --title v0.1.0 --notes-file notes.md --latest
 
 7. [ ] The release workflow builds `linux/amd64` and `linux/arm64` and
        pushes to both registries:
@@ -44,9 +65,13 @@ The repository starts private and is made public at the launch gate below.
        docker buildx imagetools inspect git.tben.me/moduletrace/cobble:latest
 
 9. [ ] Confirm the GHCR package is public and pull it anonymously.
-10. [ ] Push the tag to Gitea as well:
+10. [ ] Publish the release to Gitea as well:
 
-        git push gitea main --tags
+        scripts/publish-gitea.sh                  # or: bun run publish:gitea
+
+        # by hand, the script does this:
+        git push gitea main
+        git push gitea refs/tags/v0.1.0
 
 11. [ ] Update every install with the one-liner:
 

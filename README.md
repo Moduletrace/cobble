@@ -247,6 +247,17 @@ Install from Gitea with
 `--image git.tben.me/moduletrace/cobble`, or build from source with
 `docker build -t cobble:local .` and `--image cobble --version local --no-pull`.
 
+A release is published from a clean `main` with the two scripts, which tag the
+`package.json` version, push and create the release objects:
+
+```bash
+scripts/publish-github.sh   # or: bun run publish:github
+scripts/publish-gitea.sh    # or: bun run publish:gitea
+```
+
+Both take `--version VERSION`, `--dry-run` and `--yes`. Only the GitHub release
+builds the image; see [RELEASING.md](RELEASING.md) for the full checklist.
+
 ## Development
 
 ```bash

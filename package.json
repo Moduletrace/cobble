@@ -16,7 +16,9 @@
         "start": "MAIN_SERVER=1 NODE_ENV=production bun src/server.ts",
         "typecheck": "tsc --noEmit",
         "test": "bun test",
-        "check:bundle": "bun src/scripts/check-bundle-size.ts"
+        "check:bundle": "bun src/scripts/check-bundle-size.ts",
+        "publish:github": "bash scripts/publish-github.sh",
+        "publish:gitea": "bash scripts/publish-gitea.sh"
     },
     "devDependencies": {
         "@next/mdx": "^16.3.0",
