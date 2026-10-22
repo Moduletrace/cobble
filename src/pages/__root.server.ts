@@ -21,6 +21,22 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
     const is_signup_page = url.pathname.startsWith("/auth/signup");
     const has_users = await grabHasUsers();
 
+    if (
+        !has_users &&
+        user?.logged_in_status &&
+        !url.pathname.includes(`auth/logout`)
+    ) {
+        return redirect({ destination: "/auth/logout" });
+    }
+
+    if (
+        !has_users &&
+        user?.logged_in_status &&
+        url.pathname.includes(`auth/logout`)
+    ) {
+        return {};
+    }
+
     if (!has_users && !is_signup_page) {
         return redirect({ destination: "/auth/signup" });
     }

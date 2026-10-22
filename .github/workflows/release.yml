@@ -37,11 +37,20 @@ jobs:
           username: ${{ secrets.GITEA_USERNAME }}
           password: ${{ secrets.GITEA_TOKEN }}
 
+      # The version the app reports on Settings > General when the build
+      # isn't a published release.
+      - name: Read the source version
+        id: source
+        run: |
+          set -euo pipefail
+          echo "version=$(sed -n -E 's/^[[:space:]]*"version": "([^"]+)",?$/\1/p' package.json | head -n1)" >> "$GITHUB_OUTPUT"
+
       - name: Work out image tags
         id: tags
         env:
           EVENT: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          SOURCE_VERSION: ${{ steps.source.outputs.version }}
         run: |
           set -euo pipefail
           sha="sha-${GITHUB_SHA::12}"
@@ -59,10 +68,12 @@ jobs:
               "git.tben.me/moduletrace/cobble:${minor}" \
               "git.tben.me/moduletrace/cobble:${sha}")"
           else
+            version="$SOURCE_VERSION"
             ghcr="ghcr.io/moduletrace/cobble:${sha}"
             gitea="git.tben.me/moduletrace/cobble:${sha}"
           fi
           {
+            echo "version=$version"
             echo "ghcr<<EOF"
             echo "$ghcr"
             echo "EOF"
@@ -79,6 +90,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            COBBLE_VERSION=${{ steps.tags.outputs.version }}
           tags: ${{ steps.tags.outputs.ghcr }}
           provenance: false
           sbom: false

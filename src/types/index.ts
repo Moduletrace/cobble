@@ -19,6 +19,7 @@ import type {
 } from "@/db/types/db";
 import type { UserTypes } from "../dict/user-types-dict";
 import type { StorageVolume } from "../utils/storage-volumes";
+import type { RunningVersion } from "../utils/running-version";
 import type { WebsocketRooms } from "../dict/websocket-rooms";
 import type { LucideIcon } from "lucide-react";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
@@ -1038,6 +1039,10 @@ export type PagePropsType = {
         setting_key: string;
         text: string;
     } | null;
+    /**
+     * The release the server is running, for the General settings page.
+     */
+    running_version?: RunningVersion | null;
     push_overview?: PushOverview | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;

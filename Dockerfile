@@ -17,6 +17,12 @@ ENV DATA_DIR=/data
 ENV DB_DIR=/data/db
 ENV BUN_FEATURE_FLAG_DISABLE_STREAMING_INSTALL=1
 
+# The release's version, which Settings > General shows. The release
+# workflow passes the published tag; a local build leaves it empty and
+# the app falls back to `package.json`'s version.
+ARG COBBLE_VERSION=
+ENV COBBLE_VERSION=$COBBLE_VERSION
+
 WORKDIR /app
 
 RUN echo 'alias ll="ls -laF"' >/root/.bashrc

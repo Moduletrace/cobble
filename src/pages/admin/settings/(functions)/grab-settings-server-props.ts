@@ -7,6 +7,7 @@ import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
 import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
+import runningVersion from "@/src/utils/running-version";
 
 type Params = Parameters<BunextPageServerFn<PagePropsType>>[0];
 
@@ -44,6 +45,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             has_password,
             storage_quota: await grabStorageQuotaOverview().catch(() => null),
             system_prompt_append: await grabSystemPromptAppendOverview().catch(() => null),
+            running_version: runningVersion({ env: process.env }),
         },
     };
 }

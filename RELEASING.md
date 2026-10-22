@@ -25,7 +25,9 @@ The repository starts private and is made public at the launch gate below.
        - rerun with no changes: reports up to date, no restart
        - update to a new tag: backup taken, data intact
        - `--uninstall` keeps data, `--uninstall --purge` removes it
-5. [ ] Update the version if the release changes it.
+5. [ ] Update the version if the release changes it, including
+       `package.json`'s `version` (the image reports it on Settings > General
+       when it isn't built from a release tag).
 6. [ ] Tag and publish a GitHub release:
 
        git tag v0.1.0
