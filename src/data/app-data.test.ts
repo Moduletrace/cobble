@@ -10,10 +10,17 @@ describe("AppData auth constants", () => {
         expect(AppData["AuthCSRFCookieName"]).toBe(
             `${SiteData["SiteSlug"]}_auth_csrf`,
         );
+        expect(AppData["LastVisitedBotCookieName"]).toBe(
+            `${SiteData["SiteSlug"]}_last_visited_bot_id`,
+        );
+        expect(AppData["LastVisitedWorkspaceCookieName"]).toBe(
+            `${SiteData["SiteSlug"]}_last_visited_workspace_id`,
+        );
     });
 
     test("expiry and limits are positive", () => {
         expect(AppData["AuthExpiryDays"]).toBeGreaterThan(0);
+        expect(AppData["LastVisitedCookieMaxAgeSeconds"]).toBeGreaterThan(0);
         expect(AppData["DefaultQueryLimit"]).toBeGreaterThan(0);
     });
 
