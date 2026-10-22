@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { beforeAll, describe, expect, test } from "bun:test";
 import chatBotsSql from "./chat-bots-sql";
 import computersSql from "./computers-sql";
+import reachableBotsSql from "./reachable-bots-sql";
 import workspaceBotsSql from "./workspace-bots-sql";
 import workspacesSql from "./workspaces-sql";
 import type { SqlCondition } from "./types";
@@ -47,6 +48,18 @@ describe("chatBotsSql", () => {
         expect(ids({ table: "bots", alias: "b", condition: chatBotsSql({ role: "member", user_id: 7 }) })).toEqual([2]);
         expect(ids({ table: "bots", alias: "b", condition: chatBotsSql({ role: "member", user_id: 8 }) })).toEqual([]);
         expect(ids({ table: "bots", alias: "b", condition: chatBotsSql({ role: "member", user_id: 9 }) })).toEqual([3]);
+    });
+});
+
+describe("reachableBotsSql", () => {
+    test("a member also reaches the workers of a workspace they were added to", () => {
+        expect(ids({ table: "bots", alias: "b", condition: reachableBotsSql({ role: "member", user_id: 7 }) })).toEqual([2, 3]);
+        expect(ids({ table: "bots", alias: "b", condition: reachableBotsSql({ role: "member", user_id: 8 }) })).toEqual([]);
+    });
+
+    test("managers reach what they chat with", () => {
+        expect(ids({ table: "bots", alias: "b", condition: reachableBotsSql({ role: "super_admin", user_id: 1 }) })).toEqual([1, 2, 3]);
+        expect(ids({ table: "bots", alias: "b", condition: reachableBotsSql({ role: "admin", user_id: 5 }) })).toEqual([2, 3]);
     });
 });
 

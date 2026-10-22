@@ -1,4 +1,4 @@
-import { Activity, CircleHelp, Clock, type LucideIcon } from "lucide-react";
+import { Activity, CircleHelp, Clock, FolderOpen, type LucideIcon } from "lucide-react";
 import { HelpPath } from "./help-dict";
 
 export type RailPage = {
@@ -12,6 +12,7 @@ export type RailPage = {
 };
 
 export const RoutinesPath = "/admin/routines";
+export const FilesPath = "/admin/files";
 export const ActivityPath = "/admin/logs";
 
 /**
@@ -20,6 +21,7 @@ export const ActivityPath = "/admin/logs";
  */
 export const RailPages: RailPage[] = [
     { title: "Routines", url: RoutinesPath, Icon: Clock },
+    { title: "Files", url: FilesPath, Icon: FolderOpen },
     { title: "Activity", url: ActivityPath, Icon: Activity, super_admin_only: true },
     { title: "Help", url: HelpPath, Icon: CircleHelp },
 ];

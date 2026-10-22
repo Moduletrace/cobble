@@ -18,6 +18,7 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { UserTypes } from "../dict/user-types-dict";
+import type { StorageVolume } from "../utils/storage-volumes";
 import type { WebsocketRooms } from "../dict/websocket-rooms";
 import type { LucideIcon } from "lucide-react";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
@@ -713,6 +714,58 @@ export type BotFileScopesPayload = {
 };
 
 /**
+ * One entry in a folder the files browser shows: a file or a subfolder.
+ */
+export type StorageEntry = {
+    name: string;
+    /**
+     * Where it is inside the volume, e.g. `seo/coderank/raw`.
+     */
+    path: string;
+    kind: "file" | "folder";
+    size: number;
+    modified_at: number;
+    media_type?: string;
+    /**
+     * The `bot_files` row that holds it, when the folder is a bot's or a
+     * workspace's.
+     */
+    file_id?: number;
+    /**
+     * Where it opens: a `bot_files` row's media URL, else the browser's own
+     * streaming route.
+     */
+    url?: string;
+};
+
+/**
+ * One folder of the files browser: what it holds and how to get back up.
+ */
+export type StorageFolderPayload = {
+    spec: { volume: StorageVolume; owner_id: number };
+    /**
+     * What the folder is called: the bot's, workspace's or computer's name.
+     */
+    label: string;
+    /**
+     * The folder asked for, inside the volume (empty at the top).
+     */
+    path: string;
+    breadcrumbs: { name: string; href: string }[];
+    entries: StorageEntry[];
+    total: number;
+    offset: number;
+};
+
+/**
+ * A folder in the files browser's picker.
+ */
+export type StorageSpecOption = {
+    spec: { volume: StorageVolume; owner_id: number };
+    label: string;
+};
+
+/**
  * A worker bot's model settings page data, also returned when it saves.
  */
 /**
@@ -907,6 +960,12 @@ export type PagePropsType = {
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
     bot_extensions?: BotExtensionsPayload | null;
+    /**
+     * The files browser's folders (a user's own crew and media, and what a
+     * super admin may open) and the folder it is showing.
+     */
+    storage_folders?: StorageSpecOption[] | null;
+    storage_folder?: StorageFolderPayload | null;
     /**
      * The open conversation's files (a bot's own, or a workspace's shared
      * ones), for the files modal and the chips that name one.
