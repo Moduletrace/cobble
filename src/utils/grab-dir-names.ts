@@ -16,26 +16,22 @@ export default function grabDirNames(params?: Params) {
     const MEDIA_RELATIVE_DIR = "media";
     const MEDIA_DIR = path.join(DATA_DIR, MEDIA_RELATIVE_DIR);
 
-    const USER_MEDIA_PUBLIC_DIR = params?.user?.id
-        ? path.join(MEDIA_DIR, String(params.user.id), "public")
+    /**
+     * A user's uploads: one directory, every file private (there is no
+     * public media any more).
+     */
+    const USER_MEDIA_DIR = params?.user?.id
+        ? path.join(MEDIA_DIR, String(params.user.id))
         : undefined;
-    const USER_MEDIA_PUBLIC_RELATIVE_DIR = params?.user?.id
-        ? path.join(MEDIA_RELATIVE_DIR, String(params.user.id), "public")
-        : undefined;
-    const USER_MEDIA_PRIVATE_DIR = params?.user?.id
-        ? path.join(MEDIA_DIR, String(params.user.id), "private")
-        : undefined;
-    const USER_MEDIA_PRIVATE_RELATIVE_DIR = params?.user?.id
-        ? path.join(MEDIA_RELATIVE_DIR, String(params.user.id), "private")
+    const USER_MEDIA_RELATIVE_DIR = params?.user?.id
+        ? path.join(MEDIA_RELATIVE_DIR, String(params.user.id))
         : undefined;
 
     return {
         ROOT_DIR,
         MEDIA_DIR,
-        USER_MEDIA_PUBLIC_DIR,
-        USER_MEDIA_PRIVATE_DIR,
+        USER_MEDIA_DIR,
+        USER_MEDIA_RELATIVE_DIR,
         DATA_DIR,
-        USER_MEDIA_PUBLIC_RELATIVE_DIR,
-        USER_MEDIA_PRIVATE_RELATIVE_DIR,
     };
 }

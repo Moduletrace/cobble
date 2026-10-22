@@ -43,18 +43,6 @@ export default async function grabMedia(
             values.push(...query.media_paradigms, query.media_paradigms.length);
         }
 
-        if (query?.is_media_private) {
-            sql += `    AND m.is_private = 1\n`;
-            if (!user?.id) {
-                throw new Error(`Private media requires authenticated user`);
-            } else {
-                sql += `    AND m.user_id = ?\n`;
-                values.push(user.id);
-            }
-        } else {
-            sql += `    AND COALESCE(m.is_private, 0) <> 1\n`;
-        }
-
         if (query?.id) {
             sql += `    AND m.id = ?\n`;
             values.push(query.id);

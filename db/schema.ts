@@ -159,11 +159,6 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     options: [0, 1],
                 },
                 {
-                    fieldName: "is_private",
-                    dataType: "INTEGER",
-                    options: [0, 1],
-                },
-                {
                     fieldName: "archived",
                     dataType: "INTEGER",
                     options: [0, 1],
@@ -688,7 +683,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "task_media",
-            tableDescription: `A file linked to a task: the deliverable it produced, or something it needs to do the work. The bytes are a private \`media\` row (paradigm \`task-media\`), served at \`/media/private/<id>\` to whoever reaches the task`,
+            tableDescription: `A file linked to a task: the deliverable it produced, or something it needs to do the work. The bytes are a private \`media\` row (paradigm \`task-media\`), served at \`/media/<id>\` to whoever reaches the task`,
             fields: [
                 {
                     fieldName: "task_id",

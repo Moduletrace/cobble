@@ -65,7 +65,6 @@ export const handler: BunextAPIRouteHandler<
             media_paradigms: ["bot-attachment"],
             media: { title: name },
             extract_media_text_content: media_type == "document",
-            is_private: true,
             user: { id: Number(user.id) },
         }).catch(async (error) => {
             await logError({ title: `Attachment ${name} couldn't be saved`, error }).catch(() => {});

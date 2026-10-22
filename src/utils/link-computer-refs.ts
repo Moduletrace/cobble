@@ -31,19 +31,23 @@ export const WorkspaceRefHrefPrefix = "#workspace-";
 export const FileRefHrefPrefix = "#file-";
 
 /**
- * The link target a path ref (`pathRef`) becomes, e.g.
- * `#path-computer%3A3%3Aseo%2Fraw`. The chat renders it as a chip that
+ * The link target a folder ref (`folderRef`) becomes, e.g.
+ * `#folder-computer%3A3%3Aseo%2Fraw`. The chat renders it as a chip that
  * opens that folder in the files browser.
  */
-export const PathRefHrefPrefix = "#path-";
+export const FolderRefHrefPrefix = "#folder-";
 
 /**
  * Turns every computer ref (`[computer:3]`) and take-over ref
  * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
- * (`[workspace:2]`), file ref (`[file:12]`) and path ref
- * (`[path:computer:3:seo/raw]`) in a message into a markdown link, so it
- * survives markdown rendering as a link the chat can swap for a button or
- * chip.
+ * (`[workspace:2]`), file ref (`[file:12]`) and folder ref
+ * (`[folder:computer:3:seo/raw]`) in a message into a markdown link, so it
+ * survives markdown rendering as a link the chat can swap for a button,
+ * chip or download.
+ *
+ * A file ref and a folder ref are different things and are never guessed
+ * from a name: `[file:12]` is a saved file (its chip downloads it),
+ * `[folder:...]` a folder (its chip opens the files browser there).
  */
 export default function linkComputerRefs({ text }: { text: string }) {
     return text
@@ -61,10 +65,10 @@ export default function linkComputerRefs({ text }: { text: string }) {
             (_, id: string) => `[workspace ${id}](${WorkspaceRefHrefPrefix}${id})`,
         )
         .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
-        .replace(/\[path:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>
-            `[${path}](${PathRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}:${path}`)})`,
+        .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>
+            `[${path}](${FolderRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}:${path}`)})`,
         )
-        .replace(/\[path:([a-z]+):(\d+)\](?!\()/g, (_, volume: string, owner: string) =>
-            `[${volume} ${owner}](${PathRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}`)})`,
+        .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, (_, volume: string, owner: string) =>
+            `[${volume} ${owner}](${FolderRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}`)})`,
         );
 }

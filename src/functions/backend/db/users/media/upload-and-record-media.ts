@@ -34,7 +34,6 @@ type Params = {
     media?: BUN_SQLITE_COBBLE_MEDIA;
     media_name?: string;
     media_mime_type?: string;
-    is_private?: boolean;
     image_width?: number;
     image_height?: number;
     thumbnail_width?: number;
@@ -53,7 +52,6 @@ export default async function uploadAndRecordMedia({
     media,
     media_mime_type,
     media_name,
-    is_private,
     image_width,
     image_height,
     thumbnail_width,
@@ -64,17 +62,10 @@ export default async function uploadAndRecordMedia({
     let target_file_name = `${media_name || now}`;
     let target_file_thumbnail_name = `${media_name || now}-thumb`;
 
-    const {
-        USER_MEDIA_PRIVATE_RELATIVE_DIR,
-        USER_MEDIA_PUBLIC_RELATIVE_DIR,
-        DATA_DIR,
-    } = grabDirNames({
-        user,
-    });
-
-    const MEDIA_RELATIVE_DIR = is_private
-        ? USER_MEDIA_PRIVATE_RELATIVE_DIR
-        : USER_MEDIA_PUBLIC_RELATIVE_DIR;
+    const { USER_MEDIA_RELATIVE_DIR: MEDIA_RELATIVE_DIR, DATA_DIR } =
+        grabDirNames({
+            user,
+        });
 
     if (!MEDIA_RELATIVE_DIR) {
         throw new Error(`No target media directory found!`);
@@ -236,7 +227,6 @@ export default async function uploadAndRecordMedia({
          * lets NULLs repeat.
          */
         is_primary: is_primary ? 1 : (null as any),
-        is_private: is_private ? 1 : 0,
         media_write_path: media_write_path,
         media_thumbnail_write_path:
             media_type === "image" ? media_thumbnail_write_path : undefined,

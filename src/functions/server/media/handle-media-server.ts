@@ -1,12 +1,8 @@
-import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_COBBLE_MEDIA, BunSQLiteTables } from "@/db/types/db";
 import grabDirNames from "@/src/utils/grab-dir-names";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import userAuth from "../../backend/auth/user-auth";
-import grabSharedPictureMedia from "@/src/functions/backend/db/access/grab-shared-picture-media";
-import grabBotFileMedia from "@/src/functions/backend/db/bot-files/grab-bot-file-media";
-import grabTaskMediaFile from "@/src/functions/backend/db/tasks/grab-task-media-file";
+import grabUserMedia from "../../backend/db/media/grab-user-media";
 
 const { DATA_DIR } = grabDirNames();
 
@@ -14,69 +10,36 @@ type Params = {
     req: Request;
 };
 
+/**
+ * Serves a media file's bytes: `/media/<id>`, and `/media/<id>/thumbnail`
+ * for an image's smaller copy.
+ *
+ * There is no public media. Every URL is private, so the request has to be
+ * signed in and the user has to reach the file (`grabUserMedia` decides
+ * that: their own upload, a bot's or workspace's file or picture they can
+ * chat with, a file on one of their tasks). Anything else is answered with
+ * a 404, never with the file.
+ */
 export default async function handleMediaServer({
     req,
 }: Params): Promise<Response> {
     const url = new URL(req.url);
 
-    const [root, privacy, media_id, thumbnail] = url.pathname
+    const [_root, media_id, thumbnail] = url.pathname
         .split("/")
         .filter((p) => p.match(/./));
 
-    if (!privacy) {
-        throw new Error(`No media privacy params passed`);
+    if (!media_id) {
+        throw new Error(`No media id passed`);
     }
 
-    let media: BUN_SQLITE_COBBLE_MEDIA | undefined = undefined;
+    const { user } = await userAuth({ req });
 
-    if (privacy == "private") {
-        const { user, user_types } = await userAuth({ req });
-
-        if (!user?.logged_in_status) {
-            throw new Error(`Not logged in`);
-        }
-
-        const media_res = await BunSQLite.select<
-            BUN_SQLITE_COBBLE_MEDIA,
-            (typeof BunSQLiteTables)[number]
-        >({
-            table: "media",
-            query: {
-                query: {
-                    user_id: {
-                        value: user.id,
-                    },
-                },
-            },
-            targetId: media_id,
-        });
-
-        media =
-            media_res.singleRes ||
-            (media_id ? await grabSharedPictureMedia({ media_id, user_id: user.id! }) : null) ||
-            (media_id ? await grabBotFileMedia({ media_id, user_id: user.id! }) : null) ||
-            (media_id ? await grabTaskMediaFile({ media_id, user_id: user.id! }) : null) ||
-            undefined;
-    } else {
-        const media_res = await BunSQLite.select<
-            BUN_SQLITE_COBBLE_MEDIA,
-            (typeof BunSQLiteTables)[number]
-        >({
-            table: "media",
-            targetId: media_id,
-        });
-
-        media = media_res.singleRes || undefined;
-
-        /**
-         * A private file is only served through `/media/private`, to its
-         * owner (or, for a bot's or workspace's picture, to whoever sees
-         * it).
-         */
-        if (media?.is_private) {
-            media = undefined;
-        }
+    if (!user?.logged_in_status) {
+        throw new Error(`Not logged in`);
     }
+
+    const media = await grabUserMedia({ media_id, user_id: user.id! });
 
     if (!media?.id) {
         throw new Error(`Media record not found!`);
@@ -98,12 +61,14 @@ export default async function handleMediaServer({
 
     const file = Bun.file(full_media_location);
     const etag = `"${file.size}-${file.lastModified}"`;
-    const cache_control =
-        privacy == "private" ? "private, no-cache" : "public, no-cache";
 
     const headers = new Headers({
         ETag: etag,
-        "Cache-Control": cache_control,
+        /**
+         * Private: the response depends on who is signed in, so no shared
+         * cache may hold it.
+         */
+        "Cache-Control": "private, no-cache",
     });
 
     if (req.headers.get("if-none-match") === etag) {

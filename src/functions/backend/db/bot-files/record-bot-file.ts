@@ -220,7 +220,6 @@ async function insertMediaRow({
                 media_type: media_type as any,
                 media_write_path: write_path,
                 mime_type: mime,
-                is_private: 1,
             },
         ],
     });

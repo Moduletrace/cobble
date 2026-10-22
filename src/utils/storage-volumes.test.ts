@@ -56,7 +56,7 @@ describe("storageSpecHref", () => {
 });
 
 describe("volume names", () => {
-    test("maps a path ref's name to its volume", () => {
+    test("maps a folder ref's name to its volume", () => {
         expect(storageVolumeFromRef({ name: "computer" })).toBe("computers");
         expect(storageVolumeFromRef({ name: "bot" })).toBe("bots");
         expect(storageVolumeFromRef({ name: "nope" })).toBeNull();

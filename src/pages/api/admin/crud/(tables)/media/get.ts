@@ -28,7 +28,11 @@ export default async function (
         };
     }
 
-    const GET = await grabMedia({ query, user });
+    /**
+     * A non-admin only ever lists their own uploads: the filter above is
+     * the one that is queried, so it can't be bypassed by the request.
+     */
+    const GET = await grabMedia({ query: final_sql_query as typeof query, user });
 
     return GET;
 }

@@ -6,6 +6,14 @@ type Params = {
     user?: BUN_SQLITE_COBBLE_USERS_JOIN;
 };
 
+/**
+ * Where a media file is served: `/media/<id>`, always, with
+ * `/media/<id>/thumbnail` for an image's smaller copy.
+ *
+ * There is no public media and no `public`/`private` segment to pick: every
+ * media URL is private, so the request is checked against the signed-in
+ * user when it arrives (`grabUserMedia`).
+ */
 export default function grabMediaURL({ media: passed_media, user }: Params) {
     const media = passed_media || {};
 
@@ -13,19 +21,11 @@ export default function grabMediaURL({ media: passed_media, user }: Params) {
         media.id = user.profile_media_id;
     }
 
-    let media_url = `/media`;
-
-    if (media.is_private) {
-        media_url += `/private`;
-    } else {
-        media_url += `/public`;
-    }
-
     if (!media.id) {
         return {};
     }
 
-    media_url += `/${media.id}`;
+    const media_url = `/media/${media.id}`;
 
     const media_thumbnail_url =
         media.media_type == "image" || user?.id

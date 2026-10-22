@@ -90,7 +90,7 @@ describe("botMessagesToHarness with a file-only reply", () => {
                         author: "user",
                         text: "",
                         reply_to: { id: 4, author: "bot", text: "Send me the logo." },
-                        attachments: [{ id: 9, name: "logo.png", media_type: "image", url: "/media/private/9" }],
+                        attachments: [{ id: 9, name: "logo.png", media_type: "image", url: "/media/9" }],
                     },
                 ],
             }),
@@ -104,7 +104,7 @@ describe("botMessagesToHarness with a file-only reply", () => {
 });
 
 describe("botMessagesToHarness with files", () => {
-    const attachments = [{ id: 9, name: "shot.png", media_type: "image" as const, url: "/media/private/9" }];
+    const attachments = [{ id: 9, name: "shot.png", media_type: "image" as const, url: "/media/9" }];
 
     test("puts a message's loaded files after its text", () => {
         const parts = new Map([[1, [{ type: "image" as const, url: "data:image/jpeg;base64,AA", name: "shot.png" }]]]);

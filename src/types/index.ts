@@ -717,7 +717,7 @@ export type PublicBotFile = {
     ingest_error?: string;
     created_at: number;
     /**
-     * Where the bytes are served (`/media/private/<media id>`).
+     * Where the bytes are served (`/media/<media id>`, private).
      */
     url: string;
 };
@@ -1315,7 +1315,6 @@ export type ApiReqParams<
     media_paradigm?: MediaParadigmType;
     media_type?: (typeof MediaTypes)[number]["value"];
     media_name?: string;
-    is_media_private?: boolean;
 
     is_media_primary?: boolean;
     reauth?: boolean;

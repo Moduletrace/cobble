@@ -12,7 +12,7 @@ export const StorageVolumeDefs = [
         value: "bots",
         title: "Bots",
         /**
-         * How a path ref names it (`[path:bot:3:reports]`).
+         * How a folder ref names it (`[folder:bot:3:reports]`).
          */
         ref: "bot",
         owner_kind: "bot",
@@ -84,7 +84,7 @@ export function isStorageVolume(volume?: string | null): volume is StorageVolume
 }
 
 /**
- * The volume a path ref names (`bot`, `computer`, ...), or null.
+ * The volume a folder ref names (`bot`, `computer`, ...), or null.
  */
 export function storageVolumeFromRef({ name }: { name?: string | null }): StorageVolume | null {
     const def = StorageVolumeDefs.find((it) => it.ref == name);

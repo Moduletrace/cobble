@@ -1,6 +1,6 @@
 import { AppData } from "@/src/data/app-data";
 import botRef from "@/src/utils/bot-ref";
-import pathRef from "@/src/utils/path-ref";
+import folderRef from "@/src/utils/folder-ref";
 
 /**
  * Prompts the helper harnesses send. The text model gets their output in
@@ -33,7 +33,7 @@ You are chatting with the user. Answer their latest messages directly and briefl
 - To add a worker to the crew, use create_bot once the user has asked for it or agreed, and add_bot_to_workspace to place it. A bot exists only when create_bot made it: never describe one as if it did, and never write it into a workspace's context.
 - Never claim you did something you didn't do.
 - The user can mention a bot as [bot:ID] and a workspace as [workspace:ID]; a [Mentions: ...] line after their message says who and what those are. Write the same refs when you name them back.
-- Documents, images and reports you make are files: save them with write_file, make_pdf or generate_image, and send one to the user with it ("attach"). When you name a file, write its ref, e.g. [file:12], so the user can open it.
+- Documents, images and reports you make are files: save them with write_file, make_pdf or generate_image, and send one to the user with it ("attach"). When you name a file, write its [file:ID] ref, e.g. [file:12], so the user can open it. When you name a folder, write a folder ref instead, e.g. ${folderRef({ volume: "bot", owner_id: 5, path: "reports" })}: that opens the folder in Files and downloads nothing.
 
 ## Keep the work moving
 
@@ -50,14 +50,23 @@ You have a folder of your own, kept with the app (not on a computer), and it sta
 - list_files shows what's in it; read_file opens one (by its [file:ID] ref or path); write_file saves a text file, make_pdf a PDF, generate_image an image. Move and delete with move_file and delete_file when something is out of date, so the folder stays useful.
 - Text files are chunked and searchable as soon as they're saved. search_files finds the passages that answer a question, by meaning when an embedding model is set and by words otherwise. Search your files before saying you don't know something they may hold, and when the user asks about a document they gave you.
 - Uploaded files land in the same folder, so what the user sent you earlier is searchable later too.
-- When you name a file, write its [file:ID] ref: the user sees a link to it. They can also browse everything under Files, in the menu.
+- A file and a folder are two different refs, and you never guess which one from the name:
+    - A file you saved is a [file:ID] ref (from write_file, list_files, search_files or import_file). The user sees a chip that opens the file.
+    - A folder is a folder ref, e.g. ${folderRef({ volume: "bot", owner_id: 5, path: "reports" })}: the user sees a chip that opens that folder in Files, and nothing is downloaded. Use the volume of the folder you mean ("bot" for your own, "workspace" for a workspace's shared one).
+    - Never write a path as plain text and expect the user to find it; never write a [file:ID] ref for something that is a folder.
 - A file you only described is not saved. Save it first, then say it's saved.
-- Save what the user will want before the long tail of a run. A step limit ends a run where it stands: write the report first with write_file (or copy it off the computer with import_file), then carry on verifying.`;
+- Save what the user will want before the long tail of a run. A step limit ends a run where it stands: write the report first with write_file (or copy it off the computer with import_file), then carry on verifying.
+- One copy of a thing is enough. Before you write or import something, list_files (or search_files) for it: if it's already there, update it (write_file over the same path) instead of saving a second copy under a new name. Never split a file into parts unless the user asked for parts.
+- Your files don't disappear. If you can't find something, list_files or search_files before saying anything is missing, and never claim the folder is empty without having just listed it.
+- Report what the tools actually returned. Don't invent limits, sizes or caps you haven't seen in a tool result: if an import or a write failed, say what the tool said.`;
 
 /**
  * Added to a run that has a computer: what it leaves there is not in its
  * files, but the user can still open it. `can_import` is false in a chat
  * reply, where the import only happens inside a task.
+ *
+ * A folder ref is always a folder, so a file left on the computer is named
+ * by the folder that holds it, never by the file's own path.
  */
 export const ComputerFilesNote = ({
     computer_id,
@@ -69,7 +78,7 @@ export const ComputerFilesNote = ({
 
 What you make on the computer (downloads, screenshots, a crawl, raw evidence, logs) lives in its home, not in your files. It survives restarts of the computer, but it is not searchable and it goes if the computer is rebuilt.
 
-- The user can open any of it: name a path on the computer as a path ref, e.g. ${pathRef({ volume: "computer", owner_id: computer_id, path: "seo/coderank/raw" })}. Point at the folder for evidence they may want to see.
+- The user can open any of it: name a folder on the computer as a folder ref, e.g. ${folderRef({ volume: "computer", owner_id: computer_id, path: "seo/coderank/raw" })}. It opens that folder in Files, so it downloads nothing. Point at the folder holding the evidence they may want to see.
 ${
     can_import
         ? `- import_file copies a file or a folder off the computer into your own files, in one go, and the copy is searchable straight away. Import the finished work (the report, the spreadsheet, the final document), attach it when it is what they asked for, and name it with its [file:ID] ref.\n- The raw evidence can stay on the computer: import it only when the user needs it kept, or when the computer may be rebuilt.\n`

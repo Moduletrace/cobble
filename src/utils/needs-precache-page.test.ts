@@ -43,7 +43,7 @@ describe("needsPrecachePage", () => {
         expect(needsPrecachePage({ ...page, pathname: "/api/admin/bots/send-message" })).toBe(false);
         expect(needsPrecachePage({ ...page, pathname: "/.bunext/public/vendor/react.js" })).toBe(false);
         expect(needsPrecachePage({ ...page, pathname: "/computers/2/vnc/vnc.html" })).toBe(false);
-        expect(needsPrecachePage({ ...page, pathname: "/media/1/private/a" })).toBe(false);
+        expect(needsPrecachePage({ ...page, pathname: "/media/1/thumbnail" })).toBe(false);
         expect(needsPrecachePage({ ...page, pathname: "/build-info.json" })).toBe(false);
         expect(needsPrecachePage({ ...page, pathname: "/sw.js" })).toBe(false);
     });

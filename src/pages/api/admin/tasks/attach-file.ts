@@ -66,7 +66,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
                 media_paradigms: ["task-media"],
                 media: { title: name },
                 extract_media_text_content: media_type == "document",
-                is_private: true,
                 user: { id: Number(user.id) },
             });
 

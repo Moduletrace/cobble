@@ -62,7 +62,6 @@ export default async function setProfileImage({ user_id, target, id, data_url }:
             media_mime_type: ext,
             media_paradigms: [paradigm],
             media: { title: `${record.name || target} picture` },
-            is_private: true,
             user: { id: Number(user_id) },
         });
 

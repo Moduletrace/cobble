@@ -4,10 +4,10 @@ import path from "node:path";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
-import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file";
+import recordBotFile, { grabBotFileRow } from "@/src/functions/backend/db/bot-files/record-bot-file";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
-import pathRef from "@/src/utils/path-ref";
+import folderRef from "@/src/utils/folder-ref";
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import downloadComputerFile, { shellQuote } from "./download-computer-file";
@@ -39,10 +39,12 @@ type Args = {
  * a whole folder (taken as a gzipped tar and unpacked into one row per
  * file). The copies are kept with the app, stay after the computer is
  * rebuilt, and are searchable at once; the originals stay on the computer,
- * where the message's path ref points at them.
+ * where the message's folder ref points at the folder holding them.
  *
- * The bytes come back through the sandbox's own shell
- * (`runComputerCommand`), base64 encoded, which every sandbox has.
+ * The bytes come back over the sandbox's streaming download endpoint
+ * (`downloadComputerFile`), never through its shell, whose output is
+ * capped: a `base64` round trip through `/v1/shell/exec` silently cut every
+ * import at 30,047 characters.
  */
 export default function importFileTool({
     computer_id,
@@ -56,7 +58,7 @@ export default function importFileTool({
 
     return {
         name: "import_file",
-        description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB.${
+        description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
             own?.scope == "workspace" ? " The copies land in the workspace's shared files." : ""
         } Imports are searchable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit.`,
         schema: z.object({
@@ -153,6 +155,12 @@ async function importOneFile({
 
     if (!download.ok) return importFailure({ reason: download.reason, size: download.size, path: target.source });
 
+    const previous = await grabBotFileRow({
+        scope: target.scope.scope,
+        owner_id: target.scope.owner_id,
+        path: name,
+    });
+
     const saved = await recordBotFile({
         bot_id: target.bot_id,
         scope: target.scope.scope,
@@ -171,11 +179,13 @@ async function importOneFile({
     }
 
     return [
-        `Copied ~/${target.source} into your files as ${saved.path} [file:${saved.id}], ${formatSize({ bytes: download.size })} byte for byte.`,
-        `The original is still on the computer: ${pathRef({
+        previous?.id
+            ? `You already had ${saved.path} (same ref, no second copy): its bytes are now this file, ${formatSize({ bytes: download.size })} byte for byte.`
+            : `Copied ~/${target.source} into your files as ${saved.path} [file:${saved.id}], ${formatSize({ bytes: download.size })} byte for byte.`,
+        `The original is still on the computer, in ${folderRef({
             volume: "computer",
             owner_id: target.computer_id,
-            path: target.source,
+            path: sourceFolder({ path: target.source }),
         })}`,
         "Name the copy with its [file:ID] ref when you tell the user about it.",
     ].join("\n");
@@ -215,7 +225,7 @@ async function importFolder({
         `Copied ${saved.length} file(s) from ~/${target.source} into your files under ${name}/:`,
         ...saved.slice(0, 20).map((file) => `- ${file.path} [file:${file.id}]`),
         saved.length > 20 ? `(and ${saved.length - 20} more)` : "",
-        `The originals are still on the computer: ${pathRef({
+        `The originals are still on the computer, in ${folderRef({
             volume: "computer",
             owner_id: computer_id,
             path: target.source,
@@ -224,6 +234,16 @@ async function importFolder({
     ]
         .filter(Boolean)
         .join("\n");
+}
+
+/**
+ * The folder holding a path, for a folder ref: a ref is always a folder, so
+ * a file's ref points at the directory the user can open to see it.
+ */
+function sourceFolder({ path: source }: { path: string }) {
+    const segments = source.split("/").filter(Boolean);
+
+    return segments.slice(0, -1).join("/");
 }
 
 /**

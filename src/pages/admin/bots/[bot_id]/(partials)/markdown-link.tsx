@@ -8,11 +8,11 @@ import {
     TakeOverRefHrefPrefix,
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
-import { parsePathRefHref } from "@/src/utils/path-ref";
+import { parseFolderRefHref } from "@/src/utils/folder-ref";
 import BotRefChip from "./bot-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
 import FileRefChip from "./file-ref-chip";
-import PathRefChip from "./path-ref-chip";
+import FolderRefChip from "./folder-ref-chip";
 import TakeOverChip from "./take-over-chip";
 import WorkspaceRefChip from "./workspace-ref-chip";
 
@@ -20,8 +20,9 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * A link in a bot message. A computer the bot named (`linkComputerRefs`)
  * becomes its switch button, a take-over request a button that opens the
  * computer, a bot it named a link to that bot's conversation, a workspace
- * a link to that workspace, a file it saved a chip that opens it; anything
- * else opens in a new tab.
+ * a link to that workspace, a file it saved a chip that downloads it, a
+ * folder it named a chip that opens it in the files browser; anything else
+ * opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
     if (href?.startsWith(ComputerRefHrefPrefix)) {
@@ -63,9 +64,9 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
         if (file_id) return <FileRefChip file_id={file_id} />;
     }
 
-    const path_ref = parsePathRefHref({ href });
+    const folder_ref = parseFolderRefHref({ href });
 
-    if (path_ref) return <PathRefChip spec={path_ref.spec} path={path_ref.path} />;
+    if (folder_ref) return <FolderRefChip spec={folder_ref.spec} path={folder_ref.path} />;
 
     return (
         <Link

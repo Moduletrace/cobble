@@ -46,7 +46,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
             reauth,
             return_media_text_content,
             media,
-            is_media_private,
             media_name,
         } = body;
 
@@ -105,7 +104,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
             media,
             media_mime_type: ext,
             user: { id: target_user_id },
-            is_private: is_media_private,
             media_name,
         });
 

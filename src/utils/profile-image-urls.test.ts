@@ -4,8 +4,8 @@ import profileImageUrls from "./profile-image-urls";
 describe("profileImageUrls", () => {
     test("serves a picture privately, with a thumbnail", () => {
         expect(profileImageUrls({ media_id: 7 })).toEqual({
-            src: "/media/private/7",
-            thumbnail_src: "/media/private/7/thumbnail",
+            src: "/media/7",
+            thumbnail_src: "/media/7/thumbnail",
         });
     });
 

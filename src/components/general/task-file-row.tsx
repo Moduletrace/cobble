@@ -15,8 +15,8 @@ type Props = {
 };
 
 /**
- * One file on a task: its name, opening the bytes at
- * `/media/private/<id>`, and its file ref (built by `fileRef`) when it
+ * One file on a task: its name, opening the bytes at `/media/<id>` (private,
+ * so only someone who reaches the task can load it), and its file ref (built by `fileRef`) when it
  * lives in a bot's or workspace's folder (so the file's real home is
  * reachable too).
  */
@@ -40,7 +40,7 @@ export default function TaskFileRow({ file, onDetach, busy }: Props) {
                 <FileText size={16} className="shrink-0 text-ink-secondary" aria-hidden />
             )}
             <Link
-                href={`/media/private/${file.media_id}`}
+                href={`/media/${file.media_id}`}
                 target="_blank"
                 rel="noreferrer"
                 title={file.name || "Open the file"}

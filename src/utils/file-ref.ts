@@ -1,7 +1,11 @@
 /**
  * How a bot names one of its files in a message: `[file:12]`. The chat
  * turns it into a link to the file (`linkComputerRefs`), which a chip
- * renders with the file's name.
+ * renders with the file's name and opens the bytes at `/media/<id>`.
+ *
+ * A file ref is always a file. A folder is named with a `folderRef`
+ * (`[folder:bot:3:reports]`), which opens the files browser instead and
+ * never downloads anything.
  */
 export default function fileRef({ id }: { id: number | string }) {
     return `[file:${id}]`;

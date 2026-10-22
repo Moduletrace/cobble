@@ -47,7 +47,9 @@ function fetchFile({
 
 /**
  * A file a bot named in a message (`fileRef`): the name it is saved under,
- * linked to its bytes. The conversation's files come with the page, so most
+ * linked to its bytes at `/media/<id>` (private: only someone who reaches
+ * the file's folder can load it). A folder the bot named is a `folderRef`
+ * instead, and its chip opens the files browser. The conversation's files come with the page, so most
  * chips need no request; one that isn't among them (older than the page's
  * first page) is fetched by id. A file the user doesn't reach, or one
  * deleted since, shows as its id.

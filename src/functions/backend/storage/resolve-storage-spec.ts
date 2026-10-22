@@ -25,8 +25,8 @@ type Params = {
  *
  * Who reaches what: a bot, workspace or computer through the same SQL the
  * crew uses (`grabUserBot`, `grabUserWorkspace`, `grabUserComputer`, so a
- * member sees only their own grants); their own media folder (super
- * admins and admins anyone's); an MCP server's install folder for crew
+ * member sees only their own grants); their own media folder, and only
+ * their own whatever their role; an MCP server's install folder for crew
  * managers; the database for the super admin alone.
  */
 export default async function resolveStorageSpec({ user_id, spec }: Params) {
@@ -75,7 +75,12 @@ async function storageRoot({
                 : null;
 
         case "media":
-            if (role == "member" && Number(spec.owner_id) != Number(user_id)) return null;
+            /**
+             * A person's uploads are theirs alone, whatever their role:
+             * the folder is the media library behind `/media/<id>`, not a
+             * crew-shared one.
+             */
+            if (Number(spec.owner_id) != Number(user_id)) return null;
 
             return (await hasUser({ user_id: spec.owner_id }))
                 ? path.join(DATA_DIR, "media", String(spec.owner_id))
@@ -121,13 +126,8 @@ async function storageLabel({
                 (await grabUserComputer({ computer_id: spec.owner_id, user_id }))?.name ||
                 `Computer ${spec.owner_id}`
             );
-        case "media": {
-            if (role == "member" || Number(spec.owner_id) == Number(user_id)) return "My media";
-
-            const person = await grabPersonName({ user_id: spec.owner_id });
-
-            return person ? `${person}'s media` : `Media of user ${spec.owner_id}`;
-        }
+        case "media":
+            return "My media";
         case "mcp":
             return (await grabMcpServerName({ server_id: spec.owner_id })) || `MCP server ${spec.owner_id}`;
         case "db":
@@ -152,22 +152,6 @@ async function hasUser({ user_id }: { user_id: number | string }) {
     });
 
     return Boolean(res.payload?.[0]?.id);
-}
-
-async function grabPersonName({ user_id }: { user_id: number | string }) {
-    const res = await BunSQLite.sql<{
-        first_name?: string | null;
-        last_name?: string | null;
-        username?: string | null;
-    }>({
-        sql: `SELECT first_name, last_name, username FROM users WHERE id = ? LIMIT 1`,
-        values: [Number(user_id)],
-    });
-    const person = res.payload?.[0];
-
-    if (!person) return "";
-
-    return [person.first_name, person.last_name].filter(Boolean).join(" ") || person.username || "";
 }
 
 async function hasMcpServer({ server_id }: { server_id: number | string }) {

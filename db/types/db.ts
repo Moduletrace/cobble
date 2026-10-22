@@ -146,7 +146,6 @@ export type BUN_SQLITE_COBBLE_MEDIA = {
     text_content?: string;
     is_primary?: 0 | 1 | "";
     is_rag_ingested?: 0 | 1 | "";
-    is_private?: 0 | 1 | "";
     archived?: 0 | 1 | "";
 }
 
