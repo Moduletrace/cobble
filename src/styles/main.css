@@ -1,17 +1,32 @@
 @import "@moduletrace/twui/base.css";
 
-/* Doc and prompt strings mention refs like `[file:12]`, which Tailwind would
-   read as an arbitrary-property utility and emit as `file: 12` (esbuild then
-   warns it is not a CSS property). None of these files holds a className. */
+/* Doc, prompt and tool strings mention refs like `[file:12]`, which Tailwind
+   reads as an arbitrary-property utility and emits as `file: 12` (esbuild then
+   warns it is not a CSS property). None of the server-side directories below
+   holds a className, so they are excluded from the scan whole; `dict` stays
+   scanned because it carries the static `bg-hue-*` class names. A new prompt
+   or tool file then cannot bring the warning back. */
 @source not "../../AGENTS.md";
 @source not "../../db/**";
+@source not "../../docs/**";
+@source not "../../assets/**";
+@source not "../../llm-code-assistant/**";
+@source not "../../packages/**";
 @source not "../**/*.test.ts";
 @source not "../**/*.test.tsx";
-@source not "../data/harness-prompts.ts";
-@source not "../utils/file-ref.ts";
-@source not "../utils/link-computer-refs.ts";
-@source not "../harness/tools/storage/list-files-tool.ts";
-@source not "../harness/tools/storage/storage-tool-context.ts";
+@source not "../bots-queue/**";
+@source not "../cron/**";
+@source not "../data/**";
+@source not "../file-ingest/**";
+@source not "../functions/**";
+@source not "../harness/**";
+@source not "../hooks/**";
+@source not "../live-relay/**";
+@source not "../schemas/**";
+@source not "../scripts/**";
+@source not "../styles/**";
+@source not "../utils/**";
+@source not "../websocket/**";
 
 /* Cobble design tokens (handoff `tokens/tokens.css`). Light on `:root`, dark
    on `.dark` (twui's dark variant). Exposed to Tailwind in `@theme inline`. */

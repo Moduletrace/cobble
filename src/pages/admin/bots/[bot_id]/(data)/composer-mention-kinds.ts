@@ -1,6 +1,6 @@
 /**
  * What the composer can mention, by the character that starts it: `@` a
- * bot (`[bot:ID]`), `#` a workspace (`[workspace:ID]`).
+ * bot, `#` a workspace (each written as its ref, `[bot:` + id).
  */
 export const ComposerMentionKinds = {
     "@": "bot",

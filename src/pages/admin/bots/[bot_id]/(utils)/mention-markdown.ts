@@ -8,10 +8,10 @@ import {
 const RefPattern = /^\[(bot|workspace):(\d+)\](?!\()/;
 
 /**
- * How the composer's mention node reads and writes markdown: a bot as
- * `[bot:3]` (`botRef`), a workspace as `[workspace:2]` (`workspaceRef`),
- * so a draft or a sent message holds the same refs bots write. A ref
- * followed by `(` is a markdown link, not a mention.
+ * How the composer's mention node reads and writes markdown: a bot ref
+ * (`botRef`) or a workspace ref (`workspaceRef`), so a draft or a sent
+ * message holds the same refs bots write. A ref followed by `(` is a
+ * markdown link, not a mention.
  */
 export const MentionMarkdown = {
     markdownTokenizer: {
@@ -50,7 +50,7 @@ export const MentionMarkdown = {
 };
 
 /**
- * The ref a mention writes, `[bot:3]` unless it's a workspace's.
+ * The ref a mention writes, a bot's unless it's a workspace's.
  */
 export function mentionRef({ id, char }: { id?: string | number | null; char?: string | null }) {
     const kind = ComposerMentionKinds[(char || "@") as ComposerMentionChar] || "bot";

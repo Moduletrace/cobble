@@ -43,8 +43,8 @@ type Params = {
 /**
  * The composer's editor (Tiptap): markdown in and out, with bold, italic,
  * strike, code, lists, quotes and links (no headings), and mentions of
- * bots (`@`) and workspaces (`#`) written as `[bot:ID]` and
- * `[workspace:ID]`. Enter sends and Shift+Enter breaks the line, except
+ * bots (`@`) and workspaces (`#`), written as their bot or workspace ref.
+ * Enter sends and Shift+Enter breaks the line, except
  * in a code block or list, where Enter is the editor's and Mod+Enter
  * sends. Enter picks from an open mention menu. Pasted text comes in
  * plain, without another site's styling; pasted or dropped files go to
