@@ -86,6 +86,18 @@ ${
 }- Never say a file is saved if it only exists on the computer. Say where it is, and that it can be imported.`;
 
 /**
+ * Added to a run that has skills: what they are, and that the body is read
+ * only with load_skill.
+ */
+export const SkillsNote = `# Skills
+
+You have runbooks (skills): load_skill lists them, with the one line each says about when it applies.
+
+- A skill's steps are the way that job is done here. Before you start work one covers, call load_skill with its slug and follow it: don't work from memory or guess what it says.
+- Load one only when it applies to what you're doing; loading everything fills your context with instructions you don't need.
+- If a skill turns out to be wrong or out of date for the job, follow it as written and tell the user in your reply, so they can fix it in Settings, under Skills.`;
+
+/**
  * Added to every run, chat replies and tasks alike: check before you
  * create, and check after you act.
  */

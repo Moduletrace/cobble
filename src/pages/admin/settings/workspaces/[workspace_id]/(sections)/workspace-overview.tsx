@@ -68,7 +68,7 @@ export default function WorkspaceOverview() {
             <ExtensionsGroup
                 owner={{ workspace_id }}
                 owner_name={name}
-                description="Every bot working here gets these, the coordinator too, on top of its own, only while it works here."
+                description="Every bot working here gets these, the coordinator too, on top of its own, only while it works here: MCP servers, tools and skills."
                 initial={pageProps?.workspace_extensions}
             />
             <ScopedEnvsGroup initial={pageProps?.workspace_envs} />

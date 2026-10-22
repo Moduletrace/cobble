@@ -11,7 +11,7 @@ type Params = {
 };
 
 /**
- * The MCP servers and tools every bot working in a workspace gets there,
+ * The MCP servers, tools and skills every bot working in a workspace gets there,
  * and the rest of them, which can be added.
  */
 export default async function grabWorkspaceExtensionsOverview({

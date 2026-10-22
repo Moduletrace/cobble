@@ -58,6 +58,7 @@ your data on your own machine.
 | Models     | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness                       |
 | Voice      | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice                                                |
 | Tools      | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces                                                  |
+| Skills     | Write runbooks your bots follow. Each bot sees what a skill is for and reads the whole thing only when it needs it                                         |
 | App        | Installable PWA with Web Push, dark mode, and a rail built for a phone                                                                                     |
 
 ## Screenshots

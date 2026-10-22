@@ -15,7 +15,7 @@ type Props = {
 };
 
 /**
- * Under the composer: one button counting the MCP servers and tools the
+ * Under the composer: one button counting the MCP servers, tools and skills the
  * bot can use here (they open in a modal, so ten of them don't fill the
  * composer), then the computer it's on, opening it in the viewer.
  */

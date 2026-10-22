@@ -8,7 +8,7 @@ type Params = {
 };
 
 /**
- * Throws unless the user manages this bot's MCP servers and tools: super
+ * Throws unless the user manages this bot's MCP servers, tools and skills: super
  * admins and admins, the super admin alone for the coordinator. Returns
  * the bot.
  */

@@ -18,19 +18,19 @@ type Props = {
      * The extension being changed, as `kind:id`.
      */
     busy?: string;
-    onAdd: (params: { kind: "mcp" | "tool"; id: number }) => Promise<boolean>;
+    onAdd: (params: { kind: "mcp" | "tool" | "skill"; id: number }) => Promise<boolean>;
     onRemove: (params: {
-        kind: "mcp" | "tool";
+        kind: "mcp" | "tool" | "skill";
         id: number;
         name: string;
     }) => Promise<boolean>;
 };
 
 /**
- * The composer's tools button: how many MCP servers and tools the bot can
- * use here, opening them in a modal rather than filling the composer with
- * chips. Super admins and admins remove any it was given (even one every
- * bot started with) and add more; a workspace's own stay.
+ * The composer's tools button: how many MCP servers, tools and skills the
+ * bot can use here, opening them in a modal rather than filling the
+ * composer with chips. Super admins and admins remove any it was given
+ * (even one every bot started with) and add more; a workspace's own stay.
  */
 export default function ComposerToolsModal({
     bot_name,
@@ -75,8 +75,8 @@ export default function ComposerToolsModal({
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {count
-                        ? "MCP servers and tools it was given, plus this workspace's. Remove one to take it away, or add another below."
-                        : "It has none yet. Give it an MCP server or tool below, or make one under Settings."}
+                        ? "MCP servers, tools and skills it was given, plus this workspace's. Remove one to take it away, or add another below."
+                        : "It has none yet. Give it an MCP server, tool or skill below, or make one under Settings."}
                 </Span>
             </Stack>
 

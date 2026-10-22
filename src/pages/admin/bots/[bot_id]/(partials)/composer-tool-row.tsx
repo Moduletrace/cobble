@@ -17,8 +17,9 @@ type Props = {
 };
 
 /**
- * One MCP server or tool the bot can use here, in the composer's tools
- * modal. One that isn't working says so, one that's off is struck out.
+ * One MCP server, tool or skill the bot can use here, in the composer's
+ * tools modal. One that isn't working says so, one that's off is struck
+ * out. A skill has nothing to connect or run, so it never reports one.
  */
 export default function ComposerToolRow({ item, busy, onRemove }: Props) {
     const Icon = extensionIcon({ kind: item.kind });
@@ -27,11 +28,13 @@ export default function ComposerToolRow({ item, busy, onRemove }: Props) {
         item.source == "workspace" ? "From this workspace" : "",
         !item.enabled
             ? "Off for every bot"
-            : item.state == "error"
-              ? "Not working"
-              : item.state == "untested"
-                ? "Not checked yet"
-                : "",
+            : item.kind == "skill"
+              ? ""
+              : item.state == "error"
+                ? "Not working"
+                : item.state == "untested"
+                  ? "Not checked yet"
+                  : "",
     ].filter(Boolean);
 
     return (

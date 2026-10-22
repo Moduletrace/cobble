@@ -2141,6 +2141,51 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "skills",
+            tableDescription: `Runbooks bots follow (Settings, under Skills). A bot sees each one's name and description and reads the whole body only when it loads it with load_skill. Per bot (bot_skills), per workspace (workspace_skills) or every bot (all_bots)`,
+            fields: [
+                {
+                    fieldName: "name",
+                    fieldDescription: `What the settings page calls it, e.g. "Weekly SEO report"`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `What a bot passes to load_skill: lowercase letters, numbers and hyphens. Unique`,
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "description",
+                    fieldDescription: `The one line a bot reads to decide whether the skill applies`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "body",
+                    fieldDescription: `The runbook itself, markdown. Read only when a bot loads the skill`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "all_bots",
+                    fieldDescription: `1 gives it to every bot, the coordinator included`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Who created it. Not a foreign key: it belongs to the install`,
+                    dataType: "INTEGER",
+                },
+            ],
+        },
+        {
             tableName: "bot_mcp_servers",
             tableDescription: `A bot that gets an MCP server's tools everywhere it works`,
             fields: [
@@ -2301,6 +2346,88 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_workspace_custom_tools_custom_tool_id",
                     indexTableFields: ["custom_tool_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_skills",
+            tableDescription: `A bot that gets a skill everywhere it works`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_skills_bots_fk",
+                    },
+                },
+                {
+                    fieldName: "skill_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "skills",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_skills_skills_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_skill_per_bot",
+                    constraintName: "A bot gets a skill once",
+                    constraintTableFields: [{ value: "bot_id" }, { value: "skill_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_skills_skill_id",
+                    indexTableFields: ["skill_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_skills",
+            tableDescription: `Every bot in the workspace gets the skill there`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_skills_workspaces_fk",
+                    },
+                },
+                {
+                    fieldName: "skill_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "skills",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_skills_skills_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_skill_per_workspace",
+                    constraintName: "A workspace gets a skill once",
+                    constraintTableFields: [{ value: "workspace_id" }, { value: "skill_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_skills_skill_id",
+                    indexTableFields: ["skill_id"],
                 },
             ],
         },

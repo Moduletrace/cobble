@@ -18,6 +18,7 @@ import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
+import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import botMessagesToHarness from "./bot-messages-to-harness";
 import composeComputersNote from "./compose-computers-note";
 import grabSessionCarryOver from "./grab-session-carry-over";
@@ -113,6 +114,14 @@ export default async function runBotReply({
     });
 
     /**
+     * The run's skills: one `load_skill` tool and the lines that name them.
+     */
+    const skills = openBotSkills({
+        skills: extensions.skills,
+        taken: [...tools, ...extensions.tools].map((tool) => tool.name),
+    });
+
+    /**
      * delegate_task is only there while the coordinator has workers.
      */
     const crew_note =
@@ -140,6 +149,7 @@ export default async function runBotReply({
                     in_workspace: Boolean(workspace_id),
                 }),
                 crew_note,
+                skills.note,
                 extensions.note,
                 `Now: ${new Date().toUTCString()}.`,
             ]
@@ -153,7 +163,7 @@ export default async function runBotReply({
                     user_id,
                 }),
             }),
-            tools: [...tools, ...file_tools, ...extensions.tools],
+            tools: [...tools, ...file_tools, ...extensions.tools, ...skills.tools],
             max_steps: AppData.BotReplyMaxToolSteps,
             bot_id: bot.id,
             workspace_id,

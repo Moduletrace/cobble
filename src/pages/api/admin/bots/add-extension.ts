@@ -7,6 +7,7 @@ import type { BotExtensionsPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
+import extensionNoun, { extensionLogTitle } from "@/src/utils/extension-noun";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type {
     APIResponseObject,
@@ -37,10 +38,10 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotExtensionsPaylo
         const { bot, name } = await setBotExtension({ user_id: user.id, bot_id, kind, id, attached: true });
 
         await logEvent({
-            title: "Bot tool added",
+            title: extensionLogTitle({ kind, verb: "added" }),
             category: "system",
             user_id: user.id,
-            plain_text: `User #${user.id} gave ${kind == "mcp" ? "the MCP server" : "the tool"} ${name} to ${bot.name} (#${bot.id}).`,
+            plain_text: `User #${user.id} gave ${extensionNoun({ kind, article: true })} ${name} to ${bot.name} (#${bot.id}).`,
             metadata: { bot_id, kind, id },
             ip_address: grabRequestIP(req),
         });

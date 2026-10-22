@@ -53,3 +53,4 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 /public/sitemap.xml
 /public/robots.txt
 /public/sitemap-chunks/
+/.tmp

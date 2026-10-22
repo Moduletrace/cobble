@@ -11,14 +11,14 @@ type Params = {
     user_id: number | string;
     bot_id: number | string;
     /**
-     * The workspace the bot is seen in: its MCP servers and tools show
+     * The workspace the bot is seen in: its MCP servers, tools and skills show
      * too, not removable from the bot.
      */
     workspace_id?: number | string | null;
 };
 
 /**
- * A bot's MCP servers and tools (given to it, and its workspace's there),
+ * A bot's MCP servers, tools and skills (given to it, and its workspace's there),
  * and the rest of them, which can be added.
  */
 export default async function grabBotExtensionsOverview({

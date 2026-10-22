@@ -17,6 +17,13 @@ export const ExtensionTables = {
         column: "custom_tool_id",
         label: "tool",
     },
+    skill: {
+        table: "skills",
+        bot_link: "bot_skills",
+        workspace_link: "workspace_skills",
+        column: "skill_id",
+        label: "skill",
+    },
 } as const;
 
 export type ExtensionKind = keyof typeof ExtensionTables;

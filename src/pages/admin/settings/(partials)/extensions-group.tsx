@@ -1,6 +1,6 @@
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
-import { Plug, Wrench } from "lucide-react";
+import { BookOpen, Plug, Wrench } from "lucide-react";
 import ExtensionAddSelect from "@/src/components/general/extension-add-select";
 import useExtensions from "@/src/hooks/use-extensions";
 import type { BotExtensionsPayload } from "@/src/types";
@@ -17,16 +17,16 @@ type Props = {
 };
 
 /**
- * The MCP servers and tools a bot or a workspace has, removable, and a
- * picker to add more. On the bot and workspace settings pages.
+ * The MCP servers, tools and skills a bot or a workspace has, removable,
+ * and a picker to add more. On the bot and workspace settings pages.
  */
 export default function ExtensionsGroup({ owner, owner_name, description, initial }: Props) {
     const extensions = useExtensions({ owner, owner_name, initial });
     const id = "bot_id" in owner ? `bot-${owner.bot_id}` : `workspace-${owner.workspace_id}`;
 
     return (
-        <SettingsGroup id="tools" title="Tools and MCP servers" description={description}>
-            <SettingsList is_empty={!extensions.attached.length} empty="No tools or MCP servers yet.">
+        <SettingsGroup id="tools" title="Tools, MCP servers and skills" description={description}>
+            <SettingsList is_empty={!extensions.attached.length} empty="No tools, MCP servers or skills yet.">
                 {extensions.attached.map((item) => (
                     <ExtensionRow
                         key={`${item.kind}:${item.id}`}
@@ -72,6 +72,18 @@ export default function ExtensionsGroup({ owner, owner_name, description, initia
                     className="gap-1!"
                 >
                     Tools
+                </Button>
+                <Button
+                    title="Manage skills"
+                    type="button"
+                    variant="ghost"
+                    color="gray"
+                    size="small"
+                    href="/admin/settings/skills"
+                    beforeIcon={<BookOpen size={14} aria-hidden />}
+                    className="gap-1!"
+                >
+                    Skills
                 </Button>
             </Row>
             <SettingsStatus status={extensions.status} />

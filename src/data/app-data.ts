@@ -284,6 +284,14 @@ export const AppData = {
     CustomToolDefaultTimeoutMs: 60 * 1000,
     CustomToolMaxTimeoutMs: 10 * 60 * 1000,
     /**
+     * Skills (Settings, under Skills): how long one's body may be, and how
+     * much of it `load_skill` hands back in one call. A runbook past that
+     * is worth splitting into two skills.
+     */
+    SkillBodyMaxChars: 60000,
+    SkillBodyShownChars: 30000,
+    SkillDescriptionMaxChars: 300,
+    /**
      * `search_computers`: how long the command may run on each computer,
      * and how much of each computer's output the bot reads.
      */

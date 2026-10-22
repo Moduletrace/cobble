@@ -51,7 +51,7 @@ type Props = {
      */
     workspace_id?: number | null;
     /**
-     * Its MCP servers and tools, listed under the input.
+     * Its MCP servers, tools and skills, listed under the input.
      */
     extensions?: BotExtensionsPayload | null;
     /**

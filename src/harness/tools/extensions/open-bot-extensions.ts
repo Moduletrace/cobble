@@ -1,5 +1,6 @@
 import grabBotExtensions from "@/src/functions/backend/db/extensions/grab-bot-extensions";
 import grabRunEnvs from "@/src/functions/backend/db/extensions/grab-run-envs";
+import type { SkillRecord } from "@/src/types";
 import mcpToolName from "@/src/utils/mcp-tool-name";
 import redactSecrets from "@/src/utils/redact-secrets";
 import mcpHarnessTool from "../../mcp/mcp-harness-tool";
@@ -30,6 +31,11 @@ export type OpenBotExtensions = {
      * with no tools listed), so the bot can say so. Empty otherwise.
      */
     note: string;
+    /**
+     * The skills the run has, for `openBotSkills`: read from the same query
+     * as the MCP servers and tools.
+     */
+    skills: SkillRecord[];
     close: () => Promise<void>;
 };
 
@@ -47,9 +53,11 @@ export default async function openBotExtensions({
     taken = [],
     signal,
 }: Params): Promise<OpenBotExtensions> {
-    const { servers, tools } = await grabBotExtensions({ bot_id, workspace_id });
+    const { servers, tools, skills } = await grabBotExtensions({ bot_id, workspace_id });
 
-    if (!servers.length && !tools.length) return { tools: [], note: "", close: async () => {} };
+    if (!servers.length && !tools.length) {
+        return { tools: [], note: "", skills, close: async () => {} };
+    }
 
     const envs = await grabRunEnvs({ bot_id, workspace_id });
     const secrets = envs.filter((env) => env.secret);
@@ -98,6 +106,7 @@ export default async function openBotExtensions({
 
     return {
         tools: result,
+        skills,
         note: notes.length
             ? `These MCP servers were set up for you but you can't use them right now; if the user needs them, say so (an admin fixes them in Settings, under MCPs):\n${notes.join("\n")}`
             : "",

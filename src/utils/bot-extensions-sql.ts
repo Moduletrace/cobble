@@ -1,8 +1,8 @@
 type Params = {
     /**
-     * Which kind: MCP servers or custom tools.
+     * Which kind: MCP servers, custom tools or skills.
      */
-    kind: "mcp" | "tool";
+    kind: "mcp" | "tool" | "skill";
     bot_id: number | string;
     /**
      * The workspace the run is in: what's attached to it counts too.
@@ -23,10 +23,16 @@ const Tables = {
         workspace_link: "workspace_custom_tools",
         column: "custom_tool_id",
     },
+    skill: {
+        table: "skills",
+        bot_link: "bot_skills",
+        workspace_link: "workspace_skills",
+        column: "skill_id",
+    },
 } as const;
 
 /**
- * The enabled MCP servers or custom tools a bot gets on one run: those
+ * The enabled MCP servers, custom tools or skills a bot gets on one run: those
  * attached to the bot, and in a workspace those attached to the
  * workspace. "Every bot" only decides what a bot is given (now and when
  * it's created, `attachToAllBots`, `attachDefaultExtensions`); one it

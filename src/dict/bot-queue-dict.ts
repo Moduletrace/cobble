@@ -86,6 +86,7 @@ export const JobStepToolLabels: Record<string, string> = {
     assign_computer: "Changing computer access",
     update_memory: "Updating memory",
     update_instructions: "Updating instructions",
+    load_skill: "Reading a skill",
 };
 
 /**

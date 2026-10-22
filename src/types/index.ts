@@ -599,6 +599,27 @@ export type CustomToolRecord = {
 );
 
 /**
+ * A `skills` row: a runbook a bot loads when it applies.
+ */
+export type SkillRecord = {
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    body: string;
+    all_bots: boolean;
+    enabled: boolean;
+};
+
+/**
+ * A skill as the Skills settings page shows it: nothing secret in one, so
+ * it's the row with who gets it instead of `all_bots`.
+ */
+export type PublicSkill = Omit<SkillRecord, "all_bots"> & {
+    access: ExtensionAccess;
+};
+
+/**
  * An MCP server as the MCPs settings page shows it. Only super admins get
  * how it's reached (`url`, `headers`, `command`, `setup_command`, `env`).
  */
@@ -650,7 +671,7 @@ export type ExtensionTargets = {
  * composer show it.
  */
 export type BotExtension = {
-    kind: "mcp" | "tool";
+    kind: "mcp" | "tool" | "skill";
     id: number;
     name: string;
     description: string;
@@ -668,17 +689,21 @@ export type BotExtension = {
 };
 
 /**
- * A bot's MCP servers and tools, and what can be added. Only super admins
+ * A bot's MCP servers, tools and skills, and what can be added. Only super admins
  * and admins (the super admin alone for the coordinator) manage them.
  */
 export type BotExtensionsPayload = {
     attached: BotExtension[];
-    addable: { kind: "mcp" | "tool"; id: number; name: string }[];
+    addable: { kind: "mcp" | "tool" | "skill"; id: number; name: string }[];
     can_manage: boolean;
 };
 
 export type McpServersOverviewPayload = ExtensionTargets & {
     servers: PublicMcpServer[];
+};
+
+export type SkillsOverviewPayload = ExtensionTargets & {
+    skills: PublicSkill[];
 };
 
 export type CustomToolsOverviewPayload = ExtensionTargets & {
@@ -1016,6 +1041,7 @@ export type PagePropsType = {
     push_overview?: PushOverview | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
+    skills_overview?: SkillsOverviewPayload | null;
     bot_extensions?: BotExtensionsPayload | null;
     /**
      * The files browser's folders (a user's own crew and media, and what a

@@ -14,6 +14,7 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
+import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
@@ -71,6 +72,7 @@ export default async function runBotTask({
         : null;
 
     let extensions: OpenBotExtensions | undefined;
+    let skills: OpenBotSkills | undefined;
 
     try {
         const session_id = await jobSessionId({ job });
@@ -173,6 +175,11 @@ export default async function runBotTask({
             signal,
         });
 
+        skills = openBotSkills({
+            skills: extensions.skills,
+            taken: [...tools, ...extensions.tools].map((tool) => tool.name),
+        });
+
         const result = await runTextLoop({
             system: [
                 prompt,
@@ -200,6 +207,7 @@ export default async function runBotTask({
                           .map((env) => `- ${env.key}${env.description ? `: ${env.description}` : ""}`)
                           .join("\n")}`
                     : "",
+                skills.note,
                 extensions.note,
             ]
                 .filter(Boolean)
@@ -214,7 +222,7 @@ export default async function runBotTask({
                     }),
                 },
             ],
-            tools: [...tools, ...extensions.tools],
+            tools: [...tools, ...extensions.tools, ...skills.tools],
             bot_id: bot.id,
             workspace_id,
             signal,

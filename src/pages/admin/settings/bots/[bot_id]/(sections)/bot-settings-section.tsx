@@ -75,7 +75,7 @@ export default function BotSettingsSection() {
             <ExtensionsGroup
                 owner={{ bot_id: bot.id }}
                 owner_name={name}
-                description="What it can use besides its own tools, everywhere it works. A workspace's own come on top while it works there."
+                description="What it can use besides its own tools, everywhere it works: MCP servers, tools and skills. A workspace's own come on top while it works there."
                 initial={pageProps?.bot_extensions}
             />
             <ScopedEnvsGroup initial={pageProps?.bot_envs} />

@@ -1,10 +1,15 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_COBBLE_CUSTOM_TOOLS, BUN_SQLITE_COBBLE_MCP_SERVERS } from "@/db/types/db";
+import type {
+    BUN_SQLITE_COBBLE_CUSTOM_TOOLS,
+    BUN_SQLITE_COBBLE_MCP_SERVERS,
+    BUN_SQLITE_COBBLE_SKILLS,
+} from "@/db/types/db";
 import { CustomToolKinds } from "@/src/dict/custom-tool-dict";
 import { McpTransports } from "@/src/dict/mcp-dict";
 import type { BotExtension, BotExtensionsPayload } from "@/src/types";
 import parseCustomToolRow from "./parse-custom-tool-row";
 import parseMcpServerRow from "./parse-mcp-server-row";
+import parseSkillRow from "./parse-skill-row";
 
 type Params = {
     /**
@@ -23,7 +28,7 @@ type Params = {
 type Linked<T> = T & { source: "bot" | "workspace" };
 
 /**
- * The MCP servers and tools a bot or a workspace has, and the rest of
+ * The MCP servers, tools and skills a bot or a workspace has, and the rest of
  * them, which can be added (`grabBotExtensionsOverview`,
  * `grabWorkspaceExtensionsOverview`).
  */
@@ -45,8 +50,9 @@ export default async function grabExtensionsOverview({
 
     const mcp_query = linked("mcp_server_id", "bot_mcp_servers", "workspace_mcp_servers");
     const tool_query = linked("custom_tool_id", "bot_custom_tools", "workspace_custom_tools");
+    const skill_query = linked("skill_id", "bot_skills", "workspace_skills");
 
-    const [servers, tools, all_servers, all_tools] = await Promise.all([
+    const [servers, tools, skills, all_servers, all_tools, all_skills] = await Promise.all([
         BunSQLite.sql<Linked<BUN_SQLITE_COBBLE_MCP_SERVERS>>({
             sql: mcp_query.sql.replace("%TABLE%", "mcp_servers"),
             values: mcp_query.values,
@@ -55,11 +61,20 @@ export default async function grabExtensionsOverview({
             sql: tool_query.sql.replace("%TABLE%", "custom_tools"),
             values: tool_query.values,
         }),
+        BunSQLite.sql<Linked<BUN_SQLITE_COBBLE_SKILLS>>({
+            sql: skill_query.sql.replace("%TABLE%", "skills"),
+            values: skill_query.values,
+        }),
         can_manage
             ? BunSQLite.sql<{ id: number; name: string }>({ sql: `SELECT id, name FROM mcp_servers ORDER BY name COLLATE NOCASE` })
             : null,
         can_manage
             ? BunSQLite.sql<{ id: number; name: string }>({ sql: `SELECT id, name FROM custom_tools ORDER BY name` })
+            : null,
+        can_manage
+            ? BunSQLite.sql<{ id: number; name: string }>({
+                  sql: `SELECT id, name FROM skills ORDER BY name COLLATE NOCASE`,
+              })
             : null,
     ]);
 
@@ -94,13 +109,27 @@ export default async function grabExtensionsOverview({
                 source: row.source,
             };
         }),
+        ...(skills.payload || []).map((row) => {
+            const skill = parseSkillRow({ row });
+
+            return {
+                kind: "skill" as const,
+                id: skill.id,
+                name: skill.name,
+                description: skill.description,
+                detail: `Skill · ${skill.slug}`,
+                state: "ok" as const,
+                enabled: skill.enabled,
+                source: row.source,
+            };
+        }),
     ];
 
     /**
      * A bot can be given one its workspace has; a workspace only what it
      * hasn't.
      */
-    const has = (kind: "mcp" | "tool", id: number) =>
+    const has = (kind: BotExtension["kind"], id: number) =>
         attached.some((item) => item.kind == kind && item.id == id && (!bot || item.source == "bot"));
 
     return {
@@ -112,6 +141,9 @@ export default async function grabExtensionsOverview({
             ...(all_tools?.payload || [])
                 .filter((row) => !has("tool", Number(row.id)))
                 .map((row) => ({ kind: "tool" as const, id: Number(row.id), name: row.name })),
+            ...(all_skills?.payload || [])
+                .filter((row) => !has("skill", Number(row.id)))
+                .map((row) => ({ kind: "skill" as const, id: Number(row.id), name: row.name })),
         ],
         can_manage,
     };

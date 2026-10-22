@@ -18,7 +18,7 @@ type Params = {
 type Status = { error?: boolean; success?: boolean; msg?: string };
 
 /**
- * A bot's or workspace's MCP servers and tools, with adding and removing
+ * A bot's or workspace's MCP servers, tools and skills, with adding and removing
  * them (each asks first). Shared by the bot and workspace settings pages
  * and the chat's composer.
  */

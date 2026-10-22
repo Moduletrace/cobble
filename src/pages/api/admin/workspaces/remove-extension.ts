@@ -7,6 +7,7 @@ import type { BotExtensionsPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
+import extensionNoun, { extensionLogTitle } from "@/src/utils/extension-noun";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type {
     APIResponseObject,
@@ -36,10 +37,10 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotExtensionsPaylo
         const { workspace, name } = await setWorkspaceExtension({ user_id: user.id, workspace_id, kind, id, attached: false });
 
         await logEvent({
-            title: "Workspace tool removed",
+            title: extensionLogTitle({ kind, verb: "removed" }),
             category: "system",
             user_id: user.id,
-            plain_text: `User #${user.id} took ${kind == "mcp" ? "the MCP server" : "the tool"} ${name} from the workspace ${workspace.name} (#${workspace.id}).`,
+            plain_text: `User #${user.id} took ${extensionNoun({ kind, article: true })} ${name} from the workspace ${workspace.name} (#${workspace.id}).`,
             metadata: { workspace_id, kind, id },
             ip_address: grabRequestIP(req),
         });

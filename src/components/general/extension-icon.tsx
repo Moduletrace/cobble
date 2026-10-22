@@ -1,9 +1,12 @@
-import { Plug, Wrench } from "lucide-react";
+import { BookOpen, Plug, Wrench } from "lucide-react";
 import type { BotExtension } from "@/src/types";
 
 /**
- * The icon of an MCP server (a plug) or a tool (a wrench).
+ * The icon of an MCP server (a plug), a tool (a wrench) or a skill (a book).
  */
 export default function extensionIcon({ kind }: { kind: BotExtension["kind"] }) {
-    return kind == "mcp" ? Plug : Wrench;
+    if (kind == "mcp") return Plug;
+    if (kind == "skill") return BookOpen;
+
+    return Wrench;
 }

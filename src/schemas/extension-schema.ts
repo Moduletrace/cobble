@@ -7,6 +7,7 @@ import {
 } from "@/src/dict/custom-tool-dict";
 import { McpTransports, type McpTransport } from "@/src/dict/mcp-dict";
 import checkCustomToolName from "@/src/utils/check-custom-tool-name";
+import checkSkillSlug from "@/src/utils/check-skill-slug";
 
 const Id = z.coerce.number().int().positive();
 const Ids = z.array(Id).max(1000).default([]);
@@ -77,7 +78,7 @@ export const SetExtensionAccessRequestSchema = z.object({
 
 export const SetBotExtensionRequestSchema = z.object({
     bot_id: Id,
-    kind: z.enum(["mcp", "tool"]),
+    kind: z.enum(["mcp", "tool", "skill"]),
     id: Id,
     /**
      * The workspace the bot is seen in, for the list that comes back.
@@ -87,7 +88,7 @@ export const SetBotExtensionRequestSchema = z.object({
 
 export const SetWorkspaceExtensionRequestSchema = z.object({
     workspace_id: Id,
-    kind: z.enum(["mcp", "tool"]),
+    kind: z.enum(["mcp", "tool", "skill"]),
     id: Id,
 });
 
@@ -170,7 +171,39 @@ export const TestCustomToolRequestSchema = z
     })
     .refine((value) => value.custom_tool_id || value.draft, { message: "Pick a tool to try." });
 
+/**
+ * A skill: the runbook, and the line that tells a bot when to load it.
+ */
+export const SaveSkillRequestSchema = z.object({
+    skill_id: Id.optional(),
+    name: z.string().trim().min(1, "Enter a name").max(80),
+    slug: z
+        .string()
+        .trim()
+        .superRefine((slug, ctx) => {
+            const problem = checkSkillSlug({ slug });
+            if (problem) ctx.addIssue({ code: "custom", message: problem });
+        }),
+    description: z
+        .string()
+        .trim()
+        .min(1, "Say in one line when a bot should use it")
+        .max(AppData.SkillDescriptionMaxChars),
+    body: z
+        .string()
+        .trim()
+        .min(1, "Write the runbook")
+        .max(AppData.SkillBodyMaxChars, `Keep the runbook under ${AppData.SkillBodyMaxChars} characters`),
+    enabled: z.boolean().default(true),
+    all_bots: z.boolean().default(false),
+});
+
+export const SkillIdRequestSchema = z.object({
+    skill_id: Id,
+});
+
 export type SaveMcpServerRequest = z.infer<typeof SaveMcpServerRequestSchema>;
+export type SaveSkillRequest = z.infer<typeof SaveSkillRequestSchema>;
 export type SaveCustomToolRequest = z.infer<typeof SaveCustomToolRequestSchema>;
 export type TestMcpServerRequest = z.infer<typeof TestMcpServerRequestSchema>;
 export type DraftCustomTool = z.infer<typeof DraftCustomTool>;
