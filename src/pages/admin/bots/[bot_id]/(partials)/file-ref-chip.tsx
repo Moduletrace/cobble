@@ -1,8 +1,10 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import Link from "@moduletrace/twui/layout/Link";
 import Span from "@moduletrace/twui/layout/Span";
+import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
+import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { AppContext } from "@/src/pages/__root";
-import type { MediaType } from "@/src/types";
+import type { BotFileScopesPayload, MediaType, PublicBotFile } from "@/src/types";
 import AttachmentIcon from "./attachment-icon";
 
 type Props = {
@@ -10,14 +12,68 @@ type Props = {
 };
 
 /**
+ * One file, fetched once per id: a message can name a file older than the
+ * page's first page of them, and the chip still has to open it. Failures
+ * are remembered too, so a deleted file doesn't refetch on every render.
+ */
+const fetched = new Map<number, Promise<PublicBotFile | null>>();
+
+function fetchFile({
+    file_id,
+    bot_id,
+    workspace_id,
+}: Props & { bot_id: number; workspace_id?: number | null }) {
+    const cached = fetched.get(file_id);
+
+    if (cached) return cached;
+
+    const query = new URLSearchParams({ file_id: String(file_id) });
+
+    if (workspace_id) query.set("workspace_id", String(workspace_id));
+    else query.set("bot_id", String(bot_id));
+
+    const pending = fetchApi<{}, APIResponseObject<BotFileScopesPayload>>(
+        `/api/admin/bots/files?${query.toString()}`,
+        { method: "GET" },
+    )
+        .then((res) => (res?.success && res.singleRes?.files?.length ? res.singleRes.files[0] : null))
+        .catch(() => null)
+        .then((file) => file || null);
+
+    fetched.set(file_id, pending);
+
+    return pending;
+}
+
+/**
  * A file a bot named in a message (`fileRef`): the name it is saved under,
- * linked to its bytes. The conversation's files come with the page, so no
- * request is made per chip; a file the user doesn't reach (or one deleted
- * since) shows as its id.
+ * linked to its bytes. The conversation's files come with the page, so most
+ * chips need no request; one that isn't among them (older than the page's
+ * first page) is fetched by id. A file the user doesn't reach, or one
+ * deleted since, shows as its id.
  */
 export default function FileRefChip({ file_id }: Props) {
     const { pageProps } = useContext(AppContext);
-    const file = pageProps?.bot_files?.files?.find((it) => it.id == file_id);
+    const known = pageProps?.bot_files?.files?.find((it) => it.id == file_id);
+    const [fetched_file, setFetchedFile] = useState<PublicBotFile | null>(null);
+    const bot_id = Number(pageProps?.bot?.id) || 0;
+    const workspace_id = pageProps?.workspace?.id ? Number(pageProps.workspace.id) : null;
+
+    useEffect(() => {
+        if (known || !bot_id) return;
+
+        let live = true;
+
+        fetchFile({ file_id, bot_id, workspace_id }).then((file) => {
+            if (live) setFetchedFile(file);
+        });
+
+        return () => {
+            live = false;
+        };
+    }, [file_id, bot_id, workspace_id, known]);
+
+    const file = known || fetched_file;
 
     if (!file) {
         return <Span className="font-bold">{`file ${file_id}`}</Span>;

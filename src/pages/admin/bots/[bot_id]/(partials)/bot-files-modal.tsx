@@ -4,6 +4,7 @@ import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Input from "@moduletrace/twui/form/Input";
+import Link from "@moduletrace/twui/layout/Link";
 import { FolderOpen } from "lucide-react";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
@@ -114,6 +115,15 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
                         } MB used in this folder.`}
                     </Span>
                 ) : null}
+                <Link
+                    href={`/admin/files?volume=${workspace?.id ? "workspaces" : "bots"}&owner=${
+                        workspace?.id || bot.id
+                    }`}
+                    title="Browse every folder in Files"
+                    className="text-[12px] font-bold leading-4 text-ink underline underline-offset-2 hover:opacity-80"
+                >
+                    Browse this folder in Files
+                </Link>
             </Stack>
 
             <Stack className="w-full mt-4 gap-2! items-stretch">

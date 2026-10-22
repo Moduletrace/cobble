@@ -19,6 +19,11 @@ type Params = {
  * (a workspace's shared one, else the bot's own), its latest
  * `AppData.BotFilesPageSize` of them, and the usage against the quota.
  * The full list (folders, search, older files) loads in the files modal.
+ *
+ * It takes the whole folder tree, not just its top level: a bot saves into
+ * paths like `reports/` or `seo/coderank/`, and a file chip in a message
+ * can only find the file it names among these, so a top-level-only list
+ * left every nested `[file:ID]` unclickable plain text in the chat.
  */
 export default async function grabConversationFiles({
     bot_id,
@@ -29,7 +34,7 @@ export default async function grabConversationFiles({
         : ({ scope: "bot", owner_id: Number(bot_id) } as const);
 
     const [files, usage, quota_bytes, quota_mb] = await Promise.all([
-        listBotFiles({ scopes: [scope], limit: AppData.BotFilesPageSize }),
+        listBotFiles({ scopes: [scope], recursive: true, limit: AppData.BotFilesPageSize }),
         grabStorageUsage(scope),
         grabBotFileQuotaBytes(),
         grabBotFileQuotaMb(),
