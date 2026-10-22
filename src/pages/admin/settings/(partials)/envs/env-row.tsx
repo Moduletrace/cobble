@@ -2,8 +2,8 @@ import { useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { EnvScope, EnvsOverviewPayload, KnownEnvStatus, PublicEnv } from "@/src/types";
-import postEnvApi from "../(functions)/post-env-api";
+import type { EnvScope, EnvsMutationResult, KnownEnvStatus, PublicEnv } from "@/src/types";
+import postEnvApi from "../../(functions)/post-env-api";
 import EnvForm from "./env-form";
 import EnvRowActions from "./env-row-actions";
 
@@ -14,7 +14,12 @@ type Props = {
      */
     env?: PublicEnv;
     known?: KnownEnvStatus;
-    onChanged: (overview: EnvsOverviewPayload, msg: string) => void;
+    /**
+     * The bot or workspace's own list (its settings page) rather than the
+     * Environment page's overview.
+     */
+    scoped?: boolean;
+    onChanged: (data: EnvsMutationResult, msg: string) => void;
     onError: (msg: string) => void;
 };
 
@@ -22,7 +27,7 @@ type Props = {
  * One env: its key, description and value (or "secret"), with Edit and
  * Remove. Edit opens the form in place.
  */
-export default function EnvRow({ scope, env, known, onChanged, onError }: Props) {
+export default function EnvRow({ scope, env, known, scoped, onChanged, onError }: Props) {
     const [editing, setEditing] = useState(false);
     const [busy, setBusy] = useState(false);
     const key = env?.key || known?.key || "";
@@ -32,7 +37,10 @@ export default function EnvRow({ scope, env, known, onChanged, onError }: Props)
         if (!window.confirm(`Remove ${key}? Computers drop it on their next run.`)) return;
 
         setBusy(true);
-        const res = await postEnvApi({ path: "delete-env", body: { env_id: env.id } });
+        const res = await postEnvApi({
+            path: "delete-env",
+            body: { env_id: env.id, scoped },
+        });
         setBusy(false);
 
         if (res.success && res.singleRes) onChanged(res.singleRes, res.msg || "Removed.");
@@ -46,9 +54,9 @@ export default function EnvRow({ scope, env, known, onChanged, onError }: Props)
                     scope={scope}
                     env={env}
                     known={known}
-                    onSaved={(overview, msg) => {
+                    onSaved={(data, msg) => {
                         setEditing(false);
-                        onChanged(overview, msg);
+                        onChanged(data, msg);
                     }}
                     onCancel={() => setEditing(false)}
                 />

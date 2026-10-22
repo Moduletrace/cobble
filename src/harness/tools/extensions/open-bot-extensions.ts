@@ -51,7 +51,7 @@ export default async function openBotExtensions({
 
     if (!servers.length && !tools.length) return { tools: [], note: "", close: async () => {} };
 
-    const envs = await grabRunEnvs({ workspace_id });
+    const envs = await grabRunEnvs({ bot_id, workspace_id });
     const secrets = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
     const names = new Set(taken);

@@ -1516,9 +1516,9 @@ export type BUN_SQLITE_COBBLE_ENVS = {
      */
     description?: string;
     /** 
-     * Where it applies: general, a workspace, or a computer. Computer beats workspace beats general
+     * Where it applies: general, a workspace, a computer, or a single bot. A bot's own beats the computer, which beats the workspace, which beats general
      */
-    paradigm?: "general" | "workspace" | "computer" | "";
+    paradigm?: "general" | "workspace" | "computer" | "bot" | "";
     /** 
      * The workspace, for paradigm workspace
      */
@@ -1527,6 +1527,10 @@ export type BUN_SQLITE_COBBLE_ENVS = {
      * The computer, for paradigm computer
      */
     computer_id?: number | "";
+    /** 
+     * The bot, for paradigm bot. Goes with the bot
+     */
+    bot_id?: number | "";
     /** 
      * 1 hides the value once saved (only replaced, never shown) and redacts it from everything bots read
      */

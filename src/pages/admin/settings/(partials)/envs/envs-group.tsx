@@ -1,11 +1,11 @@
 import { useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
-import Span from "@moduletrace/twui/layout/Span";
-import Stack from "@moduletrace/twui/layout/Stack";
 import { Plus } from "lucide-react";
-import type { EnvScope, EnvsOverviewPayload, PublicEnv } from "@/src/types";
-import SettingsGroup from "../../(partials)/settings-group";
+import type { EnvScope, EnvsMutationResult, PublicEnv } from "@/src/types";
+import SettingsGroup from "../settings-group";
+import SettingsList from "../settings-list";
+import SettingsStatus from "../settings-status";
 import EnvForm from "./env-form";
 import EnvRow from "./env-row";
 
@@ -15,46 +15,58 @@ type Props = {
      * The scope's own envs (app settings left out).
      */
     envs: PublicEnv[];
-    onChanged: (overview: EnvsOverviewPayload, msg: string) => void;
+    /**
+     * Set when the list is a bot's or workspace's own (its settings page)
+     * rather than the Environment page's overview.
+     */
+    scoped?: boolean;
+    /**
+     * The heading, when it isn't plain "Envs".
+     */
+    title?: string;
+    status?: {
+        error?: boolean;
+        success?: boolean;
+        msg?: string;
+    };
+    onChanged: (data: EnvsMutationResult, msg: string) => void;
     onError: (msg: string) => void;
 };
 
 const Descriptions: Record<EnvScope["paradigm"], string> = {
-    general: "Set on every computer. A workspace or computer can set the same key to override it.",
-    workspace: "Set on this workspace's computers when its bots use them. Beats general, loses to a computer's own.",
-    computer: "Set on this computer only. Beats workspace and general.",
+    general: "Set everywhere. A workspace, a bot or a computer can set the same key to override it.",
+    workspace: "For every bot working here. Beats general, loses to the bot's own.",
+    computer: "For this computer only. Beats a workspace, loses to the bot's own.",
+    bot: "For this bot only, everywhere it works. Beats the workspace, the computer and general.",
 };
 
 /**
  * The envs bots and computers use, in one scope, with an add form.
  */
-export default function EnvsGroup({ scope, envs, onChanged, onError }: Props) {
+export default function EnvsGroup({ scope, envs, scoped, title, status, onChanged, onError }: Props) {
     const [adding, setAdding] = useState(false);
 
     return (
-        <SettingsGroup title="Envs" description={Descriptions[scope.paradigm]}>
-            <Stack className="w-full gap-0! items-stretch">
+        <SettingsGroup title={title || "Envs"} description={Descriptions[scope.paradigm]}>
+            <SettingsList is_empty={!envs.length} empty="Nothing set here yet.">
                 {envs.map((env) => (
                     <EnvRow
                         key={env.id}
                         scope={scope}
                         env={env}
+                        scoped={scoped}
                         onChanged={onChanged}
                         onError={onError}
                     />
                 ))}
-                {envs.length ? null : (
-                    <Span className="text-[13px] leading-5 text-ink-secondary py-3">
-                        Nothing set here yet.
-                    </Span>
-                )}
-            </Stack>
+            </SettingsList>
+            <SettingsStatus status={status} />
             {adding ? (
                 <EnvForm
                     scope={scope}
-                    onSaved={(overview, msg) => {
+                    onSaved={(data, msg) => {
                         setAdding(false);
-                        onChanged(overview, msg);
+                        onChanged(data, msg);
                     }}
                     onCancel={() => setAdding(false)}
                 />

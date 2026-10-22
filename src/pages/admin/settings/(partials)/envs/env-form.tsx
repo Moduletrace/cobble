@@ -5,9 +5,9 @@ import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { EnvScope, EnvsOverviewPayload, KnownEnvStatus, PublicEnv } from "@/src/types";
-import SettingsStatus from "../../(partials)/settings-status";
-import postEnvApi from "../(functions)/post-env-api";
+import type { EnvScope, EnvsMutationResult, KnownEnvStatus, PublicEnv } from "@/src/types";
+import postEnvApi from "../../(functions)/post-env-api";
+import SettingsStatus from "../settings-status";
 
 type Props = {
     scope: EnvScope;
@@ -19,7 +19,7 @@ type Props = {
      * Sets this app setting: its key, description and flags are fixed.
      */
     known?: KnownEnvStatus;
-    onSaved: (overview: EnvsOverviewPayload, msg: string) => void;
+    onSaved: (data: EnvsMutationResult, msg: string) => void;
     onCancel: () => void;
 };
 
@@ -57,6 +57,8 @@ export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props)
                 paradigm: scope.paradigm,
                 workspace_id: scope.paradigm == "workspace" ? scope.id : null,
                 computer_id: scope.paradigm == "computer" ? scope.id : null,
+                bot_id: scope.paradigm == "bot" ? scope.id : null,
+                scoped: scope.paradigm == "bot" || scope.paradigm == "workspace",
                 secret,
                 expose_to_computers: expose,
             },

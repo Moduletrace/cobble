@@ -1,8 +1,8 @@
 import { HarnessProviderKinds } from "./harness-provider-dict";
 
 /**
- * Where an env applies. A computer's env beats a workspace's, which beats
- * a general one.
+ * Where an env applies. A bot's own env beats the computer it runs on,
+ * which beats the workspace it works in, which beats a general one.
  */
 export const EnvParadigms = [
     {
@@ -16,6 +16,10 @@ export const EnvParadigms = [
     {
         title: "Computer",
         value: "computer",
+    },
+    {
+        title: "Bot",
+        value: "bot",
     },
 ] as const;
 

@@ -52,7 +52,14 @@ export default function buildCustomTool({
             case "http":
                 return runHttpTool({ config: tool.config, args, envs, signal });
             case "script":
-                return runScriptTool({ config: tool.config, args, computer_id: computer_id!, workspace_id, signal });
+                return runScriptTool({
+                    config: tool.config,
+                    args,
+                    computer_id: computer_id!,
+                    bot_id,
+                    workspace_id,
+                    signal,
+                });
             case "prompt":
                 return runPromptTool({ config: tool.config, args, envs, bot_id, workspace_id, signal });
         }

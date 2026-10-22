@@ -132,7 +132,7 @@ export default async function runBotTask({
                 : []),
             ...(computers.length
                 ? [
-                      searchComputersTool({ computers, workspace_id }),
+                      searchComputersTool({ bot_id: bot.id, computers, workspace_id }),
                       askToTakeOverTool({
                           computers: take_over_computers,
                           in_task: true,

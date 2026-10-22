@@ -10,6 +10,7 @@ const env = (fields: Partial<DecryptedEnv> & { key: string; value: string }): De
     paradigm: "general",
     workspace_id: null,
     computer_id: null,
+    bot_id: null,
     secret: true,
     expose_to_computers: true,
     ...fields,
@@ -56,6 +57,20 @@ describe("resolveScopedEnvs", () => {
         expect(values(resolveScopedEnvs({ envs, computer_id: 7, workspace_ids: [2, 5] }))).toEqual({
             TOKEN: "first",
         });
+    });
+
+    test("the bot's own env beats everything", () => {
+        const envs = [
+            env({ key: "TOKEN", value: "general" }),
+            env({ key: "TOKEN", value: "workspace", paradigm: "workspace", workspace_id: 2 }),
+            env({ key: "TOKEN", value: "computer", paradigm: "computer", computer_id: 7 }),
+            env({ key: "TOKEN", value: "bot", paradigm: "bot", bot_id: 4 }),
+            env({ key: "OTHER_BOT", value: "no", paradigm: "bot", bot_id: 5 }),
+        ];
+
+        expect(
+            values(resolveScopedEnvs({ envs, bot_id: 4, computer_id: 7, workspace_ids: [2] })),
+        ).toEqual({ TOKEN: "bot" });
     });
 
     test("leaves out unexposed envs and app settings", () => {

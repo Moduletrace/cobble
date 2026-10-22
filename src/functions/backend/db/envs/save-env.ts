@@ -28,6 +28,7 @@ type Params = {
     paradigm: EnvParadigm;
     workspace_id?: number | null;
     computer_id?: number | null;
+    bot_id?: number | null;
     secret: boolean;
     expose_to_computers: boolean;
 };
@@ -47,6 +48,7 @@ export default async function saveEnv({
     paradigm,
     workspace_id,
     computer_id,
+    bot_id,
     secret,
     expose_to_computers,
 }: Params) {
@@ -66,14 +68,22 @@ export default async function saveEnv({
         throw new AppError(`${final_key} is an app setting, so it can only be set in General.`);
     }
 
-    const scope = await resolveScope({ user_id, paradigm, workspace_id, computer_id });
+    const scope = await resolveScope({ user_id, paradigm, workspace_id, computer_id, bot_id });
 
     const duplicate = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_ENVS>({
             sql: `SELECT id FROM envs WHERE key = ? AND paradigm = ?
                 AND COALESCE(workspace_id, 0) = ? AND COALESCE(computer_id, 0) = ?
+                AND COALESCE(bot_id, 0) = ?
                 AND id != ? LIMIT 1`,
-            values: [final_key, paradigm, scope.workspace_id ?? 0, scope.computer_id ?? 0, env_id ?? 0],
+            values: [
+                final_key,
+                paradigm,
+                scope.workspace_id ?? 0,
+                scope.computer_id ?? 0,
+                scope.bot_id ?? 0,
+                env_id ?? 0,
+            ],
         })
     ).payload?.[0];
 
@@ -87,6 +97,7 @@ export default async function saveEnv({
         paradigm,
         workspace_id: scope.workspace_id,
         computer_id: scope.computer_id,
+        bot_id: scope.bot_id,
         secret: (known ? known.secret : secret) ? 1 : 0,
         expose_to_computers: !known && expose_to_computers ? 1 : 0,
     };
@@ -140,18 +151,21 @@ async function resolveScope({
     paradigm,
     workspace_id,
     computer_id,
+    bot_id,
 }: {
     user_id: number;
     paradigm: EnvParadigm;
     workspace_id?: number | null;
     computer_id?: number | null;
+    bot_id?: number | null;
 }) {
     if (paradigm == "general") {
-        return { workspace_id: null, computer_id: null };
+        return { workspace_id: null, computer_id: null, bot_id: null };
     }
 
-    const table = paradigm == "workspace" ? "workspaces" : "computers";
-    const id = paradigm == "workspace" ? workspace_id : computer_id;
+    const table =
+        paradigm == "workspace" ? "workspaces" : paradigm == "bot" ? "bots" : "computers";
+    const id = paradigm == "workspace" ? workspace_id : paradigm == "bot" ? bot_id : computer_id;
 
     const owned = id
         ? (
@@ -167,6 +181,8 @@ async function resolveScope({
     }
 
     return paradigm == "workspace"
-        ? { workspace_id: Number(id), computer_id: null }
-        : { workspace_id: null, computer_id: Number(id) };
+        ? { workspace_id: Number(id), computer_id: null, bot_id: null }
+        : paradigm == "bot"
+          ? { workspace_id: null, computer_id: null, bot_id: Number(id) }
+          : { workspace_id: null, computer_id: Number(id), bot_id: null };
 }

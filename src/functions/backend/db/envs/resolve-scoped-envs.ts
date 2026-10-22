@@ -3,22 +3,28 @@ import type { DecryptedEnv } from "./grab-all-envs";
 
 type Params = {
     envs: DecryptedEnv[];
-    computer_id: number;
+    /**
+     * The bot the run is for: its own envs beat everything else.
+     */
+    bot_id?: number | string | null;
+    computer_id?: number | string | null;
     /**
      * The workspaces whose envs apply, in order of precedence (first wins).
      */
-    workspace_ids: number[];
+    workspace_ids?: (number | string)[];
 };
 
 /**
- * The envs that reach one computer, one per key: its own beat its
- * workspaces' (the first listed workspace wins a tie), which beat general
- * ones. Only envs exposed to computers; app settings never are.
+ * The envs that reach one run, one per key: the bot's own beat the
+ * computer's, which beat its workspaces' (the first listed workspace wins
+ * a tie), which beat general ones. Only envs exposed to computers; app
+ * settings never are.
  */
 export default function resolveScopedEnvs({
     envs,
+    bot_id,
     computer_id,
-    workspace_ids,
+    workspace_ids = [],
 }: Params): DecryptedEnv[] {
     const app_keys = new Set(EnvDict.map((env) => env.key));
     const exposed = envs.filter(
@@ -29,9 +35,18 @@ export default function resolveScopedEnvs({
     const layers = [
         exposed.filter((env) => env.paradigm == "general"),
         ...[...workspace_ids].reverse().map((id) =>
-            exposed.filter((env) => env.paradigm == "workspace" && env.workspace_id == id),
+            exposed.filter(
+                (env) => env.paradigm == "workspace" && env.workspace_id == Number(id),
+            ),
         ),
-        exposed.filter((env) => env.paradigm == "computer" && env.computer_id == computer_id),
+        computer_id
+            ? exposed.filter(
+                  (env) => env.paradigm == "computer" && env.computer_id == Number(computer_id),
+              )
+            : [],
+        bot_id
+            ? exposed.filter((env) => env.paradigm == "bot" && env.bot_id == Number(bot_id))
+            : [],
     ];
 
     for (const layer of layers) {

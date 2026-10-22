@@ -1,12 +1,12 @@
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { EnvScope, EnvsOverviewPayload, PublicEnv } from "@/src/types";
+import type { EnvScope, EnvsMutationResult, EnvsOverviewPayload, PublicEnv } from "@/src/types";
+import EnvRow from "../../(partials)/envs/env-row";
 import SettingsGroup from "../../(partials)/settings-group";
-import EnvRow from "./env-row";
 
 type Props = {
     scope: EnvScope;
     overview: EnvsOverviewPayload;
-    onChanged: (overview: EnvsOverviewPayload, msg: string) => void;
+    onChanged: (data: EnvsMutationResult, msg: string) => void;
     onError: (msg: string) => void;
 };
 

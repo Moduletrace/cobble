@@ -2467,7 +2467,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "paradigm",
-                    fieldDescription: `Where it applies: general, a workspace, or a computer. Computer beats workspace beats general`,
+                    fieldDescription: `Where it applies: general, a workspace, a computer, or a single bot. A bot's own beats the computer, which beats the workspace, which beats general`,
                     dataType: "TEXT",
                     options: EnvParadigms.map((p) => p.value),
                     defaultValue: "general",
@@ -2494,6 +2494,18 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
                         foreignKeyName: "envs_computer_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot, for paradigm bot. Goes with the bot`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "envs_bot_fk",
                     },
                 },
                 {

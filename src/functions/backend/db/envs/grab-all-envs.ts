@@ -11,6 +11,7 @@ export type DecryptedEnv = {
     paradigm: EnvParadigm;
     workspace_id: number | null;
     computer_id: number | null;
+    bot_id: number | null;
     secret: boolean;
     expose_to_computers: boolean;
 };
@@ -52,6 +53,7 @@ async function load() {
             paradigm: (row.paradigm || "general") as EnvParadigm,
             workspace_id: typeof row.workspace_id == "number" ? row.workspace_id : null,
             computer_id: typeof row.computer_id == "number" ? row.computer_id : null,
+            bot_id: typeof row.bot_id == "number" ? row.bot_id : null,
             secret: row.secret != 0,
             expose_to_computers: row.expose_to_computers != 0,
         })),

@@ -3,6 +3,7 @@ import { AppContext } from "@/src/pages/__root";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import type { BotWithLastMessage } from "@/src/types";
 import BotHarnessForm from "../../../(partials)/bot-harness-form";
+import ScopedEnvsGroup from "../../../(partials)/envs/scoped-envs-group";
 import ExtensionsGroup from "../../../(partials)/extensions-group";
 import SettingsSectionHeading from "../../../(partials)/settings-section-heading";
 import SettingsShell from "../../../(partials)/settings-shell";
@@ -77,6 +78,7 @@ export default function BotSettingsSection() {
                 description="What it can use besides its own tools, everywhere it works. A workspace's own come on top while it works there."
                 initial={pageProps?.bot_extensions}
             />
+            <ScopedEnvsGroup initial={pageProps?.bot_envs} />
             {is_coordinator ? null : <BotDeleteGroup bot={bot} />}
         </SettingsShell>
     );

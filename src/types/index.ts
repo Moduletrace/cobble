@@ -459,6 +459,7 @@ export type PublicEnv = {
     paradigm: EnvParadigm;
     workspace_id: number | null;
     computer_id: number | null;
+    bot_id: number | null;
     secret: boolean;
     expose_to_computers: boolean;
     value?: string;
@@ -469,13 +470,32 @@ export type PublicEnv = {
 };
 
 /**
- * Somewhere envs can be set: general, or one of the user's workspaces or
- * computers.
+ * Somewhere envs can be set: general, or one of the user's workspaces,
+ * computers or bots.
  */
 export type EnvScope = {
     paradigm: EnvParadigm;
     id: number | null;
     title: string;
+};
+
+/**
+ * One scope's envs, as a bot's or workspace's settings page sees them: the
+ * envs set there, and whether the viewer may change them.
+ */
+export type ScopedEnvsPayload = {
+    scope: EnvScope;
+    envs: PublicEnv[];
+    can_manage: boolean;
+};
+
+/**
+ * What saving or removing an env answers with: the Environment page's whole
+ * overview, or the one bot's or workspace's envs the settings pages show.
+ */
+export type EnvsMutationResult = {
+    overview?: EnvsOverviewPayload;
+    scoped?: ScopedEnvsPayload | null;
 };
 
 /**
@@ -982,6 +1002,12 @@ export type PagePropsType = {
      */
     bot_text_model?: BotTextModel | null;
     workspace_extensions?: BotExtensionsPayload | null;
+    /**
+     * The bot's own envs, or a workspace's (its settings page). Only a
+     * super admin gets them: envs are theirs to set.
+     */
+    bot_envs?: ScopedEnvsPayload | null;
+    workspace_envs?: ScopedEnvsPayload | null;
     envs?: {
         GOOGLE_CLIENT_ID?: string;
         R2_PUBLIC_DOMAIN?: string;

@@ -63,7 +63,7 @@ export default async function openComputerTools({
         throw new Error(computerNotReadyMessage(target));
     }
 
-    const envs = await grabComputerEnvs({ computer_id, workspace_id });
+    const envs = await grabComputerEnvs({ computer_id, bot_id, workspace_id });
     const paths = await writeComputerEnv({ base_url: target.base_url, envs, signal });
     const secrets = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });

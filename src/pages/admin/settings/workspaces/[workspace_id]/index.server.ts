@@ -2,6 +2,9 @@ import type { PagePropsType, PageQueryObject } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
+import grabScopedEnvs from "@/src/functions/backend/db/envs/grab-scoped-envs";
+import userAuth from "@/src/functions/backend/auth/user-auth";
+import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import grabWorkspaceExtensionsOverview from "@/src/functions/backend/db/extensions/grab-workspace-extensions-overview";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
@@ -45,6 +48,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         computers,
         workspace_harness_overview,
         workspace_extensions,
+        workspace_envs,
     ] = await Promise.all([
         grabWorkspaceBots({ user_id, workspace_id }),
         grabBots({ user_id }),
@@ -52,6 +56,14 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         grabUserComputers({ user_id }),
         grabBotHarnessOverview({ workspace_id }).catch(() => null),
         grabWorkspaceExtensionsOverview({ user_id, workspace_id }),
+        grabScopedEnvs({
+            paradigm: "workspace",
+            owner_id: workspace_id,
+            user_id,
+            can_manage: isPassThroughUser({
+                user_types: (await userAuth({ req: params.req })).user_types,
+            }),
+        }),
     ]);
 
     const crew = railBots({ bots: workspace_bots });
@@ -68,6 +80,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             computers,
             workspace_harness_overview,
             workspace_extensions,
+            workspace_envs,
         },
     };
 };

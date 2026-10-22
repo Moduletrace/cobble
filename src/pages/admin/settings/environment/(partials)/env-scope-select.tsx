@@ -12,14 +12,14 @@ type Props = {
 };
 
 /**
- * Where the envs below apply: general, a workspace or a computer. Also
- * shows the last change's status.
+ * Where the envs below apply: general, a workspace, a bot or a computer.
+ * Also shows the last change's status.
  */
 export default function EnvScopeSelect({ scopes, value, onChange, status }: Props) {
     return (
         <SettingsGroup
             title="Where"
-            description="A computer's own envs beat its workspace's, which beat general ones."
+            description="A bot's own envs beat everything. Then the computer's own, then the workspace's, then general."
         >
             <Select
                 id="env-scope"

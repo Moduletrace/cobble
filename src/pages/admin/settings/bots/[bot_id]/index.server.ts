@@ -4,6 +4,9 @@ import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabUserBot from "@/src/functions/backend/db/bots/grab-user-bot";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
+import grabScopedEnvs from "@/src/functions/backend/db/envs/grab-scoped-envs";
+import userAuth from "@/src/functions/backend/auth/user-auth";
+import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import grabBotExtensionsOverview from "@/src/functions/backend/db/extensions/grab-bot-extensions-overview";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness-overview";
@@ -40,6 +43,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         bot_computer_rows,
         bot_harness_overview,
         bot_extensions,
+        bot_envs,
     ] = await Promise.all([
         grabBots({ user_id }),
         grabUserWorkspaces({ user_id }),
@@ -51,6 +55,14 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             : grabBotHarnessOverview({ bot_id: bot.id })
         ).catch(() => null),
         grabBotExtensionsOverview({ user_id, bot_id: bot.id }),
+        grabScopedEnvs({
+            paradigm: "bot",
+            owner_id: bot.id,
+            user_id,
+            can_manage: isPassThroughUser({
+                user_types: (await userAuth({ req: params.req })).user_types,
+            }),
+        }),
     ]);
 
     const bot_computers = bot_computer_rows
@@ -72,6 +84,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             computers: all_computers,
             bot_harness_overview,
             bot_extensions,
+            bot_envs,
         },
     };
 };

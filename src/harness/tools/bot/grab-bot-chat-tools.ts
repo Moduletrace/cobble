@@ -91,7 +91,7 @@ export default async function grabBotChatTools({
         }),
         ...(computers.length
             ? [
-                  searchComputersTool({ computers, workspace_id }),
+                  searchComputersTool({ bot_id, computers, workspace_id }),
                   askToTakeOverTool({ computers, onAsk: (params) => onTakeOver?.(params) }),
               ]
             : []),

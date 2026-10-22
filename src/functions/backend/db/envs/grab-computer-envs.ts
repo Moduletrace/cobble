@@ -5,6 +5,10 @@ import resolveScopedEnvs from "./resolve-scoped-envs";
 type Params = {
     computer_id: number | string;
     /**
+     * The bot the run is for: its own envs beat everything else.
+     */
+    bot_id?: number | string | null;
+    /**
      * The workspace the run is in. Its envs apply when the computer is
      * linked to it (and it isn't archived); outside a workspace only the
      * computer's own and general envs do.
@@ -15,7 +19,7 @@ type Params = {
 /**
  * The envs a run on this computer gets (`resolveScopedEnvs`).
  */
-export default async function grabComputerEnvs({ computer_id, workspace_id }: Params) {
+export default async function grabComputerEnvs({ computer_id, bot_id, workspace_id }: Params) {
     const linked = workspace_id
         ? (
               await BunSQLite.sql<{ id: number }>({
@@ -29,6 +33,7 @@ export default async function grabComputerEnvs({ computer_id, workspace_id }: Pa
 
     return resolveScopedEnvs({
         envs: await grabAllEnvs(),
+        bot_id,
         computer_id: Number(computer_id),
         workspace_ids: linked?.id ? [Number(linked.id)] : [],
     });

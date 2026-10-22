@@ -1,14 +1,14 @@
 import { useContext, useState } from "react";
 import { AppContext } from "@/src/pages/__root";
-import type { EnvsOverviewPayload } from "@/src/types";
+import type { EnvsMutationResult, EnvsOverviewPayload } from "@/src/types";
+import EnvsGroup from "../../(partials)/envs/envs-group";
 import EnvScopeSelect from "../(partials)/env-scope-select";
-import EnvsGroup from "../(partials)/envs-group";
 import KnownEnvsGroup from "../(partials)/known-envs-group";
 import scopeValue, { envInScope } from "../(utils)/scope-value";
 
 /**
- * Pick where (general, a workspace, a computer), then that scope's envs.
- * General also lists the app settings. Every change saves at once and
+ * Pick where (general, a workspace, a bot or a computer), then that scope's
+ * envs. General also lists the app settings. Every change saves at once and
  * refreshes the page data.
  */
 export default function EnvironmentSettingsSection() {
@@ -26,8 +26,8 @@ export default function EnvironmentSettingsSection() {
     const scope =
         overview.scopes.find((s) => scopeValue({ scope: s }) == selected) || overview.scopes[0]!;
 
-    const changed = (next: EnvsOverviewPayload, msg: string) => {
-        setOverview(next);
+    const changed = (result: EnvsMutationResult, msg: string) => {
+        if (result.overview) setOverview(result.overview);
         setStatus({ success: true, msg });
         setVersion((prev) => prev + 1);
     };

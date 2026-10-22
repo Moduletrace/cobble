@@ -13,6 +13,10 @@ type Params = {
     args: Record<string, unknown>;
     computer_id: number | string;
     /**
+     * The bot the run is for: its own envs beat everything.
+     */
+    bot_id?: number | string | null;
+    /**
      * The workspace the run is in: its envs apply on the computer.
      */
     workspace_id?: number | string | null;
@@ -26,13 +30,20 @@ type Params = {
  * so nothing in them needs quoting. Returns what it printed (stdout and
  * stderr), secrets redacted; a non-zero exit throws with it.
  */
-export default async function runScriptTool({ config, args, computer_id, workspace_id, signal }: Params) {
+export default async function runScriptTool({
+    config,
+    args,
+    computer_id,
+    bot_id,
+    workspace_id,
+    signal,
+}: Params) {
     const target = await grabComputerMcpUrl({ computer_id });
 
     if (!target) throw new Error(`Computer #${computer_id} has no container to run on.`);
     if (!target.ready) throw new Error(computerNotReadyMessage(target));
 
-    const envs = await grabComputerEnvs({ computer_id, workspace_id });
+    const envs = await grabComputerEnvs({ computer_id, bot_id, workspace_id });
     const { shell_path } = await writeComputerEnv({ base_url: target.base_url, envs, signal });
     const language =
         CustomToolScriptLanguages.find((l) => l.value == config.language) || CustomToolScriptLanguages[0];

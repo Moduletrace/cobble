@@ -11,6 +11,10 @@ import runComputerCommand from "./run-computer-command";
 
 type Params = {
     /**
+     * The bot the run is for: its own envs beat everything.
+     */
+    bot_id?: number | string | null;
+    /**
      * The workspace the run is in: its envs apply.
      */
     workspace_id?: number | string | null;
@@ -31,6 +35,7 @@ type Args = {
  * so the bot can tell the user exactly which computer holds what.
  */
 export default function searchComputersTool({
+    bot_id,
     workspace_id,
     computers,
 }: Params): HarnessTool<Args> {
@@ -59,7 +64,11 @@ export default function searchComputersTool({
                                 timeout_ms: AppData.ComputerSearchTimeoutMs,
                                 signal,
                             }),
-                            grabComputerEnvs({ computer_id: computer.id || 0, workspace_id }),
+                            grabComputerEnvs({
+                                computer_id: computer.id || 0,
+                                bot_id,
+                                workspace_id,
+                            }),
                         ]);
 
                         const output = redactSecrets({
