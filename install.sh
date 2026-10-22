@@ -17,6 +17,10 @@ CONTAINER="cobble"
 NETWORK="cobble"
 DEFAULT_PORT="7227"
 DEFAULT_BIND="0.0.0.0"
+# The app container's own limits (the computers' sandboxes are limited
+# separately, per computer).
+DEFAULT_CPUS="1"
+DEFAULT_MEMORY_MB="2048"
 DEFAULT_IMAGE="ghcr.io/moduletrace/cobble"
 DEFAULT_VERSION="latest"
 INSTALL_URL="https://url.moduletrace.com/cobble"
@@ -69,6 +73,8 @@ Options:
   --data-dir DIR         Data directory, mounted at /data (default HOME/data)
   --port PORT            Host port (default 7227)
   --bind ADDRESS         Host address to publish on (default 0.0.0.0)
+  --cpus N               CPU cores the app container may use (default 1)
+  --memory MB            Memory the app container may use (default 2048)
   --image IMAGE          Container image (default $DEFAULT_IMAGE)
   --version TAG          Image tag (default latest)
   --no-pull              Use the image already on this machine
@@ -144,6 +150,8 @@ fi
 DATA_DIR="${COBBLE_DATA_DIR:-}"
 PORT="${COBBLE_PORT:-}"
 BIND="${COBBLE_BIND:-}"
+CPUS="${COBBLE_CPUS:-}"
+MEMORY_MB="${COBBLE_MEMORY_MB:-}"
 IMAGE="${COBBLE_IMAGE:-}"
 VERSION="${COBBLE_VERSION:-}"
 EXTRA_NETWORK="${COBBLE_EXTRA_NETWORK:-}"
@@ -170,6 +178,8 @@ fi
 DATA_DIR="${DATA_DIR:-$HOME_DIR/data}"
 PORT="${PORT:-$DEFAULT_PORT}"
 BIND="${BIND:-$DEFAULT_BIND}"
+CPUS="${CPUS:-$DEFAULT_CPUS}"
+MEMORY_MB="${MEMORY_MB:-$DEFAULT_MEMORY_MB}"
 IMAGE="${IMAGE:-$DEFAULT_IMAGE}"
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
@@ -189,6 +199,14 @@ while [ $# -gt 0 ]; do
             ;;
         --bind)
             BIND="${2:-}"
+            shift 2
+            ;;
+        --cpus)
+            CPUS="${2:-}"
+            shift 2
+            ;;
+        --memory)
+            MEMORY_MB="${2:-}"
             shift 2
             ;;
         --image)
@@ -256,6 +274,8 @@ done
 [ -n "$DATA_DIR" ] || fail "--data-dir needs a value"
 [ -n "$PORT" ] || fail "--port needs a value"
 [ -n "$BIND" ] || fail "--bind needs a value"
+[ -n "$CPUS" ] || fail "--cpus needs a value"
+[ -n "$MEMORY_MB" ] || fail "--memory needs a value"
 [ -n "$IMAGE" ] || fail "--image needs a value"
 [ -n "$VERSION" ] || fail "--version needs a value"
 
@@ -276,6 +296,14 @@ esac
 case "$BIND" in
     '' | *[!0-9a-fA-F:.]*) fail "--bind must be an IP address" ;;
 esac
+case "$CPUS" in
+    '' | *[!0-9.]*) fail "--cpus must be a number" ;;
+esac
+[ "$(awk -v value="$CPUS" 'BEGIN { print (value > 0) ? 1 : 0 }')" = 1 ] || fail "--cpus must be greater than 0"
+case "$MEMORY_MB" in
+    '' | *[!0-9]*) fail "--memory must be a number of megabytes" ;;
+esac
+[ "$MEMORY_MB" -ge 512 ] || fail "--memory must be at least 512"
 case "$IMAGE" in
     '' | *[!A-Za-z0-9._/-]*) fail "--image may only contain letters, numbers, dot, dash, underscore and slash" ;;
 esac
@@ -428,6 +456,8 @@ container_matches() {
     [ "$(docker inspect -f '{{with index .HostConfig.PortBindings "'"$PORT"'/tcp"}}{{range .}}{{.HostIp}}:{{.HostPort}}{{end}}{{end}}' "$CONTAINER")" = "$BIND:$PORT" ] || return 1
     [ "$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$CONTAINER")" = "unless-stopped" ] || return 1
     [ "$(docker inspect -f '{{.HostConfig.Init}}' "$CONTAINER")" = "true" ] || return 1
+    [ "$(docker inspect -f '{{.HostConfig.NanoCpus}}' "$CONTAINER")" = "$(awk -v cpus="$CPUS" 'BEGIN { printf "%d", cpus * 1000000000 }')" ] || return 1
+    [ "$(docker inspect -f '{{.HostConfig.Memory}}' "$CONTAINER")" = "$((MEMORY_MB * 1024 * 1024))" ] || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "MAIN_SERVER=1" || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "PORT=$PORT" || return 1
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | grep -qx "BACKUP_ARCHIVE_DIR=/backups-archives" || return 1
@@ -584,6 +614,8 @@ run_container() {
         --init \
         --network "$NETWORK" \
         -p "$BIND:$PORT:$PORT" \
+        --cpus "$CPUS" \
+        --memory "${MEMORY_MB}m" \
         "${mounts[@]}" \
         "${envs[@]}" \
         --log-driver json-file \
@@ -719,6 +751,8 @@ unset_env HTTP_REDIRECT_PORT
     printf 'COBBLE_BACKUP_ARCHIVE_DIR=%q\n' "$BACKUP_ARCHIVE_DIR_HOST"
     printf 'COBBLE_PORT=%q\n' "$PORT"
     printf 'COBBLE_BIND=%q\n' "$BIND"
+    printf 'COBBLE_CPUS=%q\n' "$CPUS"
+    printf 'COBBLE_MEMORY_MB=%q\n' "$MEMORY_MB"
     printf 'COBBLE_IMAGE=%q\n' "$IMAGE"
     printf 'COBBLE_VERSION=%q\n' "$VERSION"
     printf 'COBBLE_EXTRA_NETWORK=%q\n' "$EXTRA_NETWORK"

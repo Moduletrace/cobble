@@ -104,6 +104,10 @@ The installer binds to `0.0.0.0` so the app is reachable from your phone on
 the same network. Use `--bind 127.0.0.1` when a reverse proxy is the only
 thing that should reach it.
 
+The app container itself is limited to 1 CPU and 2 GB of memory, since the
+heavy work happens in the computers' own containers. Change that with
+`--cpus` and `--memory`; each computer keeps its own limits.
+
 ## HTTPS
 
 Cobble serves plain HTTP. Terminate TLS in front of it with a reverse proxy
@@ -147,6 +151,8 @@ curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall --pu
 | `--data-dir DIR`      | Data directory mounted at `/data`, default `HOME/data`     |
 | `--port PORT`         | Host port, default `7227`                                  |
 | `--bind ADDRESS`      | Host address to publish on, default `0.0.0.0`              |
+| `--cpus N`            | CPU cores for the app container, default `1`               |
+| `--memory MB`         | Memory for the app container in MB, default `2048`         |
 | `--image IMAGE`       | Container image, default `ghcr.io/moduletrace/cobble`      |
 | `--version TAG`       | Image tag, default `latest`                                |
 | `--extra-network NET` | Join another Docker network, for a tunnel or reverse proxy |

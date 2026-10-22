@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_ENVS } from "@/db/types/db";
 import type { EnvParadigm } from "@/src/dict/env-dict";
 import { decrypt } from "@/src/utils/crypt";
+import globalCache from "@/src/utils/global-cache";
 
 export type DecryptedEnv = {
     id: number;
@@ -16,7 +17,16 @@ export type DecryptedEnv = {
     expose_to_computers: boolean;
 };
 
-let cache: Promise<DecryptedEnv[]> | undefined;
+/**
+ * The cache lives on `globalThis`, behind a registered symbol, rather than
+ * in a module variable: the page and API bundles each carry their own copy
+ * of this module, so a module-scoped cache would let `save-env` clear its
+ * own copy while the page kept serving a stale one until the next restart
+ * (a saved API key never reached the models shown in the app).
+ */
+const cache = globalCache<Promise<DecryptedEnv[]>>({
+    name: "cobble.grabAllEnvs.cache",
+});
 
 /**
  * Every env, decrypted, cached in this process until `clearEnvCache` (every
@@ -24,16 +34,22 @@ let cache: Promise<DecryptedEnv[]> | undefined;
  * encryption key changed) reads as empty.
  */
 export default function grabAllEnvs(): Promise<DecryptedEnv[]> {
-    cache ||= load().catch((error) => {
-        cache = undefined;
+    const cached = cache.get();
+
+    if (cached) return cached;
+
+    const loading = load().catch((error: unknown) => {
+        cache.clear();
         throw error;
     });
 
-    return cache;
+    cache.set(loading);
+
+    return loading;
 }
 
 export function clearEnvCache() {
-    cache = undefined;
+    cache.clear();
 }
 
 async function load() {
