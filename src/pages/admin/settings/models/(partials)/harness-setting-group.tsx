@@ -93,6 +93,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
             {shows_params && params_model ? (
                 <HarnessParameterModal
                     id={id}
+                    harness={harness.harness}
                     model={params_model}
                     params={value.params}
                     onChange={(params) => onChange({ ...value, params })}

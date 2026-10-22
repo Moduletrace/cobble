@@ -1,5 +1,7 @@
 import {
     HarnessParameters,
+    harnessParameterValue,
+    modelAdvertisesParameter,
     modelTakesParameter,
 } from "@/src/dict/harness-parameter-dict";
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
@@ -13,10 +15,10 @@ type Params = {
 
 /**
  * A model's generation settings for one call: what is saved in the
- * harness's setting (the workspace's, the bot's, else the default),
- * keyed by the field sent on the wire, keeping only what the model says it
- * takes. Empty when none are set, so the model gets its provider's
- * defaults.
+ * harness's setting (the workspace's, the bot's, else the default), else
+ * `HarnessParameterDefaults` so a fresh install is ready to go. Keyed by
+ * the field sent on the wire, keeping only what the model says it takes
+ * (a default only where the model explicitly advertises it).
  */
 export default async function grabChatParams({
     harness,
@@ -34,12 +36,24 @@ export default async function grabChatParams({
     return (model) =>
         Object.fromEntries(
             HarnessParameters.flatMap((parameter) => {
-                const value = setting.options[parameter.key];
+                const { value, saved } = harnessParameterValue({
+                    harness,
+                    params: setting.options,
+                    key: parameter.key,
+                });
 
                 if (typeof value != "number" && typeof value != "string") return [];
                 if (!value && value !== 0) return [];
                 if (
                     !modelTakesParameter({
+                        parameter,
+                        supported: model.supported_parameters,
+                    })
+                )
+                    return [];
+                if (
+                    !saved &&
+                    !modelAdvertisesParameter({
                         parameter,
                         supported: model.supported_parameters,
                     })

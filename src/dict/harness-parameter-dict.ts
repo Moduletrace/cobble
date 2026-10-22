@@ -119,6 +119,76 @@ export const HarnessParameterHarnesses = ["text", "vision"] as const;
 export const HarnessParameterKeys = HarnessParameters.map((parameter) => parameter.key);
 
 /**
+ * What each chat harness uses when nobody set anything, so a fresh install
+ * is ready to go: bots are literal and repeatable (`Cobble`'s job is doing
+ * the work it was asked for, not improvising), while media reading is a
+ * lookup, so it stays at 0.
+ */
+export const HarnessParameterDefaults: Partial<
+    Record<
+        (typeof HarnessParameterHarnesses)[number],
+        Partial<Record<HarnessParameterKey, HarnessParameterValue>>
+    >
+> = {
+    text: { temperature: 0.3 },
+    vision: { temperature: 0 },
+};
+
+/**
+ * One setting's value when the harness's own has none.
+ */
+export function harnessParameterDefault({
+    harness,
+    key,
+}: {
+    harness: (typeof HarnessParameterHarnesses)[number];
+    key: HarnessParameterKey;
+}) {
+    return HarnessParameterDefaults[harness]?.[key];
+}
+
+/**
+ * A setting's value for a harness: what it was saved as, else the app's
+ * default. `saved` says which, since a default is only used on a model
+ * that says it takes the field (a saved one is sent to any model whose
+ * catalog doesn't rule it out).
+ */
+export function harnessParameterValue({
+    harness,
+    params,
+    key,
+}: {
+    harness: (typeof HarnessParameterHarnesses)[number];
+    params?: Record<string, unknown>;
+    key: HarnessParameterKey;
+}): { value?: HarnessParameterValue; saved: boolean } {
+    const saved = params?.[key];
+
+    if (typeof saved == "number" || (typeof saved == "string" && saved)) {
+        return { value: saved, saved: true };
+    }
+
+    return { value: harnessParameterDefault({ harness, key }), saved: false };
+}
+
+/**
+ * Whether a model's provider says it takes a setting (no guessing).
+ */
+export function modelAdvertisesParameter({
+    parameter,
+    supported,
+}: {
+    parameter: HarnessParameter;
+    supported?: string[];
+}) {
+    return Boolean(
+        supported?.includes(
+            "advertised" in parameter ? parameter.advertised : parameter.key,
+        ),
+    );
+}
+
+/**
  * The generation settings a saved `options` object holds.
  */
 export function harnessParametersFromOptions({

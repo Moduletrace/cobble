@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+    harnessParameterDefault,
     HarnessParameters,
     harnessParametersFromOptions,
     modelTakesParameter,
@@ -38,6 +39,12 @@ describe("harness parameters", () => {
                 supported: ["tools", "top_p"],
             }),
         ).toBe(false);
+    });
+
+    test("ships a literal text default and a lookup vision default", () => {
+        expect(harnessParameterDefault({ harness: "text", key: "temperature" })).toBe(0.3);
+        expect(harnessParameterDefault({ harness: "vision", key: "temperature" })).toBe(0);
+        expect(harnessParameterDefault({ harness: "text", key: "seed" })).toBeUndefined();
     });
 
     test("a model that lists no parameters takes them all", () => {

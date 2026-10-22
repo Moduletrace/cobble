@@ -3,12 +3,23 @@ import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { HarnessParameters } from "@/src/dict/harness-parameter-dict";
+import {
+    HarnessParameterHarnesses,
+    harnessParameterValue,
+    HarnessParameterKeys,
+    HarnessParameters,
+    type HarnessParameterKey,
+} from "@/src/dict/harness-parameter-dict";
+import type { HarnessKind } from "@/src/dict/harness-dict";
 import type { HarnessModelOption } from "@/src/types";
 import HarnessParameterFields from "./harness-parameter-fields";
 
 type Props = {
     id: string;
+    /**
+     * The harness the settings are for: its default fills an empty one.
+     */
+    harness: HarnessKind;
     /**
      * The model the settings are for: only what it takes is offered.
      */
@@ -24,13 +35,27 @@ type Props = {
  */
 export default function HarnessParameterModal({
     id,
+    harness,
     model,
     params,
     onChange,
 }: Props) {
     const [open, setOpen] = useState(false);
+    /**
+     * Nothing saved yet: every value shown is the app's default for it.
+     */
+    const using_defaults = !Object.entries(params || {}).some(
+        ([key, value]) =>
+            value !== undefined &&
+            value !== "" &&
+            HarnessParameterKeys.includes(key as HarnessParameterKey),
+    );
     const set = HarnessParameters.flatMap((parameter) => {
-        const value = params?.[parameter.key];
+        const { value } = harnessParameterValue({
+            harness: harness as (typeof HarnessParameterHarnesses)[number],
+            params,
+            key: parameter.key,
+        });
 
         if (value === undefined || value === "") return [];
 
@@ -52,7 +77,7 @@ export default function HarnessParameterModal({
                     </Span>
                     <Span className="text-xs leading-4 text-ink-secondary">
                         {set.length
-                            ? set.join(" · ")
+                            ? `${using_defaults ? "Default: " : ""}${set.join(" · ")}`
                             : "Temperature, reasoning effort, sampling limits"}
                     </Span>
                 </Stack>
@@ -70,14 +95,16 @@ export default function HarnessParameterModal({
                     {model.name} settings
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    How this model answers. Empty leaves the provider's own
-                    default; a lower temperature keeps a bot literal and
-                    repeatable.
+                    How this model answers. The filled-in values are what it
+                    runs on now (the app's default for this harness, else the
+                    provider's own); a lower temperature keeps a bot literal
+                    and repeatable.
                 </Span>
             </Stack>
             <Stack className="w-full gap-4! items-stretch">
                 <HarnessParameterFields
                     id={id}
+                    harness={harness}
                     model={model}
                     params={params}
                     onChange={onChange}
