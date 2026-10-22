@@ -13,9 +13,6 @@ describe("AppData auth constants", () => {
         expect(AppData["LastVisitedBotCookieName"]).toBe(
             `${SiteData["SiteSlug"]}_last_visited_bot_id`,
         );
-        expect(AppData["LastVisitedWorkspaceCookieName"]).toBe(
-            `${SiteData["SiteSlug"]}_last_visited_workspace_id`,
-        );
     });
 
     test("expiry and limits are positive", () => {

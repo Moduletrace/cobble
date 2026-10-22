@@ -1,36 +1,23 @@
 export type LastVisitedBot = {
     bot_id: number;
-    /**
-     * Null: the bot's own chat.
-     */
-    workspace_id: number | null;
 };
 
 type Params = {
     bot_id?: string | number | null;
-    workspace_id?: string | number | null;
 };
 
 /**
- * The conversation the last-visited cookies name, or null when they don't
- * name one. Ids are checked to be positive whole numbers, so a hand-edited
- * cookie never reaches a query; whether the user still reaches that
- * conversation is the caller's check.
+ * The bot the last-visited cookie names, or null when it doesn't name one.
+ * The id is checked to be a positive whole number, so a hand-edited cookie
+ * never reaches a query; whether the user still reaches that bot's own chat
+ * is the caller's check.
  */
-export default function parseLastVisitedBot({ bot_id, workspace_id }: Params): LastVisitedBot | null {
+export default function parseLastVisitedBot({ bot_id }: Params): LastVisitedBot | null {
     const bot = parseId(bot_id);
 
     if (bot == null) return null;
 
-    if (workspace_id === undefined || workspace_id === null || workspace_id === "") {
-        return { bot_id: bot, workspace_id: null };
-    }
-
-    const workspace = parseId(workspace_id);
-
-    if (workspace == null) return null;
-
-    return { bot_id: bot, workspace_id: workspace };
+    return { bot_id: bot };
 }
 
 function parseId(value?: string | number | null): number | null {

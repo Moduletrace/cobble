@@ -12,8 +12,8 @@ import railWorkspaces from "@/src/utils/rail-workspaces";
 import readLastVisitedBot from "@/src/utils/read-last-visited-bot";
 
 /**
- * Opens the conversation this browser was last in, from the last-visited
- * cookies the conversation pages set, while the user still reaches it.
+ * Opens the bot's own chat this browser was last in, from the last-visited
+ * cookie the conversation pages set, while the user still reaches it.
  * Otherwise the super admin lands on the coordinator, which (with the main
  * computer) is created first if the install has none; anyone else lands on
  * the latest bot they chat with, else their first workspace; with neither,
@@ -62,7 +62,7 @@ export const server: BunextPageServerFn<PagePropsType> = async ({ req }) => {
 };
 
 /**
- * The path of the conversation this browser was last in, if the user still
+ * The path of the bot's own chat this browser was last in, if the user still
  * reaches it (`grabReachableConversation`, the conversation pages' own
  * access check). Null sends the page on to its usual fallback.
  */
@@ -74,12 +74,9 @@ async function grabLastVisited({ user_id, req }: { user_id: number | string; req
     const conversation = await grabReachableConversation({
         user_id,
         bot_id: visited.bot_id,
-        workspace_id: visited.workspace_id,
     });
 
     if (!conversation) return null;
 
-    return conversation.workspace_id
-        ? `/admin/workspaces/${conversation.workspace_id}/bots/${conversation.bot_id}`
-        : `/admin/bots/${conversation.bot_id}`;
+    return `/admin/bots/${conversation.bot_id}`;
 }

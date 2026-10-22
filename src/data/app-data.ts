@@ -55,14 +55,12 @@ export const AppData = {
     BuildCookieName: `${SiteData["SiteSlug"]}_build`,
     BuildCookieMaxAgeSeconds: 365 * 24 * 60 * 60,
     /**
-     * The conversation this browser was last in: `/admin/bots` opens it
+     * The bot this browser was last in: `/admin/bots` opens its own chat
      * again, falling back to the coordinator (super admin) or the latest
-     * bot when the grant is gone. Two small ids, so the workspace one
-     * stays empty for a bot's own chat. `HttpOnly`: only the server reads
-     * them.
+     * bot when the grant is gone. One small id. `HttpOnly`: only the server
+     * reads it.
      */
     LastVisitedBotCookieName: `${SiteData["SiteSlug"]}_last_visited_bot_id`,
-    // LastVisitedWorkspaceCookieName: `${SiteData["SiteSlug"]}_last_visited_workspace_id`,
     LastVisitedCookieMaxAgeSeconds: 365 * 24 * 60 * 60,
     AuthExpiryDays: 60,
     APICrudBasePath: "/api/admin/crud",

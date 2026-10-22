@@ -5,14 +5,10 @@ import { setCookies } from "./cookies";
 import readLastVisitedBot from "./read-last-visited-bot";
 
 const bot_cookie = AppData["LastVisitedBotCookieName"];
-const workspace_cookie = AppData["LastVisitedWorkspaceCookieName"];
 
 function requestWithCookies(): Request {
     const res = new Response();
-    setCookies(
-        res,
-        lastVisitedBotCookies({ bot_id: 4, workspace_id: 9, secure: false }),
-    );
+    setCookies(res, lastVisitedBotCookies({ bot_id: 4, secure: false }));
     const cookie_header = res.headers
         .getSetCookie()
         .map((header) => header.split(";")[0])
@@ -24,37 +20,21 @@ function requestWithCookies(): Request {
 }
 
 describe("last visited bot cookies", () => {
-    test("round-trip a workspace conversation", () => {
-        expect(readLastVisitedBot({ req: requestWithCookies() })).toEqual({
-            bot_id: 4,
-            workspace_id: 9,
-        });
+    test("round-trip a bot", () => {
+        expect(readLastVisitedBot({ req: requestWithCookies() })).toEqual({ bot_id: 4 });
     });
 
-    test("a bot's own chat leaves the workspace cookie empty", () => {
+    test("only the bot cookie is written, never a workspace one", () => {
         const res = new Response();
         setCookies(res, lastVisitedBotCookies({ bot_id: 4, secure: false }));
-        const cookie_header = res.headers
-            .getSetCookie()
-            .map((header) => header.split(";")[0])
-            .join("; ");
+        const [header, ...others] = res.headers.getSetCookie();
 
-        const req = new Request("http://localhost", {
-            headers: { Cookie: cookie_header },
-        });
-
-        expect(readLastVisitedBot({ req })).toEqual({ bot_id: 4, workspace_id: null });
+        expect(others).toHaveLength(0);
+        expect(header?.startsWith(`${bot_cookie}=4`)).toBe(true);
     });
 
     test("no cookies at all", () => {
         expect(readLastVisitedBot({ req: new Request("http://localhost") })).toBeNull();
-    });
-
-    test("only the workspace cookie names no conversation", () => {
-        const req = new Request("http://localhost", {
-            headers: { Cookie: `${workspace_cookie}=9` },
-        });
-        expect(readLastVisitedBot({ req })).toBeNull();
     });
 
     test("a tampered bot id is ignored", () => {
