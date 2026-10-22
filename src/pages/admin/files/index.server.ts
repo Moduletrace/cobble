@@ -80,5 +80,6 @@ async function folderPayload({
         entries: listing.entries,
         total: listing.total,
         offset: listing.offset,
+        missing: listing.missing,
     };
 }

@@ -10,6 +10,8 @@
  * name's extension: the ref says which one it is.
  */
 import {
+    isStorageVolume,
+    parseStorageSpec,
     StorageBrowserPath,
     storageSpecHref,
     storageVolumeFromRef,
@@ -96,11 +98,21 @@ export function parseFolderRefHref({
 /**
  * Where a folder ref opens: the files browser, on that folder. A volume the
  * browser doesn't know lands on its first folder.
+ *
+ * Both spellings of a volume come through here: a ref names it the way a
+ * bot writes it (`computer`), the files browser the way it stores it
+ * (`computers`). Either one resolves, so a chip never loses its folder and
+ * drops back to the files browser's first folder.
  */
 export function folderRefUrl({ volume, owner_id, path }: RefParams) {
-    const known = storageVolumeFromRef({ name: volume });
+    const from_ref = storageVolumeFromRef({ name: volume });
+    const known = from_ref || (isStorageVolume(volume) ? volume : null);
 
     if (!known) return StorageBrowserPath;
 
-    return storageSpecHref({ spec: { volume: known, owner_id: Number(owner_id) }, path });
+    const spec = parseStorageSpec({ volume: known, owner_id });
+
+    if (!spec) return StorageBrowserPath;
+
+    return storageSpecHref({ spec, path });
 }

@@ -61,6 +61,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<StorageFolderPaylo
                 entries: listing.entries,
                 total: listing.total,
                 offset: listing.offset,
+                missing: listing.missing,
             },
         };
     } catch (error: unknown) {

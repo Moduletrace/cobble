@@ -775,6 +775,11 @@ export type StorageFolderPayload = {
     entries: StorageEntry[];
     total: number;
     offset: number;
+    /**
+     * The folder asked for isn't on disk (a stale link, or a computer whose
+     * home directory the app can't find), as opposed to an empty one.
+     */
+    missing?: boolean;
 };
 
 /**

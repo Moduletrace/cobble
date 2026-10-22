@@ -4,6 +4,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { StorageFolderPayload, StorageSpecOption } from "@/src/types";
 import type { StorageSpec } from "@/src/utils/storage-volumes";
+import { emptyFolderText, folderSummary } from "../(functions)/folder-text";
 import FilesBreadcrumbRow from "../(partials)/files-breadcrumb-row";
 import FilesSearchInput from "../(partials)/files-search-input";
 import FilesVolumeRow from "../(partials)/files-volume-row";
@@ -81,9 +82,7 @@ export default function FilesBrowser({
                                 "Files"}
                         </H2>
                         <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                            {folder
-                                ? `${folder.label}: ${folder.total} item(s). Everything a bot, a workspace or a computer keeps for you.`
-                                : "Pick a folder to look inside."}
+                            {folderSummary({ folder })}
                         </Span>
                     </Stack>
                     <FilesBreadcrumbRow
@@ -111,12 +110,7 @@ export default function FilesBrowser({
                             ))
                         ) : (
                             <Span className="py-8 text-[13px] leading-[18px] text-ink-secondary">
-                                {loading
-                                    ? "Loading..."
-                                    : error ||
-                                      (search
-                                          ? `Nothing matches "${search}".`
-                                          : "This folder is empty.")}
+                                {emptyFolderText({ folder, search, loading, error })}
                             </Span>
                         )}
                     </Stack>

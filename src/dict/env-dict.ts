@@ -66,6 +66,12 @@ export const EnvDict: readonly KnownEnv[] = [
         required: false,
         secret: false,
     },
+    {
+        key: "MAIN_COMPUTER_DATA_DIR",
+        description: `Where the main computer's home (/home/gem) is on this server's disk, for a computer the app didn't create itself (see MAIN_COMPUTER_URL), e.g. the bind mount your sandbox's compose file uses. Empty reads DATA_DIR/computers/<id>.`,
+        required: false,
+        secret: false,
+    },
     ...HarnessProviderKinds.flatMap((provider) =>
         provider.key_env
             ? [

@@ -70,9 +70,11 @@ export default async function listStorageEntries({
     /**
      * A folder nothing has written to yet (a computer's home before it
      * starts, a bot's before its first file) shows as empty rather than as
-     * an error.
+     * an error. `missing` keeps that apart from a path that isn't there at
+     * all, which a stale folder link lands on (the page says so, instead of
+     * claiming the folder is empty).
      */
-    if (!existsSync(absolute)) return { entries: [], total: 0, offset };
+    if (!existsSync(absolute)) return { entries: [], total: 0, offset, missing: true };
 
     const rows = readdirSync(absolute, { withFileTypes: true });
     const indexed = await botFileRows({ resolved, paths: rows.map((row) => joinPath({ relative, name: row.name })) });
@@ -145,6 +147,7 @@ export default async function listStorageEntries({
         entries: entries.slice(offset, offset + AppData.StorageBrowserPageSize),
         total: entries.length,
         offset,
+        missing: false,
     };
 }
 

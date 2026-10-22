@@ -10,6 +10,8 @@ import { storageVolumeLabel, type StorageSpec } from "@/src/utils/storage-volume
 import grabCrewRole from "../db/access/grab-crew-role";
 import grabUserBot from "../db/bots/grab-user-bot";
 import grabUserComputer from "../db/computers/grab-user-computer";
+import resolveComputerHomeDir from "../db/computers/resolve-computer-home-dir";
+import grabEnv from "../db/envs/grab-env";
 import grabUserWorkspace from "../db/workspaces/grab-user-workspace";
 
 type Params = {
@@ -69,10 +71,19 @@ async function storageRoot({
                 ? path.join(DATA_DIR, AppData.WorkspaceDataDir, String(spec.owner_id))
                 : null;
 
-        case "computers":
-            return (await grabUserComputer({ computer_id: spec.owner_id, user_id }))
-                ? path.join(DATA_DIR, AppData.ComputerDataDir, String(spec.owner_id))
-                : null;
+        case "computers": {
+            const computer = await grabUserComputer({ computer_id: spec.owner_id, user_id });
+
+            if (!computer) return null;
+
+            return resolveComputerHomeDir({
+                computer_id: spec.owner_id,
+                kind: computer.kind,
+                metadata: await computerContainerMetadata({ container_id: computer.container_id }),
+                main_data_dir: await grabEnv({ key: "MAIN_COMPUTER_DATA_DIR" }),
+                data_dir: DATA_DIR,
+            });
+        }
 
         case "media":
             /**
@@ -98,6 +109,23 @@ async function storageRoot({
 
             return dbRoot();
     }
+}
+
+/**
+ * A computer's container `metadata`, where `provisionComputer` recorded
+ * the directory it bind-mounted as the computer's home. Null when the app
+ * didn't create the container (a computer reached at
+ * `MAIN_COMPUTER_URL`), which is what `MAIN_COMPUTER_DATA_DIR` is for.
+ */
+async function computerContainerMetadata({ container_id }: { container_id?: number | "" }) {
+    if (!container_id) return null;
+
+    const res = await BunSQLite.sql<{ metadata?: string | null }>({
+        sql: `SELECT metadata FROM containers WHERE id = ? LIMIT 1`,
+        values: [container_id],
+    });
+
+    return res.payload?.[0]?.metadata || null;
 }
 
 /**
