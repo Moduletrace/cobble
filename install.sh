@@ -345,23 +345,35 @@ if [ "$OS" = "Linux" ] && [ "$(id -u)" -ne 0 ]; then
     fail "Run the installer as root: curl -fsSL $INSTALL_URL | sudo bash"
 fi
 
-SELINUX_SUFFIX=""
-if [ "$OS" = "Linux" ]; then
+# SELinux hosts need the `z` mount option so docker relabels the bind
+# mount. It is a third colon-separated field (`src:/data:z`), never a
+# suffix on the destination: docker reads `src:/data,z` as the directory
+# "/data,z", which silently leaves the app writing to its own container
+# layer, breaks every update (the container is recreated without its data)
+# and makes computer provisioning fail. Never append to the destination.
+# MARK:selinux-detection
+selinux_enforcing() {
     if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce 2>/dev/null || true)" != "Disabled" ]; then
-        SELINUX_SUFFIX=",z"
-    elif [ -e /sys/fs/selinux/enforce ]; then
-        SELINUX_SUFFIX=",z"
+        return 0
     fi
-fi
+    [ -e /sys/fs/selinux/enforce ]
+}
 
-ENV_MOUNT="$ENV_FILE:/app/.env:ro"
-DATA_MOUNT="$DATA_DIR:/data"
-BACKUP_ARCHIVE_MOUNT="$BACKUP_ARCHIVE_DIR_HOST:/backups-archives"
-if [ -n "$SELINUX_SUFFIX" ]; then
-    ENV_MOUNT="$ENV_FILE:/app/.env:ro,z"
-    DATA_MOUNT="$DATA_DIR:/data,z"
-    BACKUP_ARCHIVE_MOUNT="$BACKUP_ARCHIVE_DIR_HOST:/backups-archives,z"
+MOUNT_OPTS=""
+if [ "$OS" = "Linux" ] && selinux_enforcing; then
+    MOUNT_OPTS="z"
 fi
+# END:selinux-detection
+
+# MARK:mount-specs
+# A spec is `source:destination[:options]`. Options are comma separated and
+# only count in that third field, so each spec below either opens the field
+# with a colon or adds to one that is already there. A destination is
+# always a plain absolute path.
+ENV_MOUNT="$ENV_FILE:/app/.env:ro${MOUNT_OPTS:+,$MOUNT_OPTS}"
+DATA_MOUNT="$DATA_DIR:/data${MOUNT_OPTS:+:$MOUNT_OPTS}"
+BACKUP_ARCHIVE_MOUNT="$BACKUP_ARCHIVE_DIR_HOST:/backups-archives${MOUNT_OPTS:+:$MOUNT_OPTS}"
+# END:mount-specs
 
 # ---------------------------------------------------------------- helpers
 
@@ -527,10 +539,7 @@ backup_database() {
     mkdir -p "$BACKUP_DIR"
     say "Backing up the database"
 
-    local backup_mount="$data_source:/data"
-    if [ -n "$SELINUX_SUFFIX" ]; then
-        backup_mount="$backup_mount,z"
-    fi
+    local backup_mount="$data_source:/data${MOUNT_OPTS:+:$MOUNT_OPTS}"
 
     local image_id=""
     if container_running; then
@@ -572,6 +581,71 @@ backup_database() {
         printf '%s\n' "$old" | while IFS= read -r file; do
             rm -f "$file"
         done
+    fi
+}
+
+# Whether the container's /data is really the host's data directory.
+# Older installers wrote the SELinux option onto the destination
+# (`$DATA_DIR:/data,z`), so docker mounted a directory named "/data,z"
+# and the app kept its database in the container's own writable layer.
+# Such a container must have that data lifted out before it is replaced.
+data_mount_broken() {
+    container_exists || return 1
+    local mounted
+    mounted="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Source}}{{end}}{{end}}' "$CONTAINER" 2>/dev/null || true)"
+    [ "$mounted" != "$DATA_DIR" ]
+}
+
+# Copies a container's unmounted /data back onto the host before the
+# container is recreated, so a broken mount is repaired without losing the
+# database, the media or the computers' home directories. Runs only when
+# the container's /data is not the host's directory, and refuses to
+# overwrite a host directory that already holds a database.
+rescue_container_data() {
+    data_mount_broken || return 0
+
+    # Stop the app first: the copy must see a database nothing is writing
+    # to, and the container is about to be replaced anyway.
+    if container_running; then
+        say "Stopping Cobble to copy its data out"
+        docker stop -t 30 "$CONTAINER" >/dev/null 2>&1 || true
+    fi
+
+    local staged
+    staged="$(mktemp -d)"
+
+    if ! docker cp "$CONTAINER:/data/." "$staged/" >/dev/null 2>&1; then
+        rm -rf "$staged"
+        fail "Could not read the container's data. Its database is still in $CONTAINER; copy it out before updating."
+    fi
+
+    # A container that never wrote anything has nothing to rescue: the app
+    # is about to start fresh on the host directory.
+    if [ -z "$(ls -A "$staged" 2>/dev/null)" ]; then
+        rm -rf "$staged"
+        return 0
+    fi
+
+    say "This install's data was inside its container (a broken mount); moving it to $DATA_DIR"
+
+    if [ -n "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+        local aside
+        aside="$DATA_DIR.before-rescue-$(date +%s)"
+        warn "$DATA_DIR was not empty; the copy is kept at $aside"
+        mv "$DATA_DIR" "$aside" || fail "Could not move $DATA_DIR aside"
+    fi
+
+    mkdir -p "$DATA_DIR"
+    cp -a "$staged/." "$DATA_DIR/" || {
+        rm -rf "$staged"
+        fail "Could not copy the rescued data into $DATA_DIR"
+    }
+    rm -rf "$staged"
+
+    if [ -f "$DATA_DIR/db/cobble" ]; then
+        ok "Rescued the database and data into $DATA_DIR"
+    else
+        warn "Rescued data has no database file; the install will start empty"
     fi
 }
 
@@ -789,6 +863,9 @@ if [ "$FORCE" = 0 ] && container_matches; then
 fi
 
 if container_exists; then
+    # A container whose /data was never mounted keeps the database in its
+    # own layer, so lift it out before anything replaces the container.
+    rescue_container_data
     backup_database
     say "Replacing the Cobble container"
     docker stop -t 30 "$CONTAINER" >/dev/null 2>&1 || true
