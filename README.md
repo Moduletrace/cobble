@@ -1,21 +1,72 @@
-# Cobble
+<div align="center">
+
+<h1>
+<img src="docs/readme/lockup-light.svg#gh-light-mode-only" alt="Cobble" height="56">
+<img src="docs/readme/lockup-dark.svg#gh-dark-mode-only" alt="Cobble" height="56">
+</h1>
+
+A crew of small AI worker bots you host yourself.
+
+![Cobble: a crew of small AI worker bots you host yourself](docs/readme/hero-light.png#gh-light-mode-only)
+![Cobble: a crew of small AI worker bots you host yourself](docs/readme/hero-dark.png#gh-dark-mode-only)
 
 [![CI](https://github.com/Moduletrace/cobble/actions/workflows/ci.yml/badge.svg)](https://github.com/Moduletrace/cobble/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/website-cobble.moduletrace.org-0e1116)](https://cobble.moduletrace.org)
+[![Bun](https://img.shields.io/badge/runs%20on-Bun-14151a?logo=bun&logoColor=white)](https://bun.sh)
 
-A self-hosted crew of small AI worker bots.
+[Website](https://cobble.moduletrace.org) · [Install](#install) · [Features](#features) · [Development](#development) · [Architecture](AGENTS.md)
 
-Cobble gives you a coordinator bot and a crew of workers, each with its own
-job, models, memory and workspace. The crew talks to you in a chat, shares
-workspaces, runs routines on a schedule, and drives its own computers:
-Docker sandboxes with a browser, terminal, code editor and desktop that a
-bot can use and hand back to you when it needs help.
+</div>
+
+Cobble is a self-hosted crew of small AI worker bots. You get a coordinator
+and a set of workers, each with its own job, models, memory and workspace.
+They talk to you in one chat, share workspaces, run routines on a schedule,
+and drive their own computers: Docker sandboxes with a browser, a terminal,
+a code editor and a desktop that a bot can use and hand back to you when it
+needs help.
 
 It is an install, not a SaaS. One SQLite database, one Docker container, and
 your data on your own machine.
 
-- Website: [cobble.moduletrace.org](https://cobble.moduletrace.org)
-- Source: [GitHub](https://github.com/Moduletrace/cobble) and [Gitea](https://git.tben.me/Moduletrace/cobble)
-- License: MIT
+**Why small workers instead of one big assistant**
+
+- **A crew, not a chat.** Each worker has one job and only loads the context
+  for it. A five-bot crew does five things in parallel, and each one stays
+  cheap and focused.
+- **Bots you can see through.** The face on each stone is the status: idle,
+  working, done, asleep, needs you. You read the whole crew at a glance
+  instead of asking each one what it is doing.
+- **Real computers.** Workers run on your own sandboxed machines, with
+  browser, terminal, files and desktop, not just a tool loop.
+- **Yours.** Self-hosted, MIT, one SQLite file to back up, no account and no
+  per-seat billing.
+
+## Features
+
+| Area | What you get |
+| --- | --- |
+| Crew | One coordinator and as many workers as you need, each with a name, a role, a hue and its own core instructions |
+| Rail | The coordinator, your recent workers and their latest sessions, then your workspaces, each row carrying its status line |
+| Chat | Markdown with @-mentions for bots and #-mentions for workspaces, replies and quotes, reactions, attachments, older messages on scroll, drafts kept locally |
+| Header | The bot's model, provider and computer at a glance, one click from either, and its picture, instructions and settings on the avatar |
+| Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard |
+| Memory | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works |
+| Routines | Cron schedules per bot, written in chat, that queue a task on its own |
+| Computers | Docker sandboxes with browser, terminal, code editor and desktop, opened from the chat and handed back to you mid-task |
+| Files | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply |
+| Models | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness |
+| Voice | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice |
+| Tools | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces |
+| App | Installable PWA with Web Push, dark mode, and a rail built for a phone |
+
+## Screenshots
+
+A workspace dashboard: what it is, its latest activity, the bots in it with
+their instructions there, and its computers.
+
+![A workspace dashboard in Cobble](docs/readme/workspace-light.png#gh-light-mode-only)
+![A workspace dashboard in Cobble, dark mode](docs/readme/workspace-dark.png#gh-dark-mode-only)
 
 ## Install
 
@@ -106,6 +157,35 @@ curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall --pu
 | `--uninstall`         | Stop and remove the app container                              |
 | `--purge`             | With `--uninstall`, also delete the data directory             |
 
+## How it fits together
+
+```
+You ── chat ── Coordinator ── delegates ── Workers
+                   │                          │
+                   ├── Workspaces ────────────┤
+                   │   context, memory, bots  │
+                   ├── Routines ──────────────┤
+                   │   cron schedules         │
+                   └── Computers ─────────────┘
+                       docker sandboxes:
+                       browser, terminal, code, desktop
+```
+
+- **Coordinator** is yours alone. It plans, delegates to workers, and keeps
+  the crew in order. It is the only bot that reaches every worker.
+- **Workers** are the crew. Each has a job, its own instructions and memory,
+  and its own models if you want to tune cost per bot.
+- **Workspaces** group bots around a subject. Models, instructions, memory
+  and the default computer resolve per workspace before per bot.
+- **Routines** are cron schedules that queue a task without you asking.
+- **Computers** are per-install Docker containers. Bots use them through the
+  sandbox's tools, and you can open the same machine in the browser and take
+  over.
+
+Each conversation is split into sessions, so a long-running bot does not grow
+one endless thread: the bot names a session, summarizes it, and carries the
+summary into the next one.
+
 ## Data and settings
 
 Everything that must survive an update lives under the install directory:
@@ -120,6 +200,8 @@ Everything that must survive an update lives under the install directory:
     db/.backups/
     media/
     computers/<id>/     # each computer's home directory
+    bots/<id>/          # each bot's files
+    workspaces/<id>/    # files shared in a workspace
 ```
 
 `.env` holds the port and the encryption keys. The keys encrypt sessions and
@@ -169,26 +251,37 @@ the app from a phone, run a proxy or tunnel in front of it (see
 [HTTPS](#https)); the installed app, Web Push and voice need that secure
 context.
 
-| Command              | Purpose                              |
-| -------------------- | ------------------------------------ |
-| `bun run dev`        | Development server                   |
-| `bun run start`      | Production server on the host        |
-| `bun run typecheck`  | Type-check                           |
-| `bun run test`       | Run the test suite                   |
-| `bun run seed`       | Create the super admin from the CLI  |
-| `bun run seed:bots`  | Add a sample crew                    |
-| `bun run db:schema`   | Sync the schema and types           |
-| `bun run gen:favicon` | Regenerate favicons and PWA assets  |
+| Command               | Purpose                              |
+| --------------------- | ------------------------------------ |
+| `bun run dev`         | Development server                   |
+| `bun run start`       | Production server on the host        |
+| `bun run typecheck`   | Type-check                           |
+| `bun run test`        | Run the test suite                   |
+| `bun run check:bundle`| Bundle budget after a build          |
+| `bun run seed`        | Create the super admin from the CLI  |
+| `bun run seed:bots`   | Add a sample crew                    |
+| `bun run db:schema`   | Sync the schema and types            |
+| `bun run gen:favicon` | Regenerate favicons and PWA assets   |
 
-The app is Bun, [`@moduletrace/bunext`](https://github.com/Moduletrace/bunext),
-SQLite via [`@moduletrace/bun-sqlite`](https://github.com/Moduletrace/bun-sqlite),
-Tailwind CSS and the `@moduletrace/twui` component library. See
-[AGENTS.md](AGENTS.md) for the full architecture, routes, queue, harness and
-data model.
+Plain Node does not work: the app runs on Bun. The stack is Bun,
+[`@moduletrace/bunext`](https://github.com/Moduletrace/bunext) for
+filesystem routing, SQLite via
+[`@moduletrace/bun-sqlite`](https://github.com/Moduletrace/bun-sqlite),
+Tailwind CSS and the `@moduletrace/twui` component library. The model layer is
+one adapter over OpenAI-compatible APIs, so any compatible provider works.
 
-CI runs type-check and tests on every push and pull request. Releases are
-built by GitHub Actions and pushed to both registries. See
+See [AGENTS.md](AGENTS.md) for the full architecture, routes, queue, harness
+and data model. CI runs type-check and tests on every push and pull request;
+releases are built by GitHub Actions and pushed to both registries. See
 [RELEASING.md](RELEASING.md) for the release and launch checklist.
+
+## Contributing
+
+Issues and pull requests are welcome, in English, on either
+[GitHub](https://github.com/Moduletrace/cobble) or
+[Gitea](https://git.tben.me/Moduletrace/cobble). Run `bun run typecheck` and
+`bun run test` before opening a pull request, and read
+[AGENTS.md](AGENTS.md) first: it documents the conventions the code follows.
 
 ## License
 
