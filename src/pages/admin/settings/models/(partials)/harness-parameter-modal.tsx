@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
+import Form from "@moduletrace/twui/form/Form";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
@@ -101,7 +102,12 @@ export default function HarnessParameterModal({
                     and repeatable.
                 </Span>
             </Stack>
-            <Stack className="w-full gap-4! items-stretch">
+            {/*
+              A form of its own: twui's Form reads the closest form on change,
+              so inside the page's form (this renders in a portal) a change
+              here would blow up reading the modal's wrapper.
+            */}
+            <Form className="w-full gap-4! items-stretch" onSubmit={(e) => e.preventDefault()}>
                 <HarnessParameterFields
                     id={id}
                     harness={harness}
@@ -109,7 +115,7 @@ export default function HarnessParameterModal({
                     params={params}
                     onChange={onChange}
                 />
-            </Stack>
+            </Form>
         </Modal>
     );
 }
