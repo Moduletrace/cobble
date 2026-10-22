@@ -12,6 +12,7 @@ import {
 } from "../(data)/composer-mention-kinds";
 import ComposerMentionChip from "../(partials)/composer-mention-chip";
 import { MentionMarkdown, mentionRef } from "../(utils)/mention-markdown";
+import shouldPastePlainText from "../(utils)/should-paste-plain-text";
 import searchMentionItems, { type ComposerMentionItem } from "../(utils)/search-mention-items";
 
 /**
@@ -63,6 +64,7 @@ export default function useComposerEditor({
 
     const [menu, setMenu] = useState<ComposerMentionMenu | null>(null);
     const menu_ref = useRef<ComposerMentionMenu | null>(null);
+    const replaying_paste = useRef(false);
 
     const showMenu = (next: ComposerMentionMenu | null) => {
         menu_ref.current = next;
@@ -177,6 +179,9 @@ export default function useComposerEditor({
                 class: ComposerEditorClassName,
             },
             handlePaste: (view, event) => {
+                /** `pasteText` re-runs this handler, so it must not send it round again. */
+                if (replaying_paste.current) return false;
+
                 const files = [...(event.clipboardData?.files || [])];
 
                 if (files.length) {
@@ -188,9 +193,22 @@ export default function useComposerEditor({
                 const text = event.clipboardData?.getData("text/plain") || "";
 
                 /** Our own copies keep their formatting; other sites' don't. */
-                if (!html || html.includes("data-pm-slice") || !text) return false;
+                if (!shouldPastePlainText({ html, text })) return false;
 
-                return view.pasteText(text, event);
+                replaying_paste.current = true;
+
+                try {
+                    /**
+                     * Without the event: `pasteText` re-asks every paste
+                     * handler with the one it's given, and this one would
+                     * replay the paste forever (a stack overflow), while a
+                     * fresh event reads no clipboard data and falls through
+                     * to the plain-text parse.
+                     */
+                    return view.pasteText(text);
+                } finally {
+                    replaying_paste.current = false;
+                }
             },
             handleDrop: (_view, event) => {
                 const files = [...(event.dataTransfer?.files || [])];
