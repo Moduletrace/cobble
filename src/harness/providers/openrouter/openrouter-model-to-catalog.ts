@@ -56,6 +56,9 @@ export default function openRouterModelToCatalog({
         voices: model.supported_voices?.length
             ? model.supported_voices
             : undefined,
+        supported_parameters: model.supported_parameters?.length
+            ? model.supported_parameters
+            : undefined,
         released_at: model.created ? model.created * 1000 : undefined,
         expires_at: Number.isNaN(expires_at) ? undefined : expires_at,
         intelligence_score: scores?.intelligence_index ?? undefined,

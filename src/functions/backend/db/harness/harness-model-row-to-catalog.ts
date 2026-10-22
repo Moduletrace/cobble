@@ -23,6 +23,7 @@ export default function harnessModelRowToCatalog({
         context_length: numberOrUndefined(row.context_length),
         max_output_tokens: numberOrUndefined(row.max_output_tokens),
         voices: parseList({ text: row.voices }),
+        supported_parameters: parseList({ text: row.supported_parameters }),
         intelligence_score: numberOrUndefined(row.intelligence_score),
         agentic_score: numberOrUndefined(row.agentic_score),
         released_at: numberOrUndefined(row.released_at),

@@ -54,6 +54,7 @@ export default async function grabHarnessModelEntries({
                 name: `${model.name || model.slug}${row.available == 0 ? " (no longer listed)" : ""}`,
                 free: model.free,
                 voices: model.voices,
+                supported_parameters: model.supported_parameters,
             },
         };
     });

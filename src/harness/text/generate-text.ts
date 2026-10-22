@@ -8,6 +8,7 @@ import type {
     HarnessMessage,
     HarnessToolDefinition,
 } from "../types";
+import grabChatParams from "./grab-chat-params";
 import prepareMessagesForModel from "./prepare-messages-for-model";
 import stripThinkTags from "./strip-think-tags";
 
@@ -23,7 +24,10 @@ export type GenerateTextParams = {
      */
     prefer_key?: string;
     max_tokens?: number;
-    temperature?: number;
+    /**
+     * Overrides the saved generation settings (media reading wants 0).
+     */
+    params?: Record<string, number | string | { effort: string }>;
     signal?: AbortSignal;
     /**
      * Media readings shared across calls of one run.
@@ -54,16 +58,22 @@ export default async function generateText({
     candidates,
     prefer_key,
     max_tokens,
-    temperature,
+    params,
     signal = new AbortController().signal,
     media_cache = new Map(),
     bot_id,
     workspace_id,
 }: GenerateTextParams): Promise<GenerateTextResult> {
+    const resolved =
+        candidates ||
+        (await resolveHarnessCandidates({ harness: "text", bot_id, workspace_id }));
+    const saved_params = params
+        ? undefined
+        : await grabChatParams({ harness: "text", bot_id, workspace_id });
+
     const { result, candidate } = await withCandidates({
         harness: "text",
-        candidates:
-            candidates || (await resolveHarnessCandidates({ harness: "text", bot_id, workspace_id })),
+        candidates: resolved,
         prefer_key,
         run: async (candidate) => {
             const answer = await grabHarnessAdapter({
@@ -80,7 +90,7 @@ export default async function generateText({
                 }),
                 tools,
                 max_tokens,
-                temperature,
+                params: params || saved_params?.(candidate.model),
                 signal,
             });
 

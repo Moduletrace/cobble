@@ -4,6 +4,7 @@ import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-
 import saveWorkspaceHarnessSetting from "@/src/functions/backend/db/harness/save-workspace-harness-setting";
 import grabUserWorkspace from "@/src/functions/backend/db/workspaces/grab-user-workspace";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
+import { withHarnessParameters } from "@/src/dict/harness-parameter-dict";
 import { SaveWorkspaceHarnessSettingsRequestSchema } from "@/src/schemas/harness-schema";
 import type { BotHarnessOverviewPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
@@ -69,7 +70,13 @@ export const handler: BunextAPIRouteHandler<
                 provider_id: setting.provider_id,
                 fallback: setting.fallback,
                 enabled: setting.enabled,
-                options: setting.voice ? { ...options, voice: setting.voice } : options,
+                options: withHarnessParameters({
+                    options: {
+                        ...options,
+                        ...(setting.voice ? { voice: setting.voice } : {}),
+                    },
+                    params: setting.params || {},
+                }),
             });
         }
 

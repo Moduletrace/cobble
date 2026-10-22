@@ -82,6 +82,12 @@ export type HarnessModelInfo = {
     context_length?: number;
     max_output_tokens?: number;
     voices?: string[];
+    /**
+     * The request fields the provider says it takes (OpenRouter's
+     * `supported_parameters`). Undefined when the provider doesn't say:
+     * then every generation setting is sent.
+     */
+    supported_parameters?: string[];
 };
 
 /**
@@ -137,7 +143,11 @@ export type HarnessChatParams = {
     messages: HarnessMessage[];
     tools?: HarnessToolDefinition[];
     max_tokens?: number;
-    temperature?: number;
+    /**
+     * Sampling and reasoning fields, keyed by their wire name. The caller
+     * only includes what the model advertises.
+     */
+    params?: Record<string, number | string | { effort: string }>;
     signal: AbortSignal;
 };
 

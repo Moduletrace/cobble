@@ -3,6 +3,7 @@ import HarnessError from "../harness-error";
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
+import grabChatParams from "../text/grab-chat-params";
 
 type Params = {
     /**
@@ -35,6 +36,12 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
         workspace_id,
     });
 
+    const saved_params = await grabChatParams({
+        harness: "vision",
+        bot_id,
+        workspace_id,
+    });
+
     const { result } = await withCandidates({
         harness: "vision",
         candidates,
@@ -57,7 +64,14 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
                         ],
                     },
                 ],
-                temperature: 0,
+                /**
+                 * Reading is a lookup, so it stays literal unless a
+                 * temperature was set for the vision harness.
+                 */
+                params: {
+                    temperature: 0,
+                    ...saved_params(candidate.model),
+                },
                 signal: signal || new AbortController().signal,
             });
 

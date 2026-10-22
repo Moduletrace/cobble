@@ -942,6 +942,10 @@ export type BUN_SQLITE_COBBLE_HARNESS_MODELS = {
      */
     voices?: string;
     /** 
+     * JSON array of the request fields the model takes (OpenRouter's supported_parameters), so only the generation settings it honors are offered
+     */
+    supported_parameters?: string;
+    /** 
      * Artificial Analysis intelligence index
      */
     intelligence_score?: number | "";

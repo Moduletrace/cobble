@@ -45,6 +45,11 @@ export const SaveHarnessSettingsRequestSchema = z.object({
                 fallback: z.boolean(),
                 enabled: z.boolean(),
                 voice: z.string().trim().max(200).optional(),
+                /**
+                 * Generation settings (temperature, reasoning effort, ...).
+                 * Only the ones in `HarnessParameters` are kept.
+                 */
+                params: z.record(z.string(), z.union([z.number(), z.string()])).optional(),
             }),
         )
         .min(1, "Nothing to save")

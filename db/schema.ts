@@ -1564,6 +1564,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     json: true,
                 },
                 {
+                    fieldName: "supported_parameters",
+                    fieldDescription: `JSON array of the request fields the model takes (OpenRouter's supported_parameters), so only the generation settings it honors are offered`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
                     fieldName: "intelligence_score",
                     fieldDescription: `Artificial Analysis intelligence index`,
                     dataType: "REAL",

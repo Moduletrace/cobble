@@ -12,7 +12,7 @@ const chat: HarnessAdapter["chat"] = async ({
     messages,
     tools,
     max_tokens,
-    temperature,
+    params,
     signal,
 }) => {
     const { provider, model } = candidate;
@@ -32,7 +32,7 @@ const chat: HarnessAdapter["chat"] = async ({
                   }
                 : {}),
             ...(max_tokens ? { max_tokens } : {}),
-            ...(temperature !== undefined ? { temperature } : {}),
+            ...(params || {}),
         },
         signal,
         candidate_key: candidate.key,

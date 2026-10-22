@@ -1,3 +1,4 @@
+import { harnessParametersFromOptions } from "@/src/dict/harness-parameter-dict";
 import type {
     HarnessOverview,
     HarnessSettingsFormObject,
@@ -26,6 +27,9 @@ export default function toHarnessForm({
                     typeof harness.options.voice == "string"
                         ? harness.options.voice
                         : undefined,
+                params: harnessParametersFromOptions({
+                    options: harness.options,
+                }),
             },
         ]),
     );

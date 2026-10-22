@@ -30,6 +30,22 @@ function isSame({ a, b }: { a: HarnessFormValue; b?: HarnessFormValue }) {
         (a.provider_id ?? null) == (b!.provider_id ?? null) &&
         a.fallback == b!.fallback &&
         a.enabled == b!.enabled &&
-        (a.voice || "") == (b!.voice || "")
+        (a.voice || "") == (b!.voice || "") &&
+        paramsKey({ params: a.params }) == paramsKey({ params: b!.params })
     );
+}
+
+/**
+ * The generation settings as one comparable string.
+ */
+export function paramsKey({
+    params,
+}: {
+    params?: Record<string, number | string>;
+}) {
+    const entries = Object.entries(params || {}).sort(([a], [b]) =>
+        a.localeCompare(b),
+    );
+
+    return JSON.stringify(entries);
 }

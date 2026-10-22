@@ -35,6 +35,7 @@ describe("openRouterModelToCatalog", () => {
             context_length: 1000000,
             max_output_tokens: 65536,
             voices: undefined,
+            supported_parameters: ["tools", "temperature"],
             released_at: 1792000000000,
             expires_at: Date.parse("2026-12-01"),
             intelligence_score: 26.5,

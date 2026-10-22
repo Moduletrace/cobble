@@ -258,6 +258,10 @@ export type HarnessModelOption = {
     name: string;
     free: boolean;
     voices?: string[];
+    /**
+     * The generation settings the model takes; undefined: all of them.
+     */
+    supported_parameters?: string[];
 };
 
 /**
@@ -325,6 +329,11 @@ export type HarnessFormValue = {
     fallback: boolean;
     enabled: boolean;
     voice?: string;
+    /**
+     * Generation settings (temperature, reasoning effort, ...), only the
+     * ones the picked model takes.
+     */
+    params?: Record<string, number | string>;
 };
 
 export type HarnessSettingsFormObject = Partial<

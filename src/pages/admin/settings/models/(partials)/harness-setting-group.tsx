@@ -1,8 +1,10 @@
 import Checkbox from "@moduletrace/twui/form/Checkbox";
+import { HarnessParameterHarnesses } from "@/src/dict/harness-parameter-dict";
 import type { HarnessFormValue, HarnessOverview } from "@/src/types";
 import SettingsGroup from "../../(partials)/settings-group";
 import HarnessCurrentModel from "./harness-current-model";
 import HarnessModelSelect from "./harness-model-select";
+import HarnessParameterModal from "./harness-parameter-modal";
 import HarnessProviderSelect from "./harness-provider-select";
 import HarnessVoicePreview from "./harness-voice-preview";
 import HarnessVoiceSelect from "./harness-voice-select";
@@ -28,6 +30,15 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
         : harness.models;
     const picked = models.find((model) => model.id == value.model_id);
     const voices = (picked || harness.current)?.voices;
+    /**
+     * The model the settings are for: the pick, else the one it runs on now.
+     */
+    const params_model = picked || harness.current;
+    const shows_params =
+        !value.inherit &&
+        HarnessParameterHarnesses.includes(
+            harness.harness as (typeof HarnessParameterHarnesses)[number],
+        );
     const on_bot_page = harness.default !== undefined;
     const default_name = harness.default?.enabled === false
         ? "turned off"
@@ -77,6 +88,14 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     label={`Fall back to the automatic picks${provider ? ` on ${provider.name}` : ""} if this model fails`}
                     checked={value.fallback}
                     changeHandler={(fallback) => onChange({ ...value, fallback })}
+                />
+            ) : null}
+            {shows_params && params_model ? (
+                <HarnessParameterModal
+                    id={id}
+                    model={params_model}
+                    params={value.params}
+                    onChange={(params) => onChange({ ...value, params })}
                 />
             ) : null}
             {!value.inherit && harness.harness == "speech" && voices?.length ? (
