@@ -292,6 +292,38 @@ describe("publish lib release notes", () => {
     });
 });
 
+describe("publish lib compare link", () => {
+    // The range is what makes the link open this release's diff; a bare
+    // /compare/ opened the host's default comparison instead.
+    test("adds the tag range to the compare path", async () => {
+        const block = await blockCaller({ file: RELEASE, name: "notes-file" });
+
+        const out = await runBash({
+            script: [
+                block,
+                `TAG=v0.1.4`,
+                `build_compare_url https://example.test/compare/ v0.1.3`,
+            ].join("\n"),
+        });
+
+        expect(out).toBe("https://example.test/compare/v0.1.3...v0.1.4");
+    });
+
+    test("leaves the path alone when there is no earlier tag", async () => {
+        const block = await blockCaller({ file: RELEASE, name: "notes-file" });
+
+        const out = await runBash({
+            script: [
+                block,
+                `TAG=v0.1.0`,
+                `build_compare_url https://example.test/compare/ ""`,
+            ].join("\n"),
+        });
+
+        expect(out).toBe("https://example.test/compare/");
+    });
+});
+
 describe("publish lib json escaping", () => {
     const sample = 'a\nb\t"c" \\ é';
 

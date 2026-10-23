@@ -208,6 +208,9 @@ else
             if [ -n "${response_file:-}" ]; then
                 rm -f "$response_file"
             fi
+            if [ "$api_status" = "403" ]; then
+                fail "Gitea answered HTTP 403: the token's user cannot write to $REPO_SLUG. The tags and $BRANCH still push over SSH, but creating a release needs the token's user to be a writer (write or admin) on the repository. Check it with: curl -s -H \"Authorization: token \$GITEA_TOKEN\" $API_URL/repos/$REPO_SLUG | grep -o '\"permissions\":{[^}]*}'"
+            fi
             fail "Gitea answered HTTP $api_status for the release."
             ;;
     esac

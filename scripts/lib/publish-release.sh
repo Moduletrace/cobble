@@ -134,9 +134,24 @@ prepare_tag() {
 # END:tag
 
 # MARK:notes-file
-# Writes release_notes into NOTES_FILE, which the caller cleans up.
+# Writes release_notes into NOTES_FILE, which the caller cleans up. The
+# compare base is the host's /compare/ path; the tag range is added here,
+# since only this side knows which tag came before (a bare /compare/ opens
+# the host's default comparison rather than this release's).
+build_compare_url() {
+    local compare_base="$1"
+    local from="$2"
+
+    if [ -z "$from" ]; then
+        printf '%s' "$compare_base"
+        return 0
+    fi
+    printf '%s%s...%s' "$compare_base" "$from" "$TAG"
+}
+
 write_notes_file() {
-    local compare_url="$1"
+    local compare_base="$1"
+    local compare_url=""
     local from=""
     # A dry run makes no tag, so the notes are read up to HEAD instead.
     local to="$TAG"
@@ -152,6 +167,8 @@ write_notes_file() {
     else
         detail "No earlier tag, so every commit is listed."
     fi
+
+    compare_url="$(build_compare_url "$compare_base" "$from")"
 
     NOTES_FILE="$(mktemp -t cobble-release-notes.XXXXXX)"
     release_notes --from "$from" --to "$to" --compare-url "$compare_url" >"$NOTES_FILE"
