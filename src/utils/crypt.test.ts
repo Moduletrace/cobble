@@ -42,7 +42,12 @@ describe("encrypt/decrypt", () => {
 
     test("decrypt fails on tampered input", async () => {
         const encrypted = await encrypt("secret");
-        const tampered = "A" + encrypted.slice(1);
-        expect(async () => await decrypt(tampered)).toThrow();
+        // Flip the first character to one it is not, so the ciphertext is
+        // always different: prefixing "A" left it untouched whenever the
+        // base64 happened to start with "A".
+        const first = encrypted[0] === "A" ? "B" : "A";
+        const tampered = first + encrypted.slice(1);
+        expect(tampered).not.toBe(encrypted);
+        await expect(decrypt(tampered)).rejects.toThrow();
     });
 });
