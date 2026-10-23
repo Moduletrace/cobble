@@ -452,6 +452,20 @@ export const AppData = {
     StorageBrowserPageSize: 200,
     StorageBrowserReadMaxBytes: 50 * 1024 * 1024,
     /**
+     * The database browser at `/admin/settings/database`: how many records
+     * of a table one page shows, how much of a value a cell carries before
+     * the rest waits behind its record's modal, and the most of one value
+     * that modal shows (a whole media row or job checkpoint is not meant
+     * to be rendered).
+     */
+    DatabaseBrowserPageSize: 50,
+    DatabaseBrowserCellMaxChars: 400,
+    DatabaseBrowserValueMaxChars: 20000,
+    /**
+     * The most words one search matches in the database browser.
+     */
+    DatabaseBrowserMaxSearchWords: 8,
+    /**
      * The most a bot copies off a computer into its own files in one
      * call, so a folder of raw evidence can't fill the data volume.
      */

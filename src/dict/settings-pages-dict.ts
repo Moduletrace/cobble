@@ -2,6 +2,7 @@ import {
     BookOpen,
     Bot,
     CpuAi,
+    Database,
     DatabaseBackup,
     KeyRound,
     Layers,
@@ -34,6 +35,7 @@ export type SettingsPage = {
 
 export const SettingsComputersPath = "/admin/settings/computers";
 export const SettingsBackupsPath = "/admin/settings/backups";
+export const SettingsDatabasePath = "/admin/settings/database";
 
 /**
  * The `/admin/settings/*` sub pages, listed in the rail on every settings
@@ -79,6 +81,12 @@ export const SettingsPages: SettingsPage[] = [
         title: "Backups",
         url: SettingsBackupsPath,
         Icon: DatabaseBackup,
+        super_admin_only: true,
+    },
+    {
+        title: "Database",
+        url: SettingsDatabasePath,
+        Icon: Database,
         super_admin_only: true,
     },
 ];

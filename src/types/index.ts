@@ -836,6 +836,97 @@ export type StorageFolderPayload = {
 };
 
 /**
+ * What a database table's rows are identified by: a primary key column,
+ * the rowid a table without one still has, or nothing at all (a virtual
+ * table with neither).
+ */
+export type DatabaseTableKey = {
+    kind: "rowid" | "column" | "none";
+    /**
+     * The primary key column's name, for `kind: "column"`.
+     */
+    name?: string;
+};
+
+export type DatabaseTableColumn = {
+    name: string;
+    /**
+     * SQLite's declared type, empty when the column has none (a view or a
+     * virtual table).
+     */
+    type: string;
+    pk: boolean;
+};
+
+/**
+ * How a search matches: every word somewhere in the record's text, or the
+ * whole phrase somewhere in it.
+ */
+export type DatabaseSearchMode = "every_word" | "phrase";
+
+/**
+ * One table of the database, as the database browser lists it.
+ */
+export type DatabaseTableSummary = {
+    name: string;
+    type: "table" | "virtual";
+    /**
+     * How many records it holds, when it could be counted.
+     */
+    rows: number | null;
+    /**
+     * What the table's pages take on disk, when SQLite can measure it.
+     */
+    size_bytes: number | null;
+    columns: DatabaseTableColumn[];
+    key: DatabaseTableKey;
+};
+
+/**
+ * One value in a record, as a cell shows it. `text` is the whole value,
+ * or its first `AppData.DatabaseBrowserCellMaxChars` characters when
+ * `truncated` says so.
+ */
+export type DatabaseCell = {
+    text: string;
+    kind: "text" | "number" | "blob" | "null";
+    truncated: boolean;
+};
+
+/**
+ * One record of a table: what identifies it, and its columns' values.
+ */
+export type DatabaseRecord = {
+    key: string | number | null;
+    cells: Record<string, DatabaseCell>;
+};
+
+/**
+ * One page of a table's records.
+ */
+export type DatabaseRecordsPayload = {
+    table: DatabaseTableSummary;
+    records: DatabaseRecord[];
+    total: number;
+    page: number;
+    page_size: number;
+    /**
+     * The search these records answer, so the page knows whether its pager
+     * counts the table or a narrowing of it.
+     */
+    search: string;
+    mode: DatabaseSearchMode;
+};
+
+/**
+ * One record, in full, for its modal.
+ */
+export type DatabaseRecordPayload = {
+    table: DatabaseTableSummary;
+    record: DatabaseRecord | null;
+};
+
+/**
  * A folder in the files browser's picker.
  */
 export type StorageSpecOption = {
@@ -1069,6 +1160,12 @@ export type PagePropsType = {
      */
     storage_folders?: StorageSpecOption[] | null;
     storage_folder?: StorageFolderPayload | null;
+    /**
+     * The database browser's tables (super admin only) and the first page
+     * of the one it is showing.
+     */
+    database_tables?: DatabaseTableSummary[] | null;
+    database_records?: DatabaseRecordsPayload | null;
     /**
      * The open conversation's files (a bot's own, or a workspace's shared
      * ones), for the files modal and the chips that name one.
