@@ -7,11 +7,12 @@
 # installer syntax), tags HEAD with the package.json version, pushes main and
 # the tag to the `origin` remote, then creates the GitHub release. Publishing
 # that release is what fires .github/workflows/release.yml, which builds the
-# multi-arch image and pushes it to GHCR (and mirrors it to Gitea).
+# multi-arch image and pushes it to GHCR, the registry the installer defaults
+# to. It never pushes to Gitea: that registry is on the VPN, out of a
+# runner's reach, so scripts/mirror-gitea.sh copies the image separately.
 #
 # Run scripts/publish-gitea.sh afterwards for the source mirror's own release
-# object. There is no existing publish script in the repo: this and its Gitea
-# twin are it.
+# object, and scripts/mirror-gitea.sh once the image build has finished.
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

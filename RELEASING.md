@@ -62,16 +62,24 @@ them in that order, since only the GitHub release builds images.
        gh release create v0.1.0 --title v0.1.0 --notes-file notes.md --latest
 
 7. [ ] The release workflow builds `linux/amd64` and `linux/arm64` and
-       pushes to both registries:
-       - `ghcr.io/moduletrace/cobble`
-       - `git.tben.me/moduletrace/cobble`
+       pushes to `ghcr.io/moduletrace/cobble`, the registry the installer
+       defaults to. It does not touch Gitea: that registry is on the VPN,
+       and a GitHub runner cannot reach it.
 8. [ ] Check the manifests:
 
        docker buildx imagetools inspect ghcr.io/moduletrace/cobble:latest
-       docker buildx imagetools inspect git.tben.me/moduletrace/cobble:latest
 
 9. [ ] Confirm the GHCR package is public and pull it anonymously.
-10. [ ] Publish the release to Gitea as well:
+10. [ ] Once the build has finished, copy the image into the Gitea registry
+        from the VPN:
+
+        GITEA_TOKEN=... bun run mirror:gitea   # or: scripts/mirror-gitea.sh
+
+        It copies the version and commit tags, plus `latest` and
+        `major.minor` while this release still owns them, and reads every
+        destination digest back. A failure here does not affect the release:
+        the installer keeps working from GHCR.
+11. [ ] Publish the release to Gitea as well:
 
         scripts/publish-gitea.sh                  # or: bun run publish:gitea
 
@@ -79,7 +87,7 @@ them in that order, since only the GitHub release builds images.
         git push gitea main
         git push gitea refs/tags/v0.1.0
 
-11. [ ] Update every install with the one-liner:
+12. [ ] Update every install with the one-liner:
 
         curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 

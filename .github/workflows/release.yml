@@ -1,5 +1,12 @@
 name: Release image
 
+# Builds and pushes the multi-arch image to GHCR, the registry the installer
+# defaults to.
+#
+# The Gitea registry is on a VPN, which a GitHub runner can never reach, so CI
+# does not touch it at all: `scripts/mirror-gitea.sh` copies a release into it
+# from the VPN side, in parallel and after the fact. Keeping the two apart is
+# what makes a registry outage unable to fail a release.
 on:
   release:
     types: [published]
@@ -30,13 +37,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Gitea
-        uses: docker/login-action@v3
-        with:
-          registry: git.tben.me
-          username: ${{ secrets.GITEA_USERNAME }}
-          password: ${{ secrets.GITEA_TOKEN }}
-
       # The version the app reports on Settings > General when the build
       # isn't a published release.
       - name: Read the source version
@@ -45,6 +45,11 @@ jobs:
           set -euo pipefail
           echo "version=$(sed -n -E 's/^[[:space:]]*"version": "([^"]+)",?$/\1/p' package.json | head -n1)" >> "$GITHUB_OUTPUT"
 
+      # The same four tags for every kind of build: a release gets its own
+      # version plus the moving `latest` and `major.minor`, so that
+      # scripts/mirror-gitea.sh can copy whichever of them still belong to
+      # it, and a dispatch build gets the commit tag only, since it is not a
+      # release and must not move `latest`.
       - name: Work out image tags
         id: tags
         env:
@@ -57,32 +62,24 @@ jobs:
           if [ "$EVENT" = "release" ] && [ -n "$RELEASE_TAG" ]; then
             version="$RELEASE_TAG"
             minor="$(printf '%s' "$version" | sed -E 's/^v?([0-9]+)\.([0-9]+).*/\1.\2/')"
-            ghcr="$(printf '%s\n' \
+            tags="$(printf '%s\n' \
               "ghcr.io/moduletrace/cobble:latest" \
               "ghcr.io/moduletrace/cobble:${version}" \
               "ghcr.io/moduletrace/cobble:${minor}" \
               "ghcr.io/moduletrace/cobble:${sha}")"
-            gitea="$(printf '%s\n' \
-              "git.tben.me/moduletrace/cobble:latest" \
-              "git.tben.me/moduletrace/cobble:${version}" \
-              "git.tben.me/moduletrace/cobble:${minor}" \
-              "git.tben.me/moduletrace/cobble:${sha}")"
           else
             version="$SOURCE_VERSION"
-            ghcr="ghcr.io/moduletrace/cobble:${sha}"
-            gitea="git.tben.me/moduletrace/cobble:${sha}"
+            tags="ghcr.io/moduletrace/cobble:${sha}"
           fi
           {
             echo "version=$version"
-            echo "ghcr<<EOF"
-            echo "$ghcr"
-            echo "EOF"
-            echo "gitea<<EOF"
-            echo "$gitea"
+            echo "tags<<EOF"
+            echo "$tags"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # The registry the installer defaults to, so this one must succeed.
+      # The only push CI makes. The installer defaults to this registry, so
+      # this step failing has to fail the release.
       - name: Build and push to GHCR
         uses: docker/build-push-action@v6
         with:
@@ -92,62 +89,8 @@ jobs:
           push: true
           build-args: |
             COBBLE_VERSION=${{ steps.tags.outputs.version }}
-          tags: ${{ steps.tags.outputs.ghcr }}
+          tags: ${{ steps.tags.outputs.tags }}
           provenance: false
           sbom: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      # The mirror's registry, from the image just built: no second build,
-      # and Cloudflare rate limiting git.tben.me (429/1015 on blob uploads)
-      # can never fail a release the installer depends on. It must still be
-      # loud: `continue-on-error` alone leaves the check green when the
-      # mirror does nothing at all, which is how the 413 below went unseen
-      # for four releases.
-      - name: Mirror to Gitea
-        id: mirror
-        continue-on-error: true
-        env:
-          GITEA_TAGS: ${{ steps.tags.outputs.gitea }}
-          GHCR_IMAGES: ${{ steps.tags.outputs.ghcr }}
-        run: |
-          set -uo pipefail
-          first_ghcr="$(printf '%s\n' "$GHCR_IMAGES" | head -n1)"
-          args=()
-          while IFS= read -r tag; do
-            [ -n "$tag" ] || continue
-            args+=(--tag "${tag}")
-          done <<< "$GITEA_TAGS"
-
-          output="$(mktemp)"
-          status=0
-          docker buildx imagetools create "${args[@]}" "${first_ghcr}" 2>&1 | tee "$output" || status=$?
-
-          if [ "$status" -eq 0 ]; then
-            {
-              echo "### Gitea mirror"
-              echo
-              echo "Mirrored \`${first_ghcr}\` to:"
-              echo
-              printf -- '- \`%s\`\n' $GITEA_TAGS
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          # The usual cause: git.tben.me sits behind Cloudflare, whose
-          # request-body cap is 100 MB, and this image has a 243 MiB
-          # `bun install` layer that no route through it can carry.
-          reason="$(grep -oE '[0-9]{3} [A-Za-z ]{0,40}' "$output" | tail -n1)"
-          {
-            echo "### Gitea mirror failed"
-            echo
-            echo "\`${first_ghcr}\` did **not** reach the Gitea registry. The release itself is fine: the installer defaults to GHCR."
-            echo
-            echo '```'
-            tail -n 12 "$output"
-            echo '```'
-            echo
-            echo "See the [registry push limits](https://developers.cloudflare.com/workers/platform/limits/): git.tben.me is behind Cloudflare, which refuses any request body over 100 MB, and this image's \`bun install\` layer alone is about 243 MiB."
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "::warning title=Gitea mirror failed::${reason:-docker buildx imagetools create failed}; the image did not reach git.tben.me. See the job summary."
-          exit "$status"

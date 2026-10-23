@@ -245,15 +245,16 @@ queue and Web Push.
 
 ## Images
 
-Every release publishes a multi-arch image to both registries:
+Every release publishes a multi-arch image to
+`ghcr.io/moduletrace/cobble`, which is what the installer pulls. Tags are
+`latest`, the release version, `major.minor` and the commit sha.
 
-- `ghcr.io/moduletrace/cobble`
-- `git.tben.me/moduletrace/cobble`
-
-Tags are `latest`, the release version, `major.minor` and the commit sha.
-Install from Gitea with
-`--image git.tben.me/moduletrace/cobble`, or build from source with
-`docker build -t cobble:local .` and `--image cobble --version local --no-pull`.
+The same image is copied into `git.tben.me/moduletrace/cobble` by
+`bun run mirror:gitea`, which runs after the build over the VPN (the Gitea
+registry is not on the public internet, so GitHub Actions cannot reach it).
+Install from Gitea with `--image git.tben.me/moduletrace/cobble`, or build
+from source with `docker build -t cobble:local .` and
+`--image cobble --version local --no-pull`.
 
 A release is published from a clean `main` with the two scripts, which tag the
 `package.json` version, push and create the release objects:
@@ -264,7 +265,9 @@ scripts/publish-gitea.sh    # or: bun run publish:gitea
 ```
 
 Both take `--version VERSION`, `--dry-run` and `--yes`. Only the GitHub release
-builds the image; see [RELEASING.md](RELEASING.md) for the full checklist.
+builds the image, and the Gitea registry is filled in afterwards, once that
+build has finished and from the VPN, by `bun run mirror:gitea`; see
+[RELEASING.md](RELEASING.md) for the full checklist.
 
 ## Development
 

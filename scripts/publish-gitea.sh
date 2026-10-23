@@ -8,9 +8,10 @@
 # creates the Gitea release over the API.
 #
 # Gitea has no release workflow, so nothing is built here: the image is built
-# once by .github/workflows/release.yml and mirrored to
-# git.tben.me/moduletrace/cobble. This script only publishes the source and
-# the release object.
+# once by .github/workflows/release.yml and copied into the Gitea registry by
+# scripts/mirror-gitea.sh, run from the VPN side, since a GitHub runner can
+# never reach it. This script only publishes the source and the release
+# object.
 #
 # The token comes from GITEA_TOKEN, or from the Gitea section of ~/.config/tea
 # if the tea CLI is installed. It needs the `write:repository` scope on the
@@ -221,6 +222,5 @@ else
 fi
 
 print_release_summary "$REMOTE" "$BRANCH" "https://${REMOTE_HOST}/${REPO_SLUG}/releases/tag/$TAG"
-printf '\nThe image is built by the GitHub release; mirror it into the Gitea registry with:\n'
-printf '    docker buildx imagetools create --tag git.tben.me/moduletrace/cobble:latest \\\n'
-printf '        ghcr.io/moduletrace/cobble:latest\n'
+printf '\nThe image is built by the GitHub release, which cannot reach this registry.\nOnce that build has finished, copy it in over the VPN with:\n'
+printf '    bun run mirror:gitea\n'

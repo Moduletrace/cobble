@@ -4,6 +4,7 @@ import path from "path";
 const ROOT = path.join(import.meta.dir, "..");
 const COMMON = path.join(ROOT, "scripts/lib/publish-common.sh");
 const RELEASE = path.join(ROOT, "scripts/lib/publish-release.sh");
+const MIRROR = path.join(ROOT, "scripts/mirror-gitea.sh");
 const SCRIPTS = [
     path.join(ROOT, "scripts/publish-github.sh"),
     path.join(ROOT, "scripts/publish-gitea.sh"),
@@ -99,12 +100,20 @@ async function pathWithoutJq(): Promise<string> {
 }
 
 describe("publish scripts syntax", () => {
-    for (const script of [...SCRIPTS, COMMON, RELEASE]) {
+    for (const script of [...SCRIPTS, MIRROR, COMMON, RELEASE]) {
         test(`${path.relative(ROOT, script)} parses`, async () => {
             const proc = Bun.spawn({ cmd: ["bash", "-n", script] });
             expect(await proc.exited).toBe(0);
         });
     }
+
+    test("the mirror script sources the shared libraries", async () => {
+        const source = await Bun.file(MIRROR).text();
+
+        expect(source).toContain('SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"');
+        expect(source).toContain('. "$SCRIPT_DIR/lib/publish-common.sh"');
+        expect(source).toContain('. "$SCRIPT_DIR/lib/publish-release.sh"');
+    });
 
     test("both publish scripts source the shared library", async () => {
         for (const script of SCRIPTS) {
@@ -138,6 +147,156 @@ describe("publish scripts remote wiring", () => {
         const source = await Bun.file(SCRIPTS[1]!).text();
 
         expect(source).toContain("The image is built by the GitHub release");
+    });
+});
+
+describe("mirror script wiring", () => {
+    test("CI never pushes to the Gitea registry", async () => {
+        const workflow = await Bun.file(
+            path.join(ROOT, ".github/workflows/release.yml"),
+        ).text();
+
+        expect(workflow).not.toContain("git.tben.me");
+        expect(workflow).not.toContain("GITEA_TOKEN");
+        expect(workflow).not.toContain("imagetools create");
+        expect(workflow).toContain("Build and push to GHCR");
+    });
+
+    test("the mirror script copies every tag the workflow publishes", async () => {
+        const [workflow, mirror] = await Promise.all([
+            Bun.file(path.join(ROOT, ".github/workflows/release.yml")).text(),
+            Bun.file(MIRROR).text(),
+        ]);
+
+        // The workflow's own four tags, so a mirror tag can never be invented
+        // here and go missing there.
+        for (const tag of ["latest", "${version}", "${minor}", "${sha}"]) {
+            expect(workflow).toContain(tag);
+        }
+        expect(mirror).toContain("mirror_minor_tag");
+        expect(mirror).toContain("mirror_sha_tag");
+        expect(mirror).toContain("mirror_fixed_tags");
+        expect(mirror).toContain("mirror_moving_tags");
+    });
+
+    test("the mirror script asks before copying and verifies each digest", async () => {
+        const source = await Bun.file(MIRROR).text();
+
+        expect(source).toContain("confirm \"Mirror $TAG into");
+        expect(source).toContain("mirror_digest_on_host");
+        expect(source).toContain("skopeo");
+        expect(source).toContain("--all");
+    });
+
+    test("the pull command it prints names the public host, not the docker one", async () => {
+        const source = await Bun.file(MIRROR).text();
+
+        // The copy reaches the registry by docker network name, which is not
+        // resolvable for an install; printing that would hand out a broken
+        // command.
+        expect(source).toContain("MIRROR_REGISTRY_PUBLIC_HOST");
+        expect(source).toContain('"$REGISTRY_PUBLIC_HOST" "$REGISTRY_REPO" "$TAG"');
+        expect(source).not.toContain('"${REGISTRY_HOST%%:*}" "$REGISTRY_REPO" "$TAG"');
+    });
+
+    test("without a token the mirror script refuses instead of guessing", async () => {
+        const proc = Bun.spawn({
+            cmd: ["bash", MIRROR, "--yes"],
+            cwd: ROOT,
+            env: { ...process.env, GITEA_TOKEN: "" },
+            stdout: "pipe",
+            stderr: "pipe",
+        });
+        const [stderr, code] = await Promise.all([
+            new Response(proc.stderr).text(),
+            proc.exited,
+        ]);
+
+        expect(code).toBe(1);
+        expect(stderr).toContain("No Gitea token");
+    });
+});
+
+describe("mirror lib tag handling", () => {
+    test("major.minor is read exactly as the release workflow reads it", async () => {
+        const block = await blockCaller({ file: MIRROR, name: "mirror-tags" });
+
+        for (const [version, expected] of [
+            ["v0.1.5", "0.1"],
+            ["v1.2.3", "1.2"],
+            ["v10.20.30", "10.20"],
+            ["v0.1.5-rc.1", "0.1"],
+        ] as const) {
+            const out = await runBash({
+                script: [block, `mirror_minor_tag '${version}'`].join("\n"),
+            });
+            expect(out).toBe(expected);
+        }
+    });
+
+    test("fixed tags are the version and its commit, moving ones the rest", async () => {
+        const block = await blockCaller({ file: MIRROR, name: "mirror-tags" });
+
+        const fixed = await runBash({
+            script: [block, "mirror_fixed_tags v0.1.5"].join("\n"),
+        });
+        expect(fixed.split("\n")[0]).toBe("v0.1.5");
+
+        const moving = await runBash({
+            script: [block, "mirror_moving_tags v0.1.5"].join("\n"),
+        });
+        expect(moving.split("\n")).toEqual(["latest", "0.1"]);
+    });
+
+    test("a tag with no commit on disk still mirrors its version", async () => {
+        const block = await blockCaller({ file: MIRROR, name: "mirror-tags" });
+
+        const out = await runBash({
+            script: [block, "mirror_fixed_tags v99.99.99"].join("\n"),
+        });
+
+        expect(out).toBe("v99.99.99");
+    });
+});
+
+describe("mirror lib moving tag guard", () => {
+    test("a release may move latest while it owns it", async () => {
+        const block = await blockCaller({ file: MIRROR, name: "mirror-guard" });
+
+        const out = await runBash({
+            script: [
+                block,
+                'mirror_owns_moving_tags sha256:aa sha256:aa && printf owns',
+            ].join("\n"),
+        });
+
+        expect(out).toBe("owns");
+    });
+
+    test("a newer release's latest is never rolled back", async () => {
+        const block = await blockCaller({ file: MIRROR, name: "mirror-guard" });
+
+        const out = await runBash({
+            script: [
+                block,
+                'if mirror_owns_moving_tags sha256:aa sha256:bb; then printf owns; else printf refuses; fi',
+            ].join("\n"),
+        });
+
+        expect(out).toBe("refuses");
+    });
+
+    test("with no latest to compare, the release is taken as newest", async () => {
+        const block = await blockCaller({ file: MIRROR, name: "mirror-guard" });
+
+        const out = await runBash({
+            script: [
+                block,
+                'mirror_owns_moving_tags sha256:aa "" && printf owns',
+            ].join("\n"),
+        });
+
+        expect(out).toBe("owns");
     });
 });
 
