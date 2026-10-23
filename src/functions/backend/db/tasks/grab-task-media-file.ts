@@ -30,7 +30,10 @@ export default async function grabTaskMediaFile({
 
     if (!link?.task_id) return null;
 
-    const access = taskScopesSql({ role: await grabCrewRole({ user_id }), user_id });
+    const access = taskScopesSql({
+        role: await grabCrewRole({ user_id }),
+        user_id,
+    });
 
     const task = (
         await BunSQLite.sql<{ id: number }>({

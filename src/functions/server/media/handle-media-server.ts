@@ -16,9 +16,9 @@ type Params = {
  *
  * There is no public media. Every URL is private, so the request has to be
  * signed in and the user has to reach the file (`grabUserMedia` decides
- * that: their own upload, a bot's or workspace's file or picture they can
- * chat with, a file on one of their tasks). Anything else is answered with
- * a 404, never with the file.
+ * that: their own upload, any profile photo, bot picture or workspace
+ * picture, a bot's or workspace's file they can reach, a file on one of
+ * their tasks). Anything else is answered with a 404, never with the file.
  */
 export default async function handleMediaServer({
     req,

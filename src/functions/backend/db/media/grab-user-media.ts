@@ -15,8 +15,8 @@ type Params = {
  * gate in front of the file on disk:
  *
  * - the user's own uploads (`media.user_id`),
- * - a bot's or workspace's picture, to whoever reaches that bot or
- *   workspace (`grabSharedPictureMedia`),
+ * - a picture every signed-in user may see: a member's current profile
+ *   photo, a bot's picture, a workspace's picture (`grabSharedPictureMedia`),
  * - a bot's or workspace's file, to whoever reaches the folder it lives in
  *   (`grabBotFileMedia`),
  * - a file attached to a task, to whoever reaches the task
@@ -48,7 +48,7 @@ export default async function grabUserMedia({
 
     return (
         own.singleRes ||
-        (await grabSharedPictureMedia({ media_id, user_id })) ||
+        (await grabSharedPictureMedia({ media_id })) ||
         (await grabBotFileMedia({ media_id, user_id })) ||
         (await grabTaskMediaFile({ media_id, user_id })) ||
         undefined

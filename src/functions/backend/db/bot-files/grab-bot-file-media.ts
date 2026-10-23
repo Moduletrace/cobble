@@ -35,7 +35,12 @@ export default async function grabBotFileMedia({
     const role = await grabCrewRole({ user_id });
     const reaches =
         file.scope == "workspace"
-            ? Boolean(await grabUserWorkspace({ workspace_id: file.owner_id!, user_id }))
+            ? Boolean(
+                  await grabUserWorkspace({
+                      workspace_id: file.owner_id!,
+                      user_id,
+                  }),
+              )
             : role == "super_admin"
               ? true
               : Boolean(await grabUserBot({ bot_id: file.owner_id!, user_id }));

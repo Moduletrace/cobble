@@ -1,40 +1,31 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_MEDIA, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import grabUserBot from "../bots/grab-user-bot";
-import grabUserWorkspace from "../workspaces/grab-user-workspace";
+import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
+import sharedPictureMediaSql from "./shared-picture-media-sql";
 
 type Params = {
     media_id: number | string;
-    user_id: number | string;
 };
 
 /**
- * A bot's or workspace's picture (private media, uploaded by whoever set
- * it) for a user who reaches that bot or workspace, or null. Bots and
- * workspaces belong to the install, so their pictures show to everyone
- * who sees them.
+ * A picture every signed-in user may see - a member's current profile photo,
+ * a bot's picture, a workspace's picture (`sharedPictureMediaSql`) - or
+ * null when this media is something else.
+ *
+ * Which crew the viewer reaches plays no part: bots and workspaces belong to
+ * the install, and people know each other by their photo, so a picture is
+ * shared with everyone signed in. Everything a picture must not expose (a
+ * bot's files, a task's deliverable, someone's chat upload) stays behind
+ * its own check, and a removed picture stops being shared as soon as no
+ * user, bot or workspace points at it.
  */
-export default async function grabSharedPictureMedia({ media_id, user_id }: Params) {
-    const [bot, workspace] = await Promise.all([
-        BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
-            sql: `SELECT id FROM bots WHERE image_media_id = ? LIMIT 1`,
-            values: [media_id],
-        }).then((res) => res.payload?.[0]),
-        BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACES>({
-            sql: `SELECT id FROM workspaces WHERE image_media_id = ? LIMIT 1`,
-            values: [media_id],
-        }).then((res) => res.payload?.[0]),
-    ]);
+export default async function grabSharedPictureMedia({ media_id }: Params) {
+    if (!media_id) return null;
 
-    const allowed =
-        (bot?.id && (await grabUserBot({ bot_id: bot.id, user_id }))?.id) ||
-        (workspace?.id && (await grabUserWorkspace({ workspace_id: workspace.id, user_id }))?.id);
-
-    if (!allowed) return null;
+    const condition = sharedPictureMediaSql({ alias: "m" });
 
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_MEDIA>({
-        sql: `SELECT * FROM media WHERE id = ? LIMIT 1`,
-        values: [media_id],
+        sql: `SELECT m.* FROM media m WHERE m.id = ? AND COALESCE(m.archived, 0) <> 1 AND ${condition.sql} LIMIT 1`,
+        values: [media_id, ...condition.values],
     });
 
     return res.payload?.[0] || null;
