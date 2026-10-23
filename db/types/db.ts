@@ -146,6 +146,9 @@ export type BUN_SQLITE_COBBLE_MEDIA = {
     media_write_path?: string;
     media_thumbnail_write_path?: string;
     mime_type?: string;
+    /** 
+     * For text content only. Raw binary text is not allowed.
+     */
     text_content?: string;
     is_primary?: 0 | 1 | "";
     is_rag_ingested?: 0 | 1 | "";

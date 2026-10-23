@@ -19,12 +19,24 @@ import { Harnesses } from "@/src/dict/harness-dict";
 import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
 import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
-import { BotFilePurposes, BotFileScopes, BotFileSources } from "@/src/dict/bot-file-dict";
+import {
+    BotFilePurposes,
+    BotFileScopes,
+    BotFileSources,
+} from "@/src/dict/bot-file-dict";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms } from "@/src/dict/env-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
-import { CustomToolKinds, CustomToolStatuses } from "@/src/dict/custom-tool-dict";
-import { TaskAuthors, TaskMediaKinds, TaskOrigins, TaskStatuses } from "@/src/dict/task-dict";
+import {
+    CustomToolKinds,
+    CustomToolStatuses,
+} from "@/src/dict/custom-tool-dict";
+import {
+    TaskAuthors,
+    TaskMediaKinds,
+    TaskOrigins,
+    TaskStatuses,
+} from "@/src/dict/task-dict";
 
 const schema: BUN_SQLITE_DatabaseSchemaType = {
     tables: [
@@ -148,6 +160,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "text_content",
                     dataType: "TEXT",
+                    fieldDescription: `For text content only. Raw binary text is not allowed.`,
                 },
                 {
                     fieldName: "is_primary",
@@ -363,7 +376,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     indexName: "idx_bot_sessions_user_id",
-                    indexTableFields: ["user_id", "bot_id", "workspace_id", "status"],
+                    indexTableFields: [
+                        "user_id",
+                        "bot_id",
+                        "workspace_id",
+                        "status",
+                    ],
                 },
             ],
         },
@@ -490,7 +508,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             uniqueConstraints: [
                 {
                     alias: "one_reaction_per_message_user_emoji",
-                    constraintName: "A user reacts to a message once with the same emoji",
+                    constraintName:
+                        "A user reacts to a message once with the same emoji",
                     constraintTableFields: [
                         { value: "message_id" },
                         { value: "user_id" },
@@ -499,7 +518,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     alias: "one_reaction_per_message_bot_emoji",
-                    constraintName: "A bot reacts to a message once with the same emoji",
+                    constraintName:
+                        "A bot reacts to a message once with the same emoji",
                     constraintTableFields: [
                         { value: "message_id" },
                         { value: "bot_id" },
@@ -614,7 +634,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "tasks",
-            tableDescription: `The crew's to-do list: work that is tracked until it's done, one collection per bot and one per workspace (exactly one of \`bot_id\` and \`workspace_id\` is set). A workspace's tasks are visible to every bot working there and to the coordinator; the coordinator reaches every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`, 
+            tableDescription: `The crew's to-do list: work that is tracked until it's done, one collection per bot and one per workspace (exactly one of \`bot_id\` and \`workspace_id\` is set). A workspace's tasks are visible to every bot working there and to the coordinator; the coordinator reaches every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
             fields: [
                 {
                     fieldName: "bot_id",
@@ -748,7 +768,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_link_per_task_media",
                     constraintName: "A file is linked to a task once",
-                    constraintTableFields: [{ value: "task_id" }, { value: "media_id" }],
+                    constraintTableFields: [
+                        { value: "task_id" },
+                        { value: "media_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -1924,7 +1947,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableName: "workspaces",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "workspace_harness_settings_workspace_fk",
+                        foreignKeyName:
+                            "workspace_harness_settings_workspace_fk",
                     },
                 },
                 {
@@ -2216,7 +2240,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_mcp_server_per_bot",
                     constraintName: "A bot gets an MCP server once",
-                    constraintTableFields: [{ value: "bot_id" }, { value: "mcp_server_id" }],
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "mcp_server_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -2257,7 +2284,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_mcp_server_per_workspace",
                     constraintName: "A workspace gets an MCP server once",
-                    constraintTableFields: [{ value: "workspace_id" }, { value: "mcp_server_id" }],
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "mcp_server_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -2298,7 +2328,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_custom_tool_per_bot",
                     constraintName: "A bot gets a custom tool once",
-                    constraintTableFields: [{ value: "bot_id" }, { value: "custom_tool_id" }],
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "custom_tool_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -2331,7 +2364,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableName: "custom_tools",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "workspace_custom_tools_custom_tools_fk",
+                        foreignKeyName:
+                            "workspace_custom_tools_custom_tools_fk",
                     },
                 },
             ],
@@ -2339,7 +2373,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_custom_tool_per_workspace",
                     constraintName: "A workspace gets a custom tool once",
-                    constraintTableFields: [{ value: "workspace_id" }, { value: "custom_tool_id" }],
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "custom_tool_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -2380,7 +2417,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_skill_per_bot",
                     constraintName: "A bot gets a skill once",
-                    constraintTableFields: [{ value: "bot_id" }, { value: "skill_id" }],
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "skill_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -2421,7 +2461,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_skill_per_workspace",
                     constraintName: "A workspace gets a skill once",
-                    constraintTableFields: [{ value: "workspace_id" }, { value: "skill_id" }],
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "skill_id" },
+                    ],
                 },
             ],
             indexes: [
@@ -2755,7 +2798,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_file_per_path",
                     constraintName: "One file per directory and path",
-                    constraintTableFields: [{ value: "scope" }, { value: "owner_id" }, { value: "path" }],
+                    constraintTableFields: [
+                        { value: "scope" },
+                        { value: "owner_id" },
+                        { value: "path" },
+                    ],
                 },
             ],
             indexes: [
