@@ -1,5 +1,4 @@
 import {
-    Bell,
     BookOpen,
     Bot,
     CpuAi,
@@ -47,11 +46,6 @@ export const SettingsPages: SettingsPage[] = [
         Icon: SlidersHorizontal,
     },
     { title: "Profile", url: "/admin/settings/profile", Icon: UserRound },
-    {
-        title: "Notifications",
-        url: "/admin/settings/notifications",
-        Icon: Bell,
-    },
     {
         title: "Change password",
         url: "/admin/settings/change-password",

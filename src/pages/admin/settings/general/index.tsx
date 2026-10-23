@@ -1,4 +1,5 @@
 import AppearanceSection from "./(sections)/appearance-section";
+import NotificationsSection from "./(sections)/notifications-section";
 import PromptSection from "./(sections)/prompt-section";
 import StorageSection from "./(sections)/storage-section";
 import VersionSection from "./(sections)/version-section";
@@ -12,6 +13,7 @@ export default function AdminSettingsGeneralPage() {
             description="How the app looks and behaves."
         >
             <AppearanceSection />
+            <NotificationsSection />
             <PromptSection />
             <StorageSection />
             <VersionSection />

@@ -42,7 +42,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             payload: {
                 title: `${SiteData["SiteName"]} notifications are on`,
                 body: "This is what a bot's message will look like.",
-                url: "/admin/settings/notifications",
+                url: "/admin/settings/general",
                 tag: "cobble-test",
             },
         });
