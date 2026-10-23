@@ -39,7 +39,6 @@ export default function BotSettingsSection() {
                     ? "Coordinates your crew and hands work to it"
                     : "A worker bot.")
             }
-            breadcrumb_title={name}
         >
             <BotOverviewGroup bot={bot} />
             <BotDetailsGroup

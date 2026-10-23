@@ -39,7 +39,6 @@ export default function UserSettingsSection() {
             description={
                 types_title || person.email || "A user on this install."
             }
-            breadcrumb_title={name}
         >
             <UserOverviewGroup
                 person={person}

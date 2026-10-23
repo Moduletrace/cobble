@@ -4,7 +4,10 @@ import settingsPageMeta from "../(functions)/settings-page-meta";
 
 export default function AdminSettingsMcpsPage() {
     return (
-        <SettingsShell title="MCPs" description="MCP servers whose tools your bots can use.">
+        <SettingsShell
+            title="MCPs"
+            description="MCP servers whose tools your bots can use."
+        >
             <McpsSettingsSection />
         </SettingsShell>
     );

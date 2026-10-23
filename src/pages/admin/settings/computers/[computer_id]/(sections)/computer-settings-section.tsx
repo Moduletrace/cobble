@@ -45,7 +45,6 @@ export default function ComputerSettingsSection() {
                 computer.description ||
                 "Its container, the bots that reach it, and its workspaces."
             }
-            breadcrumb_title={name}
         >
             <ComputerOverviewGroup computer={computer} />
             {is_super_admin ? (

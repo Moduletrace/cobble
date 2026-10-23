@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import Stack from "@moduletrace/twui/layout/Stack";
-import SettingsBreadcrumbs from "./settings-breadcrumbs";
+import AdminBreadcrumbs from "@/src/components/general/admin-breadcrumbs";
+import { AppContext } from "@/src/pages/__root";
 import SettingsPaneHeader from "./settings-pane-header";
 
 type Props = {
@@ -13,27 +14,25 @@ type Props = {
      */
     wide?: boolean;
     /**
-     * A nested record page's name, for its breadcrumb trail.
-     */
-    breadcrumb_title?: string;
-    /**
      * Controls at the end of the pane header, e.g. a settings link.
      */
     action?: ReactNode;
 };
 
 /**
- * The settings pane beside the rail: a 64px header like the conversation
- * header, then one readable column that scrolls on its own.
+ * The pane beside the rail: a 64px header like the conversation header,
+ * then one readable column that scrolls on its own, opening with the
+ * breadcrumb trail above the page.
  */
 export default function SettingsShell({
     title,
     description,
     children,
     wide,
-    breadcrumb_title,
     action,
 }: Props) {
+    const { pageProps } = useContext(AppContext);
+
     return (
         <Stack className="grow min-w-0 h-full gap-0! items-stretch">
             <SettingsPaneHeader
@@ -48,9 +47,15 @@ export default function SettingsShell({
                         wide && "max-w-[1200px]",
                     )}
                 >
-                    {breadcrumb_title ? (
-                        <SettingsBreadcrumbs title={breadcrumb_title} />
-                    ) : null}
+                    {/**
+                     * The page's own `title` names the last crumb: the
+                     * address would say the id of a record, or a slug that
+                     * differs from the name the page shows.
+                     */}
+                    <AdminBreadcrumbs
+                        pathname={pageProps?.url?.pathname}
+                        title={title}
+                    />
                     {children}
                 </Stack>
             </Stack>

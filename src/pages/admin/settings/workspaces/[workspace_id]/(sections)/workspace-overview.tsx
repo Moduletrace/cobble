@@ -50,7 +50,6 @@ export default function WorkspaceOverview() {
                 workspace.description ||
                 "Context, bots, computers and models for this workspace."
             }
-            breadcrumb_title={name}
         >
             <WorkspaceImageGroup workspace={workspace} />
             <WorkspaceDetailsGroup workspace={workspace} onSaved={setWorkspace} />
