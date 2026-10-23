@@ -8,6 +8,7 @@ import type { BotMessageAttachment } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import attachmentFileKind from "@/src/utils/attachment-file-kind";
 import bufferFromBase64 from "@/src/utils/buffer-from-base-64";
+import canExtractText from "@/src/utils/can-extract-text";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import safeErrorMessage from "@/src/utils/safe-error-message";
@@ -64,7 +65,7 @@ export const handler: BunextAPIRouteHandler<
             media_mime_type: ext,
             media_paradigms: ["bot-attachment"],
             media: { title: name },
-            extract_media_text_content: media_type == "document",
+            extract_media_text_content: canExtractText({ name, mime_type: mime }),
             user: { id: Number(user.id) },
         }).catch(async (error) => {
             await logError({ title: `Attachment ${name} couldn't be saved`, error }).catch(() => {});

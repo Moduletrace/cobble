@@ -1,5 +1,6 @@
 import type { MediaType } from "@/src/types";
 import { BotImageFileExtensions } from "@/src/dict/bot-file-dict";
+import extensionOf from "@/src/utils/extension-of";
 
 type Params = {
     /**
@@ -27,19 +28,10 @@ export default function mediaTypeForFile({ name, mime_type }: Params): MediaType
 }
 
 /**
- * Its extension, lower case, without the dot.
+ * Its extension, lower case, without the dot. Shared, so the storage
+ * catalog and the text extractor read a name the same way.
  */
-export function extensionOf({ name, mime_type }: Params) {
-    const from_name = name?.includes(".") ? name.split(".").pop() : undefined;
-
-    if (from_name) return from_name.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-    const from_mime = mime_type && !mime_type.includes("octet-stream")
-        ? mime_type.split("/").pop()
-        : undefined;
-
-    return from_mime ? from_mime.toLowerCase().replace(/[^a-z0-9]/g, "") : undefined;
-}
+export { extensionOf };
 
 /**
  * A MIME type for the row, from the extension when there isn't one.

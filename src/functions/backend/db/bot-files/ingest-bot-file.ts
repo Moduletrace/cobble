@@ -57,7 +57,13 @@ export default async function ingestBotFile({
           }).then((res) => res.payload?.[0])
         : undefined;
 
-    if (Number(file.size) > AppData.IngestMaxBytes && !media?.text_content) {
+    /**
+     * Decided on the file's size alone. A cached `text_content` is not a
+     * reason to read an oversized file: it was only ever a slice of it,
+     * and taking it as the whole document made a file too big to unpack
+     * look already read.
+     */
+    if (Number(file.size) > AppData.IngestMaxBytes) {
         await BunSQLite.sql({
             sql: `UPDATE bot_files SET ingest_error = ?, updated_at = ? WHERE id = ?`,
             values: [`Too large to read (over ${AppData.IngestMaxBytes / (1024 * 1024)} MB).`, Date.now(), file.id],

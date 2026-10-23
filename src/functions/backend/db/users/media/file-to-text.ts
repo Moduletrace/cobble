@@ -36,9 +36,15 @@ export default async function fileToText({
         buffer = file_path
             ? Buffer.from(await Bun.file(file_path).arrayBuffer())
             : file_stream;
-        ext = (file_type || file_path?.split(".").pop() || "txt")
-            .toString()
-            .toLowerCase();
+        const known_ext = file_type || file_path?.split(".").pop();
+
+        /**
+         * No extension and no type: nothing says this is text, so nothing
+         * gets decoded. Guessing "txt" is how a binary became text.
+         */
+        if (!known_ext) return undefined;
+
+        ext = known_ext.toString().toLowerCase();
     }
 
     if (!buffer) return undefined;
@@ -76,9 +82,32 @@ export default async function fileToText({
         //     }).join("\n\n");
         // }
 
-        case "md":
+        /**
+         * The text types read as they are. Listed one by one, never a
+         * catch-all: decoding a zip, an SVG or a spreadsheet as UTF-8
+         * fills the media row with raw bytes instead of text.
+         */
         case "txt":
-        default:
+        case "text":
+        case "md":
+        case "markdown":
+        case "csv":
+        case "tsv":
+        case "json":
+        case "html":
+        case "htm":
+        case "xml":
+        case "yml":
+        case "yaml":
+        case "log":
             return buffer.toString("utf-8");
+
+        default:
+            /**
+             * Nothing readable locally: the caller decides whether to read
+             * it another way (an image or audio through the harness) or to
+             * leave its text unset.
+             */
+            return undefined;
     }
 }

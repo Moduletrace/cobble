@@ -1,3 +1,4 @@
+import { BotTextFileExtensions } from "@/src/dict/bot-file-dict";
 import fileToText from "@/src/functions/backend/db/users/media/file-to-text";
 import AppError from "@/src/utils/app-error";
 import transcribeAudio from "../audio/transcribe-audio";
@@ -24,7 +25,11 @@ type Params = {
     workspace_id?: number | string | null;
 };
 
-const DocumentExtensions = ["pdf", "docx", "txt", "md", "csv", "json", "html", "xml", "yaml", "yml"];
+/**
+ * One list, the same one the local extractor reads: keeping a second copy
+ * here is how a type got read by one and silently missed by the other.
+ */
+const DocumentExtensions: readonly string[] = BotTextFileExtensions;
 
 const TypeExtensions: Record<string, string> = {
     "application/pdf": "pdf",

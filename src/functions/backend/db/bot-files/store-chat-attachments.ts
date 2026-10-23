@@ -1,4 +1,3 @@
-import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import { BotUploadFolder } from "@/src/dict/bot-file-dict";
 import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
@@ -44,6 +43,13 @@ export default async function storeChatAttachments({
              */
             const name = safeName({ name: file.title || `file-${file.id}` });
 
+            /**
+             * The text stays on the message's own `bot-attachment` row,
+             * where a reply reads it. Copying it onto the file's row kept
+             * the same text twice and left the copy behind when the
+             * upload was pruned; ingestion re-reads the bytes once
+             * through `extractBotFileText` instead.
+             */
             const saved = await recordBotFile({
                 bot_id,
                 scope: workspace_id ? "workspace" : "bot",
@@ -56,17 +62,6 @@ export default async function storeChatAttachments({
                 mime_type: file.mime_type || undefined,
                 user_id,
             });
-
-            /**
-             * The same text the upload already extracted, so a PDF isn't
-             * unpacked a second time.
-             */
-            if (file.text_content && saved.media_id) {
-                await BunSQLite.sql({
-                    sql: `UPDATE media SET text_content = ? WHERE id = ?`,
-                    values: [file.text_content, saved.media_id],
-                }).catch(() => {});
-            }
 
             await enqueueFileIngest({ file_id: saved.id! });
         } catch (error) {

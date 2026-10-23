@@ -389,6 +389,13 @@ export const AppData = {
     BotAttachmentMaxFiles: 6,
     BotAttachmentMaxTextChars: 20000,
     /**
+     * How much of a document's text is kept on its `media` row. A ceiling
+     * on the column itself: without it a 20 MB PDF left 20 MB of text in
+     * the database, even though a reply reads at most
+     * `BotAttachmentMaxTextChars` of it.
+     */
+    BotAttachmentTextStoreMaxChars: 200000,
+    /**
      * Only this many of the latest messages with files hand the files
      * themselves to a reply; older ones are named.
      */

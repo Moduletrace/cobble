@@ -27,7 +27,10 @@ export default async function loadAttachmentParts({ messages }: Params) {
         .slice(-AppData.BotReplyAttachmentMessages)
         .map((message) => Number(message.id));
 
-    const media = await grabMessagesMedia({ message_ids: recent });
+    const media = await grabMessagesMedia({
+        message_ids: recent,
+        with_text_content: true,
+    });
     const parts = new Map<number, HarnessContentPart[]>();
 
     for (const [message_id, files] of media) {

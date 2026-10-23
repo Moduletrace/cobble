@@ -17,6 +17,8 @@ import BunSQLite, { type APIResponseObject } from "@moduletrace/bun-sqlite";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
 import sharp from "sharp";
+import canExtractText from "@/src/utils/can-extract-text";
+import capTextContent from "@/src/utils/cap-text-content";
 import fileToText from "./file-to-text";
 import MediaDataToArrayBuffer from "./media-data-to-array-buffer";
 import sniffMediaExtension from "./sniff-media-ext";
@@ -180,14 +182,22 @@ export default async function uploadAndRecordMedia({
             mode: 1,
         });
 
-        if (extract_media_text_content) {
+        /**
+         * Only an extension the extractor really unpacks is read: any
+         * other binary has no text, and decoding it anyway stored raw
+         * bytes in the row.
+         */
+        if (
+            extract_media_text_content &&
+            canExtractText({ name: media_name, mime_type: media_mime_type })
+        ) {
             const media_text = await fileToText({
                 file_type: media_ext,
                 file_stream: Buffer.from(media_array_buffer),
             });
 
             if (media_text) {
-                media_text_content = media_text;
+                media_text_content = capTextContent({ text: media_text });
             }
         }
     }

@@ -1,4 +1,6 @@
+import type { BunSQLiteTables, BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
+import sanitizeMediaRowTextContent from "@/src/functions/backend/db/media/sanitize-media-row-text-content";
 import type { AdminCrudAPIParams } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
@@ -29,9 +31,21 @@ export default async function (
         targetId = user.id;
     }
 
+    /**
+     * The row it replaces decides whether the new text belongs there, so
+     * an update that only sends `text_content` is judged on the file's
+     * real name and type.
+     */
+    const existing = targetId
+        ? await BunSQLite.select<BUN_SQLITE_COBBLE_MEDIA, (typeof BunSQLiteTables)[number]>({
+              table,
+              query: { query: { id: { value: targetId } } },
+          }).then((res) => res.payload?.[0] || null)
+        : null;
+
     const PUT = await BunSQLite.update({
         table,
-        data: body?.update_data,
+        data: sanitizeMediaRowTextContent({ row: body.update_data, existing }),
         targetId,
         query: final_sql_query,
     });

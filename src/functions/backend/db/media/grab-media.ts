@@ -6,6 +6,7 @@ import BunSQLite, { type APIResponseObject } from "@moduletrace/bun-sqlite";
 import type { SQLInsertGenValueType } from "@moduletrace/bun-sqlite";
 import _ from "lodash";
 import appendUsersToMedia from "./append-users-to-media";
+import mediaColumns from "./media-columns";
 
 type Params = {
     query?: ApiReqParams;
@@ -23,7 +24,7 @@ export default async function grabMedia(
         const hasParadigms = Boolean(query?.media_paradigms?.length);
 
         let sql = `SELECT\n`;
-        sql += `    m.*,\n`;
+        sql += `    ${mediaColumns({ alias: "m" })},\n`;
         sql += `    GROUP_CONCAT(DISTINCT mp.media_paradigm) AS media_paradigms\n`;
         sql += `FROM media m\n`;
         sql += `LEFT JOIN media_paradigms mp ON m.id = mp.media_id\n`;

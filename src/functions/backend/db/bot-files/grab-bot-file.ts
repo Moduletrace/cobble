@@ -3,6 +3,7 @@ import type {
     BUN_SQLITE_COBBLE_BOT_FILES,
     BUN_SQLITE_COBBLE_MEDIA,
 } from "@/db/types/db";
+import mediaColumns from "@/src/functions/backend/db/media/media-columns";
 import { canReachScope, type StorageScope } from "@/src/utils/storage-access";
 
 type Params = {
@@ -59,7 +60,7 @@ export default async function grabBotFile({
 
     const media = file.media_id
         ? await BunSQLite.sql<BUN_SQLITE_COBBLE_MEDIA>({
-              sql: `SELECT * FROM media WHERE id = ? LIMIT 1`,
+              sql: `SELECT ${mediaColumns({ alias: "m" })} FROM media m WHERE m.id = ? LIMIT 1`,
               values: [file.media_id],
           }).then((r) => r.payload?.[0] || null)
         : null;
