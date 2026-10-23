@@ -27,6 +27,7 @@ import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
 import nameBotSession from "./name-bot-session";
 import pushBotSession from "./push-bot-session";
+import { registerJobAbort, unregisterJobAbort } from "./job-abort-registry";
 import type { BotJobUpdateData } from "@/src/types";
 import type { BotJobContext, BotJobRunner } from "./types";
 
@@ -80,11 +81,6 @@ export default async function processBotJob({
      */
     const user_id = await grabJobUserId({ job }).catch(() => null);
 
-    const setFace = async (face: Omit<Parameters<typeof setBotFace>[0], "bot_id" | "user_id">) => {
-        if (!user_id) return;
-
-        await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
-    };
     const controller = new AbortController();
     /**
      * The deadline is the one abort that is a failure, not a cancellation:
@@ -93,6 +89,25 @@ export default async function processBotJob({
      */
     const timeout_message = `"${job.title || "The job"}" took too long and was stopped.`;
     let timed_out = false;
+
+    /**
+     * A stopped job never touches the face again: `stopBotJobs` already set
+     * it to idle, and a late `working` or `asleep` would push over that and
+     * leave a bot that shows work with nothing behind it.
+     */
+    const setFace = async (face: Omit<Parameters<typeof setBotFace>[0], "bot_id" | "user_id">) => {
+        if (!user_id || controller.signal.aborted) return;
+
+        await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
+    };
+
+    /**
+     * Stopping the bot from the chat aborts the request this job is
+     * waiting on, here and now, rather than at the next heartbeat. The job
+     * is already failed in the queue, so an abort is a cancellation and its
+     * result is dropped (`controller.signal.aborted` below).
+     */
+    registerJobAbort({ job_id, abort: () => controller.abort() });
 
     const update: BotJobContext["update"] = async (params) => {
         if (controller.signal.aborted) return false;
@@ -305,5 +320,6 @@ export default async function processBotJob({
         }
     } finally {
         clearInterval(heartbeat);
+        unregisterJobAbort({ job_id });
     }
 }

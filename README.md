@@ -5,7 +5,7 @@
 <img src="docs/readme/lockup-dark.svg#gh-dark-mode-only" alt="Cobble" height="56">
 </h1>
 
-A crew of small AI worker bots you host yourself.
+A crew of small AI worker bots you host yourself (alpha).
 
 ![Cobble: a crew of small AI worker bots you host yourself](docs/readme/hero-light.png#gh-light-mode-only)
 ![Cobble: a crew of small AI worker bots you host yourself](docs/readme/hero-dark.png#gh-dark-mode-only)
@@ -18,6 +18,13 @@ A crew of small AI worker bots you host yourself.
 [Website](https://cobble.moduletrace.org) · [Install](#install) · [Features](#features) · [Development](#development) · [Architecture](AGENTS.md)
 
 </div>
+
+> **Alpha.** Cobble is still in alpha: interfaces, database schema and
+> settings change between releases, and things break. Install it to try it
+> out and to tell us what is wrong, but keep your own backups (Settings >
+> Backups) and do not put it in front of work you cannot lose. Every release
+> is a real release: the installer updates an existing install in place and
+> keeps its data.
 
 Cobble is a self-hosted crew of small AI worker bots. You get a coordinator
 and a set of workers, each with its own job, models, memory and workspace.
@@ -49,6 +56,7 @@ your data on your own machine.
 | Crew       | One coordinator and as many workers as you need, each with a name, a role, a hue and its own core instructions                                             |
 | Rail       | The coordinator, your recent workers and their latest sessions, then your workspaces, each row carrying its status line                                    |
 | Chat       | Markdown with @-mentions for bots and #-mentions for workspaces, replies and quotes, reactions, attachments, older messages on scroll, drafts kept locally |
+| Stop       | Stop a bot from the thinking row or the header menu: its queued and running work stops at once, everywhere you chat with it, and it goes idle              |
 | Header     | The bot's model, provider and computer at a glance, one click from either, and its picture, instructions and settings on the avatar                        |
 | Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard                              |
 | Memory     | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works                                                            |

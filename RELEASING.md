@@ -3,6 +3,12 @@
 Cobble ships as a multi-arch container image and a single `install.sh`.
 The repository starts private and is made public at the launch gate below.
 
+Cobble is in **alpha** (see the note in `README.md`). Every release published
+before v1.0.0 is an alpha release: interfaces, the database schema and the
+settings may change between them, so a release that needs a migration step
+has to say so in its notes, and Settings > General keeps saying the stage
+until v1.0.0.
+
 ## One-time setup
 
 - [ ] `GITEA_USERNAME` and `GITEA_TOKEN` are set as GitHub Actions secrets.

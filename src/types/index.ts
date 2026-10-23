@@ -210,6 +210,17 @@ export type BotTaskWithSteps = BUN_SQLITE_COBBLE_BOT_TASKS & {
 };
 
 /**
+ * What stopping a bot reports back: how many of its jobs were stopped and
+ * how many of them are still open (an attempt that has to notice its
+ * lock is gone can take a heartbeat).
+ */
+export type BotStoppedPayload = {
+    bot_id: number;
+    stopped: number;
+    remaining: number;
+};
+
+/**
  * `server:bot-job-update` data: a step a running job just took, with the
  * task it's for (null for a reply).
  */

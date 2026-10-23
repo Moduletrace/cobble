@@ -3,8 +3,10 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONTAINERS } from "@/db/types/db";
 import refreshComputerContainer from "@/src/functions/backend/db/computers/refresh-computer-container";
 
-type Row = Pick<BUN_SQLITE_COBBLE_CONTAINERS, "id" | "docker_id" | "status" | "ip_address"> &
-    { computer_id: number };
+type Row = Pick<
+    BUN_SQLITE_COBBLE_CONTAINERS,
+    "id" | "docker_id" | "status" | "ip_address"
+> & { computer_id: number };
 
 /**
  * Reads every computer container's state from docker and records it
@@ -24,10 +26,11 @@ export default async function syncComputers() {
     let changed = 0;
 
     for (const { computer_id, ...container } of rows) {
-        const refreshed = await refreshComputerContainer({ computer_id, container });
+        const refreshed = await refreshComputerContainer({
+            computer_id,
+            container,
+        });
 
         if (refreshed?.changed) changed++;
     }
-
-    bunext.bunextLog.info(`Cron: ${rows.length} computer(s) checked, ${changed} changed`);
 }

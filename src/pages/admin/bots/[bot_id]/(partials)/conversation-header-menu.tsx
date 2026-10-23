@@ -16,6 +16,7 @@ import BotRoutinesModal from "./bot-routines-modal";
 import BotModelsModal from "./bot-models-modal";
 import HeaderMenuItem from "./header-menu-item";
 import NewSessionButton from "./new-session-button";
+import StopBotButton from "./stop-bot-button";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -48,8 +49,9 @@ type Props = {
 
 /**
  * The conversation header's menu: the sessions, a new session, the bot's
- * computer, its models and its settings. A row that opens a modal closes
- * the menu first, so the modal never sits behind an open menu.
+ * computer, its models, its settings and, while it works, stopping it. A
+ * row that opens a modal closes the menu first, so the modal never sits
+ * behind an open menu.
  */
 export default function ConversationHeaderMenu({
     bot,
@@ -136,6 +138,8 @@ export default function ConversationHeaderMenu({
                     onSaved={on_model_saved}
                 />
             </Stack>
+            <Divider className="my-1 mx-3 w-auto border-hairline dark:border-hairline" />
+            <StopBotButton menu bot_name={bot.name} />
             {can_open_settings ? (
                 <>
                     <Divider className="my-1 mx-3 w-auto border-hairline dark:border-hairline" />

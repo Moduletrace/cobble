@@ -5,6 +5,30 @@
 export const BotJobCancelledError = "Cancelled";
 
 /**
+ * `last_error` of a job the user stopped from the chat. A stopped job is
+ * never retried and never told about: the user pulled the plug.
+ */
+export const BotJobStoppedError = "Stopped by the user";
+
+/**
+ * The last step recorded on a stopped job. It's a step, not a message, so a
+ * bot that was stopped mid-thought doesn't answer on its own.
+ */
+export const BotJobStoppedStep = "Stopped";
+
+/**
+ * What the thinking row's stop button says, so the row and its tooltip
+ * never drift.
+ */
+export const BotStopButtonLabel = "Stop";
+
+/**
+ * What the bot says in the conversation once the user has stopped it. It's
+ * the bot's turn again, so the thread stops waiting on a reply.
+ */
+export const BotStoppedMessage = "Stopped. I'll carry on when you ask me to.";
+
+/**
  * `last_error` bun-sqlite sets when it releases a job whose handler went
  * silent past the lock timeout on its last attempt.
  */

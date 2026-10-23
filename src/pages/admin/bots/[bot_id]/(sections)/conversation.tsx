@@ -15,9 +15,15 @@ import { CrewBotsContext } from "../(data)/crew-bots-context";
 import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { SpeakMessageContext } from "../(data)/speak-message-context";
+import {
+    StopBotContext,
+    type StopBotState,
+} from "../(data)/stop-bot-context";
 import reactToBotMessage from "../(functions)/react-to-bot-message";
+import botBusyState from "../(utils)/bot-busy-state";
 import dropSentMessage from "../(utils)/drop-sent-message";
 import useBotComputers from "../(hooks)/use-bot-computers";
+import useStopBot from "../(hooks)/use-stop-bot";
 import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
 import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
@@ -89,6 +95,10 @@ export default function Conversation() {
         bot_id: bot?.id || 0,
         workspace_id,
         computers: pageProps?.bot_computers || [],
+    });
+    const stop_bot = useStopBot({
+        bot_id: bot?.id || 0,
+        workspace_id,
     });
 
     const speak = useSpeakMessage({
@@ -233,7 +243,26 @@ export default function Conversation() {
 
     if (!bot?.id || !live_bot) return null;
 
-    return (
+    /**
+     * What the stop control pulls the plug on, read the way the thinking
+     * row reads it: the same conditions, so the header's row is enabled
+     * exactly while the thread shows the bot at work.
+     */
+    const stop_state: StopBotState = {
+        ...stop_bot,
+        can_stop: botBusyState({
+            bot: live_bot,
+            awaiting_reply,
+            receiving: pending_messages.length > 0,
+            has_task: Boolean(progress.task_id),
+        }).stoppable,
+    };
+
+    /**
+     * The thread, kept intact so the stop control can wrap it without
+     * reindenting every provider.
+     */
+    const thread = (
         <CrewBotsContext.Provider value={bots}>
             <CrewWorkspacesContext.Provider value={workspaces}>
                 <BotComputersContext.Provider value={bot_computers}>
@@ -315,5 +344,11 @@ export default function Conversation() {
                 </BotComputersContext.Provider>
             </CrewWorkspacesContext.Provider>
         </CrewBotsContext.Provider>
+    );
+
+    return (
+        <StopBotContext.Provider value={stop_state}>
+            {thread}
+        </StopBotContext.Provider>
     );
 }

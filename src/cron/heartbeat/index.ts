@@ -6,9 +6,5 @@ export default async function heartbeat() {
         sql: `SELECT 1 AS alive`,
     });
 
-    bunext.bunextLog.info(
-        `Cron: database heartbeat ${db_alive.success ? "ok" : "failed"}`,
-    );
-
     return db_alive;
 }

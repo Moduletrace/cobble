@@ -2,15 +2,11 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import BotAvatar from "@/src/components/general/bot-avatar";
-import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
-import {
-    BotComputerBusyStatusLine,
-    BotGettingMessageStatusLine,
-    BotReplyJobTitle,
-    BotWaitingStatusLine,
-} from "@/src/dict/bot-queue-dict";
+import { BotGettingMessageStatusLine } from "@/src/dict/bot-queue-dict";
 import type { BotWithLastMessage } from "@/src/types";
+import botBusyState from "../(utils)/bot-busy-state";
+import StopBotButton from "./stop-bot-button";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -45,7 +41,7 @@ type Props = {
  * reply shows from the thread alone: every user message queues one, so while
  * the user has the last word a reply is due here, even while the bot works
  * elsewhere. Only the waits (for a model, for its computer) come from the
- * face.
+ * face. While it shows, a stop button pulls the plug on the bot's work.
  */
 export default function BotThinkingRow({
     bot,
@@ -56,17 +52,14 @@ export default function BotThinkingRow({
     has_task,
 }: Props) {
     const name = bot.name || "The bot";
-    const asleep = bot.face == "asleep";
-    const waiting_model = asleep && bot.status_line == BotWaitingStatusLine && Boolean(awaiting_reply || has_task);
-    const waiting_computer =
-        asleep && bot.status_line == BotComputerBusyStatusLine && Boolean(has_task) && !awaiting_reply;
-    const waiting = waiting_model || waiting_computer;
-    const getting = Boolean(receiving) && Boolean(awaiting_reply);
-    const thinking = Boolean(awaiting_reply) && !waiting && !getting;
-    const working =
-        !awaiting_reply && bot.face == "working" && bot.status_line != BotReplyJobTitle && Boolean(has_task);
+    const { waiting, getting, thinking, working, busy, stoppable } = botBusyState({
+        bot,
+        awaiting_reply,
+        receiving,
+        has_task,
+    });
 
-    if (!getting && !thinking && !working && !waiting) return null;
+    if (!busy) return null;
 
     const label = getting
         ? `${name} is ${BotGettingMessageStatusLine.toLowerCase()}…`
@@ -95,6 +88,7 @@ export default function BotThinkingRow({
                     </Span>
                 ) : null}
             </Stack>
+            <StopBotButton bot_name={bot.name} disabled={!stoppable} />
         </Row>
     );
 }

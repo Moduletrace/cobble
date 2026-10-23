@@ -18,6 +18,12 @@ type Params = {
      * (`relayJobToRequester`): a message in that bot's conversation.
      */
     relay?: { bot_id: number; message: BUN_SQLITE_COBBLE_BOT_MESSAGES } | null;
+    /**
+     * Skip the push notification, keeping only the live send. For a message
+     * the user just caused themselves (stopping the bot): they are looking
+     * at the app, and one notification per conversation would be noise.
+     */
+    quiet_push?: boolean;
 };
 
 /**
@@ -27,9 +33,9 @@ type Params = {
  * goes to the conversation it was posted in. Best effort: a push that
  * fails is logged and never fails the job that made the change.
  */
-export default async function pushBotNotice({ bot_id, message, bot, relay }: Params) {
+export default async function pushBotNotice({ bot_id, message, bot, relay, quiet_push }: Params) {
     try {
-        await push({ bot_id, message, bot, relay });
+        await push({ bot_id, message, bot, relay, quiet_push });
     } catch (error) {
         await logError({
             title: "Bot notice wasn't pushed",
@@ -39,7 +45,7 @@ export default async function pushBotNotice({ bot_id, message, bot, relay }: Par
     }
 }
 
-async function push({ bot_id, message, bot, relay }: Params) {
+async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
     if (message) {
         await pushToSessionUser({
             session_id: message.session_id,
@@ -49,7 +55,7 @@ async function push({ bot_id, message, bot, relay }: Params) {
         /**
          * Not waited on: a push service's latency must not slow the job.
          */
-        void notifyBotMessage({ message });
+        if (!quiet_push) void notifyBotMessage({ message });
     }
 
     if (relay) {
@@ -58,7 +64,7 @@ async function push({ bot_id, message, bot, relay }: Params) {
             data: { event: "server:bot-message", data: relay.message },
         });
 
-        void notifyBotMessage({ message: relay.message });
+        if (!quiet_push) void notifyBotMessage({ message: relay.message });
     }
 
     if (bot) {
