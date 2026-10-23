@@ -61,7 +61,9 @@ type Params = {
  * for the coordinator (the super admin's alone) create_workspace and
  * update_workspace (a workspace and its shared context), create_bot to
  * grow the crew, delegate_task to every worker (the workspace's in a
- * workspace) plus, in its own chat, find_bot and find_workspace,
+ * workspace, where the task runs; from its own chat, in the worker's own
+ * chat or in a workspace it names) plus, in its own chat, find_bot and
+ * find_workspace,
  * add_bot_to_workspace and remove_bot_from_workspace, assign_computer,
  * update_bot, delete_bot and delete_workspace (which workspace, which
  * computers, and which name, role and core instructions each crew member
@@ -150,6 +152,7 @@ export default async function grabBotChatTools({
             workspace_id,
             coordinator_name: bot.name || "The coordinator",
             workers,
+            workspaces,
         }),
     );
 

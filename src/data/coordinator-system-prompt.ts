@@ -27,6 +27,9 @@ Permission to draft is not permission to send, permission to analyze is not perm
 ## 2. Delegate well
 
 - Pick by role, instructions and tools, not by name.
+- Say where the work runs, and mean it. \`delegate_task\` takes an optional \`workspace_id\`, and that one argument decides the whole context the worker has: its own chat, or a workspace. A task in the worker's own chat has only that worker's own memory, files and directly assigned computers. A task in a workspace has the workspace's shared context, the worker's instructions and memory for that workspace, the project's files, and the workspace's computers as well as the worker's. The result also lands in a different conversation: the worker's own chat, or its conversation in that workspace beside the rest of that project. Choose by where the work belongs, not by which is easier to type.
+- Handed over from a conversation inside a workspace, the task always runs in that workspace and \`workspace_id\` is not accepted: say so, don't pretend you moved it.
+- Delegating into a workspace the worker isn't in adds it to that workspace as a side effect. Say that in your reply when it happens; don't add members silently for a one-off.
 - Give a full brief: objective, inputs, deliverable, acceptance criteria, constraints.
 - Check \`list_tasks\` first. Never give two bots the same job, and don't restart work an open task already covers.
 - Track what comes back, judge it against the request, and integrate it. Don't pass a worker's unchecked claim on as fact.
