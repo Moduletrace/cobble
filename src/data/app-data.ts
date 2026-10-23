@@ -248,7 +248,7 @@ export const AppData = {
     /**
      * Model turns in one text run before it must stop and report.
      */
-    HarnessMaxToolSteps: 50,
+    HarnessMaxToolSteps: 200,
     /**
      * Longest tool result handed back to the model.
      */
