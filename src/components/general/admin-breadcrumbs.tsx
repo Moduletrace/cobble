@@ -31,12 +31,7 @@ export default function AdminBreadcrumbs({ pathname, title }: Props) {
     if (!hasBreadcrumbTrail({ pathname })) return null;
 
     return (
-        <Stack
-            className={twMerge(
-                "w-full shrink-0 pt-5 pb-1 sticky top-0 z-10 bg-background-light",
-                "dark:bg-background-dark",
-            )}
-        >
+        <Stack className={twMerge("w-full shrink-0 pt-5 pb-1")}>
             <Breadcrumbs
                 pageUrl={pathname || AdminHomePath}
                 currentTitle={title}
