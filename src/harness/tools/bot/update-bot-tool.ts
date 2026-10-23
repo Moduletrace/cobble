@@ -24,8 +24,9 @@ type Args = {
 /**
  * Lets the coordinator change an existing crew member: its name, its
  * one-line job, and its core instructions (the start of its prompt in its
- * own chat and in every workspace). Its colour, stone and picture stay as
- * they are.
+ * own chat and in every workspace). Its colour and stone stay as they are,
+ * and its picture is set with `set_picture` (`set_picture_tool.ts`), which
+ * also lets a bot dress itself.
  * Workspace-only instructions have their own tool
  * (`set_bot_workspace_instructions`).
  */

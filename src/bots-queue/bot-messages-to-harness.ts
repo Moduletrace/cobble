@@ -1,6 +1,7 @@
 import type { HarnessContentPart, HarnessMessage } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
 import describeMessageRefs, { type MessageRefNames } from "@/src/utils/describe-message-refs";
+import describeAttachment from "./describe-attachment";
 
 type Params = {
     messages: Pick<
@@ -87,7 +88,7 @@ function messageParts({
         ...content,
         {
             type: "text",
-            text: `[Attached earlier: ${message.attachments.map((file) => `"${file.name}"`).join(", ")}]`,
+            text: `[Attached earlier: ${message.attachments.map((file) => describeAttachment({ name: file.name, id: file.id })).join(", ")}]`,
         },
     ];
 }

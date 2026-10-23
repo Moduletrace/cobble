@@ -1,5 +1,5 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
-import grabStorageScopes, { type StorageScope } from "@/src/utils/storage-access";
+import type { StorageScope } from "@/src/utils/storage-access";
 
 export type StorageToolContext = {
     /**
@@ -32,34 +32,29 @@ type Params = {
     workspace_id?: number | string | null;
     session_id?: number | string;
     /**
-     * Every workspace, for the coordinator (it reaches them all).
+     * The directories the run may touch (`grabRunScopes`): the bot's own
+     * first, then the workspace's or, for the coordinator, every one's.
      */
-    all_workspace_ids?: number[];
+    scopes: StorageScope[];
     onAttach?: StorageToolContext["onAttach"];
 };
 
 /**
- * The directories one run may touch, from the bot it's for. The
- * coordinator reaches every bot's and workspace's files; a worker its own,
- * plus its workspace's shared one while it works there.
+ * The context every storage tool works from: which bot it is, whose files it
+ * reaches (`grabRunScopes`, which owns that decision) and where it works.
  */
 export default function storageToolContext({
     bot,
     user_id,
     workspace_id,
     session_id,
-    all_workspace_ids,
+    scopes,
     onAttach,
 }: Params): StorageToolContext {
     return {
         user_id,
         bot_id: bot.id || 0,
-        scopes: grabStorageScopes({
-            bot_id: bot.id || 0,
-            bot_kind: bot.kind,
-            workspace_id,
-            all_workspace_ids,
-        }),
+        scopes,
         session_id,
         workspace_id,
         onAttach,

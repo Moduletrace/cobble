@@ -70,6 +70,7 @@ export const ReservedToolNames = [
     "report_run_failed",
     "search_computers",
     "set_bot_workspace_instructions",
+    "set_picture",
     "set_workspace_computer",
     "start_task",
     "update_instructions",

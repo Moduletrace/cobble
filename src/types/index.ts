@@ -288,6 +288,21 @@ export type BotUpdatedData = {
      */
     color?: string | null;
     stone?: string | null;
+    /**
+     * Its picture, when the push read it (a bot that set its own face): the
+     * rail and the thread swap the stone for it without a reload. Null means
+     * it has none.
+     */
+    image_media_id?: number | null;
+};
+
+/**
+ * `server:workspace-updated` data: a workspace's picture changed, so the
+ * rail and its header show the new one.
+ */
+export type WorkspaceUpdatedData = {
+    workspace_id: number;
+    image_media_id: number | null;
 };
 
 /**
@@ -1259,6 +1274,10 @@ export const WebSocketEvents = [
      * `WorkspaceRemovedData`)
      */
     "server:workspace-removed",
+    /**
+     * A workspace the user can see changed (`data`: `WorkspaceUpdatedData`)
+     */
+    "server:workspace-updated",
     /**
      * A message's emoji reactions changed (`data`: `BotMessageReactionData`)
      */

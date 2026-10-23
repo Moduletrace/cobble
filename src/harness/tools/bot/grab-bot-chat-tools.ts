@@ -1,6 +1,7 @@
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
+import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import askToTakeOverTool from "../computer/ask-to-take-over-tool";
 import searchComputersTool from "../computer/search-computers-tool";
@@ -42,6 +43,11 @@ type Params = {
      */
     message_id?: number | string;
     /**
+     * The files the run reaches (`grabRunScopes`), so a picture it sets is
+     * copied from one it can already read.
+     */
+    scopes?: StorageScope[];
+    /**
      * Called when the bot asks the user to take over a computer.
      */
     onTakeOver?: (params: { ref: string }) => void;
@@ -70,6 +76,7 @@ export default async function grabBotChatTools({
     session_id,
     workspace_id,
     message_id,
+    scopes = [],
     onTakeOver,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
@@ -81,6 +88,7 @@ export default async function grabBotChatTools({
             computers,
             session_id,
             is_coordinator: bot.kind == "coordinator",
+            scopes,
         })),
         startTaskTool({
             user_id,
@@ -104,7 +112,7 @@ export default async function grabBotChatTools({
     tools.push(createWorkspaceTool({ user_id, workspaces }));
 
     if (workspaces.length) {
-        tools.push(updateWorkspaceTool({ user_id, workspaces, workspace_id }));
+        tools.push(updateWorkspaceTool({ user_id, workspaces, workspace_id, scopes }));
     }
 
     tools.push(createBotTool({ user_id, workspaces, workspace_id }));

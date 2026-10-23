@@ -9,6 +9,8 @@ import updateScheduleTool from "./update-schedule-tool";
 import updateInstructionsTool from "./update-instructions-tool";
 import updateMemoryTool from "./update-memory-tool";
 import reactToMessageTool from "./react-to-message-tool";
+import setPictureTool from "./set-picture-tool";
+import type { StorageScope } from "@/src/utils/storage-access";
 
 type Params = {
     user_id: number | string;
@@ -31,6 +33,11 @@ type Params = {
      * add to any bot's or workspace's list.
      */
     is_coordinator?: boolean;
+    /**
+     * The files the run reaches (`grabRunScopes`), for the picture it may
+     * set from one.
+     */
+    scopes?: StorageScope[];
 };
 
 /**
@@ -45,8 +52,10 @@ export default async function grabBotTools({
     computers = [],
     session_id,
     is_coordinator,
+    scopes = [],
 }: Params): Promise<HarnessTool[]> {
     return [
+        setPictureTool({ user_id, bot_id, scopes, is_coordinator }),
         updateMemoryTool({ user_id, bot_id, workspace_id }),
         updateInstructionsTool({ user_id, bot_id, workspace_id }),
         createScheduleTool({ user_id, bot_id, workspace_id, computers }),

@@ -24,7 +24,7 @@ import searchComputersTool from "@/src/harness/tools/computer/search-computers-t
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import computerRef from "@/src/utils/computer-ref";
-import grabStorageScopes from "@/src/utils/storage-access";
+import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import composeJobBrief from "./compose-job-brief";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
@@ -108,6 +108,11 @@ export default async function runBotTask({
             ...computers.filter((c) => c.id == job.computer_id),
             ...computers.filter((c) => c.id != job.computer_id),
         ];
+        /**
+         * The files this run reaches, for its file tools, an import and the
+         * pictures it may set: one answer, where `grabRunScopes` decides.
+         */
+        const scopes = await grabRunScopes({ bot, user_id, workspace_id });
 
         const tools = [
             ...(await grabBotTools({
@@ -117,6 +122,7 @@ export default async function runBotTask({
                 computers,
                 session_id,
                 is_coordinator: bot.kind == "coordinator",
+                scopes,
             })),
             ...(bot.kind == "coordinator"
                 ? [
@@ -127,6 +133,7 @@ export default async function runBotTask({
                                     user_id,
                                     workspaces: coordinator_workspaces,
                                     workspace_id,
+                                    scopes,
                                 }),
                             ]
                           : []),
@@ -148,11 +155,7 @@ export default async function runBotTask({
                 ? [
                       importFileTool({
                           computer_id: job.computer_id,
-                          scopes: grabStorageScopes({
-                              bot_id: bot.id,
-                              bot_kind: bot.kind,
-                              workspace_id,
-                          }),
+                          scopes,
                           bot_id: bot.id,
                           user_id,
                       }),
@@ -163,6 +166,7 @@ export default async function runBotTask({
                 user_id,
                 workspace_id,
                 session_id,
+                scopes,
                 onAttach: ({ media_id }) => attachments.push(media_id),
             })),
         ];

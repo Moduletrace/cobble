@@ -1,5 +1,7 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import setProfileImage from "@/src/functions/backend/db/profile-images/set-profile-image";
+import pushBotUpdated from "@/src/bots-queue/push-bot-updated";
+import pushWorkspaceUpdated from "@/src/bots-queue/push-workspace-updated";
 import { SetProfileImageRequestSchema } from "@/src/schemas/profile-image-schema";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
@@ -13,6 +15,9 @@ import type {
 /**
  * Sets or removes the picture of one of the session user's bots or
  * workspaces. Returns the new `image_media_id` (null once removed).
+ *
+ * The change is pushed to everyone who sees it, so a picture set in one
+ * tab shows in the rail of the others without a reload.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<{ image_media_id: number | null }>
@@ -37,10 +42,18 @@ export const handler: BunextAPIRouteHandler<
             data: body,
         });
 
+        const saved = await setProfileImage({ user_id: user.id, target, id, data_url });
+
+        if (target == "bot") {
+            await pushBotUpdated({ bot_id: id });
+        } else {
+            await pushWorkspaceUpdated({ workspace_id: id });
+        }
+
         return {
             success: true,
             msg: data_url ? `Picture saved.` : `Picture removed.`,
-            singleRes: await setProfileImage({ user_id: user.id, target, id, data_url }),
+            singleRes: saved,
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

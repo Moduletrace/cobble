@@ -17,6 +17,7 @@ import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-comp
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
+import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import botMessagesToHarness from "./bot-messages-to-harness";
@@ -87,11 +88,18 @@ export default async function runBotReply({
      */
     const attachments: number[] = [];
 
+    /**
+     * The files this run reaches: its file tools and the pictures it may
+     * set work from the same answer (`grabRunScopes`).
+     */
+    const scopes = await grabRunScopes({ bot, user_id, workspace_id });
+
     const file_tools = await grabBotFileTools({
         bot,
         user_id,
         workspace_id,
         session_id,
+        scopes,
         onAttach: ({ media_id }) => attachments.push(media_id),
     });
 
@@ -101,6 +109,7 @@ export default async function runBotReply({
         computers,
         session_id,
         workspace_id,
+        scopes,
         message_id: job.message_id || undefined,
         onTakeOver: ({ ref }) => take_overs.push(ref),
     });

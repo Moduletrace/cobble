@@ -16,14 +16,34 @@ import grabDirNames from "@/src/utils/grab-dir-names";
 import BunSQLite, { type APIResponseObject } from "@moduletrace/bun-sqlite";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 import canExtractText from "@/src/utils/can-extract-text";
 import capTextContent from "@/src/utils/cap-text-content";
 import fileToText from "./file-to-text";
 import MediaDataToArrayBuffer from "./media-data-to-array-buffer";
 import sniffMediaExtension from "./sniff-media-ext";
 import mediaDataToSharpInput from "./meida-data-to-sharp-input";
+import imageOutputFormat, { type ImageOutputFormat } from "@/src/utils/image-output-format";
 import deleteMedia from "../../media/delete-media";
+
+/**
+ * Writes a resized image in the format it came in: PNG stays PNG (with its
+ * transparency), WebP stays WebP, everything else becomes JPEG.
+ */
+async function encodeImage({
+    pipeline,
+    format,
+    quality,
+}: {
+    pipeline: Sharp;
+    format: ImageOutputFormat["format"];
+    quality: number;
+}) {
+    if (format == "png") return pipeline.png().toBuffer();
+    if (format == "webp") return pipeline.webp({ quality }).toBuffer();
+
+    return pipeline.jpeg({ quality }).toBuffer();
+}
 
 type Params = {
     media_paradigms?: MediaParadigm[];
@@ -102,13 +122,21 @@ export default async function uploadAndRecordMedia({
         }
     }
 
+    /**
+     * What an image is actually written as: a picture keeps its format, so
+     * a transparent PNG stays a PNG (`imageOutputFormat`). Every other file
+     * keeps its own extension.
+     */
+    const image_output = media_type == "image" ? imageOutputFormat({ ext: media_ext }) : null;
+    const stored_ext = image_output ? image_output.ext : media_ext;
+
     const media_write_path = path.join(
         MEDIA_RELATIVE_DIR,
-        `${target_file_name}.${media_ext}`,
+        `${target_file_name}.${stored_ext}`,
     );
     const media_thumbnail_write_path = path.join(
         MEDIA_RELATIVE_DIR,
-        `${target_file_thumbnail_name}.${media_ext}`,
+        `${target_file_thumbnail_name}.${stored_ext}`,
     );
 
     const media_write_path_full = path.join(DATA_DIR, media_write_path);
@@ -157,21 +185,25 @@ export default async function uploadAndRecordMedia({
             full_options = { fit: "inside", withoutEnlargement: true };
         }
 
+        const output = image_output || imageOutputFormat({ ext: media_ext });
+
         const [full, thumb] = await Promise.all([
-            sharp(buffer)
-                .resize(full_width, full_height, full_options)
-                .jpeg({ quality: AppData["ImageQuality"] })
-                .toBuffer(),
-            sharp(buffer)
-                .resize(
+            encodeImage({
+                pipeline: sharp(buffer).resize(full_width, full_height, full_options),
+                format: output.format,
+                quality: AppData["ImageQuality"],
+            }),
+            encodeImage({
+                pipeline: sharp(buffer).resize(
                     thumb_width,
                     is_profile_image ? thumb_width : undefined,
                     is_profile_image
                         ? { fit: "cover" }
                         : { fit: "inside", withoutEnlargement: true },
-                )
-                .jpeg({ quality: AppData["ImageThumbnailQuality"] })
-                .toBuffer(),
+                ),
+                format: output.format,
+                quality: AppData["ImageThumbnailQuality"],
+            }),
         ]);
 
         await Bun.write(media_write_path_full, full);
@@ -241,7 +273,11 @@ export default async function uploadAndRecordMedia({
         media_thumbnail_write_path:
             media_type === "image" ? media_thumbnail_write_path : undefined,
         media_type: media_type as any,
-        mime_type: media_type == "image" ? "jpeg" : media_ext,
+        /**
+         * The image's real type, not always `jpeg`: a stored PNG that the
+         * row called a JPEG was served and read as one.
+         */
+        mime_type: image_output ? image_output.mime_type : media_ext,
         text_content: media_text_content,
     };
 

@@ -40,11 +40,15 @@ export default function resolveWorkspacePicture({ requested, current, media }: P
     if (current != null && Number(current) == id) return undefined;
 
     if (!media || Number(media.id) != id) {
-        throw new AppError(`That picture isn't one of yours. Upload it again.`);
+        throw new AppError(
+            `That picture isn't one you can use. Name a PNG, JPG, WebP or GIF in your files by its [file:ID] ref, or upload it in chat.`,
+        );
     }
 
     if (media.media_type != "image") {
-        throw new AppError(`A workspace picture has to be an image.`);
+        throw new AppError(
+            `A workspace picture has to be an image. This one is a ${media.media_type || "file"}: an SVG or a document is turned into a PNG first, then that PNG is set.`,
+        );
     }
 
     return id;

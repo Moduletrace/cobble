@@ -1,5 +1,6 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
-import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
+import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
+import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import generateImageTool from "./generate-image-tool";
 import grabStorageTools from "./grab-storage-tools";
@@ -11,6 +12,11 @@ type Params = {
     user_id: number | string;
     workspace_id?: number | string | null;
     session_id?: number | string;
+    /**
+     * The files the run reaches, when the caller already read them
+     * (`grabRunScopes`); read here otherwise.
+     */
+    scopes?: StorageScope[];
     /**
      * Called for a file the bot wrote with "attach" set, so the reply
      * carries it.
@@ -30,19 +36,15 @@ export default async function grabBotFileTools({
     user_id,
     workspace_id,
     session_id,
+    scopes,
     onAttach,
 }: Params): Promise<HarnessTool[]> {
-    const all_workspace_ids =
-        bot.kind == "coordinator"
-            ? (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived).map((w) => Number(w.id))
-            : [];
-
     const context = storageToolContext({
         bot,
         user_id,
         workspace_id,
         session_id,
-        all_workspace_ids,
+        scopes: scopes || (await grabRunScopes({ bot, user_id, workspace_id })),
         onAttach,
     });
 

@@ -90,6 +90,13 @@ export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: 
                                         stone: (data.stone || "") as BUN_SQLITE_COBBLE_BOTS["stone"],
                                     }
                                   : {}),
+                              /**
+                               * A picture the bot just set: its stone is
+                               * replaced by it without a reload.
+                               */
+                              ...(data.image_media_id !== undefined
+                                  ? { image_media_id: data.image_media_id || undefined }
+                                  : {}),
                           }
                         : bot,
                 );

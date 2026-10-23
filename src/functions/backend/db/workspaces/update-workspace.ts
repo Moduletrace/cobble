@@ -1,5 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
+    BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_WORKSPACES,
     BunSQLiteTables,
 } from "@/db/types/db";
@@ -8,8 +9,9 @@ import assertPromptLength from "@/src/utils/assert-prompt-length";
 import grabUserWorkspace from "./grab-user-workspace";
 import _ from "lodash";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
-import deleteMedia from "@/src/functions/backend/db/media/delete-media";
+import copyMediaAsPicture from "@/src/functions/backend/db/profile-images/copy-media-as-picture";
 import grabOwnPictureMedia from "@/src/functions/backend/db/profile-images/grab-own-picture-media";
+import removeReplacedPicture from "@/src/functions/backend/db/profile-images/remove-replaced-picture";
 import resolveWorkspacePicture from "@/src/utils/resolve-workspace-picture";
 
 type Params = {
@@ -27,13 +29,20 @@ type Params = {
          * it, or undefined to leave it alone.
          */
         image_media_id?: number | null;
+        /**
+         * The image to copy for the picture, for a caller that already
+         * resolved one (a bot naming one of its files). Copied, so the
+         * source's row and bytes stay where they are.
+         */
+        picture_source?: BUN_SQLITE_COBBLE_MEDIA | null;
     };
 };
 
 /**
  * Updates one of the user's workspaces. Its `system_prompt` is shared
  * context for every bot in it, and `image_media_id` its picture: a media
- * id replaces it (the old picture is deleted), null removes it.
+ * id replaces it (the old picture is deleted), null removes it, and
+ * `picture_source` copies an image into a new picture row first.
  */
 export default async function updateWorkspace({
     user_id,
@@ -50,13 +59,33 @@ export default async function updateWorkspace({
         throw new AppError(`Workspace not found.`);
     }
 
+    const source = data.picture_source;
+
+    /**
+     * A source that is already the picture changes nothing: copying it
+     * again would only churn a row and delete the old one for no reason.
+     */
+    const requested =
+        source?.id && Number(source.id) == Number(workspace.image_media_id)
+            ? undefined
+            : source
+              ? await copyMediaAsPicture({
+                    media: source,
+                    user_id,
+                    target: "workspace",
+                    title: `${workspace.name || "Workspace"} picture`,
+                })
+              : data.image_media_id;
+
     const image_media_id = resolveWorkspacePicture({
-        requested: data.image_media_id,
+        requested,
         current: workspace.image_media_id,
         media:
-            data.image_media_id == null
+            requested == null
                 ? null
-                : await grabOwnPictureMedia({ media_id: data.image_media_id, user_id }),
+                : source
+                  ? { id: requested, media_type: "image" }
+                  : await grabOwnPictureMedia({ media_id: requested, user_id }),
     });
 
     const res = await BunSQLite.update<
@@ -87,16 +116,15 @@ export default async function updateWorkspace({
 
     /**
      * The picture is written, so the one it replaced isn't shown anywhere
-     * any more.
+     * any more. Only a picture is deleted (`removeReplacedPicture`): a row
+     * a chat message still attaches stays, so the message keeps loading.
      */
-    if (
-        image_media_id !== undefined &&
-        workspace.image_media_id &&
-        Number(workspace.image_media_id) != Number(image_media_id)
-    ) {
-        await deleteMedia({
-            id: workspace.image_media_id,
-            user_id: Number(user_id),
-        }).catch(() => {});
+    if (image_media_id !== undefined) {
+        await removeReplacedPicture({
+            previous: workspace.image_media_id,
+            next: image_media_id,
+            user_id,
+            target: "workspace",
+        });
     }
 }

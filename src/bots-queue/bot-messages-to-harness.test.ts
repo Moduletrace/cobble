@@ -97,7 +97,7 @@ describe("botMessagesToHarness with a file-only reply", () => {
         ).toEqual([
             {
                 role: "user",
-                content: `[Replying to your earlier message: "Send me the logo."]\n\n[Attached earlier: "logo.png"]`,
+                content: `[Replying to your earlier message: "Send me the logo."]\n\n[Attached earlier: "logo.png", media id 9]`,
             },
         ]);
     });
@@ -130,7 +130,13 @@ describe("botMessagesToHarness with files", () => {
             botMessagesToHarness({
                 messages: [{ id: 2, author: "user", text: "", attachments }],
             }),
-        ).toEqual([{ role: "user", content: `[Attached earlier: "shot.png"]` }]);
+        ).toEqual([
+            {
+                role: "user",
+                /** Its media id rides along, so a picture can be set from it. */
+                content: `[Attached earlier: "shot.png", media id 9]`,
+            },
+        ]);
     });
 });
 

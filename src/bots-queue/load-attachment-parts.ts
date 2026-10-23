@@ -6,6 +6,7 @@ import grabMessagesMedia, {
 import type { HarnessContentPart } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
 import grabDirNames from "@/src/utils/grab-dir-names";
+import describeAttachment from "./describe-attachment";
 
 type Params = {
     /**
@@ -45,12 +46,18 @@ export default async function loadAttachmentParts({ messages }: Params) {
 
 async function fileToParts({ file }: { file: MessageMediaRow }): Promise<HarnessContentPart[]> {
     const name = file.title || `file ${file.id}`;
+    /**
+     * The upload's own id, so a bot can name it back to a tool
+     * (`set_picture` and `update_workspace` take one) instead of guessing
+     * which file the user means.
+     */
+    const label = describeAttachment({ name, id: file.id! });
 
     if (file.media_type == "document") {
         const text = file.text_content?.trim();
 
         if (!text) {
-            return [{ type: "text", text: `[Attached file "${name}": its text couldn't be read.]` }];
+            return [{ type: "text", text: `[Attached file ${label}: its text couldn't be read.]` }];
         }
 
         const cut = text.length > AppData.BotAttachmentMaxTextChars;
@@ -58,32 +65,32 @@ async function fileToParts({ file }: { file: MessageMediaRow }): Promise<Harness
         return [
             {
                 type: "text",
-                text: `Attached file "${name}":\n\n${text.slice(0, AppData.BotAttachmentMaxTextChars)}${cut ? `\n\n[The rest of "${name}" was cut: it's ${text.length} characters long.]` : ""}`,
+                text: `Attached file ${label}:\n\n${text.slice(0, AppData.BotAttachmentMaxTextChars)}${cut ? `\n\n[The rest of "${name}" was cut: it's ${text.length} characters long.]` : ""}`,
             },
         ];
     }
 
     if (file.media_type == "video") {
-        return [{ type: "text", text: `[Attached video "${name}": videos can't be read yet.]` }];
+        return [{ type: "text", text: `[Attached video ${label}: videos can't be read yet.]` }];
     }
 
     const disk = Bun.file(path.join(grabDirNames().DATA_DIR, file.media_write_path || ""));
 
     if (!file.media_write_path || !(await disk.exists())) {
-        return [{ type: "text", text: `[Attached file "${name}" is missing on the server.]` }];
+        return [{ type: "text", text: `[Attached file ${label} is missing on the server.]` }];
     }
 
     const base64 = Buffer.from(await disk.arrayBuffer()).toString("base64");
 
     if (file.media_type == "image") {
         return [
-            { type: "text", text: `[Attached image "${name}"]` },
+            { type: "text", text: `[Attached image ${label}]` },
             { type: "image", url: `data:image/${file.mime_type || "jpeg"};base64,${base64}`, name },
         ];
     }
 
     return [
-        { type: "text", text: `[Attached audio "${name}"]` },
+        { type: "text", text: `[Attached audio ${label}]` },
         { type: "audio", data: base64, format: file.mime_type || "mp3", name },
     ];
 }

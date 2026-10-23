@@ -4,6 +4,7 @@ import useServerEvent from "@/src/hooks/use-server-event";
 import type {
     WorkspaceCreatedData,
     WorkspaceRemovedData,
+    WorkspaceUpdatedData,
     WorkspaceWithActivity,
 } from "@/src/types";
 
@@ -43,6 +44,18 @@ export default function useLiveWorkspaces({ workspaces, open_workspace_id }: Par
         event: "server:workspace-removed",
         onData: (data: WorkspaceRemovedData) =>
             setLive((prev) => prev.filter((workspace) => workspace.id != data.workspace_id)),
+    });
+
+    useServerEvent({
+        event: "server:workspace-updated",
+        onData: (data: WorkspaceUpdatedData) =>
+            setLive((prev) =>
+                prev.map((workspace) =>
+                    workspace.id == data.workspace_id
+                        ? { ...workspace, image_media_id: data.image_media_id || undefined }
+                        : workspace,
+                ),
+            ),
     });
 
     useServerEvent({

@@ -63,10 +63,13 @@ async function push({
     workspace_ids,
 }: Params) {
     const audience = user_id ? [user_id] : await grabBotAudience({ bot_id });
-    /** Its colour and stone, so a recolour reaches every open tab. */
+    /**
+     * Its colour, stone and picture, so a recolour or a new face reaches
+     * every open tab.
+     */
     const identity = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS>({
-            sql: `SELECT color, stone FROM bots WHERE id = ? LIMIT 1`,
+            sql: `SELECT color, stone, image_media_id FROM bots WHERE id = ? LIMIT 1`,
             values: [bot_id],
         })
     ).payload?.[0];
@@ -83,6 +86,7 @@ async function push({
                     ...(await grabBotFace({ bot_id, user_id: viewer_id })),
                     color: identity?.color || null,
                     stone: identity?.stone || null,
+                    image_media_id: identity?.image_media_id ? Number(identity.image_media_id) : null,
                     ...(computer_id !== undefined ? { computer_id: computer_id || null } : {}),
                     ...(workspace_ids !== undefined ? { workspace_ids } : {}),
                     task: await grabActiveBotTask({ bot_id, user_id: viewer_id }),
