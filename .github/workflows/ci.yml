@@ -16,7 +16,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      # The publish tests read real release tags out of the history, so a
+      # shallow, tagless clone makes them fail.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
         with:
