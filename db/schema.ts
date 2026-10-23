@@ -2867,6 +2867,149 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "token_usages",
+            tableDescription: `One model call that reported its usage: the tokens it spent, on which model and provider, for whom and for what. A bot message's total is the sum of the calls it took; the usage page sums them by model, provider and period`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Whose work it was: the user whose conversation the call ran for`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "token_usage_user_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot it was for, when it was for one`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "token_usage_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace the call was in; null for a bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "token_usage_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it was in`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_sessions",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "token_usage_session_fk",
+                    },
+                },
+                {
+                    fieldName: "message_id",
+                    fieldDescription: `The message it produced, so the thread can show what an answer cost. Null for calls that produce no message (naming a session, embedding a file)`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_messages",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "token_usage_message_fk",
+                    },
+                },
+                {
+                    fieldName: "job_id",
+                    fieldDescription: `The queued job it ran for, when it ran for one`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots_queue",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "token_usage_job_fk",
+                    },
+                },
+                {
+                    fieldName: "harness",
+                    fieldDescription: `What the model was used for: a chat turn, reading media, transcribing, speaking, making an image, embedding`,
+                    dataType: "TEXT",
+                    options: Harnesses.map((h) => h.value),
+                },
+                {
+                    fieldName: "provider_id",
+                    fieldDescription: `The provider that served it. Not a foreign key: it stays readable after the provider is deleted`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "provider_name",
+                    fieldDescription: `The provider's name as it was, so a deleted provider still reads`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "model_id",
+                    fieldDescription: `The catalog row of the model. Not a foreign key: a model the provider stops listing still counts`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "model_slug",
+                    fieldDescription: `The provider's model id, as it was called`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "prompt_tokens",
+                    fieldDescription: `Tokens sent: the prompt, the system instructions and the tool results`,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "completion_tokens",
+                    fieldDescription: `Tokens written back: the answer, its tool calls and its reasoning`,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "cost",
+                    fieldDescription: `The provider's price in USD, when it reports one`,
+                    dataType: "REAL",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_token_usages_created_at",
+                    indexTableFields: ["created_at"],
+                },
+                {
+                    indexName: "idx_token_usages_message_id",
+                    indexTableFields: ["message_id"],
+                },
+                {
+                    indexName: "idx_token_usages_provider_model",
+                    indexTableFields: ["provider_id", "model_slug"],
+                },
+                {
+                    indexName: "idx_token_usages_user_created_at",
+                    indexTableFields: ["user_id", "created_at"],
+                },
+                {
+                    indexName: "idx_token_usages_bot_created_at",
+                    indexTableFields: ["bot_id", "created_at"],
+                },
+            ],
+        },
+        {
             tableName: "bot_file_vectors",
             tableDescription: `sqlite-vec vectors of a file's chunks, at \`AppData.EmbeddingDimensions\` wide whatever the model returns. A vec0 table is only recreated with \`bunx bun-sqlite schema --vector\`, so the entrypoint never passes it`,
             isVector: true,

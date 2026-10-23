@@ -1,6 +1,7 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabSpeakableMessage from "@/src/functions/backend/db/bots/grab-speakable-message";
 import speakText from "@/src/harness/audio/speak-text";
+import withUsageScope from "@/src/harness/usage/with-usage-scope";
 import HarnessError from "@/src/harness/harness-error";
 import { SpeakBotMessageRequestSchema } from "@/src/schemas/bot-schema";
 import AppError from "@/src/utils/app-error";
@@ -47,11 +48,26 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, q
             throw new AppError(`There's nothing to read in that message.`);
         }
 
-        const audio = await speakText({
-            text,
-            bot_id: conversation.bot.id,
-            workspace_id: conversation.workspace_id,
-            signal: req.signal,
+        /**
+         * Reading a message aloud is billed like any other model call, so
+         * it is recorded against the message it reads.
+         */
+        const audio = await withUsageScope({
+            scope: {
+                user_id: user.id,
+                bot_id: conversation.bot.id,
+                workspace_id: conversation.workspace_id,
+                session_id: message.session_id || null,
+                job_id: null,
+                message_id: message.id || null,
+            },
+            task: () =>
+                speakText({
+                    text,
+                    bot_id: conversation.bot.id,
+                    workspace_id: conversation.workspace_id,
+                    signal: req.signal,
+                }),
         });
 
         return new Response(audio.stream, {

@@ -1,6 +1,9 @@
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
+import type { HarnessImageOutput, HarnessUsage } from "../types";
+import buildUsageCall from "../usage/build-usage-call";
+import recordHarnessUsage from "../usage/record-harness-usage";
 
 type Params = {
     prompt: string;
@@ -35,9 +38,17 @@ export default async function generateImage({
 }: Params) {
     const candidates = await resolveHarnessCandidates({ harness: "image", bot_id, workspace_id });
 
-    const { result } = await withCandidates({
+    const { result } = await withCandidates<{ images: HarnessImageOutput[]; usage?: HarnessUsage }>({
         harness: "image",
         candidates,
+        on_success: async ({ candidate, result: made }): Promise<void> =>
+            await recordHarnessUsage({
+                call: buildUsageCall({
+                    harness: "image",
+                    candidate,
+                    usage: made.usage,
+                }),
+            }),
         run: async (candidate) =>
             await grabHarnessAdapter({
                 kind: candidate.provider.kind,

@@ -1,6 +1,7 @@
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import type { BotMessageWithAttachments } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
+import grabMessageUsage from "../usage/grab-message-usage";
 import grabMessagesMedia from "./grab-messages-media";
 import grabMessagesReactions from "./grab-messages-reactions";
 import grabMessagesReplies from "./grab-messages-replies";
@@ -53,12 +54,13 @@ export default async function grabBotMessages({
     const messages = res.payload || [];
     const message_ids = messages.map((message) => Number(message.id));
 
-    const [media, replies, reactions] = await Promise.all([
+    const [media, replies, reactions, usage] = await Promise.all([
         grabMessagesMedia({ message_ids }),
         grabMessagesReplies({ message_ids }),
         user_id
             ? grabMessagesReactions({ message_ids, user_id })
             : Promise.resolve(new Map()),
+        grabMessageUsage({ message_ids }),
     ]);
 
     /**
@@ -74,6 +76,8 @@ export default async function grabBotMessages({
         const files = media.get(id);
         const reply_to = replies.get(id);
 
+        const spent = usage.get(id);
+
         return {
             ...message,
             ...(files
@@ -88,6 +92,7 @@ export default async function grabBotMessages({
                 : {}),
             ...(reply_to ? { reply_to } : {}),
             ...(user_id ? { reactions: reactions.get(id) || [] } : {}),
+            ...(spent ? { usage: spent } : {}),
         };
     });
 }

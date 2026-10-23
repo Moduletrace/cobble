@@ -7,6 +7,10 @@ import type {
 import { AppData } from "@/src/data/app-data";
 import embedText from "@/src/harness/embeddings/embed-text";
 import HarnessError from "@/src/harness/harness-error";
+import { grabHarnessUsageScope } from "@/src/harness/usage/harness-usage-scope";
+import type { HarnessUsageScope } from "@/src/harness/usage/types";
+import runWithFallbackScope from "@/src/harness/usage/run-with-fallback-scope";
+import grabUsageOwnerUserId from "@/src/functions/backend/db/usage/grab-usage-owner";
 import chunkText from "./chunk-text";
 import extractBotFileText from "./extract-bot-file-text";
 
@@ -72,13 +76,27 @@ export default async function ingestBotFile({
         return { status: "skipped", chunks: 0 };
     }
 
+    /**
+     * A bot's own run already carries its user. The ingest queue has no run
+     * behind it, so everything this file costs - reading an image or an
+     * audio file, embedding its chunks - is entered under the owner's scope
+     * instead: it spends real tokens and must show on the usage page.
+     */
+    const owner_scope: HarnessUsageScope | null = grabHarnessUsageScope()?.user_id
+        ? null
+        : await resolveOwnerScope({ file });
+
     try {
-        const text = await extractBotFileText({
-            write_path: media?.media_write_path,
-            text_content: media?.text_content,
-            name: file.name,
-            mime_type: file.mime_type,
-            read_media,
+        const text = await runWithFallbackScope({
+            scope: owner_scope,
+            task: () =>
+                extractBotFileText({
+                    write_path: media?.media_write_path,
+                    text_content: media?.text_content,
+                    name: file.name,
+                    mime_type: file.mime_type,
+                    read_media,
+                }),
         });
 
         await clearChunks({ file_id: file.id });
@@ -107,11 +125,11 @@ export default async function ingestBotFile({
              */
             for (let start = 0; start < chunks.length; start += AppData.EmbeddingBatchSize) {
                 const batch = chunks.slice(start, start + AppData.EmbeddingBatchSize);
-                const { vectors } = await embedText({
-                    input: batch,
-                    bot_id: file.bot_id!,
-                    workspace_id: file.scope == "workspace" ? file.owner_id : null,
+                const { vectors } = await runEmbed({
+                    scope: owner_scope,
                     signal,
+                    file,
+                    batch,
                 });
 
                 for (let i = 0; i < vectors.length; i++) {
@@ -251,4 +269,55 @@ async function markIngested({
         sql: `UPDATE media SET is_rag_ingested = ?, updated_at = ? WHERE id = (SELECT media_id FROM bot_files WHERE id = ?)`,
         values: [chunks > 0 ? 1 : 0, now, file_id],
     }).catch(() => {});
+}
+
+/**
+ * One batch of a file's chunks, embedded under whatever attribution owns
+ * it: the run that asked for the ingest, else the file's owner.
+ */
+async function runEmbed({
+    scope,
+    signal,
+    file,
+    batch,
+}: {
+    scope: HarnessUsageScope | null;
+    signal?: AbortSignal;
+    file: BUN_SQLITE_COBBLE_BOT_FILES;
+    batch: string[];
+}) {
+    return await runWithFallbackScope({
+        scope,
+        task: () =>
+            embedText({
+                input: batch,
+                bot_id: file.bot_id!,
+                workspace_id: file.scope == "workspace" ? file.owner_id : null,
+                signal,
+            }),
+    });
+}
+
+/**
+ * The attribution a file the queue ingests reports under: its workspace's
+ * creator when it shares one, else its bot's.
+ */
+async function resolveOwnerScope({
+    file,
+}: {
+    file: BUN_SQLITE_COBBLE_BOT_FILES;
+}): Promise<HarnessUsageScope | null> {
+    const workspace_id = file.scope == "workspace" ? file.owner_id : null;
+    const user_id = await grabUsageOwnerUserId({ bot_id: file.bot_id, workspace_id });
+
+    if (!user_id) return null;
+
+    return {
+        user_id,
+        bot_id: file.scope == "bot" ? file.owner_id : file.bot_id,
+        workspace_id,
+        session_id: null,
+        message_id: null,
+        job_id: null,
+    };
 }

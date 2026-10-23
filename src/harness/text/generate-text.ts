@@ -8,6 +8,8 @@ import type {
     HarnessMessage,
     HarnessToolDefinition,
 } from "../types";
+import buildUsageCall from "../usage/build-usage-call";
+import recordHarnessUsage from "../usage/record-harness-usage";
 import grabChatParams from "./grab-chat-params";
 import prepareMessagesForModel from "./prepare-messages-for-model";
 import stripThinkTags from "./strip-think-tags";
@@ -48,6 +50,14 @@ export type GenerateTextResult = HarnessChatResult & {
 };
 
 /**
+ * One turn as `withCandidates` carries it: the answer the provider gave,
+ * with the reasoning tags stripped and an empty answer turned into null.
+ */
+type ChatAnswer = Omit<HarnessChatResult, "text"> & {
+    text: string | null;
+};
+
+/**
  * One model turn on the text harness, falling back across its models.
  * Media the model can't take is read by the helper harnesses first.
  * Reasoning tags are stripped from the answer.
@@ -71,10 +81,18 @@ export default async function generateText({
         ? undefined
         : await grabChatParams({ harness: "text", bot_id, workspace_id });
 
-    const { result, candidate } = await withCandidates({
+    const { result, candidate } = await withCandidates<ChatAnswer>({
         harness: "text",
         candidates: resolved,
         prefer_key,
+        on_success: async ({ candidate: answered, result: answer }): Promise<void> =>
+            await recordHarnessUsage({
+                call: buildUsageCall({
+                    harness: "text",
+                    candidate: answered,
+                    usage: answer.usage,
+                }),
+            }),
         run: async (candidate) => {
             const answer = await grabHarnessAdapter({
                 kind: candidate.provider.kind,

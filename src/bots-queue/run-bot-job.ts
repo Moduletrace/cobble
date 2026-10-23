@@ -1,6 +1,7 @@
 import grabBotById from "@/src/functions/backend/db/bots/grab-bot-by-id";
 import grabJobUserId from "@/src/functions/backend/db/bots-queue/grab-job-user-id";
 import HarnessError from "@/src/harness/harness-error";
+import { runWithHarnessUsageScope } from "@/src/harness/usage/harness-usage-scope";
 import BotJobFatalError from "./bot-job-fatal-error";
 import runBotReply from "./run-bot-reply";
 import runBotTask from "./run-bot-task";
@@ -33,9 +34,25 @@ const runBotJob: BotJobRunner = async (context) => {
     const owned = { ...bot, id: bot.id };
 
     try {
-        return job.kind == "reply"
-            ? await runBotReply({ ...context, bot: owned, user_id })
-            : await runBotTask({ ...context, bot: owned, user_id });
+        /**
+         * Everything the job's models do is recorded for this user, this
+         * bot, this conversation and this job. A reply's text loop adds
+         * the message it is producing to the one-turn scope it opens.
+         */
+        return await runWithHarnessUsageScope({
+            scope: {
+                user_id,
+                bot_id: bot.id,
+                workspace_id: job.workspace_id || null,
+                session_id: job.session_id || null,
+                job_id: job.id || null,
+                message_id: null,
+            },
+            task: () =>
+                job.kind == "reply"
+                    ? runBotReply({ ...context, bot: owned, user_id })
+                    : runBotTask({ ...context, bot: owned, user_id }),
+        });
     } catch (error: unknown) {
         if (
             error instanceof HarnessError &&

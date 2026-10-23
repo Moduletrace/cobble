@@ -9,18 +9,23 @@ import RailUserMenuEntry from "./rail-user-menu-entry";
 import RailUserMenuAction from "./rail-user-menu-action";
 import InstallAppModal from "./install-app-modal";
 import { AppContext } from "@/src/pages/__root";
+import canSeeRailItem from "@/src/utils/rbac/can-see-rail-item";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import useInstallPrompt from "@/src/hooks/use-install-prompt";
 
 /**
- * 220px popover: the only element in the shell with elevation. Super
- * admin items show to super admins only. Install app shows while the
- * browser can install it; Safari gets the Share menu steps instead.
+ * 220px popover: the only element in the shell with elevation. Items
+ * follow the same rule as the rail's lists: super admin ones show to
+ * super admins only, RBAC-gated ones by their own rule. Install app shows
+ * while the browser can install it; Safari gets the Share menu steps
+ * instead.
  */
 export default function RailUserMenu() {
     const { pageProps } = useContext(AppContext);
     const is_super_admin = isPassThroughUser({ user_types: pageProps?.user_types });
-    const shown = RailUserMenuItems.filter((item) => is_super_admin || !item.super_admin_only);
+    const shown = RailUserMenuItems.filter((item) =>
+        canSeeRailItem({ item, is_super_admin, user_types: pageProps?.user_types }),
+    );
     const items = shown.filter((item) => !item.destructive);
     const destructive = shown.filter((item) => item.destructive);
 

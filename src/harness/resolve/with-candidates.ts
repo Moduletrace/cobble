@@ -14,6 +14,15 @@ type Params<T> = {
      * uses, so it doesn't switch models mid-task without a reason.
      */
     prefer_key?: string;
+    /**
+     * Called with what the candidate that worked returned, before the call
+     * comes back to the caller: where a harness writes its usage down.
+     * Never fails the call (the caller passes a recorder that can't throw).
+     */
+    on_success?: (params: {
+        candidate: HarnessCandidate;
+        result: T;
+    }) => Promise<void> | void;
     cooldowns?: HarnessCooldowns;
     now?: () => number;
 };
@@ -42,6 +51,7 @@ export default async function withCandidates<T>({
     candidates,
     run,
     prefer_key,
+    on_success,
     cooldowns = DefaultCooldowns,
     now = Date.now,
 }: Params<T>): Promise<{ result: T; candidate: HarnessCandidate }> {
@@ -93,7 +103,11 @@ export default async function withCandidates<T>({
         if (!isReady(candidate)) continue;
 
         try {
-            return { result: await run(candidate), candidate };
+            const result = await run(candidate);
+
+            await on_success?.({ candidate, result });
+
+            return { result, candidate };
         } catch (error: unknown) {
             if (!(error instanceof HarnessError)) throw error;
             if (error.code == "aborted") throw error;

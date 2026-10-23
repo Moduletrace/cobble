@@ -1,6 +1,9 @@
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
+import type { HarnessEmbedResult } from "../types";
+import buildUsageCall from "../usage/build-usage-call";
+import recordHarnessUsage from "../usage/record-harness-usage";
 import fitVectorDimensions from "./fit-vector-dimensions";
 
 type Params = {
@@ -52,9 +55,17 @@ export default async function embedText({
         workspace_id,
     });
 
-    const { result } = await withCandidates({
+    const { result } = await withCandidates<HarnessEmbedResult>({
         harness: "embedding",
         candidates,
+        on_success: async ({ candidate, result: embedded }): Promise<void> =>
+            await recordHarnessUsage({
+                call: buildUsageCall({
+                    harness: "embedding",
+                    candidate,
+                    usage: embedded.usage,
+                }),
+            }),
         run: async (candidate) =>
             await grabHarnessAdapter({ kind: candidate.provider.kind }).embed({
                 candidate,

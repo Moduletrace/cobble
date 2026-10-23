@@ -13,6 +13,11 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
     const { provider, model } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
     const vectors: number[][] = [];
+    /**
+     * What the provider said the batch cost. Most report it once per
+     * request; the rows are opened before the loop so each batch counts.
+     */
+    let prompt_tokens = 0;
 
     /**
      * Every OpenAI-compatible API puts embeddings at `/embeddings`.
@@ -47,6 +52,8 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
             });
         }
 
+        prompt_tokens += Number(json?.usage?.prompt_tokens) || 0;
+
         for (const item of items) {
             const vector = Array.isArray(item) ? item : item?.embedding;
 
@@ -62,7 +69,12 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
         }
     }
 
-    return { vectors };
+    return {
+        vectors,
+        ...(prompt_tokens
+            ? { usage: { prompt_tokens, completion_tokens: 0 } }
+            : {}),
+    };
 };
 
 export default embed;

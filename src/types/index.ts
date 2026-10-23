@@ -32,6 +32,7 @@ import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
+import type { TokenUsageSummary } from "../harness/usage/types";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type {
     CustomToolHttpMethod,
@@ -876,6 +877,36 @@ export type DatabaseTableColumn = {
 export type DatabaseSearchMode = "every_word" | "phrase";
 
 /**
+ * The period the usage page totals, in epoch ms.
+ */
+export type UsageWindow = {
+    days: number;
+    start: number;
+    end: number;
+};
+
+/**
+ * Everything the usage page shows for one window: what the install's
+ * model calls spent, in total, per day, per harness and per model, with
+ * the day before the window and the last seven days for comparison.
+ */
+export type UsageOverview = {
+    window: UsageWindow;
+    totals: TokenUsageSummary;
+    by_harness: (TokenUsageSummary & { harness: string })[];
+    days: (TokenUsageSummary & { at: number; label: string })[];
+    models: (TokenUsageSummary & {
+        model_slug: string;
+        model_name: string | null;
+        provider_name: string;
+        provider_id: number | null;
+        harness: string;
+    })[];
+    previous: TokenUsageSummary;
+    week: TokenUsageSummary;
+};
+
+/**
  * One table of the database, as the database browser lists it.
  */
 export type DatabaseTableSummary = {
@@ -988,6 +1019,11 @@ export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
     attachments?: BotMessageAttachment[];
     reactions?: BotMessageReaction[];
     reply_to?: BotMessageReply | null;
+    /**
+     * What the model calls behind this message spent (`token_usages`),
+     * summed. Only on bot messages that took at least one call.
+     */
+    usage?: TokenUsageSummary | null;
 };
 
 /**
@@ -1177,6 +1213,11 @@ export type PagePropsType = {
      */
     database_tables?: DatabaseTableSummary[] | null;
     database_records?: DatabaseRecordsPayload | null;
+    /**
+     * What the install's models spent, on the usage page (crew managers
+     * only).
+     */
+    usage?: UsageOverview | null;
     /**
      * The open conversation's files (a bot's own, or a workspace's shared
      * ones), for the files modal and the chips that name one.

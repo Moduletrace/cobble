@@ -4,6 +4,7 @@ import { AppData } from "@/src/data/app-data";
 import { SessionNamePrompt } from "@/src/data/harness-prompts";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import generateText from "@/src/harness/text/generate-text";
+import { runWithHarnessUsageScope } from "@/src/harness/usage/harness-usage-scope";
 import parseSessionName from "./parse-session-name";
 
 type Params = {
@@ -30,7 +31,7 @@ export default async function nameBotSession({
 }: Params): Promise<boolean> {
     const session = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-            sql: `SELECT id, title, summary FROM bot_sessions WHERE id = ? LIMIT 1`,
+            sql: `SELECT id, user_id, title, summary FROM bot_sessions WHERE id = ? LIMIT 1`,
             values: [session_id],
         })
     ).payload?.[0];
@@ -57,14 +58,30 @@ export default async function nameBotSession({
         )
         .join("\n\n");
 
-    const result = await generateText({
-        messages: [
-            { role: "system", content: SessionNamePrompt },
-            { role: "user", content: transcript },
-        ],
-        bot_id,
-        workspace_id,
-        signal,
+    /**
+     * The naming turn is a model call too, so it is recorded for this
+     * conversation. It runs after the job is complete, on purpose, so it
+     * has no job and no message of its own to charge it to.
+     */
+    const result = await runWithHarnessUsageScope({
+        scope: {
+            user_id: session.user_id || undefined,
+            bot_id,
+            workspace_id: workspace_id || null,
+            session_id: session.id,
+            job_id: null,
+            message_id: null,
+        },
+        task: () =>
+            generateText({
+                messages: [
+                    { role: "system", content: SessionNamePrompt },
+                    { role: "user", content: transcript },
+                ],
+                bot_id,
+                workspace_id,
+                signal,
+            }),
     });
 
     const name = parseSessionName({ text: result.text });

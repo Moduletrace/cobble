@@ -1,6 +1,8 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
+import grabActiveBotSession from "@/src/functions/backend/db/bot-sessions/grab-active-bot-session";
 import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
 import transcribeAudio from "@/src/harness/audio/transcribe-audio";
+import withUsageScope from "@/src/harness/usage/with-usage-scope";
 import { TranscribeVoiceRequestSchema } from "@/src/schemas/bot-schema";
 import HarnessError from "@/src/harness/harness-error";
 import AppError from "@/src/utils/app-error";
@@ -60,10 +62,31 @@ export const handler: BunextAPIRouteHandler<
             throw new AppError(`Nothing was recorded.`);
         }
 
-        const text = await transcribeAudio({
-            audio: { data: new Uint8Array(buffer), format: AudioFormats[type] || type },
+        /**
+         * The dictation is work done for this user in this conversation,
+         * even though no queued job or message is behind it.
+         */
+        const session = await grabActiveBotSession({
+            user_id: user.id,
             bot_id: conversation.bot.id,
             workspace_id: conversation.workspace_id,
+        });
+
+        const text = await withUsageScope({
+            scope: {
+                user_id: user.id,
+                bot_id: conversation.bot.id,
+                workspace_id: conversation.workspace_id,
+                session_id: session?.id || null,
+                job_id: null,
+                message_id: null,
+            },
+            task: () =>
+                transcribeAudio({
+                    audio: { data: new Uint8Array(buffer), format: AudioFormats[type] || type },
+                    bot_id: conversation.bot.id,
+                    workspace_id: conversation.workspace_id,
+                }),
         });
 
         if (!text) {

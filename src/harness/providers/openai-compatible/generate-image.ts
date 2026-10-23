@@ -81,7 +81,20 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
         });
     }
 
-    return { images };
+    /**
+     * Image models bill per image, not per token: only a provider that
+     * volunteers a usage figure is recorded with one.
+     */
+    const usage =
+        json?.usage && typeof json.usage == "object"
+            ? {
+                  prompt_tokens: Number(json.usage.prompt_tokens) || 0,
+                  completion_tokens: Number(json.usage.completion_tokens) || 0,
+                  ...(typeof json.usage.cost == "number" ? { cost: json.usage.cost } : {}),
+              }
+            : undefined;
+
+    return { images, ...(usage ? { usage } : {}) };
 };
 
 export default generateImage;

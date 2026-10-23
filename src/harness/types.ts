@@ -138,6 +138,18 @@ export type HarnessUsage = {
     cost?: number;
 };
 
+/**
+ * What a harness does with a model, for its usage rows and the totals
+ * that read them. Mirrors the `harness` column of `token_usages`.
+ */
+export type HarnessUsageKind =
+    | "text"
+    | "vision"
+    | "transcription"
+    | "speech"
+    | "image"
+    | "embedding";
+
 export type HarnessChatParams = {
     candidate: HarnessCandidate;
     messages: HarnessMessage[];
@@ -238,11 +250,22 @@ export type HarnessEmbedResult = {
  */
 export type HarnessAdapter = {
     chat: (params: HarnessChatParams) => Promise<HarnessChatResult>;
-    transcribe: (params: HarnessTranscribeParams) => Promise<{ text: string }>;
+    /**
+     * `usage` when the provider says how many tokens it heard, which
+     * OpenAI-style speech-to-text endpoints do only sometimes.
+     */
+    transcribe: (params: HarnessTranscribeParams) => Promise<{
+        text: string;
+        usage?: HarnessUsage;
+    }>;
     speak: (params: HarnessSpeakParams) => Promise<HarnessAudioStream>;
+    /**
+     * Image models report what they made rather than how many tokens it
+     * took, so `usage` is only whatever the provider volunteers.
+     */
     generateImage: (
         params: HarnessImageParams,
-    ) => Promise<{ images: HarnessImageOutput[] }>;
+    ) => Promise<{ images: HarnessImageOutput[]; usage?: HarnessUsage }>;
     embed: (params: HarnessEmbedParams) => Promise<HarnessEmbedResult>;
     listModels: (params: {
         provider: HarnessProviderConfig;

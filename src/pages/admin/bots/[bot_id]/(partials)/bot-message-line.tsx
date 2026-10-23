@@ -12,6 +12,7 @@ import GroupTimestamp from "./group-timestamp";
 import MessageActions from "./message-actions";
 import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
+import MessageUsageChip from "./message-usage-chip";
 import NeedsYouChip from "./needs-you-chip";
 import SpeakMessageButton from "./speak-message-button";
 
@@ -74,6 +75,7 @@ function BotMessageLine({ message, bot_name, at }: Props) {
             <Row className="gap-3! items-center">
                 {message.needs_you ? <NeedsYouChip /> : null}
                 {at ? <GroupTimestamp at={at} /> : null}
+                <MessageUsageChip usage={message.usage} />
                 {can_speak ? (
                     <SpeakMessageButton message_id={Number(message.id)} />
                 ) : null}

@@ -4,7 +4,9 @@ import HarnessError from "../harness-error";
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
-import type { HarnessAudioInput } from "../types";
+import type { HarnessAudioInput, HarnessUsage } from "../types";
+import buildUsageCall from "../usage/build-usage-call";
+import recordHarnessUsage from "../usage/record-harness-usage";
 
 type Params = {
     audio: HarnessAudioInput;
@@ -46,15 +48,23 @@ export default async function transcribeAudio({
 
     const final_signal = signal || new AbortController().signal;
 
-    const { result } = await withCandidates({
+    const { result } = await withCandidates<{ text: string; usage?: HarnessUsage }>({
         harness: "transcription",
         candidates,
+        on_success: async ({ candidate, result: transcript }): Promise<void> =>
+            await recordHarnessUsage({
+                call: buildUsageCall({
+                    harness: "transcription",
+                    candidate,
+                    usage: transcript.usage,
+                }),
+            }),
         run: async (candidate) => {
             const adapter = grabHarnessAdapter({
                 kind: candidate.provider.kind,
             });
 
-            const { text } = await adapter.transcribe({
+            const { text, usage } = await adapter.transcribe({
                 candidate,
                 audio,
                 language,
@@ -69,9 +79,9 @@ export default async function transcribeAudio({
                 });
             }
 
-            return text.trim();
+            return { text: text.trim(), usage };
         },
     });
 
-    return result;
+    return result.text;
 }

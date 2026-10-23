@@ -2,7 +2,9 @@ import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
-import type { HarnessCandidate } from "../types";
+import type { HarnessAudioStream, HarnessCandidate } from "../types";
+import buildUsageCall from "../usage/build-usage-call";
+import recordHarnessUsage from "../usage/record-harness-usage";
 
 type Params = {
     text: string;
@@ -39,9 +41,22 @@ export default async function speakText({
         grabHarnessSetting({ harness: "speech", bot_id, workspace_id }),
     ]);
 
-    const { result } = await withCandidates({
+    const { result } = await withCandidates<HarnessAudioStream>({
         harness: "speech",
         candidates,
+        /**
+         * Speech is billed per character and streamed, so there is no
+         * completion count to read: the call is recorded as it is, with
+         * the text's length standing in for what was spoken.
+         */
+        on_success: async ({ candidate }) =>
+            await recordHarnessUsage({
+                call: buildUsageCall({
+                    harness: "speech",
+                    candidate,
+                    usage: { prompt_tokens: text.length, completion_tokens: 0 },
+                }),
+            }),
         run: async (candidate) =>
             await grabHarnessAdapter({ kind: candidate.provider.kind }).speak({
                 candidate,

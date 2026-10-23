@@ -89,6 +89,18 @@ export default async function completeBotJob({
               media_ids: attachments,
           });
 
+    if (job.id && message?.id) {
+        /**
+         * The job's model calls were written down as they happened, before
+         * its message existed. Now that it does, they belong to it, so the
+         * thread can show what the answer cost.
+         */
+        await BunSQLite.sql({
+            sql: `UPDATE token_usages SET message_id = ? WHERE job_id = ? AND message_id IS NULL`,
+            values: [message.id, job.id],
+        }).catch(() => {});
+    }
+
     const user_id = await grabJobUserId({ job });
 
     const bot = !user_id

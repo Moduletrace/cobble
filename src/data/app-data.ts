@@ -329,6 +329,16 @@ export const AppData = {
      */
     ConversationOlderMessages: 30,
     /**
+     * Days of usage the usage page totals by default, and the most it will
+     * total at once.
+     */
+    UsageDefaultDays: 30,
+    UsageMaxDays: 365,
+    /**
+     * Models listed per page on the usage page, the busiest first.
+     */
+    UsageModelPageSize: 20,
+    /**
      * How much of a bot's last message the rail's lists carry, as plain
      * text (`messagePreview`): a row shows one line of it.
      */
