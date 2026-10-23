@@ -19,10 +19,10 @@ type Params = {
 };
 
 /**
- * The full prompt for one of the user's bots (`composeBotPrompt`): its
- * core instructions, the install-wide appendix, its memory, what it
- * remembers about this user, and in a workspace that workspace's context
- * and what the bot has for it.
+ * The full prompt for one of the user's bots (`composeBotPrompt`): who it
+ * is (its name and id), its core instructions, the install-wide appendix,
+ * its memory, what it remembers about this user, and in a workspace that
+ * workspace's context and what the bot has for it.
  */
 export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });
@@ -40,6 +40,7 @@ export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: P
     }
 
     return composeBotPrompt({
+        bot: { id: bot.id, name: bot.name, kind: bot.kind, role: bot.role },
         system_prompt: bot.system_prompt,
         appendix: await grabSystemPromptAppend(),
         memory: bot.memory,

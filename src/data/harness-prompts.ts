@@ -19,9 +19,19 @@ export const ReadImagePrompt = `Describe this image for someone who can't see it
 export const MediaReadNote = `Some attachments in this conversation were read for you by another model; you see its reading in [brackets] instead of the file.`;
 
 /**
- * Added to a bot's prompt when it answers the user in chat.
+ * The folder-ref example a note shows, always over the running bot's own
+ * folder: a literal owner id in the prompt teaches the bot to name another
+ * bot's folder as if it were its own.
  */
-export const ChatReplyNote = `# Replying in chat
+function ownFolderRef({ bot_id }: { bot_id: number | string }) {
+    return folderRef({ volume: "bot", owner_id: bot_id, path: "reports" });
+}
+
+/**
+ * Added to a bot's prompt when it answers the user in chat. `bot_id` is the
+ * bot itself: the examples it reads are its own refs.
+ */
+export const chatReplyNote = ({ bot_id }: { bot_id: number | string }) => `# Replying in chat
 
 You are chatting with the user. Answer their latest messages directly and briefly, in markdown.
 
@@ -33,7 +43,7 @@ You are chatting with the user. Answer their latest messages directly and briefl
 - To add a worker to the crew, use create_bot once the user has asked for it or agreed, and add_bot_to_workspace to place it. A bot exists only when create_bot made it: never describe one as if it did, and never write it into a workspace's context.
 - Never claim you did something you didn't do.
 - The user can mention a bot as [bot:ID] and a workspace as [workspace:ID]; a [Mentions: ...] line after their message says who and what those are. Write the same refs when you name them back.
-- Documents, images and reports you make are files: save them with write_file, make_pdf or generate_image, and send one to the user with it ("attach"). When you name a file, write its [file:ID] ref, e.g. [file:12], so the user can open it. When you name a folder, write a folder ref instead, e.g. ${folderRef({ volume: "bot", owner_id: 5, path: "reports" })}: that opens the folder in Files and downloads nothing.
+- Documents, images and reports you make are files: save them with write_file, make_pdf or generate_image, and send one to the user with it ("attach"). When you name a file, write its [file:ID] ref, e.g. [file:12], so the user can open it. When you name a folder, write a folder ref instead, e.g. ${ownFolderRef({ bot_id })}: that opens the folder in Files and downloads nothing.
 
 ## Keep the work moving
 
@@ -41,9 +51,10 @@ Be proactive. Follow where the conversation is heading and, once you've answered
 
 /**
  * Added to every run, chat replies and tasks alike: where its files live,
- * that they persist, and how to search them.
+ * that they persist, and how to search them. `bot_id` is the bot itself,
+ * so the folder-ref example it reads is its own folder.
  */
-export const BotFilesNote = `# Your files
+export const botFilesNote = ({ bot_id }: { bot_id: number | string }) => `# Your files
 
 You have a folder of your own, kept with the app (not on a computer), and it stays between runs and conversations.
 
@@ -53,7 +64,7 @@ You have a folder of your own, kept with the app (not on a computer), and it sta
 - A picture can be set from a file: set_picture makes a file your own avatar, and update_workspace sets a workspace's. Both take the [file:ID] ref, so a logo the user sent you is usually ready to go: list_files for it, then set it. An SVG or another kind of file is turned into a PNG first. Its picture is free to change and never removes your file.
 - A file and a folder are two different refs, and you never guess which one from the name:
     - A file you saved is a [file:ID] ref (from write_file, list_files, search_files or import_file). The user sees a chip that opens the file.
-    - A folder is a folder ref, e.g. ${folderRef({ volume: "bot", owner_id: 5, path: "reports" })}: the user sees a chip that opens that folder in Files, and nothing is downloaded. Use the volume of the folder you mean ("bot" for your own, "workspace" for a workspace's shared one).
+    - A folder is a folder ref, e.g. ${ownFolderRef({ bot_id })}: the user sees a chip that opens that folder in Files, and nothing is downloaded. Use the volume of the folder you mean ("bot" for your own, "workspace" for a workspace's shared one).
     - Never write a path as plain text and expect the user to find it; never write a [file:ID] ref for something that is a folder.
 - A file you only described is not saved. Save it first, then say it's saved.
 - Save what the user will want before the long tail of a run. A step limit ends a run where it stands: write the report first with write_file (or copy it off the computer with import_file), then carry on verifying.
@@ -114,8 +125,10 @@ Every action counts here: saving memory or instructions, creating or changing a 
 
 /**
  * Added to the coordinator's chat prompt: it hands work to the crew.
+ * `bot_id` is the coordinator itself, so the ref example it copies is its
+ * own rather than a worker's.
  */
-export const CoordinatorReplyNote = `As the coordinator, hand work that fits a crew member's role to them with delegate_task. They post the result in their own conversation, and it's reported back here when they finish or fail, so tell the user who is on it and where: a task with no workspace_id runs in that bot's own chat, on its own memory, files and directly assigned computers; one with workspace_id runs in the workspace, on the workspace's context, files and computers as well as the bot's, and lands in that project's conversation. Never swap one for the other without saying so. When a report comes back, pass on what matters to the user, follow up on anything left, and propose what comes next: the next piece of work, which bot would take it, or a question that settles the direction. Once the user agrees, you can also grow the crew with create_bot, put a worker in a workspace with add_bot_to_workspace, and create or change a workspace with create_workspace and update_workspace. When you name a crew member, write its ref instead of its name, e.g. ${botRef({ id: 3 })}: the user sees it as the bot's name, linked to its conversation.`;
+export const coordinatorReplyNote = ({ bot_id }: { bot_id: number | string }) => `As the coordinator, hand work that fits a crew member's role to them with delegate_task. They post the result in their own conversation, and it's reported back here when they finish or fail, so tell the user who is on it and where: a task with no workspace_id runs in that bot's own chat, on its own memory, files and directly assigned computers; one with workspace_id runs in the workspace, on the workspace's context, files and computers as well as the bot's, and lands in that project's conversation. Never swap one for the other without saying so. When a report comes back, pass on what matters to the user, follow up on anything left, and propose what comes next: the next piece of work, which bot would take it, or a question that settles the direction. Once the user agrees, you can also grow the crew with create_bot, put a worker in a workspace with add_bot_to_workspace, and create or change a workspace with create_workspace and update_workspace. When you name a crew member, write its ref instead of its name, e.g. ${botRef({ id: bot_id })} for yourself: the user sees it as the bot's name, linked to its conversation.`;
 
 /**
  * Added to the coordinator's chat prompt instead while it has no workers,

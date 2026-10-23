@@ -2,10 +2,10 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
-    BotFilesNote,
-    ChatReplyNote,
+    botFilesNote,
+    chatReplyNote,
     ComputerFilesNote,
-    CoordinatorReplyNote,
+    coordinatorReplyNote,
     CoordinatorSoloNote,
     TasksNote,
     TaskReminderNote,
@@ -138,7 +138,7 @@ export default async function runBotReply({
         bot.kind != "coordinator"
             ? ""
             : tools.some((tool) => tool.name == "delegate_task")
-              ? CoordinatorReplyNote
+              ? coordinatorReplyNote({ bot_id: bot.id })
               : CoordinatorSoloNote;
 
     try {
@@ -146,8 +146,8 @@ export default async function runBotReply({
             system: [
                 prompt,
                 carry_over,
-                ChatReplyNote,
-                BotFilesNote,
+                chatReplyNote({ bot_id: bot.id }),
+                botFilesNote({ bot_id: bot.id }),
                 ComputerFilesNote({ computer_id: computers[0]?.id || 0, can_import: false }),
                 TasksNote,
                 TaskReminderNote,

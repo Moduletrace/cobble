@@ -9,7 +9,27 @@ type WorkspaceBotPrompt = {
     memory?: string | null;
 };
 
+type BotPrompt = {
+    /**
+     * The bot's id: how it names itself, and how the user, the crew tools
+     * and every ref in a message point at it.
+     */
+    id?: number | string | null;
+    name?: string | null;
+    kind?: string | null;
+    /**
+     * The one-line role it does that job as, when it has one.
+     */
+    role?: string | null;
+};
+
 type Params = {
+    /**
+     * The bot itself. Its id is always in the prompt: it is how the bot
+     * names itself and how everything else (crew tools, refs, tasks,
+     * files) points back at it, in chat replies, tasks and routines alike.
+     */
+    bot?: BotPrompt | null;
     system_prompt?: string | null;
     /**
      * The install-wide text every bot gets, right after its own core
@@ -32,14 +52,16 @@ type Params = {
 };
 
 /**
- * The full prompt a bot runs with (markdown): its own core instructions,
- * then the install-wide appendix, then, in a workspace, the workspace's
+ * The full prompt a bot runs with (markdown): who it is (its name and id,
+ * so it always knows which bot it is), its own core instructions, then the
+ * install-wide appendix, then, in a workspace, the workspace's
  * context and the bot's instructions there, then its core memory, its
  * memory about the user and its memory in the workspace (said to be the
  * bot's own notes, not the workspace's context). Empty parts are left out;
  * the workspace heading always shows, so the bot knows where it is.
  */
 export default function composeBotPrompt({
+    bot,
     system_prompt,
     appendix,
     memory,
@@ -49,6 +71,11 @@ export default function composeBotPrompt({
 }: Params) {
     const parts: string[] = [];
     const name = workspace?.name?.trim() || "Untitled";
+    const identity = composeIdentity({ bot });
+
+    if (identity) {
+        parts.push(identity);
+    }
 
     if (system_prompt?.trim()) {
         parts.push(system_prompt.trim());
@@ -94,4 +121,25 @@ export default function composeBotPrompt({
     }
 
     return parts.join("\n\n");
+}
+
+/**
+ * Who the bot is, said once at the top of its prompt: its name, kind and
+ * id, and that the id is how it is named. Empty when the caller didn't say
+ * which bot it is.
+ */
+function composeIdentity({ bot }: { bot?: BotPrompt | null }) {
+    const id = bot?.id === null || bot?.id === undefined ? "" : String(bot.id).trim();
+
+    if (!id) return "";
+
+    const name = bot?.name?.trim() || "A bot";
+    const kind = bot?.kind == "coordinator" ? "the coordinator" : "a worker bot";
+    const role = bot?.role?.trim();
+
+    return [
+        `# You are ${name}`,
+        `You are ${kind} on this crew.${role ? ` Your role: ${role}.` : ""}`,
+        `Your bot id is ${id}. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref \`[bot:${id}]\`, never another bot's.`,
+    ].join("\n\n");
 }

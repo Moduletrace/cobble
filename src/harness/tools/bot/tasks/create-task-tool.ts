@@ -101,7 +101,7 @@ export default function createTaskTool({
         name: "create_task",
         description: is_coordinator
             ? `Add a task to a list: a worker's own (${crew || "no workers yet"}), a workspace's shared one (${places || "no workspaces yet"}), or your own (leave both ids out). Write the description as a brief: what to do, where, and how you'll know it's done. A workspace's tasks are visible to every bot working there.`
-            : `Add a task to a list: ${workspace_id ? "this workspace's shared one (leave the ids out), or your own (bot_id: " + bot_id + ")" : "your own (leave the ids out)"}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
+            : `Add a task to a list: ${workspace_id ? `this workspace's shared one (leave the ids out), or your own (bot_id: ${bot_id})` : `your own, bot_id ${bot_id} (or leave the id out, since it defaults to yours)`}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
         schema: z.object({
             title: z.string().trim().min(1).max(AppData.TaskTitleMaxLength).describe(`A short label`),
             description: z
@@ -111,7 +111,7 @@ export default function createTaskTool({
             bot_id: z.number().int().optional().describe(
                 is_coordinator
                     ? `Whose own list, when it isn't a workspace's. Leave out for your own.`
-                    : `Your own id (${bot_id}), to keep it in your list rather than the workspace's.`,
+                    : `Your own id (${bot_id}), to keep it in your list rather than the workspace's; leaving it out has the same effect here.`,
             ),
             workspace_id: z
                 .number()

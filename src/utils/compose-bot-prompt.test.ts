@@ -2,9 +2,47 @@ import { describe, expect, test } from "bun:test";
 import composeBotPrompt from "./compose-bot-prompt";
 
 describe("composeBotPrompt", () => {
+    test("opens with who the bot is, its id included", () => {
+        expect(composeBotPrompt({ bot: { id: 7, name: "Scout", kind: "worker", role: "Finds things" } })).toBe(
+            [
+                "# You are Scout",
+                "You are a worker bot on this crew. Your role: Finds things.",
+                "Your bot id is 7. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:7]`, never another bot's.",
+            ].join("\n\n"),
+        );
+    });
+
+    test("knows the coordinator by its kind and keeps an unknown name", () => {
+        expect(composeBotPrompt({ bot: { id: "1", kind: "coordinator" } })).toBe(
+            [
+                "# You are A bot",
+                "You are the coordinator on this crew.",
+                "Your bot id is 1. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:1]`, never another bot's.",
+            ].join("\n\n"),
+        );
+    });
+
+    test("says nothing about identity when the caller gives no bot", () => {
+        expect(composeBotPrompt({ bot: { id: null, name: "Scout" }, system_prompt: "Core." })).toBe(
+            "Core.",
+        );
+    });
+
+    test("puts the identity above the core instructions", () => {
+        expect(composeBotPrompt({ bot: { id: 4, name: "Scout" }, system_prompt: "Core." })).toBe(
+            [
+                "# You are Scout",
+                "You are a worker bot on this crew.",
+                "Your bot id is 4. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:4]`, never another bot's.",
+                "Core.",
+            ].join("\n\n"),
+        );
+    });
+
     test("orders core instructions, the workspace, then memory", () => {
         expect(
             composeBotPrompt({
+                bot: { id: 7, name: "Scout" },
                 system_prompt: "# You are Scout\n\nFind things.",
                 memory: "- Cite sources.",
                 user_memory: "- The user prefers short replies.",
@@ -20,6 +58,9 @@ describe("composeBotPrompt", () => {
             }),
         ).toBe(
             [
+                "# You are Scout",
+                "You are a worker bot on this crew.",
+                "Your bot id is 7. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:7]`, never another bot's.",
                 "# You are Scout\n\nFind things.",
                 `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.\n\nShip by Friday.`,
                 "# Your instructions in Launch\n\nOwn the changelog.",
@@ -33,6 +74,7 @@ describe("composeBotPrompt", () => {
     test("puts the install-wide appendix right after the core instructions", () => {
         expect(
             composeBotPrompt({
+                bot: { id: 4, name: "Scout" },
                 system_prompt: "Core.",
                 appendix: "Never invent sources.",
                 workspace: { name: "Launch", description: "The spring launch." },
@@ -40,6 +82,9 @@ describe("composeBotPrompt", () => {
             }),
         ).toBe(
             [
+                "# You are Scout",
+                "You are a worker bot on this crew.",
+                "Your bot id is 4. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:4]`, never another bot's.",
                 "Core.",
                 "# Install-wide instructions\n\nNever invent sources.",
                 `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.`,

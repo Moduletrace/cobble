@@ -1,7 +1,7 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
-    BotFilesNote,
+    botFilesNote,
     ComputerFilesNote,
     ScheduledRunNote,
     TasksNote,
@@ -191,7 +191,7 @@ export default async function runBotTask({
                 carry_over,
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
-                BotFilesNote,
+                botFilesNote({ bot_id: bot.id }),
                 ComputerFilesNote({ computer_id: job.computer_id || 0 }),
                 TasksNote,
                 ActionCheckNote,
