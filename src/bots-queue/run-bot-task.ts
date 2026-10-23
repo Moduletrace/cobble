@@ -8,6 +8,7 @@ import {
     TaskRunNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
+import { grabHarnessMaxToolSteps } from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
@@ -227,6 +228,7 @@ export default async function runBotTask({
                 },
             ],
             tools: [...tools, ...extensions.tools, ...skills.tools],
+            max_steps: await grabHarnessMaxToolSteps(),
             bot_id: bot.id,
             workspace_id,
             signal,

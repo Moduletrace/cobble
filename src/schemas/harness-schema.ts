@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppData } from "@/src/data/app-data";
 import { Harnesses, type HarnessKind } from "@/src/dict/harness-dict";
 import {
     HarnessProviderKinds,
@@ -95,6 +96,17 @@ export type SaveHarnessSettingsRequest = z.infer<
 export type SaveBotHarnessSettingsRequest = z.infer<
     typeof SaveBotHarnessSettingsRequestSchema
 >;
+
+/**
+ * The General settings' run limits: model turns a task run and a chat reply
+ * may take. Zero puts the code's default back.
+ */
+export const SaveRunLimitsRequestSchema = z.object({
+    task_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax),
+    reply_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax),
+});
+
+export type SaveRunLimitsRequest = z.infer<typeof SaveRunLimitsRequestSchema>;
 
 export const PreviewVoiceRequestSchema = z.object({
     model_id: z.coerce.number().int().positive("Pick a speech model"),

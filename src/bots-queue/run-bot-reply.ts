@@ -11,6 +11,7 @@ import {
     TaskReminderNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
+import { grabReplyMaxToolSteps } from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
@@ -173,7 +174,7 @@ export default async function runBotReply({
                 }),
             }),
             tools: [...tools, ...file_tools, ...extensions.tools, ...skills.tools],
-            max_steps: AppData.BotReplyMaxToolSteps,
+            max_steps: await grabReplyMaxToolSteps(),
             bot_id: bot.id,
             workspace_id,
             signal,

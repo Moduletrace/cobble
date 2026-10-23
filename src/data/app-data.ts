@@ -246,7 +246,10 @@ export const AppData = {
     HarnessCooldownMs: 60 * 1000,
     HarnessMaxCooldownMs: 24 * 60 * 60 * 1000,
     /**
-     * Model turns in one text run before it must stop and report.
+     * Model turns in one text run before it must stop and report. The
+     * install may save its own limit (the `harness_max_tool_steps` setting,
+     * Settings > General), which wins over this one; a task run reads it
+     * through `grabHarnessMaxToolSteps`.
      */
     HarnessMaxToolSteps: 200,
     /**
@@ -389,8 +392,17 @@ export const AppData = {
     WorkspaceActivityItems: 6,
     /**
      * Tool turns a chat reply may take. Long work goes to a task instead.
+     * The install may save its own limit (the `bot_reply_max_tool_steps`
+     * setting, Settings > General), which wins over this one; a reply
+     * reads it through `grabReplyMaxToolSteps`.
      */
     BotReplyMaxToolSteps: 8,
+    /**
+     * The most steps a saved run limit may ask for, for a task run or a
+     * chat reply. A typo in the settings page can't turn one run into an
+     * hour of tool calls, and a huge limit still ends with a report.
+     */
+    BotStepLimitMax: 1000,
     /**
      * Chat attachments: per file, per message, and how much of a
      * document's text a reply reads.

@@ -5,6 +5,7 @@ import sanitizeUserBio from "@/src/functions/backend/db/users/sanitize-user-bio"
 import grabUserPasswordHash from "@/src/functions/backend/auth/grab-user-password-hash";
 import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
+import grabRunLimitsOverview from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
 import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
 import runningVersion from "@/src/utils/running-version";
@@ -45,6 +46,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             has_password,
             storage_quota: await grabStorageQuotaOverview().catch(() => null),
             system_prompt_append: await grabSystemPromptAppendOverview().catch(() => null),
+            run_limits: await grabRunLimitsOverview().catch(() => null),
             running_version: runningVersion({ env: process.env }),
         },
     };

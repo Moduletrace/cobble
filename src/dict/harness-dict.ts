@@ -54,6 +54,12 @@ export const Harnesses = [
 export type HarnessKind = (typeof Harnesses)[number]["value"];
 
 /**
+ * The `app_settings` key holding the install's own limit on model turns in
+ * one run (a task). Unset means `AppData.HarnessMaxToolSteps`.
+ */
+export const HarnessMaxToolStepsSettingKey = "harness_max_tool_steps";
+
+/**
  * Vendors preferred for automatic picks, best first. Free models from any
  * other vendor come after these, and only if they look competent.
  */

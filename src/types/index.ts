@@ -1193,6 +1193,17 @@ export type PagePropsType = {
         text: string;
     } | null;
     /**
+     * Model turns a task run and a chat reply may take, with the code's
+     * defaults (the General settings page).
+     */
+    run_limits?: {
+        task_steps: number;
+        reply_steps: number;
+        task_default: number;
+        reply_default: number;
+        max: number;
+    } | null;
+    /**
      * The release the server is running, for the General settings page.
      */
     running_version?: RunningVersion | null;

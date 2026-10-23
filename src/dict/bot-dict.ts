@@ -111,6 +111,12 @@ export const CoordinatorBotName = "Coordinator";
 export const BotSystemPromptAppendSettingKey = "bot_system_prompt_append";
 
 /**
+ * The `app_settings` key holding the install's own limit on the tool turns
+ * one chat reply may take. Unset means `AppData.BotReplyMaxToolSteps`.
+ */
+export const BotReplyMaxToolStepsSettingKey = "bot_reply_max_tool_steps";
+
+/**
  * A bot's face is its status. There are no badges or spinners.
  */
 export const BotFaces = [
