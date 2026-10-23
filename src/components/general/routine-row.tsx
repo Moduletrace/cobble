@@ -1,10 +1,10 @@
-import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import type { CronJobWithNames } from "@/src/types";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
 import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
-import routineSubtitle from "../(utils)/routine-subtitle";
+import routineSubtitle from "@/src/utils/routine-subtitle";
+import BotAvatar from "./bot-avatar";
 
 type Props = {
     cron_job: CronJobWithNames;
@@ -12,13 +12,18 @@ type Props = {
     onToggle: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    /**
+     * In a conversation's own modal the Chat link and the bot's and
+     * workspace's names are already the ones on screen.
+     */
+    compact?: boolean;
 };
 
 /**
  * One routine: its bot's avatar, its name (Paused or Done when it is),
  * whose it is and when it runs, then Chat, Pause or Resume, Edit, Delete.
  */
-export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete }: Props) {
+export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete, compact }: Props) {
     const title = cron_job.title || `Routine ${cron_job.id}`;
     const done = Boolean(cron_job.max_runs && Number(cron_job.run_count || 0) >= cron_job.max_runs);
     const chat_url = cron_job.workspace_id
@@ -36,9 +41,15 @@ export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete 
             }
             title={title}
             badge={cron_job.enabled ? undefined : done ? "Done" : "Paused"}
-            subtitle={routineSubtitle({ cron_job })}
+            subtitle={routineSubtitle({
+                cron_job,
+                show_bot: !compact,
+                show_workspace: !compact,
+            })}
         >
-            <SettingsRowAction title={`Chat with ${cron_job.bot_name || "the bot"}`} label="Chat" href={chat_url} />
+            {compact ? null : (
+                <SettingsRowAction title={`Chat with ${cron_job.bot_name || "the bot"}`} label="Chat" href={chat_url} />
+            )}
             <SettingsRowAction
                 title={cron_job.enabled ? `Pause ${title}` : `Resume ${title}`}
                 label={cron_job.enabled ? "Pause" : "Resume"}

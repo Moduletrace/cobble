@@ -13,7 +13,8 @@ type Props = {
 };
 
 /**
- * A routine's name, schedule (a cron expression in UTC) and brief.
+ * A routine's name, schedule (a cron expression in UTC) and brief. The
+ * routines page and the conversation's routines modal both edit with it.
  */
 export default function RoutineForm({ cron_job, onCancel, onSaved }: Props) {
     const [title, setTitle] = useState(cron_job.title || "");

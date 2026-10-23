@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { CronJobWithNames } from "@/src/types";
 import botFaceSql from "@/src/utils/bot-face-sql";
+import routineScopeSql from "@/src/utils/routine-scope/routine-scope-sql";
 
 type Params = {
     user_id: number | string;
@@ -9,6 +10,12 @@ type Params = {
      */
     bot_id?: number | string;
     /**
+     * With `bot_id`: only the routines of that conversation, here
+     * (`routineScopeSql`). `null` is the bot's own chat, so it has to be
+     * given rather than left out to mean "everywhere".
+     */
+    workspace_id?: number | string | null;
+    /**
      * Only this one.
      */
     cron_job_id?: number | string;
@@ -16,17 +23,30 @@ type Params = {
 
 /**
  * The user's schedules with their bot (its face as the user sees it) and
- * workspace names, the next to
- * run first and paused ones last.
+ * workspace names, the next to run first and paused ones last. Given a
+ * `bot_id` and a `workspace_id` (null for its own chat) it is one
+ * conversation's: the routines that run right there.
  */
-export default async function grabCronJobs({ user_id, bot_id, cron_job_id }: Params): Promise<CronJobWithNames[]> {
+export default async function grabCronJobs({
+    user_id,
+    bot_id,
+    workspace_id,
+    cron_job_id,
+}: Params): Promise<CronJobWithNames[]> {
     const face = botFaceSql({ user_id, prefix: "bot_" });
     const where = [`c.user_id = ?`];
     const values: (number | string)[] = [user_id];
 
     if (bot_id) {
-        where.push(`c.bot_id = ?`);
-        values.push(bot_id);
+        if (workspace_id === undefined) {
+            where.push(`c.bot_id = ?`);
+            values.push(bot_id);
+        } else {
+            const scope = routineScopeSql({ bot_id, workspace_id });
+
+            where.push(scope.sql);
+            values.push(...scope.values);
+        }
     }
 
     if (cron_job_id) {

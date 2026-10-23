@@ -6,8 +6,8 @@ import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group"
 import SettingsList from "@/src/pages/admin/settings/(partials)/settings-list";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
-import RoutineEditModal from "../(partials)/routine-edit-modal";
-import RoutineRow from "../(partials)/routine-row";
+import RoutineEditModal from "@/src/components/general/routine-edit-modal";
+import RoutineRow from "@/src/components/general/routine-row";
 
 /**
  * Every routine the user's bots have: chat with the bot, pause or resume

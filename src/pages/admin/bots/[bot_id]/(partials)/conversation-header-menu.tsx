@@ -12,6 +12,7 @@ import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotComputersModal from "./bot-computers-modal";
 import BotFilesModal from "./bot-files-modal";
 import BotTasksModal from "./bot-tasks-modal";
+import BotRoutinesModal from "./bot-routines-modal";
 import BotModelsModal from "./bot-models-modal";
 import HeaderMenuItem from "./header-menu-item";
 import NewSessionButton from "./new-session-button";
@@ -103,6 +104,12 @@ export default function ConversationHeaderMenu({
                     on_open={on_open}
                 />
                 <BotTasksModal
+                    menu
+                    bot={bot}
+                    workspace={workspace}
+                    on_open={on_open}
+                />
+                <BotRoutinesModal
                     menu
                     bot={bot}
                     workspace={workspace}

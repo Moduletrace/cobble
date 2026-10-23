@@ -30,4 +30,21 @@ describe("routineSubtitle", () => {
             "Scout · @daily UTC",
         );
     });
+
+    test("leaves out the bot and workspace in a conversation's own modal", () => {
+        expect(
+            routineSubtitle({
+                cron_job: {
+                    bot_name: "Scout",
+                    workspace_name: "Launch",
+                    schedule: "0 9 * * *",
+                    enabled: 1,
+                    next_run_at: now + 30 * 60 * 1000,
+                },
+                now,
+                show_bot: false,
+                show_workspace: false,
+            }),
+        ).toBe("0 9 * * * UTC · next in 30m");
+    });
 });
