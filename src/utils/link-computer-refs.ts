@@ -45,10 +45,18 @@ export const FolderRefHrefPrefix = "#folder-";
 export const ProposalRefHrefPrefix = "#proposal-";
 
 /**
+ * The link target a hook proposal ref (`hookProposalRef`) becomes, e.g.
+ * `#hook-proposal-4`. The chat renders it as a chip that opens the card
+ * where the user confirms or rejects the hook.
+ */
+export const HookProposalRefHrefPrefix = "#hook-proposal-";
+
+/**
  * Turns every computer ref (`[computer:3]`) and take-over ref
  * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
  * (`[workspace:2]`), file ref (`[file:12]`), folder ref
- * (`[folder:computer:3:seo/raw]`) and proposal ref (`[proposal:7]`) in a message into a markdown link, so it
+ * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
+ * proposal ref (`[hook-proposal:4]`) in a message into a markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button,
  * chip or download.
  *
@@ -74,6 +82,10 @@ export default function linkComputerRefs({ text }: { text: string }) {
         .replace(
             /\[proposal:(\d+)\](?!\()/g,
             (_, id: string) => `[proposal ${id}](${ProposalRefHrefPrefix}${id})`,
+        )
+        .replace(
+            /\[hook-proposal:(\d+)\](?!\()/g,
+            (_, id: string) => `[hook proposal ${id}](${HookProposalRefHrefPrefix}${id})`,
         )
         .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
         .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>

@@ -58,3 +58,16 @@ export const BotHookIdempotencyHeaders = [
     "x-request-id",
     "x-webhook-id",
 ] as const;
+
+/**
+ * What a bot's hook proposal (`hook_proposals`) does once the user
+ * confirms it: make a hook in the conversation it was proposed in, or
+ * change one of theirs (its name, brief, filter, or switch it back on).
+ * Pausing and deleting need no proposal: they only take away.
+ */
+export const HookProposalActions = [
+    { title: "Add", value: "create" },
+    { title: "Change", value: "change" },
+] as const;
+
+export type HookProposalAction = (typeof HookProposalActions)[number]["value"];

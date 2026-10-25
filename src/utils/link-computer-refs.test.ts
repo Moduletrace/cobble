@@ -3,6 +3,7 @@ import botRef from "./bot-ref";
 import workspaceRef from "./workspace-ref";
 import computerRef from "./computer-ref";
 import linkComputerRefs from "./link-computer-refs";
+import hookProposalRef from "./hook-proposal-ref";
 import proposalRef from "./proposal-ref";
 import takeOverRef from "./take-over-ref";
 
@@ -25,6 +26,12 @@ describe("linkComputerRefs", () => {
         expect(linkComputerRefs({ text: `Review it: ${proposalRef({ id: 7 })}` })).toBe(
             "Review it: [proposal 7](#proposal-7)",
         );
+    });
+
+    test("links hook proposals apart from extension proposals", () => {
+        expect(
+            linkComputerRefs({ text: `${hookProposalRef({ id: 4 })} and ${proposalRef({ id: 4 })}` }),
+        ).toBe("[hook proposal 4](#hook-proposal-4) and [proposal 4](#proposal-4)");
     });
 
     test("links take-over requests", () => {

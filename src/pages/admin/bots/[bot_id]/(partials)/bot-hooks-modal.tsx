@@ -42,7 +42,8 @@ type Props = {
  * (a webhook, a script) calls to give the bot a task, whose result lands
  * here. Open it from the header menu; the list loads then, so the page's
  * props stay small. The user makes, pauses, edits, re-keys and deletes
- * their own; bots never make hooks.
+ * their own; bots propose new hooks and changes from the chat
+ * (`propose_hook`), which the user confirms there.
  */
 export default function BotHooksModal({ bot, workspace, on_open }: Props) {
     const { pageProps } = useContext(AppContext);

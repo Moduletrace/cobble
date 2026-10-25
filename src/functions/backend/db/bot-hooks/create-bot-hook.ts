@@ -1,14 +1,13 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_HOOKS, BunSQLiteTables } from "@/db/types/db";
-import { AppData } from "@/src/data/app-data";
 import type { BotHookSignatureFormat, BotHookSource } from "@/src/dict/bot-hook-dict";
 import type { BotHookWithToken } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import { encrypt } from "@/src/utils/crypt";
 import generateHookToken from "@/src/utils/generate-hook-token";
 import grabUserConversation from "../bot-sessions/grab-user-conversation";
-import grabBotComputers from "../computers/grab-bot-computers";
-import grabUserComputer from "../computers/grab-user-computer";
+import assertHookComputers from "./assert-hook-computers";
+import assertHookRoom from "./assert-hook-room";
 import syncComputerNotifyWatch from "./sync-computer-notify-watch";
 import grabUserBotHook from "./grab-user-bot-hook";
 
@@ -69,44 +68,17 @@ export default async function createBotHook({
     const conversation = await grabUserConversation({ user_id, bot_id, workspace_id });
     const bot_id_num = conversation.bot.id;
 
-    const count = Number(
-        (
-            await BunSQLite.sql<{ n: number }>({
-                sql: `SELECT COUNT(*) AS n FROM bot_hooks WHERE bot_id = ? AND user_id = ?`,
-                values: [bot_id_num, user_id],
-            })
-        ).payload?.[0]?.n || 0,
-    );
-
-    if (count >= AppData.BotHookMaxPerBot) {
-        throw new AppError(
-            `${conversation.bot.name || "This bot"} already has ${AppData.BotHookMaxPerBot} hooks. Delete one first.`,
-        );
-    }
+    await assertHookRoom({ user_id, bot_id: bot_id_num, bot_name: conversation.bot.name });
 
     const watching = source == "browser_notifications";
-    const run_computer_id = computer_id || (watching ? watch_computer_id : null);
-
-    if (watching && !watch_computer_id) {
-        throw new AppError(`Pick the computer whose notifications it gets.`);
-    }
-
-    if (run_computer_id || watch_computer_id) {
-        const computers = await grabBotComputers({
-            bot_id: bot_id_num,
-            workspace_id: conversation.workspace_id,
-        });
-
-        for (const id of [run_computer_id, watching ? watch_computer_id : null].filter(Boolean)) {
-            if (!computers.some((c) => String(c.id) == String(id))) {
-                throw new AppError(`This bot has no access to that computer.`);
-            }
-        }
-    }
-
-    if (watching && !(await grabUserComputer({ user_id, computer_id: watch_computer_id! }))?.id) {
-        throw new AppError(`You have no access to that computer.`);
-    }
+    const run_computer_id = await assertHookComputers({
+        user_id,
+        bot_id: bot_id_num,
+        workspace_id: conversation.workspace_id,
+        source,
+        computer_id,
+        watch_computer_id,
+    });
 
     const secret = watching ? undefined : signing_secret?.trim();
 

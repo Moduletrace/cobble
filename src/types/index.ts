@@ -37,6 +37,7 @@ import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
+import type { HookProposalAction } from "../dict/bot-hook-dict";
 import type { PwaInstallIcon } from "../data/pwa-data";
 import type {
     CustomToolHttpMethod,
@@ -781,6 +782,51 @@ export type ExtensionProposalView = {
      */
     research: string;
     sources: string[];
+};
+
+/**
+ * A hook a bot proposed making or changing (`hook_proposals`), as its chip
+ * and confirm card show it to the user it was proposed to: every detail
+ * read by the app from what Confirm would save, the bot's reason beside
+ * them, labelled as its own.
+ */
+export type HookProposalView = {
+    id: number;
+    action: HookProposalAction;
+    /**
+     * The hook it changes, null for a new one.
+     */
+    hook_id: number | null;
+    title: string;
+    bot_id: number;
+    bot_name: string;
+    status: ExtensionProposalStatus;
+    /**
+     * Still pending, but past `expires_at`: it can't be confirmed.
+     */
+    expired: boolean;
+    expires_at: number;
+    outcome: string;
+    result_id: number | null;
+    /**
+     * Confirming makes a URL an outside service calls, shown then, once.
+     */
+    makes_url: boolean;
+    details: ExtensionProposalDetail[];
+    /**
+     * Why the bot proposes it, in its own words.
+     */
+    reason: string;
+};
+
+/**
+ * A hook proposal just decided: as it now stands, and for a new hook
+ * called at a URL its token, shown this once to the user who confirmed it
+ * (never stored, never told to the bot).
+ */
+export type HookProposalDecision = {
+    view: HookProposalView;
+    token?: string;
 };
 
 /**

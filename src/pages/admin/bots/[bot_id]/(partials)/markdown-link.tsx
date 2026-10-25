@@ -5,6 +5,7 @@ import {
     BotRefHrefPrefix,
     ComputerRefHrefPrefix,
     FileRefHrefPrefix,
+    HookProposalRefHrefPrefix,
     ProposalRefHrefPrefix,
     TakeOverRefHrefPrefix,
     WorkspaceRefHrefPrefix,
@@ -14,6 +15,7 @@ import BotRefChip from "./bot-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
 import FileRefChip from "./file-ref-chip";
 import FolderRefChip from "./folder-ref-chip";
+import HookProposalRefChip from "./hook-proposal-ref-chip";
 import ProposalRefChip from "./proposal-ref-chip";
 import TakeOverChip from "./take-over-chip";
 import WorkspaceRefChip from "./workspace-ref-chip";
@@ -23,9 +25,9 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * becomes its switch button, a take-over request a button that opens the
  * computer, a bot it named a link to that bot's conversation, a workspace
  * a link to that workspace, a file it saved a chip that downloads it, a
- * folder it named a chip that opens it in the files browser, an MCP server
- * or tool it proposed a chip that opens the confirm card; anything else
- * opens in a new tab.
+ * folder it named a chip that opens it in the files browser, an MCP server,
+ * tool, skill or hook it proposed a chip that opens the confirm card;
+ * anything else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
     if (href?.startsWith(ComputerRefHrefPrefix)) {
@@ -71,6 +73,12 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
         const proposal_id = Number(href.slice(ProposalRefHrefPrefix.length));
 
         if (proposal_id) return <ProposalRefChip proposal_id={proposal_id} />;
+    }
+
+    if (href?.startsWith(HookProposalRefHrefPrefix)) {
+        const proposal_id = Number(href.slice(HookProposalRefHrefPrefix.length));
+
+        if (proposal_id) return <HookProposalRefChip proposal_id={proposal_id} />;
     }
 
     const folder_ref = parseFolderRefHref({ href });

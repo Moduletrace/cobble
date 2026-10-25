@@ -140,8 +140,8 @@ export default async function runBotReply({
 
     const take_overs: string[] = [];
     /**
-     * The MCP servers and tools the coordinator proposed: their cards need
-     * the user just like a take-over.
+     * The hooks the bot proposed, and the MCP servers, tools and skills the
+     * coordinator did: their cards need the user just like a take-over.
      */
     const proposals: string[] = [];
     /**

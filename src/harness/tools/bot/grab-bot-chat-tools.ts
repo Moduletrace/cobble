@@ -62,8 +62,8 @@ type Params = {
      */
     onTakeOver?: (params: { ref: string }) => void;
     /**
-     * Called when the coordinator proposes an MCP server or tool for the
-     * user to confirm.
+     * Called when the bot proposes a hook, or the coordinator an MCP
+     * server, tool or skill, for the user to confirm.
      */
     onPropose?: (params: { ref: string }) => void;
     /**
@@ -120,6 +120,7 @@ export default async function grabBotChatTools({
             is_coordinator: powers.is_coordinator,
             admin_workspace_ids: powers.admin_workspace_ids,
             scopes,
+            onPropose,
         })),
         startTaskTool({
             user_id,

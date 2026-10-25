@@ -81,6 +81,7 @@ function wordRefs({
         .replace(/\[computer:(\d+)\](?!\()/g, "computer $1")
         .replace(/\[take-over:(\d+):([a-z]+)\](?!\()/g, "(take over computer $1, $2)")
         .replace(/\[proposal:(\d+)\](?!\()/g, "proposal $1")
+        .replace(/\[hook-proposal:(\d+)\](?!\()/g, "hook proposal $1")
         .replace(/\[file:(\d+)\](?!\()/g, "file $1")
         .replace(/\[folder:[a-z]+:\d+:([^\]\n]+)\](?!\()/g, "`$1`")
         .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, "the $1 $2 folder");

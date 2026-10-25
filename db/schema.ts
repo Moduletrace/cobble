@@ -20,7 +20,13 @@ import { Harnesses } from "@/src/dict/harness-dict";
 import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
 import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
-import { BotHookEventStatuses, BotHookSignatureFormats, BotHookSources } from "@/src/dict/bot-hook-dict";
+import {
+    BotHookEventStatuses,
+    BotHookSignatureFormats,
+    BotHookSources,
+    HookProposalActions,
+} from "@/src/dict/bot-hook-dict";
+import { ExtensionProposalStatuses } from "@/src/dict/extension-proposal-dict";
 import {
     BotFilePurposes,
     BotFileScopes,
@@ -1339,6 +1345,89 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_hook_events_hook_id_idempotency_key",
                     indexTableFields: ["hook_id", "idempotency_key"],
+                },
+            ],
+        },
+        {
+            tableName: "hook_proposals",
+            tableDescription: `A hook a bot proposed making, or a change to one (its name, brief, filter, or switching it back on), waiting for the user whose conversation it was proposed in to confirm or reject it from its card. Nothing is saved until they confirm; a new hook's URL is shown to them then, never to the bot`,
+            fields: [
+                {
+                    fieldName: "action",
+                    fieldDescription: `create (a new hook in the conversation it was proposed in) or change (\`hook_id\`)`,
+                    dataType: "TEXT",
+                    options: HookProposalActions.map((a) => a.value),
+                },
+                {
+                    fieldName: "hook_id",
+                    fieldDescription: `The hook it changes, null for a new one. Not a foreign key: a deleted one makes the proposal fail on confirm`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "title",
+                    fieldDescription: `The hook's name (the new one when renaming), for the chip`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "data",
+                    fieldDescription: `JSON: what would be saved (HookProposalData): for a new hook all of it, for a change only the fields that change`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "reason",
+                    fieldDescription: `Why the bot proposes it, in its own words, shown on the card as such`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: [...ExtensionProposalStatuses],
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "outcome",
+                    fieldDescription: `What happened on confirm, or why it failed. Never the hook's URL`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "result_id",
+                    fieldDescription: `The hook it saved, once confirmed`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "expires_at",
+                    fieldDescription: `A pending proposal can't be confirmed after this (Unix ms)`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "decided_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user it was proposed to, who alone reads and decides it; the hook would be theirs. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that proposed it, which runs the hook. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it was proposed in. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace, where a new hook runs; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_hook_proposals_session_id",
+                    indexTableFields: ["session_id"],
                 },
             ],
         },

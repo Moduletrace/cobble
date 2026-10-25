@@ -155,6 +155,7 @@ export default async function runBotTask({
                 is_coordinator: powers.is_coordinator,
                 admin_workspace_ids: powers.admin_workspace_ids,
                 scopes,
+                hooked,
             })),
             ...admin_tools,
             ...(powers.is_coordinator

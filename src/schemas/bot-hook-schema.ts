@@ -53,3 +53,28 @@ export const BotHookIdRequestSchema = z.object({
 });
 
 export type BotHookIdRequest = z.infer<typeof BotHookIdRequestSchema>;
+
+/**
+ * What a bot's hook proposal would save (`hook_proposals.data`): for a
+ * new hook its name, brief, source and computers; for a change only what
+ * changes. A bot never sets how calls are signed (the secret would pass
+ * through it), and can only switch a hook back on (`enabled: true`):
+ * pausing needs no proposal.
+ */
+export const HookProposalDataSchema = z.object({
+    title: TitleField.optional(),
+    instructions: InstructionsField.optional(),
+    source: SourceField.optional(),
+    computer_id: z.coerce.number().int().positive().nullable().optional(),
+    watch_computer_id: z.coerce.number().int().positive().nullable().optional(),
+    watch_filter: WatchFilterField.optional(),
+    enabled: z.literal(true).optional(),
+});
+
+export type HookProposalData = z.infer<typeof HookProposalDataSchema>;
+
+export const HookProposalIdRequestSchema = z.object({
+    proposal_id: z.coerce.number().int().positive("Pick a proposal"),
+});
+
+export type HookProposalIdRequest = z.infer<typeof HookProposalIdRequestSchema>;
