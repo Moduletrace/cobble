@@ -18,6 +18,8 @@ import compressResponse from "./functions/server/compress-response";
 import { ComputerProxyPrefix } from "./dict/computer-dict";
 import ensureDockerNetwork from "./functions/backend/docker/ensure-docker-network";
 import { ensureVapidKeys } from "./push/vapid";
+import isSameOriginUpgrade from "./utils/is-same-origin-upgrade";
+import { setRequestPeerIP } from "./utils/request-peer-ip";
 
 declare global {}
 
@@ -74,6 +76,8 @@ try {
  */
 const server = Bun.serve({
     async fetch(req, server) {
+        setRequestPeerIP({ req, ip: server.requestIP(req)?.address });
+
         try {
             const url = new URL(req.url);
 
@@ -102,6 +106,10 @@ const server = Bun.serve({
             }
 
             if (url.pathname === WEBSOCKET_ENDPOINT) {
+                if (!isSameOriginUpgrade({ req })) {
+                    return new Response("Forbidden", { status: 403 });
+                }
+
                 const session = await userAuth({ req });
 
                 if (!session.user?.id) {

@@ -1,3 +1,4 @@
+import mediaFilePath from "@/src/utils/media-file-path";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_FILES } from "@/db/types/db";
 import { rmSync } from "node:fs";
@@ -24,7 +25,6 @@ export default async function deleteBotFile({ scopes, file_id }: Params) {
         throw new AppError(`That file isn't in your files.`);
     }
 
-    const { DATA_DIR } = grabDirNames();
     const root = grabStorageDir({ scope: file.scope as any, owner_id: file.owner_id! });
     const absolute = path.join(root, file.path || "");
 
@@ -55,12 +55,10 @@ export default async function deleteBotFile({ scopes, file_id }: Params) {
             values: [file.media_id],
         }).then((res) => res.payload?.[0]);
 
-        if (media?.media_write_path) {
-            rmSync(path.join(DATA_DIR, media.media_write_path), { force: true });
-        }
+        for (const write_path of [media?.media_write_path, media?.media_thumbnail_write_path]) {
+            const absolute = mediaFilePath({ write_path });
 
-        if (media?.media_thumbnail_write_path) {
-            rmSync(path.join(DATA_DIR, media.media_thumbnail_write_path), { force: true });
+            if (absolute) rmSync(absolute, { force: true });
         }
 
         await BunSQLite.sql({ sql: `DELETE FROM media_paradigms WHERE media_id = ?`, values: [file.media_id] });

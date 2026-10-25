@@ -3,6 +3,7 @@ import computerProxyRequestHeaders from "@/src/utils/computer-proxy-request-head
 import computerProxyResponseHeaders from "@/src/utils/computer-proxy-response-headers";
 import type { WebSocketSession } from "@/src/websocket/types";
 import computerProxyTarget from "./computer-proxy-target";
+import isSameOriginUpgrade from "@/src/utils/is-same-origin-upgrade";
 
 type Params = {
     req: Request;
@@ -25,6 +26,8 @@ export default async function handleComputerProxy({ req, server }: Params) {
     const headers = computerProxyRequestHeaders({ headers: req.headers, url, prefix });
 
     if (req.headers.get("upgrade")?.toLowerCase() == "websocket") {
+        if (!isSameOriginUpgrade({ req })) return new Response("Forbidden", { status: 403 });
+
         const protocols = (req.headers.get("sec-websocket-protocol") || "")
             .split(",")
             .map((p) => p.trim())

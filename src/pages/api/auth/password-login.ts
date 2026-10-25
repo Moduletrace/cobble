@@ -3,7 +3,7 @@ import verifyUserPassword from "@/src/functions/backend/auth/verify-user-passwor
 import loginUser from "@/src/functions/backend/auth/login-user";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { AppData } from "@/src/data/app-data";
-import rateLimit from "@/src/utils/rate-limit";
+import rateLimit, { resetRateLimit } from "@/src/utils/rate-limit";
 import { PasswordLoginRequestSchema } from "@/src/schemas/auth-schema";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import safeErrorMessage from "@/src/utils/safe-error-message";
@@ -31,19 +31,26 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         const window_ms = AppData["RateLimitWindowMinutes"] * 60 * 1000;
 
-        const ip_limit = rateLimit({
-            key: `password-login:ip:${grabRequestIP(req) || "unknown"}`,
-            limit: AppData["PasswordAttemptLimit"] * 4,
-            window_ms,
-        });
+        const ip = grabRequestIP(req) || "unknown";
+        const id_key = identifier.toLowerCase();
 
-        const identifier_limit = rateLimit({
-            key: `password-login:id:${identifier.toLowerCase()}`,
-            limit: AppData["PasswordAttemptLimit"],
-            window_ms,
-        });
+        /**
+         * Three buckets: one per address, one per account from that
+         * address (the tight one), and one per account from anywhere,
+         * looser, so guessing from many addresses is still bounded while
+         * a stranger can't lock the owner out with a handful of tries.
+         */
+        const limits = [
+            { key: `password-login:ip:${ip}`, limit: AppData["PasswordAttemptLimit"] * 4 },
+            { key: `password-login:id-ip:${id_key}:${ip}`, limit: AppData["PasswordAttemptLimit"] },
+            { key: `password-login:id:${id_key}`, limit: AppData["PasswordAttemptLimit"] * 10 },
+        ];
 
-        if (!ip_limit.allowed || !identifier_limit.allowed) {
+        const allowed = limits
+            .map(({ key, limit }) => rateLimit({ key, limit, window_ms }).allowed)
+            .every(Boolean);
+
+        if (!allowed) {
             throw new AppError(`Too many attempts. Please try again later.`);
         }
 
@@ -70,6 +77,8 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
                 msg: `Incorrect email, username or password.`,
             };
         }
+
+        resetRateLimit({ key: `password-login:id-ip:${id_key}:${ip}` });
 
         return await loginUser({
             user_id: target_user.id,

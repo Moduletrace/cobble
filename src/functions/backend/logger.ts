@@ -1,3 +1,5 @@
+import clientIP from "@/src/utils/client-ip";
+import { grabRequestPeerIP } from "@/src/utils/request-peer-ip";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { LogCategories } from "@/src/dict/log-categories";
 
@@ -8,13 +10,11 @@ export function grabRequestIP(req?: Request): string | undefined {
         return undefined;
     }
 
-    const forwarded = req.headers.get("x-forwarded-for");
-
-    if (forwarded) {
-        return forwarded.split(",").shift()?.trim();
-    }
-
-    return req.headers.get("x-real-ip") || undefined;
+    return clientIP({
+        peer: grabRequestPeerIP({ req }),
+        forwarded_for: req.headers.get("x-forwarded-for"),
+        real_ip: req.headers.get("x-real-ip"),
+    });
 }
 
 export type LogDetail = {

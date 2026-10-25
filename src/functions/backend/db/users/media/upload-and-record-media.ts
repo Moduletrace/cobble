@@ -16,6 +16,7 @@ import grabDirNames from "@/src/utils/grab-dir-names";
 import BunSQLite, { type APIResponseObject } from "@moduletrace/bun-sqlite";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
+import _ from "lodash";
 import sharp, { type Sharp } from "sharp";
 import canExtractText from "@/src/utils/can-extract-text";
 import capTextContent from "@/src/utils/cap-text-content";
@@ -81,8 +82,14 @@ export default async function uploadAndRecordMedia({
     media_text_content: passed_media_text_content,
 }: Params): Promise<APIResponseObject<BUN_SQLITE_COBBLE_MEDIA>> {
     const now = Date.now();
-    let target_file_name = `${media_name || now}`;
-    let target_file_thumbnail_name = `${media_name || now}-thumb`;
+    /**
+     * The name becomes part of a path on disk, so only letters, digits,
+     * `-` and `_` are kept: a name like `../../db/cobble` must never
+     * write outside the user's media folder.
+     */
+    const safe_name = (media_name || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
+    let target_file_name = `${safe_name || now}`;
+    let target_file_thumbnail_name = `${safe_name || now}-thumb`;
 
     const { USER_MEDIA_RELATIVE_DIR: MEDIA_RELATIVE_DIR, DATA_DIR } =
         grabDirNames({
@@ -127,6 +134,8 @@ export default async function uploadAndRecordMedia({
      * a transparent PNG stays a PNG (`imageOutputFormat`). Every other file
      * keeps its own extension.
      */
+    media_ext = media_ext?.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 16) || undefined;
+
     const image_output = media_type == "image" ? imageOutputFormat({ ext: media_ext }) : null;
     const stored_ext = image_output ? image_output.ext : media_ext;
 
@@ -261,7 +270,11 @@ export default async function uploadAndRecordMedia({
     }
 
     const media_data: BUN_SQLITE_COBBLE_MEDIA = {
-        ...media,
+        /**
+         * Only what describes the file: an `id` or a path in `media`
+         * would point the row at another one.
+         */
+        ..._.pick(media || {}, ["title", "description", "summary"]),
         user_id: Number(user.id),
         /**
          * NULL, not 0, when not primary: the (user_id, is_primary) unique

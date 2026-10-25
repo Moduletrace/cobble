@@ -1,7 +1,7 @@
+import mediaFilePath from "@/src/utils/media-file-path";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import grabBotFile from "@/src/functions/backend/db/bot-files/grab-bot-file";
-import grabDirNames from "@/src/utils/grab-dir-names";
 import readMedia from "@/src/harness/media/read-media";
 import type { HarnessTool } from "../../types";
 import { fileRef, type StorageToolContext } from "./storage-tool-context";
@@ -54,12 +54,11 @@ export default function readFileTool(context: StorageToolContext): HarnessTool<A
                 path: args.path,
             });
 
-            if (!file?.id || !file.media?.media_write_path) {
+            const absolute = mediaFilePath({ write_path: file?.media?.media_write_path });
+
+            if (!file?.id || !absolute) {
                 return `No file matches that. Use list_files to see what you have.`;
             }
-
-            const { DATA_DIR } = grabDirNames();
-            const absolute = `${DATA_DIR}/${file.media.media_write_path}`;
             const ext = (file.name || "").split(".").pop()?.toLowerCase() || "";
 
             if (TextExtensions.includes(ext)) {

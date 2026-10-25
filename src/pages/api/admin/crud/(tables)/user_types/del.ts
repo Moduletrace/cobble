@@ -9,6 +9,7 @@ import type { AdminCrudAPIParams, UserType } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import _ from "lodash";
+import filterAssignableRows from "./(functions)/filter-assignable-rows";
 
 export default async function (
     params: AdminCrudAPIParams,
@@ -58,9 +59,13 @@ export default async function (
         ignored_user_types.push(...SuperAdminOnlyEditableUserTypes);
     }
 
-    const user_types_to_delete = records_to_delete.payload.filter(
-        (rec) => !ignored_user_types.includes(rec.user_type as any),
-    );
+    const user_types_to_delete = await filterAssignableRows({
+        rows: records_to_delete.payload.filter(
+            (rec) => !ignored_user_types.includes(rec.user_type as any),
+        ),
+        actor_user_types: user_types,
+        action: "delete",
+    });
 
     for (let i = 0; i < user_types_to_delete.length; i++) {
         const user_type_to_delete = user_types_to_delete[i];

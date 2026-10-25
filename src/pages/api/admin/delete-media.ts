@@ -7,6 +7,7 @@ import type {
 } from "@moduletrace/bunext/types";
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
 import checkUserAccess from "@/src/functions/backend/auth/check-user-access";
+import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
     params,
@@ -31,6 +32,10 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
     }
 
     try {
+        if (isReadOnlyUser({ user_types })) {
+            throw new Error(`This user can only read records.`);
+        }
+
         const { id, ids, media_paradigm, user_id } = body;
 
         const can_delete_all_media = checkUserAccess({

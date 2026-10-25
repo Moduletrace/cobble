@@ -36,7 +36,7 @@ The proxy should reach the app at \`http://<this machine>:7227\` (or the port gi
 - **You opened the plain HTTP address.** Use the HTTPS address your proxy serves. \`http://\` will always be treated as unsafe.
 - **The certificate warning comes from the proxy.** It is using a self-signed or expired certificate. Fix that on the proxy: Cobble never sees the certificate.
 - **Sign-in doesn't stick, or downloads fail.** The proxy is not passing \`X-Forwarded-Proto\` (see above), or it is dropping cookies.
-- **WebSocket updates don't arrive.** The proxy must pass the upgrade on \`/ws\` as well as ordinary requests.`,
+- **WebSocket updates don't arrive.** The proxy must pass the upgrade on \`/ws\` as well as ordinary requests, and keep the address the browser used in \`Host\` (or send it as \`X-Forwarded-Host\`): a websocket from any other address is refused. With nginx add \`proxy_set_header Host $host;\`.`,
     },
     {
         id: HelpSignInTopicId,

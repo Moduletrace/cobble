@@ -126,6 +126,10 @@ point that at `http://<this machine>:7227`:
   sign-in cookies `Secure`; Caddy does this by default, and nginx needs
   `proxy_set_header X-Forwarded-Proto $scheme;`.
 - Pass `/ws` through as well as ordinary requests, including the upgrade.
+- Keep the address the browser used in `Host` (or send it as
+  `X-Forwarded-Host`). Live updates and the computers' terminals only accept
+  a websocket from the app's own address; Caddy and Cloudflare Tunnel keep
+  it, and nginx needs `proxy_set_header Host $host;`.
 - Give the proxy a real certificate. Browsers treat plain HTTP as unsafe, so
   the installable app, offline support, Web Push notifications and voice
   recording stay off until the address is HTTPS.

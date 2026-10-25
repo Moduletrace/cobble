@@ -5,6 +5,7 @@ import type {
     BunextAPIRouteHandler,
 } from "@moduletrace/bunext/types";
 import _ from "lodash";
+import canListUsers from "@/src/utils/rbac/can-list-users";
 
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
     req,
@@ -25,6 +26,17 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
                 success: false,
                 msg: `Unauthorized`,
             };
+        }
+
+        /**
+         * Anyone who can't manage users (members, read only) only ever
+         * gets their own record.
+         */
+        if (!canListUsers({ user_types })) {
+            return await grabUsers({
+                query: { ...query, user_id: user.id },
+                user_id: user.id,
+            });
         }
 
         return await grabUsers({

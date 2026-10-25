@@ -1,3 +1,4 @@
+import mediaFilePath from "@/src/utils/media-file-path";
 import _ from "lodash";
 import type { AdminCrudAPIParams, TableType } from "@/src/types";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
@@ -9,8 +10,6 @@ import type {
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { rmSync } from "fs";
-import path from "path";
-import grabDirNames from "@/src/utils/grab-dir-names";
 
 export default async function (
     params: AdminCrudAPIParams,
@@ -26,6 +25,17 @@ export default async function (
         return {
             success: false,
             msg: `Can't delete media`,
+        };
+    }
+
+    /**
+     * One row at a time: without an id an empty query would select, and
+     * delete, every media row there is.
+     */
+    if (!id) {
+        return {
+            success: false,
+            msg: `No media id passed`,
         };
     }
 
@@ -50,22 +60,18 @@ export default async function (
         };
     }
 
-    const { DATA_DIR } = grabDirNames();
 
     for (let i = 0; i < media_to_delete.payload.length; i++) {
         const media = media_to_delete.payload[i];
         if (!media?.id) continue;
 
-        if (media.media_write_path) {
-            rmSync(path.join(DATA_DIR, media.media_write_path), {
-                force: true,
-            });
-        }
+        for (const write_path of [
+            media.media_write_path,
+            media.media_thumbnail_write_path,
+        ]) {
+            const absolute = mediaFilePath({ write_path });
 
-        if (media.media_thumbnail_write_path) {
-            rmSync(path.join(DATA_DIR, media.media_thumbnail_write_path), {
-                force: true,
-            });
+            if (absolute) rmSync(absolute, { force: true });
         }
 
         await BunSQLite.delete<BUN_SQLITE_COBBLE_MEDIA, TableType>({

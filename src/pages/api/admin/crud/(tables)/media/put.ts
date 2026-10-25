@@ -5,11 +5,16 @@ import type { AdminCrudAPIParams } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import _ from "lodash";
+import { MediaUpdatableFields } from "./(data)/media-updatable-fields";
 
+/**
+ * Updates one media row's description (`MediaUpdatableFields`), by id: the
+ * caller's own, or anyone's for an admin.
+ */
 export default async function (
     params: AdminCrudAPIParams,
 ): Promise<APIResponseObject> {
-    const { table, body, user_types, id, query, user } = params;
+    const { table, body, user_types, id, user } = params;
 
     if (!body?.update_data) {
         return {
@@ -18,17 +23,37 @@ export default async function (
         };
     }
 
-    const is_user_allowed_to_put = checkUserAccess({
+    if (!id) {
+        return {
+            success: false,
+            msg: `No media id passed`,
+        };
+    }
+
+    const update_data = _.pick(body.update_data, MediaUpdatableFields);
+
+    if (!Object.keys(update_data)[0]) {
+        return {
+            success: false,
+            msg: `No updatable fields passed`,
+        };
+    }
+
+    const can_update_any = checkUserAccess({
         includes: ["admin"],
         user_types,
     });
 
-    let final_sql_query = _.merge(query?.sql_query, body?.sql_query) || {};
-    let targetId = id;
+    const existing = await BunSQLite.select<BUN_SQLITE_COBBLE_MEDIA, (typeof BunSQLiteTables)[number]>({
+        table,
+        query: { query: { id: { value: id } } },
+    }).then((res) => res.payload?.[0] || null);
 
-    if (!is_user_allowed_to_put.success) {
-        final_sql_query = {};
-        targetId = user.id;
+    if (!existing?.id || (!can_update_any.success && String(existing.user_id) !== String(user.id))) {
+        return {
+            success: false,
+            msg: `Media not found`,
+        };
     }
 
     /**
@@ -36,18 +61,10 @@ export default async function (
      * an update that only sends `text_content` is judged on the file's
      * real name and type.
      */
-    const existing = targetId
-        ? await BunSQLite.select<BUN_SQLITE_COBBLE_MEDIA, (typeof BunSQLiteTables)[number]>({
-              table,
-              query: { query: { id: { value: targetId } } },
-          }).then((res) => res.payload?.[0] || null)
-        : null;
-
     const PUT = await BunSQLite.update({
         table,
-        data: sanitizeMediaRowTextContent({ row: body.update_data, existing }),
-        targetId,
-        query: final_sql_query,
+        data: sanitizeMediaRowTextContent({ row: update_data, existing }),
+        targetId: existing.id,
     });
 
     return PUT;

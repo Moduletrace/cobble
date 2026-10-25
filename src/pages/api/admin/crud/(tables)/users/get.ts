@@ -34,18 +34,15 @@ export default async function (
         includes: ["admin"],
     });
 
-    if (!can_user_see_all_users.success) {
-        final_sql_query.query = {
-            ...final_sql_query.query,
-            user_id: {
-                value: user.id,
-            },
-        };
-    }
-
+    /**
+     * `grabUsers` reads `user_id`, not `sql_query`, so anyone who can't
+     * list users is pinned to their own record there.
+     */
     const GET = await grabUsers({
-        query: final_query,
-        user_id: id,
+        query: can_user_see_all_users.success
+            ? final_query
+            : { ...final_query, user_id: user.id },
+        user_id: can_user_see_all_users.success ? id : user.id,
     });
 
     return GET;

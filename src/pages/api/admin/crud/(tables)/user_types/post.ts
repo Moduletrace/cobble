@@ -8,6 +8,7 @@ import type { AdminCrudAPIParams, UserType } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import _ from "lodash";
+import filterAssignableRows from "./(functions)/filter-assignable-rows";
 
 export default async function (
     params: AdminCrudAPIParams,
@@ -49,6 +50,19 @@ export default async function (
         final_insert_data = final_insert_data.filter(
             (d) => d.user_type && !RolesAdminCantUpdate.includes(d.user_type as any),
         );
+    }
+
+    final_insert_data = await filterAssignableRows({
+        rows: final_insert_data,
+        actor_user_types: user_types,
+        action: "assign",
+    });
+
+    if (!final_insert_data[0]) {
+        return {
+            success: false,
+            msg: `You can't grant that user type.`,
+        };
     }
 
     const POST = await BunSQLite.insert({

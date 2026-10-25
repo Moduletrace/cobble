@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import downloadComputerFile, { shellQuote } from "./download-computer-file";
 import runComputerCommand from "./run-computer-command";
+import walkRegularFiles from "@/src/utils/walk-regular-files";
 
 type Params = {
     /**
@@ -260,7 +261,7 @@ async function sourceKind({
 }): Promise<"file" | "folder" | "missing"> {
     const result = await runComputerCommand({
         base_url,
-        command: `d="$HOME/${source}"; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
+        command: `d="$HOME"/${shellQuote({ text: source })}; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
         timeout_ms: AppData.ComputerSearchTimeoutMs,
         signal,
     });
@@ -325,7 +326,7 @@ async function readFolderArchive({
     const result = await runComputerCommand({
         base_url,
         command: [
-            `d="$HOME/${source}"`,
+            `d="$HOME"/${shellQuote({ text: source })}`,
             `t=$(mktemp /tmp/cobble-import-XXXXXX.tgz)`,
             `tar -czf "$t" -C "$(dirname "$d")" "$(basename "$d")" || { rm -f "$t"; echo FAILED; exit 0; }`,
             `s=$(wc -c < "$t")`,
@@ -394,7 +395,7 @@ async function unpackArchive({
 
         const base = archiveRoot({ dir });
 
-        for (const entry of walkFiles({ dir: base })) {
+        for (const entry of walkRegularFiles({ dir: base })) {
             const relative = path.relative(base, entry).split(path.sep).join("/");
             const row = await recordBotFile({
                 bot_id,
@@ -428,24 +429,11 @@ function archiveRoot({ dir }: { dir: string }) {
     const entries = readdirSync(dir).filter((name) => name != "import.tgz");
     const only = entries.at(0);
 
-    if (entries.length == 1 && only && statSync(path.join(dir, only)).isDirectory()) {
+    if (entries.length == 1 && only && lstatSync(path.join(dir, only)).isDirectory()) {
         return path.join(dir, only);
     }
 
     return dir;
-}
-
-/**
- * Every file under a directory.
- */
-function* walkFiles({ dir }: { dir: string }): Generator<string> {
-    for (const name of readdirSync(dir)) {
-        const full = path.join(dir, name);
-        const stats = statSync(full);
-
-        if (stats.isDirectory()) yield* walkFiles({ dir: full });
-        else if (stats.isFile()) yield full;
-    }
 }
 
 /**

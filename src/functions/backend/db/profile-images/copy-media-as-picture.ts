@@ -1,11 +1,10 @@
-import path from "node:path";
+import mediaFilePath from "@/src/utils/media-file-path";
 import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import { extensionOf } from "@/src/functions/backend/db/bot-files/media-type-for-file";
 import uploadAndRecordMedia from "@/src/functions/backend/db/users/media/upload-and-record-media";
 import type { MediaParadigm } from "@/src/types";
 import AppError from "@/src/utils/app-error";
-import grabDirNames from "@/src/utils/grab-dir-names";
 
 export type PictureTarget = "bot" | "workspace";
 
@@ -102,13 +101,13 @@ export default async function copyMediaAsPicture({
  * The image's bytes, read from where `media` keeps them.
  */
 async function readMediaBytes({ media }: { media: BUN_SQLITE_COBBLE_MEDIA }) {
-    const { DATA_DIR } = grabDirNames();
+    const absolute = mediaFilePath({ write_path: media.media_write_path });
 
-    if (!media.media_write_path) {
+    if (!absolute) {
         throw new AppError(`Its file is missing on the server. Save it again.`);
     }
 
-    const file = Bun.file(path.join(DATA_DIR, media.media_write_path));
+    const file = Bun.file(absolute);
 
     if (!(await file.exists())) {
         throw new AppError(`Its file is missing on the server. Save it again.`);

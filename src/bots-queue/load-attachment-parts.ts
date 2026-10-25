@@ -1,11 +1,10 @@
-import path from "node:path";
+import mediaFilePath from "@/src/utils/media-file-path";
 import { AppData } from "@/src/data/app-data";
 import grabMessagesMedia, {
     type MessageMediaRow,
 } from "@/src/functions/backend/db/bots/grab-messages-media";
 import type { HarnessContentPart } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
-import grabDirNames from "@/src/utils/grab-dir-names";
 import describeAttachment from "./describe-attachment";
 
 type Params = {
@@ -74,9 +73,10 @@ async function fileToParts({ file }: { file: MessageMediaRow }): Promise<Harness
         return [{ type: "text", text: `[Attached video ${label}: videos can't be read yet.]` }];
     }
 
-    const disk = Bun.file(path.join(grabDirNames().DATA_DIR, file.media_write_path || ""));
+    const absolute = mediaFilePath({ write_path: file.media_write_path });
+    const disk = absolute ? Bun.file(absolute) : null;
 
-    if (!file.media_write_path || !(await disk.exists())) {
+    if (!disk || !(await disk.exists())) {
         return [{ type: "text", text: `[Attached file ${label} is missing on the server.]` }];
     }
 

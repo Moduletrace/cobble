@@ -1,8 +1,8 @@
+import mediaFilePath from "@/src/utils/media-file-path";
 import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import { BotUploadFolder } from "@/src/dict/bot-file-dict";
 import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
 import { logError } from "@/src/functions/backend/logger";
-import grabDirNames from "@/src/utils/grab-dir-names";
 import recordBotFile from "./record-bot-file";
 
 type Params = {
@@ -26,14 +26,15 @@ export default async function storeChatAttachments({
 }: Params) {
     if (!media.length) return;
 
-    const { DATA_DIR } = grabDirNames();
     const folder = `${BotUploadFolder}/${new Date().toISOString().slice(0, 7)}`;
 
     for (const file of media) {
         try {
-            if (!file.media_write_path) continue;
+            const absolute = mediaFilePath({ write_path: file.media_write_path });
 
-            const source = Bun.file(`${DATA_DIR}/${file.media_write_path}`);
+            if (!absolute) continue;
+
+            const source = Bun.file(absolute);
 
             if (!(await source.exists())) continue;
 

@@ -1,5 +1,5 @@
+import mediaFilePath from "@/src/utils/media-file-path";
 import AppError from "@/src/utils/app-error";
-import grabDirNames from "@/src/utils/grab-dir-names";
 import type { StorageScope } from "@/src/utils/storage-access";
 import { canReachScope } from "@/src/utils/storage-access";
 import grabBotFile from "./grab-bot-file";
@@ -42,12 +42,13 @@ export default async function copyBotFile({
 
     const file = await grabBotFile({ scopes, file_id });
 
-    if (!file?.id || !file.media?.media_write_path) {
+    const absolute = mediaFilePath({ write_path: file?.media?.media_write_path });
+
+    if (!file?.id || !absolute) {
         throw new AppError(`That file isn't in your files.`);
     }
 
-    const { DATA_DIR } = grabDirNames();
-    const source = await Bun.file(`${DATA_DIR}/${file.media.media_write_path}`).arrayBuffer();
+    const source = await Bun.file(absolute).arrayBuffer();
 
     return await recordBotFile({
         bot_id,

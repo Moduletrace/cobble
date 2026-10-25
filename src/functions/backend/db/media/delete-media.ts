@@ -1,11 +1,10 @@
+import mediaFilePath from "@/src/utils/media-file-path";
 import _ from "lodash";
 import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import grabMediaFromParadigm from "@/src/functions/backend/db/media/grab-media-from-paraidigm";
 import type { MediaParadigmType, TableType, User } from "@/src/types";
-import grabDirNames from "@/src/utils/grab-dir-names";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { rmSync } from "fs";
-import path from "path";
 
 type Params = {
     id?: string | number;
@@ -22,7 +21,6 @@ type Params = {
 export default async function deleteMedia(params: Params) {
     const { id, ids, media_paradigm, user_id, can_delete_all_media } = params;
 
-    const { DATA_DIR } = grabDirNames();
 
     let media_to_delete = new Set<number>();
 
@@ -87,18 +85,13 @@ export default async function deleteMedia(params: Params) {
             continue;
         }
 
-        if (target_media.media_write_path) {
-            rmSync(
-                path.join(DATA_DIR, target_media.media_write_path),
-                { force: true },
-            );
-        }
+        for (const write_path of [
+            target_media.media_write_path,
+            target_media.media_thumbnail_write_path,
+        ]) {
+            const absolute = mediaFilePath({ write_path });
 
-        if (target_media.media_thumbnail_write_path) {
-            rmSync(
-                path.join(DATA_DIR, target_media.media_thumbnail_write_path),
-                { force: true },
-            );
+            if (absolute) rmSync(absolute, { force: true });
         }
 
         await BunSQLite.delete<BUN_SQLITE_COBBLE_MEDIA, TableType>({

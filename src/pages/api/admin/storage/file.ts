@@ -2,6 +2,7 @@ import { statSync } from "node:fs";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabStorageFile from "@/src/functions/backend/storage/grab-storage-file";
 import resolveStorageSpec from "@/src/functions/backend/storage/resolve-storage-spec";
+import servedFileHeaders from "@/src/utils/served-file-headers";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import { StorageFileRequestSchema } from "@/src/schemas/storage-schema";
@@ -47,7 +48,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, q
         const headers = new Headers({
             "Content-Type": file.mime_type,
             "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,
-            "X-Content-Type-Options": "nosniff",
+            ...servedFileHeaders({ content_type: file.mime_type }),
             ETag: etag,
             "Cache-Control": "private, no-cache",
         });

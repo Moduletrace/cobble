@@ -56,7 +56,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
             };
         }
 
-        if (isReadOnlyUser({ user_types }) && !req.method.match(/get/)) {
+        if (isReadOnlyUser({ user_types }) && req.method != "GET") {
             const is_self_user_profile_update =
                 req.method == "PUT" &&
                 table == "users" &&

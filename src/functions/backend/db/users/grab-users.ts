@@ -57,22 +57,17 @@ export default async function grabUsers(
         }
 
         if (query?.search_term_user_type) {
+            const user_type_terms = (
+                Array.isArray(query.search_term_user_type)
+                    ? query.search_term_user_type
+                    : [query.search_term_user_type]
+            ).filter(Boolean);
+
             sql += `    AND EXISTS (\n`;
-            sql += `        SELECT 1 FROM user_types WHERE user_id = u.id AND user_type LIKE`;
-
-            if (Array.isArray(query.search_term_user_type)) {
-                sql += `(`;
-                for (let i = 0; i < query.search_term_user_type.length; i++) {
-                    const ut = query.search_term_user_type[i];
-                    sql += ` ?`;
-                    values.push(`%${ut}%`);
-                }
-                sql += `)`;
-            } else {
-                sql += ` ?`;
-                values.push(`%${query.search_term_user_type}%`);
-            }
-
+            sql += `        SELECT 1 FROM user_types WHERE user_id = u.id AND (${
+                user_type_terms.map(() => "user_type LIKE ?").join(" OR ") || "0"
+            })\n`;
+            values.push(...user_type_terms.map((ut) => `%${ut}%`));
             sql += `    )\n`;
         } else if (query?.target_user_type) {
             sql += `    AND EXISTS (
@@ -94,21 +89,21 @@ export default async function grabUsers(
                 const match_value = params?.exact_match ? "=" : "LIKE";
 
                 if (Array.isArray(term.value)) {
-                    sql += `    AND (`;
-                    for (let i = 0; i < term.value.length; i++) {
-                        const term_value = term.value[i];
-                        if (!term_value) continue;
-                        const match_value_param = params?.exact_match
-                            ? term_value
-                            : `%${term_value.replace(/ /g, "%")}%`;
+                    const term_values = term.value.filter(Boolean);
 
-                        sql += ` u.${term.field} ${isId ? "=" : match_value} ?`;
-                        if (i < term.value.length - 1) {
-                            sql += ` OR`;
-                        }
-                        values.push(isId ? term_value : match_value_param);
+                    if (!term_values[0]) continue;
+
+                    sql += `    AND (${term_values
+                        .map(() => `u.${term.field} ${isId ? "=" : match_value} ?`)
+                        .join(" OR ")})\n`;
+
+                    for (const term_value of term_values) {
+                        values.push(
+                            isId || params?.exact_match
+                                ? term_value
+                                : `%${term_value.replace(/ /g, "%")}%`,
+                        );
                     }
-                    sql += `    )\n`;
                 } else {
                     const match_value_param = params?.exact_match
                         ? term.value
@@ -121,8 +116,10 @@ export default async function grabUsers(
 
         let sql_limit = ``;
         sql_limit += `LIMIT ${LIMIT}\n`;
-        if (query?.page) {
-            const offset = LIMIT * (query.page - 1);
+        const page = Math.floor(Number(query?.page));
+
+        if (page > 1) {
+            const offset = LIMIT * (page - 1);
             sql_limit += `OFFSET ${offset}\n`;
         }
 

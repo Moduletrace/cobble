@@ -1,10 +1,9 @@
-import grabDirNames from "@/src/utils/grab-dir-names";
+import mediaFilePath from "@/src/utils/media-file-path";
+import servedFileHeaders from "@/src/utils/served-file-headers";
 import { existsSync } from "node:fs";
-import path from "node:path";
 import userAuth from "../../backend/auth/user-auth";
 import grabUserMedia from "../../backend/db/media/grab-user-media";
 
-const { DATA_DIR } = grabDirNames();
 
 type Params = {
     req: Request;
@@ -45,15 +44,15 @@ export default async function handleMediaServer({
         throw new Error(`Media record not found!`);
     }
 
-    const media_location = thumbnail
-        ? media.media_thumbnail_write_path
-        : media.media_write_path;
+    const full_media_location = mediaFilePath({
+        write_path: thumbnail
+            ? media.media_thumbnail_write_path
+            : media.media_write_path,
+    });
 
-    if (!media_location) {
+    if (!full_media_location) {
         throw new Error(`No media location found!`);
     }
-
-    const full_media_location = path.join(DATA_DIR, media_location);
 
     if (!existsSync(full_media_location)) {
         throw new Error(`Media does not exist!`);
@@ -63,6 +62,7 @@ export default async function handleMediaServer({
     const etag = `"${file.size}-${file.lastModified}"`;
 
     const headers = new Headers({
+        ...servedFileHeaders({ content_type: file.type }),
         ETag: etag,
         /**
          * Private: the response depends on who is signed in, so no shared
