@@ -67,6 +67,12 @@ export const EnvDict: readonly KnownEnv[] = [
         secret: false,
     },
     {
+        key: "COMPUTER_APP_URL",
+        description: `Where computers reach this app, for hooks they call (browser notifications), e.g. http://172.17.0.1:7000 for a server running outside docker. Empty uses the app's container on the docker network.`,
+        required: false,
+        secret: false,
+    },
+    {
         key: "MAIN_COMPUTER_DATA_DIR",
         description: `Where the main computer's workspace (/home/gem/workspace, the only folder bots work in) is on this server's disk, for a computer the app didn't create itself (see MAIN_COMPUTER_URL), e.g. the bind mount your sandbox's compose file uses. Empty reads DATA_DIR/computers/<id>.`,
         required: false,

@@ -9,10 +9,12 @@ import BotSessionsModal from "@/src/components/general/bot-sessions-modal";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
+import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import BotComputersModal from "./bot-computers-modal";
 import BotFilesModal from "./bot-files-modal";
 import BotTasksModal from "./bot-tasks-modal";
 import BotRoutinesModal from "./bot-routines-modal";
+import BotHooksModal from "./bot-hooks-modal";
 import BotModelsModal from "./bot-models-modal";
 import BotAdminMenuItem from "./bot-admin-menu-item";
 import BotWorkspaceInstructionsModal from "./bot-workspace-instructions-modal";
@@ -57,7 +59,7 @@ type Props = {
 
 /**
  * The conversation header's menu: the sessions, a new session, copying
- * the session, the bot's computer, its models, in a workspace its
+ * the session, its files, tasks, routines and hooks, the bot's computer, its models, in a workspace its
  * instructions there and making it the admin there, its
  * settings and, while it works, stopping it. A
  * row that opens a modal closes the menu first, so the modal never sits
@@ -79,6 +81,10 @@ export default function ConversationHeaderMenu({
         bot.kind == "coordinator"
             ? isPassThroughUser({ user_types: pageProps?.user_types })
             : canManageCrew({ user_types: pageProps?.user_types });
+    /**
+     * Hooks start work, so a read-only user doesn't get them.
+     */
+    const can_make_hooks = !isReadOnlyUser({ user_types: pageProps?.user_types });
     /**
      * A bot's instructions for one workspace, only there, for crew
      * managers (the coordinator's too: only the super admin sees it).
@@ -150,6 +156,9 @@ export default function ConversationHeaderMenu({
                     workspace={workspace}
                     on_open={on_open}
                 />
+                {can_make_hooks ? (
+                    <BotHooksModal bot={bot} workspace={workspace} on_open={on_open} />
+                ) : null}
                 <BotComputersModal
                     menu
                     bot={bot}

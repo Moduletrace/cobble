@@ -225,6 +225,22 @@ export const AppData = {
      */
     CronJobBatchSize: 50,
     /**
+     * A bot's hooks (`bot_hooks`): how many one user gives one bot, the
+     * largest body a call may send, how many calls a minute one hook and
+     * one address may make, how many calls join one waiting run before
+     * the next queues a run of its own, and how long calls are kept.
+     */
+    BotHookMaxPerBot: 20,
+    BotHookMaxPayloadBytes: 64 * 1024,
+    BotHookRateLimit: 30,
+    BotHookIpRateLimit: 120,
+    BotHookMaxEventsPerRun: 20,
+    BotHookEventsKeepDays: 14,
+    /**
+     * A call naming a delivery already taken this recently isn't run again.
+     */
+    BotHookIdempotencyWindowMs: 24 * 60 * 60 * 1000,
+    /**
      * Tasks (the crew's to-do list, `tasks`): the longest title, brief and
      * note, how many one bot or workspace can hold, and how many files one
      * task carries.

@@ -8,6 +8,7 @@ import type {
     BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES,
     BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_CRON_JOBS,
+    BUN_SQLITE_COBBLE_BOT_HOOKS,
     BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_TASK_MEDIA,
     BUN_SQLITE_COBBLE_TASK_NOTES,
@@ -106,6 +107,58 @@ export type CronJobWithNames = BUN_SQLITE_COBBLE_CRON_JOBS & {
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
+};
+
+/**
+ * A bot's hook as its owner sees it: never its token hash or signing
+ * secret, only whether it has one, with its bot (its face as the user sees
+ * it) and workspace names.
+ */
+export type BotHookWithNames = Omit<BUN_SQLITE_COBBLE_BOT_HOOKS, "token_hash" | "signing_secret" | "watch_token"> & {
+    has_signing_secret?: number | null;
+    /**
+     * For browser notifications: the watched computer's name.
+     */
+    watch_computer_name?: string | null;
+    bot_name?: string | null;
+    bot_kind?: string | null;
+    bot_hue?: string | null;
+    bot_color?: string | null;
+    bot_stone?: string | null;
+    bot_face?: string | null;
+    bot_image_media_id?: number | null;
+    workspace_name?: string | null;
+};
+
+/**
+ * What syncing a computer's notification watcher did
+ * (`syncComputerNotifyWatch`).
+ */
+export type NotifyWatchSync = {
+    ok: boolean;
+    /**
+     * Whether the watcher runs (false when no hook wants it).
+     */
+    watching: boolean;
+    /**
+     * `restarted`: Chrome was restarted so it sends notifications to the
+     * watcher. `needs_restart`: it still has to be, once the task working
+     * there is done (the next sync does it).
+     */
+    browser?: "ok" | "restarted" | "needs_restart" | "missing";
+    hooks: number;
+    error?: string;
+};
+
+/**
+ * A hook just made or given a new token. A URL hook's token is shown this
+ * once; a browser-notification hook has none to show, only how setting up
+ * its computer's watcher went.
+ */
+export type BotHookWithToken = {
+    hook: BotHookWithNames;
+    token?: string;
+    watch?: NotifyWatchSync;
 };
 
 /**
@@ -1445,6 +1498,10 @@ export type PagePropsType = {
      * The routines page: every schedule the user's bots have.
      */
     cron_jobs?: CronJobWithNames[] | null;
+    /**
+     * The routines page: every hook the user gave their bots.
+     */
+    bot_hooks?: BotHookWithNames[] | null;
     environment?: string;
     has_password?: boolean;
     backups?: DbBackup[] | null;

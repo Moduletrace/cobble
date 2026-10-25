@@ -17,6 +17,8 @@ export const BunSQLiteTables = [
     "bots_queue",
     "bots_queue_updates",
     "cron_jobs",
+    "bot_hooks",
+    "bot_hook_events",
     "workspaces",
     "workspace_bots",
     "bot_types",
@@ -711,6 +713,121 @@ export type BUN_SQLITE_COBBLE_CRON_JOBS = {
      * Why the last run couldn't be queued or was skipped; cleared by the next run
      */
     last_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_BOT_HOOKS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * The owner; runs act as them, with their memory and reach
+     */
+    user_id?: number | "";
+    /** 
+     * The bot that runs it
+     */
+    bot_id?: number | "";
+    /** 
+     * The workspace it runs in (context, computers, models, and the conversation its results go to); null for the bot's own chat
+     */
+    workspace_id?: number | "";
+    title?: string;
+    /** 
+     * The brief each run gets (markdown); the call's payload is added below it as data
+     */
+    instructions?: string;
+    /** 
+     * The computer its runs use; null for the bot's current one when it runs. Not a foreign key
+     */
+    computer_id?: number | "";
+    /** 
+     * What calls it: `url` (an outside service) or `browser_notifications` (the watcher on `watch_computer_id`)
+     */
+    source?: "url" | "browser_notifications" | "";
+    /** 
+     * For browser notifications: the computer whose notifications it gets. Not a foreign key
+     */
+    watch_computer_id?: number | "";
+    /** 
+     * For browser notifications: only the ones whose site, title or text contains this (any case); empty takes all
+     */
+    watch_filter?: string;
+    /** 
+     * For browser notifications: the token, encrypted, so the app can give the computer's watcher its URL again after the container is recreated
+     */
+    watch_token?: string;
+    /** 
+     * The token's first characters, to find the hook a call names. The token itself is never stored
+     */
+    token_prefix?: string;
+    /** 
+     * SHA-256 (hex) of the whole token, compared in constant time
+     */
+    token_hash?: string;
+    /** 
+     * Encrypted HMAC-SHA256 secret; when set, every call must be signed with it
+     */
+    signing_secret?: string;
+    /** 
+     * The request header carrying the signature, e.g. X-Hub-Signature-256
+     */
+    signature_header?: string;
+    signature_format?: "hex" | "sha256=hex" | "base64" | "";
+    enabled?: 0 | 1 | "";
+    run_count?: number | "";
+    /** 
+     * Unix ms of the last call taken
+     */
+    last_called_at?: number | "";
+    /** 
+     * The `bots_queue` job of the last run. Not a foreign key: finished jobs are pruned
+     */
+    last_job_id?: number | "";
+    /** 
+     * Why the last call couldn't run or the last run failed; cleared by the next run
+     */
+    last_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    hook_id?: number | "";
+    /** 
+     * The `bots_queue` job it went to. Not a foreign key: finished jobs are pruned
+     */
+    job_id?: number | "";
+    /** 
+     * The body as received, cut to `AppData.BotHookMaxPayloadBytes`
+     */
+    payload?: string;
+    content_type?: string;
+    source_ip?: string;
+    /** 
+     * The sender's delivery id, so a retried call runs once
+     */
+    idempotency_key?: string;
+    status?: "queued" | "merged" | "rejected" | "duplicate" | "ignored" | "";
+    error?: string;
 }
 
 export type BUN_SQLITE_COBBLE_WORKSPACES = {
@@ -1589,7 +1706,7 @@ export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * Log category used for filtering
      */
-    category?: "auth" | "websocket" | "cron" | "system" | "error" | "";
+    category?: "auth" | "websocket" | "cron" | "hook" | "system" | "error" | "";
     /** 
      * User who triggered the action, if any
      */
@@ -1984,4 +2101,4 @@ export type BUN_SQLITE_COBBLE_APP_SETTINGS = {
     value?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_BOT_FILE_CHUNKS & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_BOT_FILE_VECTORS & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_BOT_FILE_CHUNKS & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_BOT_FILE_VECTORS & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS

@@ -10,6 +10,7 @@ import createKeyLock from "@/src/utils/create-key-lock";
 import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
+import recordBotHookFailure from "@/src/functions/backend/db/bot-hooks/record-bot-hook-failure";
 import recordCronJobFailure from "@/src/functions/backend/db/cron-jobs/record-cron-job-failure";
 import scheduledRunRetryAt from "@/src/utils/scheduled-run-retry-at";
 import {
@@ -62,7 +63,8 @@ type Params = {
  * the user. If the job is cancelled or lost mid-way, its result is
  * dropped. A failed scheduled run (a routine) is retried with longer gaps
  * (`scheduledRunRetryAt`); once out of tries the user is told, and the
- * schedule keeps why (`recordCronJobFailure`).
+ * schedule keeps why (`recordCronJobFailure`). A hook call's run is
+ * retried the same way and its hook keeps why (`recordBotHookFailure`).
  */
 export default async function processBotJob({
     job,
@@ -75,6 +77,7 @@ export default async function processBotJob({
     const bot_id = job.bot_id;
     const params = parseJobJson({ text: job.params }) || {};
     const schedule_id = Number(params.schedule_id) || null;
+    const hook_id = Number(params.hook_id) || null;
 
     /**
      * Its face changes only for the user it works for.
@@ -282,7 +285,9 @@ export default async function processBotJob({
             fatal: error instanceof BotJobFatalError,
             failure_message: schedule_id
                 ? `My scheduled run "${job.title || "Scheduled task"}" failed after ${tries} ${tries == 1 ? "try" : "tries"}: ${message}`
-                : undefined,
+                : hook_id
+                  ? `My run for the hook "${job.title || "Hook call"}" failed after ${tries} ${tries == 1 ? "try" : "tries"}: ${message}`
+                  : undefined,
         }).catch(async (fail_error) => {
             await logError({
                 title: `Bot job #${job_id} couldn't be failed`,
@@ -317,6 +322,7 @@ export default async function processBotJob({
                     session_id: job.session_id,
                     workspace_id: job.workspace_id,
                     schedule_id,
+                    hook_id,
                     fatal: error instanceof BotJobFatalError,
                     harness_code: error instanceof HarnessError ? error.code : undefined,
                 },
@@ -333,10 +339,15 @@ export default async function processBotJob({
             );
         }
 
+        if (hook_id && failed?.status == "failed") {
+            await recordBotHookFailure({ hook_id, job_id, error: message }).catch(() => {});
+        }
+
         /**
-         * A routine's retry waits long enough for an outage to pass.
+         * A routine's or hook call's retry waits long enough for an outage
+         * to pass.
          */
-        if (schedule_id && failed?.status == "pending") {
+        if ((schedule_id || hook_id) && failed?.status == "pending") {
             await deferBotJob({ job_id, worker, until: scheduledRunRetryAt({ attempts: failed.attempts }) });
         }
 

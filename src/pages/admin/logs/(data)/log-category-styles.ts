@@ -10,6 +10,7 @@ export const LogCategoryStyles: Record<
     auth: { title: "Auth", color: "primary" },
     websocket: { title: "WebSocket", color: "accent" },
     cron: { title: "Cron", color: "success" },
+    hook: { title: "Hook", color: "secondary" },
     system: { title: "System", color: "gray" },
     error: { title: "Error", color: "error" },
 };

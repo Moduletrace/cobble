@@ -20,6 +20,7 @@ import { Harnesses } from "@/src/dict/harness-dict";
 import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
 import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
 import { AppData } from "@/src/data/app-data";
+import { BotHookEventStatuses, BotHookSignatureFormats, BotHookSources } from "@/src/dict/bot-hook-dict";
 import {
     BotFilePurposes,
     BotFileScopes,
@@ -1136,6 +1137,208 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_cron_jobs_user_id",
                     indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_hooks",
+            tableDescription: `A bot's hooks: a secret URL an outside service (a webhook, a script) calls to queue a task for the bot, its brief plus the call's payload. Like a routine, it belongs to one user and runs as them`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The owner; runs act as them, with their memory and reach`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_hooks_user_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that runs it`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_hooks_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace it runs in (context, computers, models, and the conversation its results go to); null for the bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_hooks_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "title",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "instructions",
+                    fieldDescription: `The brief each run gets (markdown); the call's payload is added below it as data`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "computer_id",
+                    fieldDescription: `The computer its runs use; null for the bot's current one when it runs. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "source",
+                    fieldDescription: `What calls it: \`url\` (an outside service) or \`browser_notifications\` (the watcher on \`watch_computer_id\`)`,
+                    dataType: "TEXT",
+                    options: BotHookSources.map((s) => s.value),
+                    defaultValue: "url",
+                },
+                {
+                    fieldName: "watch_computer_id",
+                    fieldDescription: `For browser notifications: the computer whose notifications it gets. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "watch_filter",
+                    fieldDescription: `For browser notifications: only the ones whose site, title or text contains this (any case); empty takes all`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "watch_token",
+                    fieldDescription: `For browser notifications: the token, encrypted, so the app can give the computer's watcher its URL again after the container is recreated`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "token_prefix",
+                    fieldDescription: `The token's first characters, to find the hook a call names. The token itself is never stored`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "token_hash",
+                    fieldDescription: `SHA-256 (hex) of the whole token, compared in constant time`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "signing_secret",
+                    fieldDescription: `Encrypted HMAC-SHA256 secret; when set, every call must be signed with it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "signature_header",
+                    fieldDescription: `The request header carrying the signature, e.g. X-Hub-Signature-256`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "signature_format",
+                    dataType: "TEXT",
+                    options: BotHookSignatureFormats.map((f) => f.value),
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "run_count",
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "last_called_at",
+                    fieldDescription: `Unix ms of the last call taken`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_job_id",
+                    fieldDescription: `The \`bots_queue\` job of the last run. Not a foreign key: finished jobs are pruned`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_error",
+                    fieldDescription: `Why the last call couldn't run or the last run failed; cleared by the next run`,
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_hooks_token_prefix",
+                    indexTableFields: ["token_prefix"],
+                },
+                {
+                    indexName: "idx_bot_hooks_bot_id",
+                    indexTableFields: ["bot_id"],
+                },
+                {
+                    indexName: "idx_bot_hooks_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_hook_events",
+            tableDescription: `Every call to a bot's hook and what became of it, for the hook's recent calls. Pruned after \`AppData.BotHookEventsKeepDays\``,
+            fields: [
+                {
+                    fieldName: "hook_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_hooks",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_hook_events_hook_fk",
+                    },
+                },
+                {
+                    fieldName: "job_id",
+                    fieldDescription: `The \`bots_queue\` job it went to. Not a foreign key: finished jobs are pruned`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "payload",
+                    fieldDescription: `The body as received, cut to \`AppData.BotHookMaxPayloadBytes\``,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "content_type",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "source_ip",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "idempotency_key",
+                    fieldDescription: `The sender's delivery id, so a retried call runs once`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: BotHookEventStatuses.map((s) => s.value),
+                },
+                {
+                    fieldName: "error",
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_hook_events_hook_id_created_at",
+                    indexTableFields: ["hook_id", "created_at"],
+                },
+                {
+                    indexName: "idx_bot_hook_events_hook_id_idempotency_key",
+                    indexTableFields: ["hook_id", "idempotency_key"],
                 },
             ],
         },

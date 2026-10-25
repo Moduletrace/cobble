@@ -4,6 +4,10 @@ import dockerRequest from "./docker-request";
 
 export type AppContainer = {
     id: string;
+    /**
+     * Its name, which other containers on its networks resolve.
+     */
+    name: string;
     mounts: { Source: string; Destination: string }[];
     networks: string[];
 };
@@ -25,6 +29,7 @@ async function inspectSelf(): Promise<AppContainer | null> {
 
     const res = await dockerRequest<{
         Id: string;
+        Name?: string;
         Mounts?: AppContainer["mounts"];
         NetworkSettings?: { Networks?: Record<string, unknown> };
     }>({ path: `/containers/${encodeURIComponent(os.hostname())}/json` });
@@ -35,6 +40,7 @@ async function inspectSelf(): Promise<AppContainer | null> {
 
     return {
         id: res.data.Id,
+        name: (res.data.Name || "").replace(/^\//, ""),
         mounts: res.data.Mounts || [],
         networks: Object.keys(res.data.NetworkSettings?.Networks || {}),
     };

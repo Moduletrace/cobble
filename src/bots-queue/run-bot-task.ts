@@ -8,6 +8,7 @@ import {
     botFilesNote,
     ComputerFilesNote,
     ScheduledRunNote,
+    HookRunNote,
     TasksNote,
     TaskRunNote,
     WorkspaceLearningNote,
@@ -55,8 +56,9 @@ type Params = BotJobContext & {
  * computer, that computer's tools (over MCP), until it answers. That answer is the report for the user.
  * When only the user can go on (a login, a captcha), the bot asks them to
  * take over (`ask_user_to_take_over`) and the report needs them.
- * A scheduled run acts on its own (`ScheduledRunNote`); one that reports
- * it failed (`report_run_failed`) throws, so the queue retries it.
+ * A scheduled run acts on its own (`ScheduledRunNote`), as does a hook
+ * call (`HookRunNote`, its payload only data); one that reports it failed
+ * (`report_run_failed`) throws, so the queue retries it.
  * Every model turn is reported as a step (`report`).
  */
 export default async function runBotTask({
@@ -113,6 +115,11 @@ export default async function runBotTask({
          */
         const attachments: number[] = [];
         const scheduled = Boolean(params.schedule_id);
+        /**
+         * Started by a call to one of the user's hooks: acts on its own
+         * like a routine, and treats the call's payload as data.
+         */
+        const hooked = Boolean(params.hook_id);
         let failure = null as string | null;
 
         /**
@@ -175,7 +182,7 @@ export default async function runBotTask({
                       }),
                   ]
                 : []),
-            ...(scheduled ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
+            ...(scheduled || hooked ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
             ...(computer?.tools || []),
             ...(job.computer_id
                 ? [
@@ -219,6 +226,7 @@ export default async function runBotTask({
                 carry_over,
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
+                hooked ? HookRunNote : "",
                 botFilesNote({ bot_id: bot.id }),
                 ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
                 TasksNote,

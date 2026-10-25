@@ -12,6 +12,10 @@ export const LogCategories = [
         value: "cron",
     },
     {
+        title: "Hook",
+        value: "hook",
+    },
+    {
         title: "System",
         value: "system",
     },
