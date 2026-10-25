@@ -632,4 +632,6 @@ export const AppData = {
      */
     CompressCacheMaxFiles: 600,
     CompressCacheMaxBytes: 32 * 1024 * 1024,
+
+    DefaultIconSize: 16,
 } as const;

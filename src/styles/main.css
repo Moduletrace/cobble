@@ -394,3 +394,7 @@ footer .twui-anchor.active {
 .conversation-user-bubble a {
     @apply text-blue-400 dark:text-blue-600;
 }
+
+.lucide[width="24"][height="24"] {
+    @apply w-[16px] h-[16px];
+}
