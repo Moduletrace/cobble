@@ -15,6 +15,15 @@ type Params = {
      */
     before_id?: number | null;
     /**
+     * Only messages saved after this one (by id, which is insertion
+     * order), for what arrived while a reply ran.
+     */
+    after_id?: number | null;
+    /**
+     * Only one side's messages.
+     */
+    author?: "user" | "bot";
+    /**
      * Whose conversation it is, so a reaction can show as the user's own.
      * Left out for the bot's own history reads, which don't need it.
      */
@@ -30,9 +39,12 @@ export default async function grabBotMessages({
     session_id,
     limit = 100,
     before_id,
+    after_id,
+    author,
     user_id,
 }: Params): Promise<BotMessageWithAttachments[]> {
     let sql = ``;
+    const values: (string | number)[] = [session_id];
 
     sql += `SELECT * FROM (\n`;
     sql += `    SELECT * FROM bot_messages\n`;
@@ -40,6 +52,17 @@ export default async function grabBotMessages({
 
     if (before_id) {
         sql += `    AND (created_at, id) < (SELECT created_at, id FROM bot_messages WHERE id = ?)\n`;
+        values.push(before_id);
+    }
+
+    if (after_id) {
+        sql += `    AND id > ?\n`;
+        values.push(after_id);
+    }
+
+    if (author) {
+        sql += `    AND author = ?\n`;
+        values.push(author);
     }
 
     sql += `    ORDER BY created_at DESC, id DESC\n`;
@@ -48,7 +71,7 @@ export default async function grabBotMessages({
 
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_MESSAGES>({
         sql,
-        values: before_id ? [session_id, before_id, limit] : [session_id, limit],
+        values: [...values, limit],
     });
 
     const messages = res.payload || [];

@@ -310,6 +310,10 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     needs_you?: 0 | 1 | "";
     /** 
+     * Sent mid-reply with send_message (an acknowledgement, a heads-up): the bot is still working on the reply, so the thinking row stays up while its face is working
+     */
+    interim?: 0 | 1 | "";
+    /** 
      * The message this one replies to, quoted above it. Not a foreign key, so deleting the quoted message only drops the quote
      */
     reply_to_message_id?: number | "";

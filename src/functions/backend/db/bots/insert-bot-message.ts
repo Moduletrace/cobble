@@ -14,6 +14,10 @@ type Params = {
     text: string;
     needs_you?: boolean;
     /**
+     * Sent mid-reply (`send_message`): the reply is still being worked on.
+     */
+    interim?: boolean;
+    /**
      * Files the bot saved and sent with it (`media` ids): a PDF it made, a
      * generated image, a document it wrote.
      */
@@ -30,10 +34,12 @@ export default async function insertBotMessage({
     workspace_id,
     text,
     needs_you,
+    interim,
     media_ids = [],
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
     const needs_you_flag = needs_you ? 1 : 0;
+    const interim_flag = interim ? 1 : 0;
 
     const res = await BunSQLite.insert<
         BUN_SQLITE_COBBLE_BOT_MESSAGES,
@@ -48,6 +54,7 @@ export default async function insertBotMessage({
                 author: "bot",
                 text,
                 needs_you: needs_you_flag,
+                interim: interim_flag,
             },
         ],
     });
@@ -78,6 +85,7 @@ export default async function insertBotMessage({
         author: "bot",
         text,
         needs_you: needs_you_flag,
+        interim: interim_flag,
         created_at: now,
         updated_at: now,
     };

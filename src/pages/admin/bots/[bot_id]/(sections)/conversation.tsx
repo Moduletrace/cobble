@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import isAwaitingReply from "../(utils)/is-awaiting-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
 import type {
@@ -160,7 +161,7 @@ export default function Conversation() {
 
     const last_saved_id = messages[messages.length - 1]?.id || null;
     const last_thread_message = thread_messages[thread_messages.length - 1];
-    const awaiting_reply = last_thread_message?.author == "user";
+    const awaiting_reply = isAwaitingReply({ last_message: last_thread_message, face: bot?.face });
 
     const reply_progress = useReplyProgress({
         bot_id: bot?.id || 0,

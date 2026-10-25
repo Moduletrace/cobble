@@ -1,4 +1,5 @@
 import { useMemo, type RefObject } from "react";
+import isAwaitingReply from "../(utils)/is-awaiting-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type {
     BotMessageWithAttachments,
@@ -103,9 +104,10 @@ export default function MessageThread({
                         bot={bot}
                         progress={progress}
                         reply_progress={reply_progress}
-                        awaiting_reply={
-                            messages[messages.length - 1]?.author == "user"
-                        }
+                        awaiting_reply={isAwaitingReply({
+                            last_message: messages[messages.length - 1],
+                            face: bot.face,
+                        })}
                         receiving={receiving}
                         has_task={has_task}
                     />

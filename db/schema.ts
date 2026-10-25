@@ -440,6 +440,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     defaultValue: 0,
                 },
                 {
+                    fieldName: "interim",
+                    fieldDescription: `Sent mid-reply with send_message (an acknowledgement, a heads-up): the bot is still working on the reply, so the thinking row stays up while its face is working`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
                     fieldName: "reply_to_message_id",
                     fieldDescription: `The message this one replies to, quoted above it. Not a foreign key, so deleting the quoted message only drops the quote`,
                     dataType: "INTEGER",

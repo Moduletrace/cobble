@@ -28,6 +28,12 @@ import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import loadAttachmentParts from "./load-attachment-parts";
 import grabMessageRefNames from "@/src/functions/backend/db/bots/grab-message-ref-names";
 import withTakeOverRefs from "./with-take-over-refs";
+import hasUnansweredMessage from "./has-unanswered-message";
+import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
+import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
+import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
+import type { BotMessageWithAttachments } from "@/src/types";
+import type { HarnessMessage } from "@/src/harness/types";
 import type { BotJobContext, BotJobOutcome } from "./types";
 
 type Params = BotJobContext & {
@@ -47,8 +53,12 @@ type Params = BotJobContext & {
  * instructions, start_task, and for the coordinator delegate_task) plus
  * its MCP servers' and custom tools (`openBotExtensions`, script tools on
  * its current computer).
- * Finishes silently when the last message is already the bot's, i.e. an
- * earlier reply answered everything.
+ * Messages the user sends while it works join the run (`incoming`): one
+ * that changes the work changes the answer before it goes out, and one
+ * that's separate can be acknowledged at once (`send_message`) and done
+ * after the current work. The job records the newest
+ * one it read (`markReplyAnswered`). Finishes silently when an earlier
+ * reply already read everything (`hasUnansweredMessage`).
  */
 export default async function runBotReply({
     bot,
@@ -65,9 +75,47 @@ export default async function runBotReply({
         limit: AppData.BotReplyHistoryMessages,
     });
 
-    if (history[history.length - 1]?.author != "user") {
+    const answered_id = await grabAnsweredMessageId({ session_id });
+
+    if (!hasUnansweredMessage({ history, answered_id })) {
         return { result: "", silent: true };
     }
+
+    /**
+     * The newest message the run has read, and of those the newest user
+     * message, which is what the reply answers.
+     */
+    let seen_id = Math.max(0, ...history.map((message) => Number(message.id)));
+    let answering_id = newestUserMessageId({ messages: history });
+
+    const toTurns = async ({ messages }: { messages: BotMessageWithAttachments[] }) =>
+        botMessagesToHarness({
+            messages,
+            parts: await loadAttachmentParts({ messages }),
+            refs: await grabMessageRefNames({
+                texts: messages.filter((m) => m.author == "user").map((m) => m.text || ""),
+                user_id,
+            }),
+        });
+
+    /**
+     * What the user wrote since the run last looked.
+     */
+    const incoming = async (): Promise<HarnessMessage[]> => {
+        const fresh = await grabBotMessages({
+            session_id,
+            after_id: seen_id,
+            author: "user",
+            limit: AppData.BotReplyHistoryMessages,
+        });
+
+        if (!fresh.length) return [];
+
+        seen_id = Math.max(seen_id, ...fresh.map((message) => Number(message.id)));
+        answering_id = Math.max(answering_id, newestUserMessageId({ messages: fresh }));
+
+        return await toTurns({ messages: fresh });
+    };
 
     const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
     const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
@@ -165,21 +213,25 @@ export default async function runBotReply({
             ]
                 .filter(Boolean)
                 .join("\n\n"),
-            messages: botMessagesToHarness({
-                messages: history,
-                parts: await loadAttachmentParts({ messages: history }),
-                refs: await grabMessageRefNames({
-                    texts: history.filter((m) => m.author == "user").map((m) => m.text || ""),
-                    user_id,
-                }),
-            }),
-            tools: [...tools, ...file_tools, ...extensions.tools, ...skills.tools],
+            messages: await toTurns({ messages: history }),
+            tools: [
+                ...tools,
+                sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
+                ...file_tools,
+                ...extensions.tools,
+                ...skills.tools,
+            ],
             max_steps: await grabReplyMaxToolSteps(),
             bot_id: bot.id,
             workspace_id,
             signal,
             onStep: report,
+            incoming,
         });
+
+        if (job.id && answering_id) {
+            await markReplyAnswered({ job_id: job.id, message_id: answering_id });
+        }
 
         return {
             ...withTakeOverRefs({ text: result.text, refs: take_overs }),
@@ -188,4 +240,11 @@ export default async function runBotReply({
     } finally {
         await extensions.close();
     }
+}
+
+function newestUserMessageId({ messages }: { messages: Pick<BotMessageWithAttachments, "id" | "author">[] }) {
+    return Math.max(
+        0,
+        ...messages.filter((message) => message.author == "user").map((message) => Number(message.id)),
+    );
 }

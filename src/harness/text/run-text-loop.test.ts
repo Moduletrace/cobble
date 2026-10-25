@@ -3,7 +3,7 @@ import { z } from "zod";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
-import runTextLoop from "./run-text-loop";
+import runTextLoop, { IncomingMessagesNote, RedraftNote } from "./run-text-loop";
 
 const candidate: HarnessCandidate = {
     key: "1:m",
@@ -151,5 +151,141 @@ describe("runTextLoop", () => {
 
         expect(error).toBeInstanceOf(HarnessError);
         expect(error.code).toBe("aborted");
+    });
+
+    test("takes in what the user wrote while tools ran, before the next turn", async () => {
+        memory.length = 0;
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"tea"}` }] },
+            { text: "Coffee it is." },
+        ]);
+        const arrivals = [[{ role: "user" as const, content: "Actually, coffee." }]];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "I like tea." }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            incoming: async () => arrivals.shift() || [],
+        });
+
+        expect(result.text).toBe("Coffee it is.");
+        expect(seen).toHaveLength(2);
+        expect(seen[1]!.messages.slice(-2)).toEqual([
+            { role: "tool", tool_call_id: "c1", content: "Saved." },
+            { role: "user", content: `${IncomingMessagesNote}\n\nActually, coffee.` },
+        ]);
+    });
+
+    test("writes an answer again when the user wrote past it, keeping the draft and tool turns", async () => {
+        const { generate, seen } = scripted([
+            { text: "Here's the summary in English." },
+            { text: "Here's the summary in French." },
+        ]);
+        const arrivals = [
+            [
+                { role: "user" as const, content: "In French, please." },
+                { role: "user" as const, content: "And short." },
+            ],
+        ];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Summarise it." }],
+            generate,
+            resolveCandidates,
+            incoming: async () => arrivals.shift() || [],
+        });
+
+        expect(result.text).toBe("Here's the summary in French.");
+        expect(result.steps).toBe(2);
+        expect(seen[1]!.messages.slice(-2)).toEqual([
+            { role: "assistant", content: "Here's the summary in English." },
+            {
+                role: "user",
+                content: `${RedraftNote}\n\nIn French, please.\n\nAnd short.`,
+            },
+        ]);
+    });
+
+    test("joins files from new messages onto the same user turn", async () => {
+        const { generate, seen } = scripted([{ text: "Draft." }, { text: "With the photo." }]);
+        const arrivals = [
+            [
+                {
+                    role: "user" as const,
+                    content: [
+                        { type: "text" as const, text: "Use this one." },
+                        { type: "image" as const, url: "data:image/png;base64,x" },
+                    ],
+                },
+            ],
+        ];
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Write the caption." }],
+            generate,
+            resolveCandidates,
+            incoming: async () => arrivals.shift() || [],
+        });
+
+        expect(seen[1]!.messages.at(-1)).toEqual({
+            role: "user",
+            content: [
+                { type: "text", text: RedraftNote },
+                { type: "text", text: "Use this one." },
+                { type: "image", url: "data:image/png;base64,x" },
+            ],
+        });
+    });
+
+    test("returns at once when nothing new came in", async () => {
+        const { generate, seen } = scripted([{ text: "Hi." }]);
+        let looks = 0;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Hello" }],
+            generate,
+            resolveCandidates,
+            incoming: async () => {
+                looks++;
+                return [];
+            },
+        });
+
+        expect(result.text).toBe("Hi.");
+        expect(seen).toHaveLength(1);
+        expect(looks).toBe(1);
+    });
+
+    test("doesn't redraft the wrap up: a later reply picks the new messages up", async () => {
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([loop_call, { text: "Out of steps." }]);
+        let looks = 0;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            incoming: async () => {
+                looks++;
+                return looks == 1 ? [{ role: "user", content: "Also this." }] : [];
+            },
+        });
+
+        expect(result.text).toBe("Out of steps.");
+        expect(seen).toHaveLength(2);
+        expect(looks).toBe(1);
+        expect(typeof seen[1]!.messages.at(-1)!.content).toBe("string");
+        expect(seen[1]!.messages.at(-1)!.content).toContain("Also this.");
+        expect(seen[1]!.messages.at(-1)!.content).toContain("You've used every step");
     });
 });

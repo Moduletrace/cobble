@@ -403,6 +403,12 @@ export const AppData = {
      */
     BotReplyMaxToolSteps: 20,
     /**
+     * Messages a chat reply may send while it works (`send_message`):
+     * acknowledging something the user wrote meanwhile, a heads-up. Its
+     * answer still comes at the end.
+     */
+    BotReplyInterimMessagesMax: 3,
+    /**
      * The most steps a saved run limit may ask for, for a task run or a
      * chat reply. A typo in the settings page can't turn one run into an
      * hour of tool calls, and a huge limit still ends with a report.
