@@ -38,10 +38,17 @@ export const FileRefHrefPrefix = "#file-";
 export const FolderRefHrefPrefix = "#folder-";
 
 /**
+ * The link target a proposal ref (`proposalRef`) becomes, e.g.
+ * `#proposal-7`. The chat renders it as a chip that opens the card where
+ * the super admin confirms or rejects the MCP server or tool.
+ */
+export const ProposalRefHrefPrefix = "#proposal-";
+
+/**
  * Turns every computer ref (`[computer:3]`) and take-over ref
  * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
- * (`[workspace:2]`), file ref (`[file:12]`) and folder ref
- * (`[folder:computer:3:seo/raw]`) in a message into a markdown link, so it
+ * (`[workspace:2]`), file ref (`[file:12]`), folder ref
+ * (`[folder:computer:3:seo/raw]`) and proposal ref (`[proposal:7]`) in a message into a markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button,
  * chip or download.
  *
@@ -63,6 +70,10 @@ export default function linkComputerRefs({ text }: { text: string }) {
         .replace(
             /\[workspace:(\d+)\](?!\()/g,
             (_, id: string) => `[workspace ${id}](${WorkspaceRefHrefPrefix}${id})`,
+        )
+        .replace(
+            /\[proposal:(\d+)\](?!\()/g,
+            (_, id: string) => `[proposal ${id}](${ProposalRefHrefPrefix}${id})`,
         )
         .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
         .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>

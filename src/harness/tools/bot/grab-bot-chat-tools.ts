@@ -14,6 +14,7 @@ import deleteBotTool from "./delete-bot-tool";
 import deleteWorkspaceTool from "./delete-workspace-tool";
 import findBotTool from "./find-bot-tool";
 import findWorkspaceTool from "./find-workspace-tool";
+import grabCoordinatorExtensionTools from "./extensions/grab-coordinator-extension-tools";
 import grabBotTools from "./grab-bot-tools";
 import removeBotFromWorkspaceTool from "./remove-bot-from-workspace-tool";
 import updateBotTool from "./update-bot-tool";
@@ -51,6 +52,11 @@ type Params = {
      * Called when the bot asks the user to take over a computer.
      */
     onTakeOver?: (params: { ref: string }) => void;
+    /**
+     * Called when the coordinator proposes an MCP server or tool for the
+     * user to confirm.
+     */
+    onPropose?: (params: { ref: string }) => void;
 };
 
 /**
@@ -67,7 +73,8 @@ type Params = {
  * add_bot_to_workspace and remove_bot_from_workspace, assign_computer,
  * update_bot, delete_bot and delete_workspace (which workspace, which
  * computers, and which name, role and core instructions each crew member
- * gets, and what goes) or, in a workspace,
+ * gets, and what goes) and the install's skills, MCP servers and custom
+ * tools (`grabCoordinatorExtensionTools`) or, in a workspace,
  * set_bot_workspace_instructions. Anything else on a computer goes through
  * a task, never mid-reply.
  */
@@ -80,6 +87,7 @@ export default async function grabBotChatTools({
     message_id,
     scopes = [],
     onTakeOver,
+    onPropose,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
@@ -136,7 +144,11 @@ export default async function grabBotChatTools({
         return tools;
     }
 
-    tools.push(findBotTool(), findWorkspaceTool({ user_id }));
+    tools.push(
+        findBotTool(),
+        findWorkspaceTool({ user_id }),
+        ...(await grabCoordinatorExtensionTools({ user_id, bot_id, session_id, workspace_id, onPropose })),
+    );
 
     if (workspaces.length) {
         tools.push(deleteWorkspaceTool({ user_id, workspaces }));

@@ -133,6 +133,11 @@ export default async function runBotReply({
 
     const take_overs: string[] = [];
     /**
+     * The MCP servers and tools the coordinator proposed: their cards need
+     * the user just like a take-over.
+     */
+    const proposals: string[] = [];
+    /**
      * Files the bot wrote and asked to send with its reply.
      */
     const attachments: number[] = [];
@@ -161,6 +166,7 @@ export default async function runBotReply({
         scopes,
         message_id: job.message_id || undefined,
         onTakeOver: ({ ref }) => take_overs.push(ref),
+        onPropose: ({ ref }) => proposals.push(ref),
     });
 
     const extensions = await openBotExtensions({
@@ -234,7 +240,7 @@ export default async function runBotReply({
         }
 
         return {
-            ...withTakeOverRefs({ text: result.text, refs: take_overs }),
+            ...withTakeOverRefs({ text: result.text, refs: [...take_overs, ...proposals] }),
             attachments: attachments.length ? attachments : undefined,
         };
     } finally {

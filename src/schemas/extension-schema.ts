@@ -207,3 +207,11 @@ export type SaveSkillRequest = z.infer<typeof SaveSkillRequestSchema>;
 export type SaveCustomToolRequest = z.infer<typeof SaveCustomToolRequestSchema>;
 export type TestMcpServerRequest = z.infer<typeof TestMcpServerRequestSchema>;
 export type DraftCustomTool = z.infer<typeof DraftCustomTool>;
+
+/**
+ * A proposal the coordinator made, read, confirmed or rejected from its
+ * card.
+ */
+export const ExtensionProposalIdRequestSchema = z.object({
+    proposal_id: Id,
+});

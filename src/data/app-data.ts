@@ -293,6 +293,20 @@ export const AppData = {
     SkillBodyShownChars: 30000,
     SkillDescriptionMaxChars: 300,
     /**
+     * How long the super admin has to confirm an MCP server or tool the
+     * coordinator proposed (`extension_proposals`). After that its card
+     * reads expired and the bot has to propose it again, so a card left in
+     * an old thread can't be confirmed weeks later.
+     */
+    ExtensionProposalTtlMs: 24 * 60 * 60 * 1000,
+    /**
+     * A proposal's background check: the bot's summary, and the sources it
+     * read (at least one).
+     */
+    ExtensionResearchMinChars: 40,
+    ExtensionResearchMaxChars: 6000,
+    ExtensionResearchSourcesMax: 10,
+    /**
      * `search_computers`: how long the command may run on each computer,
      * and how much of each computer's output the bot reads.
      */

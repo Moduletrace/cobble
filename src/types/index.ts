@@ -34,6 +34,7 @@ import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
+import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
 import type {
     CustomToolHttpMethod,
     CustomToolKind,
@@ -637,6 +638,63 @@ export type SkillRecord = {
     body: string;
     all_bots: boolean;
     enabled: boolean;
+};
+
+/**
+ * One env a proposed MCP server or tool sends (`extensionEnvUses`), and
+ * where it's saved: `general`, or the bots and workspaces it's saved for
+ * only. Nothing saved means the user has to add it.
+ */
+export type ExtensionProposalEnv = {
+    key: string;
+    where: string;
+    saved_in: string[];
+};
+
+/**
+ * What a proposed MCP server or tool does, as the confirm card shows it:
+ * each line read from the config by the app, never from what the bot said.
+ */
+export type ExtensionProposalDetail = {
+    label: string;
+    value: string;
+    /**
+     * Long or code-like: shown as a block.
+     */
+    block?: boolean;
+};
+
+/**
+ * An MCP server or tool the coordinator proposed (`extension_proposals`),
+ * as its chip and confirm card show it to the super admin.
+ */
+export type ExtensionProposalView = {
+    id: number;
+    kind: ExtensionProposalKind;
+    /**
+     * The one it changes, null for a new one.
+     */
+    extension_id: number | null;
+    name: string;
+    status: ExtensionProposalStatus;
+    /**
+     * Still pending, but past `expires_at`: it can't be confirmed.
+     */
+    expired: boolean;
+    expires_at: number;
+    outcome: string;
+    result_id: number | null;
+    /**
+     * Where it sends requests from the app; null for a script or a prompt.
+     */
+    host: string | null;
+    envs: ExtensionProposalEnv[];
+    details: ExtensionProposalDetail[];
+    /**
+     * The bot's background check, in its own words.
+     */
+    research: string;
+    sources: string[];
 };
 
 /**

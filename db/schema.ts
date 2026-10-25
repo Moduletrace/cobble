@@ -2217,6 +2217,88 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "extension_proposals",
+            tableDescription: `An MCP server, custom tool or skill the coordinator proposed adding or changing, waiting for the super admin to confirm or reject it from the chat. Nothing is saved, connected or run until they confirm: the card shows where it sends, which envs it reads (saved or missing), for a skill what its runbook tells bots to do and what changed, and the bot's background check`,
+            fields: [
+                {
+                    fieldName: "kind",
+                    fieldDescription: `mcp (a remote MCP server), tool (a custom tool) or skill (a runbook)`,
+                    dataType: "TEXT",
+                    options: ["mcp", "tool", "skill"],
+                },
+                {
+                    fieldName: "extension_id",
+                    fieldDescription: `The server or tool it changes, null for a new one. Not a foreign key: a deleted one makes the proposal fail on confirm`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "name",
+                    fieldDescription: `The server's or tool's name, for the chip`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "data",
+                    fieldDescription: `JSON: the whole server, tool or skill as it would be saved (SaveMcpServerRequest, SaveCustomToolRequest or SaveSkillRequest)`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "research",
+                    fieldDescription: `The bot's background check, markdown: who publishes it, whether it's official, what it needs`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "sources",
+                    fieldDescription: `JSON array of the URLs the background check read`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: ["pending", "confirmed", "rejected", "replaced", "failed"],
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "outcome",
+                    fieldDescription: `What happened on confirm (saved, connected, keys missing) or why it failed`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "result_id",
+                    fieldDescription: `The server or tool it saved, once confirmed`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "expires_at",
+                    fieldDescription: `A pending proposal can't be confirmed after this (Unix ms)`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "decided_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The super admin whose conversation it was proposed in`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that proposed it (the coordinator). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it was proposed in, where the outcome is reported. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace, null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+        },
+        {
             tableName: "bot_mcp_servers",
             tableDescription: `A bot that gets an MCP server's tools everywhere it works`,
             fields: [

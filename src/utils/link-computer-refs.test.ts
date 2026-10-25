@@ -3,6 +3,7 @@ import botRef from "./bot-ref";
 import workspaceRef from "./workspace-ref";
 import computerRef from "./computer-ref";
 import linkComputerRefs from "./link-computer-refs";
+import proposalRef from "./proposal-ref";
 import takeOverRef from "./take-over-ref";
 
 describe("linkComputerRefs", () => {
@@ -18,6 +19,12 @@ describe("linkComputerRefs", () => {
         const text = "See [computer:x], [link](url) and [computer:4](https://example.com)";
 
         expect(linkComputerRefs({ text })).toBe(text);
+    });
+
+    test("links proposals", () => {
+        expect(linkComputerRefs({ text: `Review it: ${proposalRef({ id: 7 })}` })).toBe(
+            "Review it: [proposal 7](#proposal-7)",
+        );
     });
 
     test("links take-over requests", () => {
