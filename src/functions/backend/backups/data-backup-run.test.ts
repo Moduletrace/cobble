@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import AppError from "@/src/utils/app-error";
 import { BootId, grabDataBackupRun, startDataBackupRun } from "./data-backup-run";
 import { isBackupRunning } from "./with-backup-run-lock";
+import restoreDataBackup from "./restore-data-backup";
 
 function deferred() {
     let resolve!: (name: string) => void;
@@ -79,5 +80,20 @@ describe("startDataBackupRun", () => {
         expect(next.status).toBe("running");
         await settle();
         expect(grabDataBackupRun().status).toBe("done");
+    });
+
+    test("a restore runs under the run's lock instead of taking it again", async () => {
+        startDataBackupRun({
+            kind: "restore",
+            task: async () =>
+                (await restoreDataBackup({ backup_name: "missing.tar.gz" }))
+                    .restored_name,
+        });
+        await settle();
+
+        const failed = grabDataBackupRun();
+        expect(failed.status).toBe("failed");
+        expect(failed.error).toBe("Archive not found");
+        expect(isBackupRunning()).toBe(false);
     });
 });

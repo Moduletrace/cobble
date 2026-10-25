@@ -94,5 +94,6 @@ export default function useDataBackupRun(): DataBackupRunState {
             setError(undefined);
             setRun(next);
         },
+        report: setError,
     };
 }

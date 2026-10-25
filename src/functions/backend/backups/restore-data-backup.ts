@@ -5,7 +5,6 @@ import { AppData } from "@/src/data/app-data";
 import grabDirNames from "@/src/utils/grab-dir-names";
 import writeDataBackupArchive from "./write-data-backup-archive";
 import resolveDataBackupPath from "./resolve-data-backup-path";
-import withBackupRunLock from "./with-backup-run-lock";
 
 export type DataBackupRestoreResult = {
     /**
@@ -61,89 +60,86 @@ function findArchiveRoot({ staging_dir }: RootParams) {
  * is taken as a safety copy, then the data directory is emptied (the
  * database snapshots included) and filled from the archive.
  *
+ * Runs only inside `startDataBackupRun`, which holds the backup run lock
+ * for it (taking it again here would refuse every restore).
+ *
  * The caller restarts the process afterwards: the open SQLite handle still
  * points at the replaced file, so nothing may keep reading it.
  */
 export default async function restoreDataBackup({
     backup_name,
 }: Params): Promise<DataBackupRestoreResult> {
-    return await withBackupRunLock({
-        task: async () => {
-            const { DATA_DIR } = grabDirNames();
-            const archive_path = resolveDataBackupPath({ backup_name });
-            const archive_name = path.basename(archive_path);
-            const staging_dir = fs.mkdtempSync(
-                path.join(os.tmpdir(), "cobble-restore-"),
+    const { DATA_DIR } = grabDirNames();
+    const archive_path = resolveDataBackupPath({ backup_name });
+    const archive_name = path.basename(archive_path);
+    const staging_dir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cobble-restore-"),
+    );
+
+    try {
+        const extract = Bun.spawn(
+            ["tar", "-xzf", archive_path, "-C", staging_dir],
+            {
+                cwd: process.cwd(),
+                env: process.env,
+                stdin: "ignore",
+                stdout: "pipe",
+                stderr: "pipe",
+            },
+        );
+
+        const [stdout, stderr, exit_code] = await Promise.all([
+            new Response(extract.stdout).text(),
+            new Response(extract.stderr).text(),
+            extract.exited,
+        ]);
+
+        if (exit_code !== 0) {
+            throw new Error(
+                stderr.trim() ||
+                    stdout.trim() ||
+                    `tar failed (exit ${exit_code})`,
             );
+        }
 
-            try {
-                const extract = Bun.spawn(
-                    ["tar", "-xzf", archive_path, "-C", staging_dir],
-                    {
-                        cwd: process.cwd(),
-                        env: process.env,
-                        stdin: "ignore",
-                        stdout: "pipe",
-                        stderr: "pipe",
-                    },
-                );
+        // The archive's own name may differ from its file name: an
+        // upload is saved under a fresh timestamp. Its one root
+        // folder is what holds the data, so find it rather than
+        // assume it matches.
+        const source_dir = findArchiveRoot({ staging_dir });
 
-                const [stdout, stderr, exit_code] = await Promise.all([
-                    new Response(extract.stdout).text(),
-                    new Response(extract.stderr).text(),
-                    extract.exited,
-                ]);
+        if (!fs.existsSync(path.join(source_dir, "db"))) {
+            throw new Error(
+                `The archive has no database, so nothing was restored`,
+            );
+        }
 
-                if (exit_code !== 0) {
-                    throw new Error(
-                        stderr.trim() ||
-                            stdout.trim() ||
-                            `tar failed (exit ${exit_code})`,
-                    );
-                }
+        // The archive's snapshots would otherwise vanish with the
+        // current ones, so the safety copy is taken before them.
+        const safety = await writeDataBackupArchive();
 
-                // The archive's own name may differ from its file name: an
-                // upload is saved under a fresh timestamp. Its one root
-                // folder is what holds the data, so find it rather than
-                // assume it matches.
-                const source_dir = findArchiveRoot({ staging_dir });
+        // Everything goes, the snapshots in `db/.backups` included:
+        // the archive's own set replaces them.
+        for (const entry of fs.readdirSync(DATA_DIR)) {
+            fs.rmSync(path.join(DATA_DIR, entry), {
+                recursive: true,
+                force: true,
+            });
+        }
 
-                if (!fs.existsSync(path.join(source_dir, "db"))) {
-                    throw new Error(
-                        `The archive has no database, so nothing was restored`,
-                    );
-                }
+        for (const entry of fs.readdirSync(source_dir)) {
+            fs.cpSync(
+                path.join(source_dir, entry),
+                path.join(DATA_DIR, entry),
+                { recursive: true, force: true },
+            );
+        }
 
-                // The archive's snapshots would otherwise vanish with the
-                // current ones, so the safety copy is taken before them.
-                // The run lock is already held here, hence the unlocked
-                // writer rather than `createDataBackup`.
-                const safety = await writeDataBackupArchive();
-
-                // Everything goes, the snapshots in `db/.backups` included:
-                // the archive's own set replaces them.
-                for (const entry of fs.readdirSync(DATA_DIR)) {
-                    fs.rmSync(path.join(DATA_DIR, entry), {
-                        recursive: true,
-                        force: true,
-                    });
-                }
-
-                for (const entry of fs.readdirSync(source_dir)) {
-                    fs.cpSync(
-                        path.join(source_dir, entry),
-                        path.join(DATA_DIR, entry),
-                        { recursive: true, force: true },
-                    );
-                }
-
-                return {
-                    safety_name: safety.name,
-                    restored_name: archive_name,
-                };
-            } finally {
-                fs.rmSync(staging_dir, { recursive: true, force: true });
-            }
-        },
-    });
+        return {
+            safety_name: safety.name,
+            restored_name: archive_name,
+        };
+    } finally {
+        fs.rmSync(staging_dir, { recursive: true, force: true });
+    }
 }

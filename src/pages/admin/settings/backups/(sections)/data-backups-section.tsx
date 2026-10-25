@@ -4,6 +4,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import SettingsGroup from "../../(partials)/settings-group";
 import { AppContext } from "@/src/pages/__root";
 import DataBackupListActions from "../(partials)/data-backup-list-actions";
+import DataBackupRunNotice from "../(partials)/data-backup-run-notice";
 import DataBackupsTable from "../(partials)/data-backups-table";
 import { DataBackupRunContext } from "../(data)/data-backup-run-context";
 import useDataBackupRun from "../(hooks)/use-data-backup-run";
@@ -33,6 +34,7 @@ export default function DataBackupsSection() {
                     </Span>
                     <DataBackupListActions />
                 </Row>
+                <DataBackupRunNotice />
                 {backups[0] ? (
                     <DataBackupsTable backups={backups} />
                 ) : (

@@ -11,9 +11,17 @@ export type CreatedDataBackup = {
 };
 
 /**
- * Writes one archive of the whole `DATA_DIR` and prunes the old ones.
- * Callers already hold the backup run lock (`withBackupRunLock`), so a
- * restore can take its safety copy without deadlocking on it.
+ * Writes one archive of the whole `DATA_DIR` (database, media, computer
+ * workspaces, bot and workspace files, MCP installs) into
+ * `BACKUP_ARCHIVE_DIR` and keeps only the newest `AppData.DataBackupsKept`.
+ * Every entry sits under one root folder named after the archive, so
+ * extracting it lands one folder. The SQLite file inside is only as
+ * consistent as the moment tar read it; `db/.backups` is for consistent
+ * snapshots.
+ *
+ * It takes no lock: callers run inside `startDataBackupRun`, which holds
+ * the backup run lock (`withBackupRunLock`) for the whole run, so the
+ * archive route and a restore's safety copy never take it twice.
  */
 export default async function writeDataBackupArchive(): Promise<CreatedDataBackup> {
     const { DATA_DIR } = grabDirNames();

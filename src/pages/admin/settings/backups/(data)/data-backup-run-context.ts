@@ -14,6 +14,10 @@ export type DataBackupRunState = {
      * Follows a run a request just started until it ends.
      */
     track: (run: DataBackupRun) => void;
+    /**
+     * Shows why a run couldn't start (or clears it with `undefined`).
+     */
+    report: (error?: string) => void;
 };
 
 /**
@@ -23,4 +27,5 @@ export type DataBackupRunState = {
  */
 export const DataBackupRunContext = React.createContext<DataBackupRunState>({
     track: () => {},
+    report: () => {},
 });

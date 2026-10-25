@@ -1,5 +1,5 @@
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
-import createDataBackup from "@/src/functions/backend/backups/create-data-backup";
+import writeDataBackupArchive from "@/src/functions/backend/backups/write-data-backup-archive";
 import { startDataBackupRun } from "@/src/functions/backend/backups/data-backup-run";
 import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
 import safeErrorMessage from "@/src/utils/safe-error-message";
@@ -12,7 +12,8 @@ import type {
 /**
  * Starts archiving the whole `DATA_DIR` (Settings > Backups > Data
  * archives) and answers at once: the page polls `data-status` until the
- * archive is written.
+ * archive is written. `startDataBackupRun` holds the backup run lock, so
+ * the task calls the unlocked writer.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<DataBackupRun>
@@ -33,7 +34,7 @@ export const handler: BunextAPIRouteHandler<
             kind: "archive",
             task: async () => {
                 try {
-                    const backup = await createDataBackup();
+                    const backup = await writeDataBackupArchive();
 
                     await logEvent({
                         title: "Data backup created",
