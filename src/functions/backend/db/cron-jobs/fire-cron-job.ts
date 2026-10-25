@@ -87,7 +87,7 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
             metadata: { cron_job_id: id, job_id, bot_id: cron_job.bot_id },
         });
     } catch (error) {
-        await saveRun({ id, last_error: safeErrorMessage({ error, fallback: `Couldn't queue the run.` }) });
+        await saveRun({ id, last_error: safeErrorMessage({ error, fallback: `Couldn't queue the run.`, log: false }) });
 
         await logError({
             title: `Schedule #${id} couldn't run`,

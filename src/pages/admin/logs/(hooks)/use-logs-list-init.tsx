@@ -78,6 +78,20 @@ export default function useLogsListInit(_props?: Props) {
         setRes(undefined);
     };
 
+    /**
+     * The tab was emptied: back to its first page, reloaded.
+     */
+    const afterClear = () => {
+        setSelectedIds([]);
+
+        if (page > 1) {
+            setPage(1);
+            return;
+        }
+
+        setRes(undefined);
+    };
+
     const all_selected =
         Boolean(logs?.[0]) && selected_ids.length == logs?.length;
 
@@ -100,6 +114,7 @@ export default function useLogsListInit(_props?: Props) {
         toggleSelectAll,
         all_selected,
         afterDelete,
+        afterClear,
         active_log,
         openLog,
         log_modal_open,

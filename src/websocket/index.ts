@@ -9,7 +9,6 @@ import { getAllClients, getAllRooms } from "./(data)/rooms";
 import type { WebSocketDataType } from "@/src/types";
 import { wsSendData } from "./(functions)/ws-send-data";
 import checkSessionAccess from "./(functions)/check-session-access";
-import logEvent from "@/src/functions/backend/logger";
 import { computerProxySocket } from "@/src/functions/server/computers/computer-proxy-socket";
 import touchUserPresence from "@/src/functions/backend/db/push/touch-user-presence";
 
@@ -44,16 +43,6 @@ export const websocket = {
             data: {
                 event: "ready",
                 message: "WebSocket connected",
-            },
-        });
-
-        logEvent({
-            title: "WebSocket connected",
-            category: "websocket",
-            user_id: user.id,
-            plain_text: `User #${user.id} [${user.first_name} ${user.last_name}] connected via WebSocket.`,
-            metadata: {
-                user_id: user.id,
             },
         });
     },

@@ -1,4 +1,3 @@
-import bunext from "@moduletrace/bunext";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { AppData } from "@/src/data/app-data";
 
@@ -14,10 +13,6 @@ export default async function pruneBotsQueue() {
         sql: `DELETE FROM bots_queue WHERE status IN ('completed', 'failed') AND finished_at IS NOT NULL AND finished_at < ? RETURNING id`,
         values: [cutoff],
     });
-
-    bunext.bunextLog.info(
-        `Cron: pruned ${res.payload?.length || 0} finished bot job(s)`,
-    );
 
     return res;
 }

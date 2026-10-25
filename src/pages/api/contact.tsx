@@ -89,7 +89,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         return {
             success: false,
-            msg: safeErrorMessage({ error }),
+            msg: safeErrorMessage({ error, log: false }),
         };
     }
 };

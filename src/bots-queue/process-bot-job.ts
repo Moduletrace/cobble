@@ -290,6 +290,38 @@ export default async function processBotJob({
             return null;
         });
 
+        /**
+         * Every failed try is on the Activity page, so a model or provider
+         * that keeps failing shows there and not only in one chat.
+         */
+        if (failed) {
+            const final = failed.status == "failed";
+
+            await logError({
+                title: final
+                    ? `Bot job #${job_id} failed`
+                    : `Bot job #${job_id} failed, retrying (try ${tries})`,
+                error: timed_out ? new Error(timeout_message) : error,
+                user_id: user_id || undefined,
+                details: [
+                    { label: "Bot", value: bot_id },
+                    { label: "Kind", value: job.kind },
+                    { label: "Title", value: job.title || "" },
+                    { label: "Try", value: tries },
+                ],
+                metadata: {
+                    job_id,
+                    bot_id,
+                    kind: job.kind,
+                    session_id: job.session_id,
+                    workspace_id: job.workspace_id,
+                    schedule_id,
+                    fatal: error instanceof BotJobFatalError,
+                    harness_code: error instanceof HarnessError ? error.code : undefined,
+                },
+            }).catch(() => {});
+        }
+
         if (failed?.notice) {
             await pushBotNotice({ bot_id, ...failed.notice });
         }

@@ -4,6 +4,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type useLogsListInit from "../(hooks)/use-logs-list-init";
+import ClearLogsButton from "./clear-logs-button";
 import DeleteLogsButton from "./delete-logs-button";
 import LogCategoryFilter from "./log-category-filter";
 
@@ -18,6 +19,7 @@ export default function LogsToolbar({ init }: Props) {
         selectCategory,
         selected_ids,
         afterDelete,
+        afterClear,
     } = init;
 
     return (
@@ -33,20 +35,27 @@ export default function LogsToolbar({ init }: Props) {
                             ? `${count} log${count == 1 ? "" : "s"}`
                             : "--"}
                     </Span>
-                    {selected_ids[0] ? (
-                        <DeleteLogsButton
-                            ids={selected_ids}
-                            afterDelete={afterDelete}
-                            title="Delete Selected Logs"
-                            variant="outlined"
-                            size="small"
-                        >
-                            <Row className="gap-2! flex-nowrap">
-                                <Trash2 size={15} />
-                                <Span>Delete selected ({selected_ids.length})</Span>
-                            </Row>
-                        </DeleteLogsButton>
-                    ) : null}
+                    <Row className="gap-2! flex-nowrap">
+                        {selected_ids[0] ? (
+                            <DeleteLogsButton
+                                ids={selected_ids}
+                                afterDelete={afterDelete}
+                                title="Delete Selected Logs"
+                                variant="outlined"
+                                size="small"
+                            >
+                                <Row className="gap-2! flex-nowrap">
+                                    <Trash2 size={15} />
+                                    <Span>Delete selected ({selected_ids.length})</Span>
+                                </Row>
+                            </DeleteLogsButton>
+                        ) : null}
+                        <ClearLogsButton
+                            category={category}
+                            count={count}
+                            afterClear={afterClear}
+                        />
+                    </Row>
                 </Row>
             </Stack>
         </Paper>
