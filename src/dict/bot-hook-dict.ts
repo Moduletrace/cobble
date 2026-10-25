@@ -26,11 +26,15 @@ export type BotHookSignatureFormat = (typeof BotHookSignatureFormats)[number]["v
 /**
  * What became of one call to a hook: it queued a run, joined a run still
  * waiting, was refused (a bad signature, a paused hook), repeated a call
- * already taken, or was a notification the hook's filter left out.
+ * already taken, or was a notification the hook's filter left out. Queued
+ * and merged calls wait on their run, and turn answered or failed when it
+ * ends (`recordHookCallResponse`), with its response.
  */
 export const BotHookEventStatuses = [
     { title: "Queued", value: "queued" },
     { title: "Merged", value: "merged" },
+    { title: "Answered", value: "done" },
+    { title: "Failed", value: "failed" },
     { title: "Rejected", value: "rejected" },
     { title: "Duplicate", value: "duplicate" },
     { title: "Ignored", value: "ignored" },
@@ -71,3 +75,9 @@ export const HookProposalActions = [
 ] as const;
 
 export type HookProposalAction = (typeof HookProposalActions)[number]["value"];
+
+/**
+ * The app setting (Settings > General) for how many days hook calls are
+ * kept, else `AppData.BotHookEventsKeepDays`.
+ */
+export const HookEventsKeepDaysSettingKey = "hook_events_keep_days";

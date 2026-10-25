@@ -10,7 +10,7 @@ describe("grabBotHookTools", () => {
     });
 
     test("a run without a chat to confirm in can't propose", () => {
-        expect(names({ session_id: 3 })).toEqual(["list_hooks", "pause_hook", "delete_hook"]);
+        expect(names({ session_id: 3 })).toEqual(["list_hooks", "search_hook_calls", "read_hook_call", "pause_hook", "delete_hook"]);
     });
 
     test("a chat reply can propose", () => {

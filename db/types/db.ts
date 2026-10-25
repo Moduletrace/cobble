@@ -832,8 +832,17 @@ export type BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS = {
      * The sender's delivery id, so a retried call runs once
      */
     idempotency_key?: string;
-    status?: "queued" | "merged" | "rejected" | "duplicate" | "ignored" | "";
+    status?: "queued" | "merged" | "done" | "failed" | "rejected" | "duplicate" | "ignored" | "";
     error?: string;
+    /** 
+     * What its run answered (the result the bot posted), or why the run failed. Written when the run ends, on every call that run took in
+     */
+    response?: string;
+    /** 
+     * The chat message the run posted. Not a foreign key: messages can be deleted
+     */
+    response_message_id?: number | "";
+    responded_at?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_HOOK_PROPOSALS = {

@@ -1,4 +1,5 @@
 import AppearanceSection from "./(sections)/appearance-section";
+import HookCallRetentionSection from "./(sections)/hook-call-retention-section";
 import InstallIconSection from "./(sections)/install-icon-section";
 import InstallNameSection from "./(sections)/install-name-section";
 import NotificationsSection from "./(sections)/notifications-section";
@@ -23,6 +24,7 @@ export default function AdminSettingsGeneralPage() {
             <PromptSection />
             <RunLimitsSection />
             <SkillLimitsSection />
+            <HookCallRetentionSection />
             <StorageSection />
             <VersionSection />
         </SettingsShell>

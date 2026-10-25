@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { BotHookSignatureFormats, BotHookSources } from "@/src/dict/bot-hook-dict";
+import { AppData } from "@/src/data/app-data";
+import { BotHookEventStatuses, BotHookSignatureFormats, BotHookSources } from "@/src/dict/bot-hook-dict";
 
 const HookIdField = z.coerce.number().int().positive("Pick a hook");
 const TitleField = z.string().trim().min(1, "Give the hook a name").max(80, "Keep the name under 80 characters");
@@ -95,3 +96,30 @@ export const HookProposalIdRequestSchema = z.object({
 });
 
 export type HookProposalIdRequest = z.infer<typeof HookProposalIdRequestSchema>;
+
+const HookCallStatusField = z.enum(BotHookEventStatuses.map((s) => s.value) as [string, ...string[]]);
+
+/**
+ * A search of the user's hook calls (`api/admin/hooks/hook-events`, and
+ * the bots' `search_hook_calls`): one hook's or all, words found in what
+ * a call sent or what its run answered, one status, older than a call.
+ */
+export const SearchHookCallsRequestSchema = z.object({
+    hook_id: z.coerce.number().int().positive().optional(),
+    q: z.string().trim().max(200, "Keep the search under 200 characters").optional(),
+    status: HookCallStatusField.optional(),
+    before_id: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+export const HookCallIdRequestSchema = z.object({
+    event_id: z.coerce.number().int().positive("Pick a call"),
+});
+
+/**
+ * How many days hook calls are kept (Settings > General). Zero puts the
+ * code's default back.
+ */
+export const SaveHookCallRetentionRequestSchema = z.object({
+    keep_days: z.coerce.number().int().min(0).max(AppData.BotHookEventsKeepDaysMax),
+});

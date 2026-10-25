@@ -5,6 +5,7 @@ import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace, { type BotFaceChange } from "../bots/set-bot-face";
 import { abortRunningJob } from "@/src/bots-queue/job-abort-registry";
 import insertBotJobUpdate from "./insert-bot-job-update";
+import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import openBotJobsSql from "./open-bot-jobs-sql";
 import stoppedJobReport, { pickReportedJobs } from "./stopped-job-report";
 
@@ -90,6 +91,8 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
                 values: [now, Number(stopped.task_id)],
             });
         }
+
+        await recordHookCallResponse({ job: stopped, status: "failed", response: BotJobStoppedError, now });
 
         /**
          * Recorded as the job's last step, so the working row says why it

@@ -4,6 +4,8 @@ import deleteHookTool from "./delete-hook-tool";
 import listHooksTool from "./list-hooks-tool";
 import pauseHookTool from "./pause-hook-tool";
 import proposeHookTool from "./propose-hook-tool";
+import readHookCallTool from "./read-hook-call-tool";
+import searchHookCallsTool from "./search-hook-calls-tool";
 
 type Params = {
     user_id: number | string;
@@ -24,7 +26,8 @@ type Params = {
 };
 
 /**
- * A bot's tools for the user's hooks it runs: read them, pause or delete
+ * A bot's tools for the user's hooks it runs: read them and search their
+ * calls (what each sent and what its run answered), pause or delete
  * one (that only takes away), and in a chat reply propose a new one or a
  * change (the user confirms it from a card; a new one's URL goes to them
  * alone). A hook call's own run gets none, so a caller's payload can never
@@ -43,6 +46,8 @@ export default function grabBotHookTools({
 
     return [
         listHooksTool({ user_id, bot_id }),
+        searchHookCallsTool({ user_id, bot_id }),
+        readHookCallTool({ user_id, bot_id }),
         pauseHookTool({ user_id, bot_id }),
         deleteHookTool({ user_id, bot_id }),
         ...(session_id && onPropose

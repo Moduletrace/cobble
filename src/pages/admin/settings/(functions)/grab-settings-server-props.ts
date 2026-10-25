@@ -7,6 +7,7 @@ import type { PagePropsType } from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabRunLimitsOverview from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabSkillLimitsOverview from "@/src/functions/backend/db/app-settings/grab-skill-limits";
+import grabHookCallRetentionOverview from "@/src/functions/backend/db/app-settings/grab-hook-events-keep-days";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
 import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
 import runningVersion from "@/src/utils/running-version";
@@ -49,6 +50,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             system_prompt_append: await grabSystemPromptAppendOverview().catch(() => null),
             run_limits: await grabRunLimitsOverview().catch(() => null),
             skill_limits: await grabSkillLimitsOverview().catch(() => null),
+            hook_call_retention: await grabHookCallRetentionOverview().catch(() => null),
             running_version: runningVersion({ env: process.env }),
         },
     };

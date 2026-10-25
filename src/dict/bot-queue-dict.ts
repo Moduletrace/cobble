@@ -113,6 +113,8 @@ export const JobStepToolLabels: Record<string, string> = {
     capture_secret: "Saving a secret",
     show_secret: "Showing a secret",
     pause_hook: "Pausing a hook",
+    search_hook_calls: "Looking through hook calls",
+    read_hook_call: "Reading a hook call",
     delete_hook: "Deleting a hook",
     assign_computer: "Changing computer access",
     update_memory: "Updating memory",

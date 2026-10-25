@@ -15,7 +15,7 @@ type Params = {
 export default function listHooksTool({ user_id, bot_id }: Params): HarnessTool<Record<string, never>> {
     return {
         name: "list_hooks",
-        description: `List the user's hooks that give you work: id, name, what calls it (an outside service at its secret URL, or browser notifications on a computer), where it runs, whether it's paused, its runs, last call and last error. You never see a hook's URL: only the user does.`,
+        description: `List the user's hooks that give you work: id, name, what calls it (an outside service at its secret URL, or browser notifications on a computer), where it runs, whether it's paused, its runs, last call and last error. To see what calls sent and what your runs answered, use search_hook_calls. You never see a hook's URL: only the user does.`,
         schema: z.object({}),
         run: async () => {
             const hooks = await grabBotHooks({ user_id, bot_id });

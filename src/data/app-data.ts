@@ -240,14 +240,23 @@ export const AppData = {
      * A bot's hooks (`bot_hooks`): how many one user gives one bot, the
      * largest body a call may send, how many calls a minute one hook and
      * one address may make, how many calls join one waiting run before
-     * the next queues a run of its own, and how long calls are kept.
+     * the next queues a run of its own, and how long calls are kept by
+     * default (the install may set its own, `hook_events_keep_days`, up to
+     * `BotHookEventsKeepDaysMax`).
      */
     BotHookMaxPerBot: 20,
     BotHookMaxPayloadBytes: 64 * 1024,
     BotHookRateLimit: 30,
     BotHookIpRateLimit: 120,
     BotHookMaxEventsPerRun: 20,
-    BotHookEventsKeepDays: 14,
+    BotHookEventsKeepDays: 30,
+    BotHookEventsKeepDaysMax: 3650,
+    /**
+     * How many hook calls a list loads at once, and how much of each call's
+     * payload and response a list shows (the whole of both opens on one).
+     */
+    BotHookCallsPageSize: 20,
+    BotHookCallPreviewChars: 400,
     /**
      * A call naming a delivery already taken this recently isn't run again.
      */

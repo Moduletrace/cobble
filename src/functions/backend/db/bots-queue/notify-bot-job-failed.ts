@@ -4,6 +4,7 @@ import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
 import relayJobToRequester from "./relay-job-to-requester";
 import noteTrackerTask from "./note-tracker-task";
+import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
 import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
@@ -18,7 +19,8 @@ type Params = {
  * reported once), tells the user in the bot's conversation and sets the
  * bot to needs-you for that user. Its task stays active, since the work isn't done. A
  * handed-over job's failure also goes to the bot that handed it over, and
- * blocks the handed-over task it worked on (`noteTrackerTask`).
+ * blocks the handed-over task it worked on (`noteTrackerTask`). A hook run's
+ * calls keep why it failed (`recordHookCallResponse`).
  */
 export default async function notifyBotJobFailed({
     job,
@@ -62,6 +64,13 @@ export default async function notifyBotJobFailed({
         : null;
 
     await noteTrackerTask({ job, failure: failure_message || job.last_error || "" });
+
+    await recordHookCallResponse({
+        job,
+        status: "failed",
+        response: job.last_error || failure_message || "The run failed.",
+        message_id: message?.id,
+    });
 
     const relay = await relayJobToRequester({
         job,

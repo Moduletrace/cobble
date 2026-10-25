@@ -9,6 +9,7 @@ import type {
     BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_CRON_JOBS,
     BUN_SQLITE_COBBLE_BOT_HOOKS,
+    BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS,
     BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_TASK_MEDIA,
     BUN_SQLITE_COBBLE_TASK_NOTES,
@@ -134,6 +135,17 @@ export type BotHookWithNames = Omit<BUN_SQLITE_COBBLE_BOT_HOOKS, "token_hash" | 
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
+};
+
+/**
+ * One call to a hook with its hook's name and bot, as searches list it
+ * (`searchHookCallsSql`): payload and response are previews there, whole
+ * in `grabBotHookEvent`.
+ */
+export type BotHookCall = BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & {
+    hook_title?: string | null;
+    bot_id?: number | null;
+    workspace_id?: number | null;
 };
 
 /**
@@ -986,6 +998,16 @@ export type McpServersOverviewPayload = ExtensionTargets & {
 };
 
 /**
+ * How long hook calls are kept (Settings > General,
+ * `grab-hook-events-keep-days.ts`).
+ */
+export type HookCallRetentionOverview = {
+    keep_days: number;
+    default_days: number;
+    max: number;
+};
+
+/**
  * The install's skill limits (Settings > General, `grab-skill-limits.ts`).
  */
 export type SkillLimitsOverview = {
@@ -1664,6 +1686,11 @@ export type PagePropsType = {
      * at once, with the code's defaults (the General settings page).
      */
     skill_limits?: SkillLimitsOverview | null;
+    /**
+     * How many days hook calls are kept, with the code's default (the
+     * General settings page).
+     */
+    hook_call_retention?: HookCallRetentionOverview | null;
     /**
      * The name the install goes by as an installed app (Settings >
      * General, and the root's head tags). Empty when never named.

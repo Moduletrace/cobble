@@ -6,6 +6,7 @@ import setBotFace from "../bots/set-bot-face";
 import countOpenBotJobs from "./count-open-bot-jobs";
 import grabLockedBotJob from "./grab-locked-bot-job";
 import relayJobToRequester from "./relay-job-to-requester";
+import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import noteTrackerTask from "./note-tracker-task";
 import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
@@ -46,7 +47,8 @@ type Params = {
  * after a task and idle after a reply; with others open, it shows the one
  * still running (a reply in another session mustn't hide a task's row).
  * Nobody else's face changes. A handed-over job's result also goes to the bot that handed
- * it over (`relay`), and a handed-over task left open says so (`noteTrackerTask`). Throws if this handler no longer holds the job.
+ * it over (`relay`), and a handed-over task left open says so (`noteTrackerTask`). A hook
+ * run's result is kept on the calls it answered (`recordHookCallResponse`). Throws if this handler no longer holds the job.
  */
 export default async function completeBotJob({
     job_id,
@@ -138,6 +140,8 @@ export default async function completeBotJob({
               });
 
     await noteTrackerTask({ job });
+
+    await recordHookCallResponse({ job, status: "done", response: result, message_id: inserted?.id });
 
     const relay = silent ? null : await relayJobToRequester({ job, text: result });
 

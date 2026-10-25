@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import { BotJobCancelledError } from "@/src/dict/bot-queue-dict";
 import AppError from "@/src/utils/app-error";
+import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 
 type Params = {
     user_id: number | string;
@@ -36,6 +37,8 @@ export default async function cancelBotJob({ user_id, job_id }: Params) {
             values: [now, job.task_id],
         });
     }
+
+    await recordHookCallResponse({ job, status: "failed", response: BotJobCancelledError, now });
 
     return job;
 }

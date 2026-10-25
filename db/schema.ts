@@ -1341,6 +1341,20 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldName: "error",
                     dataType: "TEXT",
                 },
+                {
+                    fieldName: "response",
+                    fieldDescription: `What its run answered (the result the bot posted), or why the run failed. Written when the run ends, on every call that run took in`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "response_message_id",
+                    fieldDescription: `The chat message the run posted. Not a foreign key: messages can be deleted`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "responded_at",
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {
@@ -1350,6 +1364,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_hook_events_hook_id_idempotency_key",
                     indexTableFields: ["hook_id", "idempotency_key"],
+                },
+                {
+                    indexName: "idx_bot_hook_events_job_id",
+                    indexTableFields: ["job_id"],
                 },
             ],
         },
