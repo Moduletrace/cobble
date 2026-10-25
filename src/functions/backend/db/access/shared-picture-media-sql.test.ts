@@ -18,7 +18,9 @@ beforeAll(() => {
         (5, 7, NULL, 0),
         (6, 7, NULL, 0),
         (7, 7, NULL, 0),
-        (8, 7, NULL, 0)`);
+        (8, 7, NULL, 0),
+        (10, 7, NULL, 0),
+        (11, 7, NULL, 0)`);
 
     // 1: user 7's current photo, 2: user 8's, 3: an old photo of user 8's (no longer primary)
     db.run(`INSERT INTO media_paradigms VALUES
@@ -29,12 +31,14 @@ beforeAll(() => {
         (5, 'bot-image'),
         (6, 'workspace-image'),
         (7, 'workspace-image'),
-        (8, 'bot-file')`);
+        (8, 'bot-file'),
+        (10, 'bot-attachment')`);
 
     // 4: still bot 2's picture, 5: a bot picture no bot points at any more
     db.run(`INSERT INTO bots VALUES (2, 4), (3, NULL)`);
     // 6: still workspace 10's picture, 7: a workspace picture nothing points at
-    db.run(`INSERT INTO workspaces VALUES (10, 6), (11, NULL)`);
+    // 10: an older picture set straight from a chat upload, still workspace 12's
+    db.run(`INSERT INTO workspaces VALUES (10, 6), (11, NULL), (12, 10)`);
 });
 
 function visible({ archived }: { archived?: number } = {}) {
@@ -52,12 +56,12 @@ function visible({ archived }: { archived?: number } = {}) {
 
 describe("sharedPictureMediaSql", () => {
     test("every user's current photo, and every bot's and workspace's picture", () => {
-        expect(visible()).toEqual([1, 2, 4, 6]);
+        expect(visible()).toEqual([1, 2, 4, 6, 10]);
     });
 
     test("archived media is not a picture anyone gets", () => {
         db.run(`UPDATE media SET archived = 1 WHERE id = 2`);
-        expect(visible({ archived: 0 })).toEqual([1, 4, 6]);
+        expect(visible({ archived: 0 })).toEqual([1, 4, 6, 10]);
         db.run(`UPDATE media SET archived = 0 WHERE id = 2`);
     });
 
@@ -72,6 +76,11 @@ describe("sharedPictureMediaSql", () => {
 
     test("anything else stays private, a bot's file among them", () => {
         expect(visible()).not.toContain(8);
+        expect(visible()).not.toContain(11);
+    });
+
+    test("a picture a workspace points at is shared whatever its paradigm", () => {
+        expect(visible()).toContain(10);
     });
 
     test("removing a picture row closes it at once", () => {
