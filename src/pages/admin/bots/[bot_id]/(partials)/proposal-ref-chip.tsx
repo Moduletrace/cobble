@@ -5,6 +5,7 @@ import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { BookOpen, PlugZap, Wrench } from "lucide-react";
+import type { ExtensionProposalView } from "@/src/types";
 import useExtensionProposal from "../(hooks)/use-extension-proposal";
 import proposalStatusLabel from "../(utils)/proposal-status-label";
 import proposalTitle from "../(utils)/proposal-title";
@@ -23,6 +24,11 @@ type Props = {
 export default function ProposalRefChip({ proposal_id }: Props) {
     const { view, loading, setView } = useExtensionProposal({ proposal_id });
     const [open, setOpen] = useState(false);
+
+    const decided = (next: ExtensionProposalView) => {
+        setView(next);
+        setOpen(false);
+    };
 
     if (!view) {
         return <Span className="font-bold">{loading ? `proposal ${proposal_id}` : `proposal ${proposal_id} (not available)`}</Span>;
@@ -60,7 +66,7 @@ export default function ProposalRefChip({ proposal_id }: Props) {
             </Stack>
 
             <Stack className="mt-2 max-h-[65vh] w-full gap-0! items-stretch overflow-y-auto">
-                <ProposalCard view={view} onDecided={setView} />
+                <ProposalCard view={view} onDecided={decided} />
             </Stack>
         </Modal>
     );
