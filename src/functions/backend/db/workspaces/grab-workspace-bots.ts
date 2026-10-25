@@ -11,7 +11,7 @@ type Params = {
 /**
  * A workspace's crew (the coordinator first, then its bots by latest
  * activity there), each with its instructions and memory for the
- * workspace.
+ * workspace (whether it's the workspace's admin comes with `grabBots`).
  */
 export default async function grabWorkspaceBots({
     user_id,

@@ -11,6 +11,10 @@ type Params = {
     user_id: number | string;
     is_coordinator: boolean;
     /**
+     * The workspaces the bot is admin of (`grabBotRunPowers`).
+     */
+    admin_workspace_ids?: number[];
+    /**
      * The workspace the run is in, if any.
      */
     workspace_id?: number | string | null;
@@ -27,7 +31,7 @@ type Args = {
  * workspace it works in, or for the coordinator the whole install. Used
  * both to plan work and to remind the user of what's pending.
  */
-export default function listTasksTool({ bot_id, user_id, is_coordinator, workspace_id }: Params): HarnessTool<Args> {
+export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_workspace_ids, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "list_tasks",
         description: `List tasks: yours, the ones in a workspace you work in, or ${is_coordinator ? "every task in the install" : "every task you can reach"}. Each line is its id, status, title, whose it is, its files and its latest note. Open ones come first (blocked, then doing, then to do). Use it to plan work, and to check what's still pending when the user says hello or asks what's next.`,
@@ -50,6 +54,7 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, workspa
             const tasks = await grabTasks({
                 bot_id,
                 is_coordinator,
+                admin_workspace_ids,
                 only_bot_id: scope == "mine" ? Number(bot_id) : undefined,
                 only_workspace_id,
                 statuses: args.status ? [args.status] : undefined,

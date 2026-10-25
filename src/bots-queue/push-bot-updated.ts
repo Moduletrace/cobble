@@ -74,6 +74,18 @@ async function push({
         })
     ).payload?.[0];
 
+    /**
+     * The workspaces it leads, so each crew shows its shield.
+     */
+    const admin_workspace_ids = (
+        (
+            await BunSQLite.sql<{ workspace_id: number }>({
+                sql: `SELECT workspace_id FROM bot_types WHERE bot_id = ? AND bot_type = 'admin' AND workspace_id IS NOT NULL`,
+                values: [bot_id],
+            })
+        ).payload || []
+    ).map((row) => Number(row.workspace_id));
+
     for (const viewer_id of audience) {
         if (users && !users.has(String(viewer_id))) continue;
 
@@ -87,6 +99,7 @@ async function push({
                     color: identity?.color || null,
                     stone: identity?.stone || null,
                     image_media_id: identity?.image_media_id ? Number(identity.image_media_id) : null,
+                    admin_workspace_ids,
                     ...(computer_id !== undefined ? { computer_id: computer_id || null } : {}),
                     ...(workspace_ids !== undefined ? { workspace_ids } : {}),
                     task: await grabActiveBotTask({ bot_id, user_id: viewer_id }),

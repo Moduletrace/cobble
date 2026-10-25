@@ -10,6 +10,7 @@ import botStoneProps from "@/src/utils/bot-stone-props";
 import messagePreview from "@/src/utils/message-preview";
 import relativeTime from "@/src/utils/relative-time";
 import UnreadDot from "./unread-dot";
+import AdminShield from "@/src/components/general/admin-shield";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -27,7 +28,8 @@ type Props = {
 
 /**
  * 48px rail row. Status is the face and the subtitle (the bot's status
- * line while it has one): no badges, spinners or state dots.
+ * line while it has one): no badges, spinners or state dots. A workspace's
+ * admin has its shield beside its name: a role, not a status.
  * The selected background (ink at 5%, never a hue) is painted by
  * RailBotCard, which also holds the sessions.
  */
@@ -55,9 +57,12 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
         >
             <BotAvatar image_media_id={bot.image_media_id} {...stone_props} face={(bot.face || "idle") as BotFace} />
             <Stack className="hidden @rail:flex grow min-w-0 gap-0!">
-                <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
-                    {bot.name}
-                </Span>
+                <Row className="w-full min-w-0 gap-1! flex-nowrap">
+                    <Span className="min-w-0 text-sm font-bold leading-5 text-ink truncate">
+                        {bot.name}
+                    </Span>
+                    {bot.is_admin ? <AdminShield /> : null}
+                </Row>
                 <Span className="text-xs leading-4 text-ink-secondary truncate w-full">
                     {snippet}
                 </Span>

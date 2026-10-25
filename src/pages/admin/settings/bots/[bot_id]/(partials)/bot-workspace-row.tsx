@@ -1,4 +1,5 @@
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
+import AdminShield from "@/src/components/general/admin-shield";
 import type { BotWorkspace } from "@/src/types";
 import SettingsListRow from "../../../(partials)/settings-list-row";
 import SettingsRowAction from "../../../(partials)/settings-row-action";
@@ -33,6 +34,7 @@ export default function BotWorkspaceRow({
             }
             href={`/admin/settings/workspaces/${workspace.id}`}
             title={name}
+            title_icon={workspace.is_admin ? <AdminShield label="Admin of this workspace" /> : undefined}
             subtitle={
                 has_own
                     ? "Has instructions for this workspace"

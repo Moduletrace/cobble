@@ -36,6 +36,11 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
      */
     const task_media_ids = await grabTaskMediaIds({ workspace_id: workspace.id! }).catch(() => []);
 
+    /**
+     * Explicitly, since foreign keys are off outside the server process.
+     */
+    await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE workspace_id = ?`, values: [workspace.id] });
+
     const res = await BunSQLite.sql({
         sql: `DELETE FROM workspaces WHERE id = ?`,
         values: [workspace.id],

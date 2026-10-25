@@ -9,8 +9,12 @@ import {
     CoordinatorSoloNote,
     TasksNote,
     TaskReminderNote,
+    workspaceAdminNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
+import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
+import workspaceAdminsNote from "./workspace-admins-note";
+import type { WorkspaceAdminTools } from "@/src/harness/tools/bot/grab-workspace-admin-tools";
 import { grabReplyMaxToolSteps } from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
@@ -158,8 +162,16 @@ export default async function runBotReply({
         onAttach: ({ media_id }) => attachments.push(media_id),
     });
 
+    /**
+     * What the bot's types let it do here, and what it leads when it's this
+     * workspace's admin.
+     */
+    const powers = await grabBotRunPowers({ bot_id: bot.id, workspace_id });
+    let led: WorkspaceAdminTools | null = null;
+
     const tools = await grabBotChatTools({
         bot,
+        powers,
         user_id,
         computers,
         session_id,
@@ -168,6 +180,9 @@ export default async function runBotReply({
         message_id: job.message_id || undefined,
         onTakeOver: ({ ref }) => take_overs.push(ref),
         onPropose: ({ ref }) => proposals.push(ref),
+        onWorkspaceAdmin: (admin) => {
+            led = admin;
+        },
     });
 
     /**
@@ -193,14 +208,19 @@ export default async function runBotReply({
     });
 
     /**
-     * delegate_task is only there while the coordinator has workers.
+     * delegate_task is only there while the coordinator, or a workspace's
+     * admin, has bots to hand work to. Anyone else in a workspace with an
+     * admin is told who leads it.
      */
-    const crew_note =
-        bot.kind != "coordinator"
-            ? ""
-            : tools.some((tool) => tool.name == "delegate_task")
-              ? coordinatorReplyNote({ bot_id: bot.id })
-              : CoordinatorSoloNote;
+    const can_delegate = tools.some((tool) => tool.name == "delegate_task");
+    const lead = led as WorkspaceAdminTools | null;
+    const crew_note = powers.is_coordinator
+        ? can_delegate
+            ? coordinatorReplyNote({ bot_id: bot.id })
+            : CoordinatorSoloNote
+        : lead?.workspace && can_delegate
+          ? workspaceAdminNote({ workspace_name: lead.workspace.name || "this workspace", members: lead.members })
+          : await workspaceAdminsNote({ bot_id: bot.id, workspace_id });
 
     try {
         const result = await runTextLoop({
@@ -216,7 +236,7 @@ export default async function runBotReply({
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({
                     computers,
-                    is_coordinator: bot.kind == "coordinator",
+                    is_coordinator: powers.is_coordinator,
                     in_workspace: Boolean(workspace_id),
                 }),
                 crew_note,

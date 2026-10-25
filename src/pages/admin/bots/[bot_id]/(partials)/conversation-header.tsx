@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import H1 from "@moduletrace/twui/layout/H1";
@@ -17,6 +17,7 @@ import BotProfileModal from "./bot-profile-modal";
 import ConversationHeaderMenu from "./conversation-header-menu";
 import HeaderMetaItem from "./header-meta-item";
 import BackButton from "@/src/components/general/back-button";
+import AdminShield from "@/src/components/general/admin-shield";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -43,6 +44,15 @@ export default function ConversationHeader({
     const { computers } = useContext(BotComputersContext);
     const { pageProps } = useContext(AppContext);
     const [model, setModel] = useState(pageProps?.bot_text_model);
+    /**
+     * The menu's toggle shows its change at once; a push (here or from
+     * another tab) brings the live bot's.
+     */
+    const [is_admin, setIsAdmin] = useState(Boolean(bot.is_admin));
+
+    useEffect(() => {
+        setIsAdmin(Boolean(bot.is_admin));
+    }, [bot.is_admin]);
     const { open: open_menu, setOpen: set_open_menu } = useStatus();
     const computer = computers[0];
     const computer_name = computer?.id
@@ -57,9 +67,14 @@ export default function ConversationHeader({
             {is_workspace ? <BackButton /> : null}
             <BotProfileModal bot={bot} />
             <Stack className="min-w-0 gap-0!">
-                <H1 className="text-lg! leading-6! tracking-normal! font-bold text-ink truncate w-full line-clamp-1">
-                    {bot.name}
-                </H1>
+                <Row className="w-full min-w-0 gap-1.5! flex-nowrap">
+                    <H1 className="min-w-0 text-lg! leading-6! tracking-normal! font-bold text-ink truncate line-clamp-1">
+                        {bot.name}
+                    </H1>
+                    {workspace?.id && is_admin ? (
+                        <AdminShield size={16} label={`Admin of ${workspace.name || "this workspace"}`} />
+                    ) : null}
+                </Row>
 
                 <Row className="flex-nowrap w-full">
                     {workspace?.id ? (
@@ -138,6 +153,8 @@ export default function ConversationHeader({
                             );
                         }}
                         on_open={() => set_open_menu(false)}
+                        is_admin={is_admin}
+                        on_admin_changed={setIsAdmin}
                     />
                 </Dropdown>
             </Row>

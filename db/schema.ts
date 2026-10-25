@@ -1,4 +1,5 @@
 import { LogCategories } from "@/src/dict/log-categories";
+import { BotTypes } from "@/src/dict/bot-types-dict";
 import { MediaParadigms, MediaTypes } from "@/src/dict/media-dict";
 import {
     BotFaces,
@@ -230,7 +231,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "kind",
-                    fieldDescription: `One coordinator per owner; everything else is a worker`,
+                    fieldDescription: `Legacy: marks the one coordinator, which only the super admin sees and reaches. What a bot can do comes from \`bot_types\``,
                     dataType: "TEXT",
                     options: BotKinds.map((bk) => bk.value),
                     defaultValue: "worker",
@@ -1228,6 +1229,60 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_workspace_bots_bot_id",
                     indexTableFields: ["bot_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_types",
+            tableDescription: `A bot's types, like \`user_types\` for users: what it can do (\`BotTypePermissionMatrix\`). A row with no workspace holds everywhere (the coordinator); one with a workspace only there (a workspace admin). A bot with no row is a worker. One per bot, type and workspace, enforced in \`setBotType\` since SQLite treats NULL ids as distinct`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_types_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_type",
+                    dataType: "TEXT",
+                    options: BotTypes.map((bt) => bt.value),
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace the type holds in; null for install-wide`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_types_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "granted_by_user_id",
+                    fieldDescription: `The user who granted it (or for whom the granting bot ran). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "granted_by_bot_id",
+                    fieldDescription: `The bot that granted it from chat (the coordinator), if any. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_types_bot_id_workspace_id",
+                    indexTableFields: ["bot_id", "workspace_id"],
+                },
+                {
+                    indexName: "idx_bot_types_workspace_id",
+                    indexTableFields: ["workspace_id"],
                 },
             ],
         },

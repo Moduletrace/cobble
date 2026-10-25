@@ -18,10 +18,10 @@ beforeAll(() => {
     db.run(`INSERT INTO workspace_users VALUES (11, 7)`);
     db.run(`INSERT INTO workspace_bots VALUES (11, 3), (10, 3)`);
 
-    db.run(`CREATE TABLE tasks (id INTEGER PRIMARY KEY, bot_id INTEGER, workspace_id INTEGER)`);
+    db.run(`CREATE TABLE tasks (id INTEGER PRIMARY KEY, bot_id INTEGER, workspace_id INTEGER, created_by_bot_id INTEGER)`);
     db.run(`INSERT INTO tasks VALUES
-        (100, 1, NULL), (101, 2, NULL), (102, 3, NULL),
-        (110, NULL, 10), (111, NULL, 11)`);
+        (100, 1, NULL, NULL), (101, 2, NULL, NULL), (102, 3, NULL, NULL),
+        (110, NULL, 10, NULL), (111, NULL, 11, NULL)`);
 });
 
 function ids({ condition }: { condition: SqlCondition }) {
@@ -59,5 +59,18 @@ describe("botTaskScopesSql", () => {
         expect(ids({ condition: botTaskScopesSql({ bot_id: 1, is_coordinator: true }) })).toEqual([
             100, 101, 102, 110, 111,
         ]);
+    });
+});
+
+describe("botTaskScopesSql for a workspace admin", () => {
+    test("it also reaches what it put on its workspace members' own lists", () => {
+        db.run(`INSERT INTO workspace_bots VALUES (11, 4)`);
+        db.run(`INSERT INTO tasks VALUES (103, 3, NULL, 4), (104, 2, NULL, 4)`);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false, admin_workspace_ids: [11] }) })).toEqual([
+            103, 111,
+        ]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false }) })).toEqual([111]);
+        db.run(`DELETE FROM workspace_bots WHERE bot_id = 4`);
+        db.run(`DELETE FROM tasks WHERE id IN (103, 104)`);
     });
 });

@@ -11,7 +11,8 @@ type Params = {
 /**
  * The workspaces a bot works in, for its settings page. The coordinator
  * works in every workspace; a worker only in the ones it was added to.
- * Each row carries what the bot has for that workspace alone.
+ * Each row carries what the bot has for that workspace alone, and whether
+ * it's that workspace's admin.
  */
 export default async function grabBotWorkspaces({
     user_id,
@@ -36,6 +37,16 @@ export default async function grabBotWorkspaces({
         ).payload || [];
 
     const by_workspace = new Map(rows.map((row) => [Number(row.workspace_id), row]));
+    const admin_of = new Set(
+        (
+            (
+                await BunSQLite.sql<{ workspace_id: number }>({
+                    sql: `SELECT workspace_id FROM bot_types WHERE bot_id = ? AND bot_type = 'admin'`,
+                    values: [Number(bot.id)],
+                })
+            ).payload || []
+        ).map((row) => Number(row.workspace_id)),
+    );
 
     return workspaces
         .filter((workspace) => by_workspace.has(Number(workspace.id)))
@@ -46,6 +57,7 @@ export default async function grabBotWorkspaces({
                 ...workspace,
                 workspace_system_prompt: row?.system_prompt || null,
                 workspace_memory: row?.memory || null,
+                is_admin: admin_of.has(Number(workspace.id)),
             };
         });
 }

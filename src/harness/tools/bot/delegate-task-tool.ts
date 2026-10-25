@@ -16,26 +16,33 @@ import type { HarnessTool } from "../../types";
 type Params = {
     user_id: number | string;
     /**
-     * The coordinator: the worker's result comes back to its conversation.
+     * The bot handing the work over (the coordinator, or a workspace's
+     * admin): the worker's result comes back to its conversation.
      */
-    coordinator_id: number | string;
+    requester_id: number | string;
     /**
-     * The coordinator's session the task is handed over from.
+     * The requester's session the task is handed over from.
      */
     session_id: number | string;
     /**
-     * The workspace the coordinator is working in: the worker works on it
+     * The workspace the requester is working in: the worker works on it
      * there, in its conversation in the workspace.
      */
     workspace_id?: number | string | null;
     /**
-     * The coordinator's name, shown in the worker's conversation.
+     * The requester's name, shown in the worker's conversation.
      */
-    coordinator_name: string;
+    requester_name: string;
     /**
      * The worker bots it can hand work to (in a workspace, its members).
      */
     workers: BUN_SQLITE_COBBLE_BOTS[];
+    /**
+     * Reads who it may hand work to when the task is handed over, so a bot
+     * added earlier in the run is there. `grabCrewWorkers` by default (the
+     * coordinator); a workspace admin's are `grabDirectableBots`.
+     */
+    grabTargets?: (params: { workspace_id: number | null }) => Promise<BUN_SQLITE_COBBLE_BOTS[]>;
     /**
      * The user's live workspaces, for the picker. In a workspace there's
      * nothing to pick: the task runs there.
@@ -58,6 +65,7 @@ type Args = {
 /**
  * Lets the coordinator hand a task to a worker bot: in its own chat, or in
  * one of the user's workspaces, which decides the work's context entirely.
+ * A workspace admin gets it too, for the workers in its workspace.
  * The worker runs it on the computer it's on there (if it has one) and
  * posts the result in that conversation, where a note says who asked; the
  * result (or failure) is also reported back in the coordinator's
@@ -65,12 +73,13 @@ type Args = {
  */
 export default function delegateTaskTool({
     user_id,
-    coordinator_id,
+    requester_id,
     session_id,
     workspace_id,
-    coordinator_name,
+    requester_name,
     workers,
     workspaces = [],
+    grabTargets = ({ workspace_id }) => grabCrewWorkers({ workspace_id }),
 }: Params): HarnessTool<Args> {
     const crew = workers
         .map((bot) => `${bot.id}: ${bot.name}${bot.role ? ` (${bot.role})` : ""}`)
@@ -117,7 +126,7 @@ export default function delegateTaskTool({
                   ? Number(args.workspace_id)
                   : null;
 
-            const fresh = await grabCrewWorkers({ workspace_id: target_workspace_id });
+            const fresh = await grabTargets({ workspace_id: target_workspace_id });
             const worker = fresh.find((bot) => bot.id == args.bot_id);
 
             if (!worker?.id) {
@@ -162,7 +171,7 @@ export default function delegateTaskTool({
                 title: args.title,
                 instructions: args.instructions,
                 computer_id: computers[0]?.id || undefined,
-                requested_by_bot_id: coordinator_id,
+                requested_by_bot_id: requester_id,
                 requested_by_session_id: session_id,
             });
 
@@ -172,7 +181,7 @@ export default function delegateTaskTool({
                     bot_id: worker.id,
                     session_id: Number(worker_session.id),
                     workspace_id: target_workspace_id,
-                    text: `${coordinator_name} asked me to: **${args.title}**`,
+                    text: `${requester_name} asked me to: **${args.title}**`,
                 }),
             });
 

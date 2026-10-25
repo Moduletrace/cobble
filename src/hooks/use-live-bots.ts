@@ -97,6 +97,12 @@ export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: 
                               ...(data.image_media_id !== undefined
                                   ? { image_media_id: data.image_media_id || undefined }
                                   : {}),
+                              /**
+                               * Made this workspace's admin, or no longer.
+                               */
+                              ...(workspace_id && data.admin_workspace_ids
+                                  ? { is_admin: data.admin_workspace_ids.includes(Number(workspace_id)) }
+                                  : {}),
                           }
                         : bot,
                 );

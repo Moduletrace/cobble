@@ -3,8 +3,10 @@ import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { MessageSquare, NotebookPen, X } from "lucide-react";
+import { MessageSquare, NotebookPen, ShieldCheck, X } from "lucide-react";
+import { twMerge } from "tailwind-merge";
 import BotAvatar from "@/src/components/general/bot-avatar";
+import AdminShield from "@/src/components/general/admin-shield";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import type { WorkspaceBot } from "@/src/types";
@@ -21,22 +23,30 @@ type Props = {
      */
     chat_href: string;
     removing?: boolean;
+    /**
+     * Its admin role here is being changed.
+     */
+    toggling_admin?: boolean;
     onEdit: () => void;
     onRemove: () => void;
+    onToggleAdmin: () => void;
 };
 
 /**
  * A bot in the workspace: opens its settings (or, for the coordinator,
- * its conversation here), chats with it here, edits what it has for this
- * workspace alone, or takes it out.
+ * its conversation here), chats with it here, makes it the workspace's
+ * admin (or takes that away), edits what it has for this workspace alone,
+ * or takes it out.
  */
 export default function WorkspaceBotRow({
     bot,
     settings_href,
     chat_href,
     removing,
+    toggling_admin,
     onEdit,
     onRemove,
+    onToggleAdmin,
 }: Props) {
     const name = bot.name || "This bot";
     const has_own = Boolean(
@@ -60,10 +70,14 @@ export default function WorkspaceBotRow({
                 }
                 className="grow min-w-0 flex flex-col border-0 leading-normal hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ink rounded-default-sm"
             >
-                <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
-                    {name}
-                </Span>
+                <Row className="w-full min-w-0 gap-1! flex-nowrap">
+                    <Span className="min-w-0 text-sm font-bold leading-5 text-ink truncate">
+                        {name}
+                    </Span>
+                    {bot.is_admin ? <AdminShield /> : null}
+                </Row>
                 <Span className="text-xs leading-4 text-ink-secondary truncate w-full">
+                    {bot.is_admin ? "Admin: leads the bots here · " : ""}
                     {has_own
                         ? "Has instructions for this workspace"
                         : bot.role || "Uses its own instructions here"}
@@ -83,6 +97,24 @@ export default function WorkspaceBotRow({
                         <MessageSquare size={16} aria-hidden />
                     </Button>
                 ) : null}
+                <Button
+                    title={bot.is_admin ? `${name} is this workspace's admin: take that away` : `Make ${name} this workspace's admin`}
+                    aria-label={bot.is_admin ? `Take away ${name}'s admin role here` : `Make ${name} this workspace's admin`}
+                    aria-pressed={Boolean(bot.is_admin)}
+                    type="button"
+                    variant="ghost"
+                    color="text"
+                    loading={toggling_admin}
+                    disabled={toggling_admin}
+                    onClick={onToggleAdmin}
+                    className="p-2! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken rounded-default"
+                >
+                    <ShieldCheck
+                        size={16}
+                        aria-hidden
+                        className={twMerge(bot.is_admin && "fill-success text-on-ink dark:fill-success-dark")}
+                    />
+                </Button>
                 <Button
                     title={`${name}'s instructions and memory here`}
                     aria-label={`${name}'s instructions and memory here`}

@@ -151,6 +151,28 @@ export const coordinatorReplyNote = ({ bot_id }: { bot_id: number | string }) =>
 export const CoordinatorSoloNote = `You have no worker bots yet: you do all the work yourself, with start_task for anything long or on a computer. Never say you assigned, delegated or handed work to a worker or anyone else. If a kind of job keeps coming up, propose a new bot for it, and create it with create_bot once the user agrees.`;
 
 /**
+ * Added to a workspace admin's chat prompt in the workspace it leads, while
+ * it has members to hand work to (`delegate_task` is there). `members` are
+ * the bots it directs, written as refs.
+ */
+export const workspaceAdminNote = ({
+    workspace_name,
+    members,
+}: {
+    workspace_name: string;
+    members: { id?: number | "" }[];
+}) => `# Leading ${workspace_name}
+
+You are this workspace's admin: you lead the bots working here (${members.map((m) => botRef({ id: m.id || 0 })).join(", ")}). Hand work that fits a member's role to them with delegate_task rather than doing all of it yourself; they post the result in their conversation here, and it's reported back to you when they finish or fail, so tell the user who is on it. When a report comes back, pass on what matters, follow up on anything left and propose what comes next. Set how a member should work here with set_bot_workspace_instructions, keep the workspace's task list honest (create_task can put a task on a member's own list), and keep the workspace's shared context current with update_workspace when you have it. When you name a member, write its ref, so the user sees its name linked to its conversation.`;
+
+/**
+ * Added to a workspace member's prompt while the workspace has an admin,
+ * so it knows who hands it work there.
+ */
+export const workspaceAdminsLine = ({ admins }: { admins: { id?: number | "" }[] }) =>
+    `In this workspace, ${admins.map((a) => botRef({ id: a.id || 0 })).join(" and ")} ${admins.length == 1 ? "is the admin and hands" : "are the admins and hand"} out work: a task from them is part of your job here.`;
+
+/**
  * Added to a bot's prompt when it works through a queued task.
  */
 export const TaskRunNote = `# Working on a task

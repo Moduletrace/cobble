@@ -34,6 +34,10 @@ type Params = {
      */
     is_coordinator?: boolean;
     /**
+     * The workspaces the bot is admin of (`grabBotRunPowers`).
+     */
+    admin_workspace_ids?: number[];
+    /**
      * The files the run reaches (`grabRunScopes`), for the picture it may
      * set from one.
      */
@@ -52,6 +56,7 @@ export default async function grabBotTools({
     computers = [],
     session_id,
     is_coordinator,
+    admin_workspace_ids,
     scopes = [],
 }: Params): Promise<HarnessTool[]> {
     return [
@@ -70,6 +75,7 @@ export default async function grabBotTools({
             user_id,
             bot_id,
             is_coordinator: Boolean(is_coordinator),
+            admin_workspace_ids,
             workspace_id,
         })),
     ];

@@ -14,6 +14,10 @@ type Params = {
     bot_id: number | string;
     is_coordinator: boolean;
     /**
+     * The workspaces the bot is admin of (`grabBotRunPowers`).
+     */
+    admin_workspace_ids?: number[];
+    /**
      * The run's folders, for linking a deliverable by its `[file:ID]` ref.
      */
     scopes?: StorageScope[];
@@ -33,7 +37,7 @@ type Args = {
  * a progress note, and file the deliverables it produced. One call does all
  * of them, so a step in the work is a step in the log.
  */
-export default function updateTaskTool({ user_id, bot_id, is_coordinator, scopes = [] }: Params): HarnessTool<Args> {
+export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes = [] }: Params): HarnessTool<Args> {
     return {
         name: "update_task",
         description: `Move a task along. Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Call it as the work advances, not only at the end; every note is what the user sees on the task. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number.`,
@@ -60,7 +64,7 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, scopes
                 .describe(`The [file:ID] refs of files it works from`),
         }),
         run: async ({ args }) => {
-            const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator });
+            const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
             const said: string[] = [];
 
             if (args.status || args.blocked_reason !== undefined) {

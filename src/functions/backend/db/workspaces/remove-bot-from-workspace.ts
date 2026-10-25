@@ -29,4 +29,12 @@ export default async function removeBotFromWorkspace({
         sql: `DELETE FROM workspace_bots WHERE workspace_id = ? AND bot_id = ?`,
         values: [workspace.id, bot_id],
     });
+
+    /**
+     * Its types there (workspace admin) go with its place.
+     */
+    await BunSQLite.sql({
+        sql: `DELETE FROM bot_types WHERE workspace_id = ? AND bot_id = ?`,
+        values: [workspace.id, bot_id],
+    });
 }

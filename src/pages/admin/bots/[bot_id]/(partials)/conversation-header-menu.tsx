@@ -14,6 +14,7 @@ import BotFilesModal from "./bot-files-modal";
 import BotTasksModal from "./bot-tasks-modal";
 import BotRoutinesModal from "./bot-routines-modal";
 import BotModelsModal from "./bot-models-modal";
+import BotAdminMenuItem from "./bot-admin-menu-item";
 import HeaderMenuItem from "./header-menu-item";
 import NewSessionButton from "./new-session-button";
 import StopBotButton from "./stop-bot-button";
@@ -45,11 +46,17 @@ type Props = {
      * A row is opening something: the menu closes, leaving only that.
      */
     on_open: () => void;
+    /**
+     * In a workspace: whether the bot is its admin, kept by the header.
+     */
+    is_admin?: boolean;
+    on_admin_changed?: (is_admin: boolean) => void;
 };
 
 /**
  * The conversation header's menu: the sessions, a new session, the bot's
- * computer, its models, its settings and, while it works, stopping it. A
+ * computer, its models, in a workspace making it the admin there, its
+ * settings and, while it works, stopping it. A
  * row that opens a modal closes the menu first, so the modal never sits
  * behind an open menu.
  */
@@ -61,12 +68,23 @@ export default function ConversationHeaderMenu({
     model_name,
     on_model_saved,
     on_open,
+    is_admin,
+    on_admin_changed,
 }: Props) {
     const { pageProps } = useContext(AppContext);
     const can_open_settings =
         bot.kind == "coordinator"
             ? isPassThroughUser({ user_types: pageProps?.user_types })
             : canManageCrew({ user_types: pageProps?.user_types });
+    /**
+     * Admin is per workspace, so only in one, for a worker, and only for
+     * those who hand out roles.
+     */
+    const can_set_admin = Boolean(
+        workspace?.id &&
+            bot.kind != "coordinator" &&
+            canManageCrew({ user_types: pageProps?.user_types }),
+    );
 
     return (
         <Paper
@@ -137,6 +155,16 @@ export default function ConversationHeaderMenu({
                     on_open={on_open}
                     onSaved={on_model_saved}
                 />
+                {can_set_admin && workspace?.id ? (
+                    <BotAdminMenuItem
+                        bot_id={Number(bot.id)}
+                        bot_name={bot.name}
+                        workspace_id={Number(workspace.id)}
+                        workspace_name={workspace.name}
+                        is_admin={Boolean(is_admin)}
+                        on_changed={(value) => on_admin_changed?.(value)}
+                    />
+                ) : null}
             </Stack>
             <Divider className="my-1 mx-3 w-auto border-hairline dark:border-hairline" />
             <StopBotButton menu bot_name={bot.name} />

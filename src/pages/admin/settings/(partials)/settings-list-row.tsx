@@ -15,6 +15,10 @@ type Props = {
      * A word beside the title, e.g. "Default" or "You".
      */
     badge?: string;
+    /**
+     * A mark right after the title, e.g. a workspace admin's shield.
+     */
+    title_icon?: ReactNode;
     subtitle?: string;
     /**
      * Its actions, at the end of the row.
@@ -26,10 +30,11 @@ type Props = {
  * One row of a settings list: an avatar, a title and one line about it,
  * then what can be done with it.
  */
-export default function SettingsListRow({ avatar, title, href, badge, subtitle, children }: Props) {
+export default function SettingsListRow({ avatar, title, href, badge, title_icon, subtitle, children }: Props) {
     const title_content = (
         <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
             {title}
+            {title_icon ? <Span className="ml-1.5 inline-flex align-middle">{title_icon}</Span> : null}
             {badge ? <Span className="ml-2 text-[11px] font-bold leading-4 text-ink-secondary">{badge}</Span> : null}
         </Span>
     );

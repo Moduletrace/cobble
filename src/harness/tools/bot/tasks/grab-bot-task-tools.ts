@@ -15,6 +15,11 @@ type Params = {
      * to any list and reaches every folder.
      */
     is_coordinator: boolean;
+    /**
+     * The workspaces the bot is admin of (`grabBotRunPowers`): in one of
+     * them, create_task can also add to the other members' own lists.
+     */
+    admin_workspace_ids?: number[];
     workspace_id?: number | string | null;
 };
 
@@ -23,15 +28,18 @@ type Params = {
  * shared to-do list, one per bot and one per workspace, so a chat reply, a
  * task and a scheduled run all read it, move it along and file what they
  * produced. The coordinator's create_task may target any worker or
- * workspace; its update_task may link any file it can reach.
+ * workspace; its update_task may link any file it can reach. A workspace
+ * admin's may add to the other members' own lists there.
  */
 export default async function grabBotTaskTools({
     user_id,
     bot_id,
     is_coordinator,
+    admin_workspace_ids = [],
     workspace_id,
 }: Params): Promise<HarnessTool[]> {
     let workers: BUN_SQLITE_COBBLE_BOTS[] = [];
+    let members: BUN_SQLITE_COBBLE_BOTS[] = [];
     let workspaces: BUN_SQLITE_COBBLE_WORKSPACES[] = [];
     let all_workspace_ids: number[] = [];
 
@@ -39,6 +47,8 @@ export default async function grabBotTaskTools({
         workers = await grabCrewWorkers({ workspace_id });
         workspaces = (await grabUserWorkspaces({ user_id })).filter((workspace) => !workspace.archived);
         all_workspace_ids = workspaces.map((workspace) => Number(workspace.id));
+    } else if (workspace_id && admin_workspace_ids.includes(Number(workspace_id))) {
+        members = (await grabCrewWorkers({ workspace_id })).filter((member) => member.id != Number(bot_id));
     }
 
     /**
@@ -54,8 +64,17 @@ export default async function grabBotTaskTools({
     });
 
     return [
-        listTasksTool({ user_id, bot_id, is_coordinator, workspace_id }),
-        createTaskTool({ user_id, bot_id, workspace_id, is_coordinator, workers, workspaces }),
-        updateTaskTool({ user_id, bot_id, is_coordinator, scopes }),
+        listTasksTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id }),
+        createTaskTool({
+            user_id,
+            bot_id,
+            workspace_id,
+            is_coordinator,
+            workers,
+            workspaces,
+            admin_workspace_ids,
+            members,
+        }),
+        updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes }),
     ];
 }

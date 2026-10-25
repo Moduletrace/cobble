@@ -18,6 +18,7 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { UserTypes } from "../dict/user-types-dict";
+import type { BotPermissions, BotTypes } from "../dict/bot-types-dict";
 import type { StorageVolume } from "../utils/storage-volumes";
 import type { RunningVersion } from "../utils/running-version";
 import type { WebsocketRooms } from "../dict/websocket-rooms";
@@ -72,6 +73,11 @@ export type BotWithFace = BUN_SQLITE_COBBLE_BOTS & {
  * unread, latest activity and latest message, for the rail.
  */
 export type BotWithLastMessage = BotWithFace & {
+    /**
+     * In a workspace's crew: the bot is that workspace's admin
+     * (`bot_types`), shown with `AdminShield` beside its name.
+     */
+    is_admin?: boolean | null;
     unread?: number | null;
     last_activity_at?: number | null;
     last_message_text?: string | null;
@@ -198,6 +204,10 @@ export type WorkspaceBot = BotWithLastMessage & {
 export type BotWorkspace = WorkspaceWithActivity & {
     workspace_system_prompt?: string | null;
     workspace_memory?: string | null;
+    /**
+     * The bot is this workspace's admin (`bot_types`).
+     */
+    is_admin?: boolean;
 };
 
 /**
@@ -307,6 +317,11 @@ export type BotUpdatedData = {
      * it has none.
      */
     image_media_id?: number | null;
+    /**
+     * The workspaces it's admin of, when the push read them: a workspace's
+     * crew shows or drops its shield without a reload.
+     */
+    admin_workspace_ids?: number[];
 };
 
 /**
@@ -1675,6 +1690,31 @@ export type UserTypeAssignmentMatrixType = Record<
     UserType,
     UserTypeAssignmentEntry
 >;
+
+/**
+ * The type-matrix shapes, for any set of types (`BotTypeAssignmentMatrix`,
+ * `BotTypeTargetMatrix`). Actors may be user types or bot types.
+ */
+export type TypeAssignmentRules<A extends string = string> = {
+    all?: boolean;
+    same_as?: A;
+    allowed_targets?: string[];
+    excluded_targets?: string[];
+};
+
+export type TypeAssignmentEntry<A extends string = string> = {
+    allowed_actors?: A[] | Partial<Record<A, TypeAssignmentRules<A>>>;
+    excluded_targets?: string[];
+};
+
+export type TypeAssignmentMatrixType<
+    T extends string,
+    A extends string = string,
+> = Record<T, TypeAssignmentEntry<A>>;
+
+export type BotType = (typeof BotTypes)[number]["value"];
+
+export type BotPermission = (typeof BotPermissions)[number]["value"];
 
 export type LoginFormObject = {
     username_or_email?: string;

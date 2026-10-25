@@ -3,11 +3,17 @@ import Loading from "@moduletrace/twui/elements/Loading";
 import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
+import { twMerge } from "tailwind-merge";
+import { AppData } from "@/src/data/app-data";
 
 const RowClassName = "w-full h-9 gap-2.5! flex-nowrap items-center px-3";
 
 type Props = {
     icon: LucideIcon;
+    /**
+     * Classes for the icon, e.g. a filled state.
+     */
+    icon_class_name?: string;
     /**
      * The row's label.
      */
@@ -27,6 +33,7 @@ type Props = {
     onClick?: () => void;
     disabled?: boolean;
     loading?: boolean;
+    icon_size?: number;
 };
 
 /**
@@ -35,6 +42,7 @@ type Props = {
  */
 export default function HeaderMenuItem({
     icon: Icon,
+    icon_class_name,
     title,
     hint,
     description,
@@ -42,13 +50,18 @@ export default function HeaderMenuItem({
     onClick,
     disabled,
     loading,
+    icon_size = AppData["DefaultIconSize"],
 }: Props) {
     const content = (
         <>
             {loading ? (
                 <Loading size="small" className="shrink-0" />
             ) : (
-                <Icon size={16} aria-hidden className="shrink-0" />
+                <Icon
+                    size={icon_size}
+                    aria-hidden
+                    className={twMerge("shrink-0", icon_class_name)}
+                />
             )}
             <Span className="min-w-0 grow truncate text-sm leading-5">
                 {title}

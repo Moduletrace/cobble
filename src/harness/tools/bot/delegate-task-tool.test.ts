@@ -13,10 +13,10 @@ function coordinatorTool({
 }: { workspace_id?: number; workers?: BUN_SQLITE_COBBLE_BOTS[]; workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] } = {}) {
     return delegateTaskTool({
         user_id: 1,
-        coordinator_id: 1,
+        requester_id: 1,
         session_id: 10,
         workspace_id: workspace_id ?? null,
-        coordinator_name: "Coordinator",
+        requester_name: "Coordinator",
         workers,
         workspaces,
     });
@@ -68,5 +68,21 @@ describe("delegateTaskTool", () => {
                 signal,
             }),
         ).rejects.not.toThrow(/runs in that workspace/);
+    });
+
+    test("a workspace admin can only hand work to the bots it may direct", async () => {
+        const tool = delegateTaskTool({
+            user_id: 1,
+            requester_id: 7,
+            session_id: 10,
+            workspace_id: 3,
+            requester_name: "Lead",
+            workers: [worker],
+            grabTargets: async () => [worker],
+        });
+
+        await expect(
+            tool.run({ args: { bot_id: 8, title: "Dig", instructions: "x" }, signal }),
+        ).rejects.toThrow(/No crew member has id 8 in workspace 3. Crew: 5: Researcher/);
     });
 });

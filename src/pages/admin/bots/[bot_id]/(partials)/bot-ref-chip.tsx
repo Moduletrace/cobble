@@ -6,6 +6,7 @@ import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import { AppContext } from "@/src/pages/__root";
 import { CrewBotsContext } from "../(data)/crew-bots-context";
+import AdminShield from "@/src/components/general/admin-shield";
 
 type Props = {
     bot_id: number;
@@ -44,6 +45,7 @@ export default function BotRefChip({ bot_id }: Props) {
                 size={18}
             />
             {bot.name}
+            {workspace_id && bot.is_admin ? <AdminShield size={13} /> : null}
         </Link>
     );
 }

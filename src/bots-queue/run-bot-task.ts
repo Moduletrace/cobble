@@ -1,3 +1,6 @@
+import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
+import grabWorkspaceAdminTools from "@/src/harness/tools/bot/grab-workspace-admin-tools";
+import workspaceAdminsNote from "./workspace-admins-note";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
@@ -87,13 +90,15 @@ export default async function runBotTask({
         const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
 
         /**
-         * A coordinator's task can also change workspaces: the findings
-         * it was asked to record go there, not only in the report.
+         * What the bot's types let it do here. A coordinator's task can
+         * also change workspaces, and a workspace admin's its workspace:
+         * the findings it was asked to record go there, not only in the
+         * report.
          */
-        const coordinator_workspaces =
-            bot.kind == "coordinator"
-                ? (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived)
-                : [];
+        const powers = await grabBotRunPowers({ bot_id: bot.id, workspace_id });
+        const coordinator_workspaces = powers.is_coordinator
+            ? (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived)
+            : [];
         const carry_over = await grabSessionCarryOver({
             session_id,
             bot_id: bot.id,
@@ -121,6 +126,16 @@ export default async function runBotTask({
          */
         const scopes = await grabRunScopes({ bot, user_id, workspace_id });
 
+        /**
+         * A workspace admin's task keeps the workspace's context and its
+         * members' instructions; it hands nothing over (no session to report
+         * back to mid-task).
+         */
+        const admin_tools =
+            !powers.is_coordinator && workspace_id && powers.is_workspace_admin
+                ? (await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, scopes })).tools
+                : [];
+
         const tools = [
             ...(await grabBotTools({
                 user_id,
@@ -128,10 +143,12 @@ export default async function runBotTask({
                 workspace_id,
                 computers,
                 session_id,
-                is_coordinator: bot.kind == "coordinator",
+                is_coordinator: powers.is_coordinator,
+                admin_workspace_ids: powers.admin_workspace_ids,
                 scopes,
             })),
-            ...(bot.kind == "coordinator"
+            ...admin_tools,
+            ...(powers.is_coordinator
                 ? [
                       createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
                       ...(coordinator_workspaces.length
@@ -204,9 +221,14 @@ export default async function runBotTask({
                 TasksNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",
-                bot.kind == "coordinator"
+                powers.is_coordinator
                     ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`
-                    : "",
+                    : admin_tools.some((tool) => tool.name == "update_workspace")
+                      ? `If this brief asked you to record something in this workspace's context, do it yourself with update_workspace before you report: the report alone changes nothing.`
+                      : "",
+                powers.is_coordinator || powers.is_workspace_admin
+                    ? ""
+                    : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
                 computer
                     ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything. When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over.`
                     : workspace_id

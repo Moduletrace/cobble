@@ -38,6 +38,11 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
     );
     const task_media_ids = await grabTaskMediaIds({ bot_id: bot.id! }).catch(() => []);
 
+    /**
+     * Explicitly, since foreign keys are off outside the server process.
+     */
+    await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE bot_id = ?`, values: [bot.id] });
+
     const res = await BunSQLite.sql({ sql: `DELETE FROM bots WHERE id = ?`, values: [bot.id] });
 
     if (!res.success) {

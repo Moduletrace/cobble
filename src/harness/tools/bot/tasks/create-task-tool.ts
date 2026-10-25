@@ -23,6 +23,15 @@ type Params = {
      */
     workers?: BUN_SQLITE_COBBLE_BOTS[];
     workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[];
+    /**
+     * The workspaces the bot is admin of (`grabBotRunPowers`).
+     */
+    admin_workspace_ids?: number[];
+    /**
+     * In a workspace it's admin of: the other bots there, whose own lists
+     * it may add to.
+     */
+    members?: BUN_SQLITE_COBBLE_BOTS[];
 };
 
 type Args = {
@@ -38,18 +47,21 @@ type Place = { bot_id?: number; workspace_id?: number };
 /**
  * Worked out from the arguments and who is asking: where the task goes, or
  * why it can't. A worker may only add to its own list or the workspace it
- * works in; the coordinator to any worker's, any workspace's, or its own.
+ * works in; a workspace admin also to its members' own lists there; the
+ * coordinator to any worker's, any workspace's, or its own.
  */
 function resolvePlace({
     args,
     bot_id,
     workspace_id,
     is_coordinator,
+    members = [],
 }: {
     args: Args;
     bot_id: number | string;
     workspace_id?: number | string | null;
     is_coordinator: boolean;
+    members?: BUN_SQLITE_COBBLE_BOTS[];
 }): Place | string {
     const target_bot = args.bot_id ? Number(args.bot_id) : null;
     const target_workspace = args.workspace_id ? Number(args.workspace_id) : null;
@@ -64,8 +76,12 @@ function resolvePlace({
         return { bot_id: Number(bot_id) };
     }
 
-    if (target_bot && target_bot != Number(bot_id)) {
-        return `You can only add tasks to your own list (#${bot_id}).`;
+    const is_member = members.some((member) => member.id == target_bot);
+
+    if (target_bot && target_bot != Number(bot_id) && !is_member) {
+        return members.length
+            ? `You can only add tasks to your own list (#${bot_id}), this workspace's, or a member's here (${members.map((m) => m.id).join(", ")}).`
+            : `You can only add tasks to your own list (#${bot_id}).`;
     }
 
     if (target_workspace && Number(workspace_id || 0) != target_workspace) {
@@ -93,15 +109,18 @@ export default function createTaskTool({
     is_coordinator,
     workers = [],
     workspaces = [],
+    admin_workspace_ids = [],
+    members = [],
 }: Params): HarnessTool<Args> {
     const crew = workers.map((worker) => `${worker.id}: ${worker.name}`).join("; ");
     const places = workspaces.map((workspace) => `${workspace.id}: ${workspace.name}`).join("; ");
+    const team = members.map((member) => `${member.id}: ${member.name}`).join("; ");
 
     return {
         name: "create_task",
         description: is_coordinator
             ? `Add a task to a list: a worker's own (${crew || "no workers yet"}), a workspace's shared one (${places || "no workspaces yet"}), or your own (leave both ids out). Write the description as a brief: what to do, where, and how you'll know it's done. A workspace's tasks are visible to every bot working there.`
-            : `Add a task to a list: ${workspace_id ? `this workspace's shared one (leave the ids out), or your own (bot_id: ${bot_id})` : `your own, bot_id ${bot_id} (or leave the id out, since it defaults to yours)`}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
+            : `Add a task to a list: ${workspace_id ? `this workspace's shared one (leave the ids out), or your own (bot_id: ${bot_id})${team ? `, or, as this workspace's admin, a member's own (${team})` : ""}` : `your own, bot_id ${bot_id} (or leave the id out, since it defaults to yours)`}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
         schema: z.object({
             title: z.string().trim().min(1).max(AppData.TaskTitleMaxLength).describe(`A short label`),
             description: z
@@ -111,7 +130,9 @@ export default function createTaskTool({
             bot_id: z.number().int().optional().describe(
                 is_coordinator
                     ? `Whose own list, when it isn't a workspace's. Leave out for your own.`
-                    : `Your own id (${bot_id}), to keep it in your list rather than the workspace's; leaving it out has the same effect here.`,
+                    : team
+                      ? `Your own id (${bot_id}) or a member's here (${team}), to put it on that list rather than the workspace's.`
+                      : `Your own id (${bot_id}), to keep it in your list rather than the workspace's; leaving it out has the same effect here.`,
             ),
             workspace_id: z
                 .number()
@@ -125,13 +146,14 @@ export default function createTaskTool({
             status: z.enum(TaskStatusValues).optional().describe(`Defaults to to do`),
         }),
         run: async ({ args }) => {
-            const place = resolvePlace({ args, bot_id, workspace_id, is_coordinator });
+            const place = resolvePlace({ args, bot_id, workspace_id, is_coordinator, members });
 
             if (typeof place == "string") return place;
 
             const existing = await grabTasks({
                 bot_id,
                 is_coordinator,
+                admin_workspace_ids,
                 only_bot_id: place.bot_id,
                 only_workspace_id: place.workspace_id,
                 open_only: true,
@@ -158,7 +180,7 @@ export default function createTaskTool({
                 created_by_bot_id: bot_id,
             });
 
-            return `Task #${task.id} "${task.title}" added ${place.workspace_id ? "to this workspace's list" : "to your list"}. Check it with list_tasks before you mention it to the user.`;
+            return `Task #${task.id} "${task.title}" added ${place.workspace_id ? "to this workspace's list" : place.bot_id == Number(bot_id) ? "to your list" : `to bot ${place.bot_id}'s list`}. Check it with list_tasks before you mention it to the user.`;
         },
     };
 }

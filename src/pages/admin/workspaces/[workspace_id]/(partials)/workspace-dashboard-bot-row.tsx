@@ -1,4 +1,5 @@
 import BotAvatar from "@/src/components/general/bot-avatar";
+import AdminShield from "@/src/components/general/admin-shield";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
@@ -30,6 +31,7 @@ export default function WorkspaceDashboardBotRow({ workspace_id, bot }: Props) {
             title={name}
             href={`/admin/workspaces/${workspace_id}/bots/${bot.id}`}
             badge={is_coordinator ? "Coordinator" : undefined}
+            title_icon={bot.is_admin ? <AdminShield /> : undefined}
             subtitle={
                 has_own
                     ? "Has instructions for this workspace"

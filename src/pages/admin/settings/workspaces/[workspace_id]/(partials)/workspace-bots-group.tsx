@@ -34,6 +34,7 @@ export default function WorkspaceBotsGroup({ workspace_id, workspace_name, bots:
     const { openForm } = useContext(AddFlowContext);
     const [bots, setBots] = useState(initial);
     const [busy_id, setBusyId] = useState<number | "add">();
+    const [admin_busy_id, setAdminBusyId] = useState<number>();
     const [editing, setEditing] = useState<WorkspaceBot>();
     const [error, setError] = useState<string>();
 
@@ -58,11 +59,46 @@ export default function WorkspaceBotsGroup({ workspace_id, workspace_name, bots:
         setError(res.msg || "That didn't work.");
     };
 
+    /**
+     * Makes a bot this workspace's admin, or takes that away, in place.
+     */
+    const toggleAdmin = async ({ bot }: { bot: WorkspaceBot }) => {
+        const given = !bot.is_admin;
+        const name = bot.name || "this bot";
+
+        if (
+            !window.confirm(
+                given
+                    ? `Make ${name} the admin of ${workspace_name}? It will hand tasks to the other bots here, set their instructions here, run the workspace's tasks and keep its context.`
+                    : `Take away ${name}'s admin role in ${workspace_name}?`,
+            )
+        ) {
+            return;
+        }
+
+        setAdminBusyId(Number(bot.id));
+        setError(undefined);
+
+        const res = await postAdminApi<WorkspaceBot>({
+            path: "bots/set-bot-type",
+            body: { workspace_id, bot_id: bot.id, bot_type: "admin", given },
+        });
+
+        setAdminBusyId(undefined);
+
+        if (res.success && res.payload) {
+            setBots(res.payload);
+            return;
+        }
+
+        setError(res.msg || "That didn't work.");
+    };
+
     return (
         <SettingsGroup
             id="bots"
             title="Bots"
-            description="The coordinator works in every workspace. Add the bots this one needs; each keeps its skills and follows this workspace's ways here."
+            description="The coordinator works in every workspace. Add the bots this one needs; each keeps its skills and follows this workspace's ways here. Make one the admin to have it lead the others here."
         >
             <Stack className="w-full py-1 gap-0! items-stretch rounded-default border border-solid border-hairline bg-surface">
                 {workers.map((bot) => (
@@ -76,6 +112,8 @@ export default function WorkspaceBotsGroup({ workspace_id, workspace_name, bots:
                         }
                         chat_href={`/admin/workspaces/${workspace_id}/bots/${bot.id}`}
                         removing={busy_id == bot.id}
+                        toggling_admin={admin_busy_id == bot.id}
+                        onToggleAdmin={() => toggleAdmin({ bot })}
                         onEdit={() => setEditing(bot)}
                         onRemove={() => change({ path: "remove-bot", bot_id: Number(bot.id) })}
                     />

@@ -20,6 +20,10 @@ type Params = {
     bot_id?: number | string;
     is_coordinator?: boolean;
     /**
+     * The workspaces the bot is admin of (`grabBotRunPowers`).
+     */
+    admin_workspace_ids?: number[];
+    /**
      * Only one collection.
      */
     only_bot_id?: number | string | null;
@@ -44,6 +48,7 @@ export default async function grabTasks({
     user_id,
     bot_id,
     is_coordinator,
+    admin_workspace_ids,
     only_bot_id,
     only_workspace_id,
     statuses,
@@ -58,7 +63,7 @@ export default async function grabTasks({
         where.push(access.sql);
         values.push(...access.values);
     } else if (bot_id != null) {
-        const access = botTaskScopesSql({ bot_id, is_coordinator: Boolean(is_coordinator) });
+        const access = botTaskScopesSql({ bot_id, is_coordinator: Boolean(is_coordinator), admin_workspace_ids });
         where.push(access.sql);
         values.push(...access.values);
     }

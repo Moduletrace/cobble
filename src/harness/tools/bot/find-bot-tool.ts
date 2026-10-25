@@ -1,3 +1,5 @@
+import workspaceRef from "@/src/utils/workspace-ref";
+import grabBotsTypes from "@/src/functions/backend/db/bot-types/grab-bots-types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
@@ -18,7 +20,7 @@ type Args = {
 export default function findBotTool(): HarnessTool<Args> {
     return {
         name: "find_bot",
-        description: `Find crew members: by id, name, the one-line role, or words in their core instructions. Returns each match's ref (its id, e.g. [bot:3]), name, kind and role. With no query it lists the crew, up to limit. The coordinator is listed too but can't be deleted.`,
+        description: `Find crew members: by id, name, the one-line role, or words in their core instructions. Returns each match's ref (its id, e.g. [bot:3]), name, kind, role and the workspaces it's admin of. With no query it lists the crew, up to limit. The coordinator is listed too but can't be deleted.`,
         schema: z.object({
             query: z.string().trim().max(200).optional(),
             limit: z.number().int().min(1).max(50).optional(),
@@ -53,11 +55,16 @@ export default function findBotTool(): HarnessTool<Args> {
                 return `No crew member matches "${args.query || ""}".`;
             }
 
+            const types = await grabBotsTypes({ bot_ids: matches.map((bot) => bot.id) });
+
             return matches
-                .map(
-                    (bot) =>
-                        `${botRef({ id: bot.id || 0 })} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})\n## Instructions:\n${bot.system_prompt}`,
-                )
+                .map((bot) => {
+                    const led = (types.get(Number(bot.id)) || [])
+                        .filter((bt) => bt.bot_type == "admin" && bt.workspace_id)
+                        .map((bt) => workspaceRef({ id: Number(bt.workspace_id) }));
+
+                    return `${botRef({ id: bot.id || 0 })} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})${led.length ? `, admin of ${led.join(", ")}` : ""}\n## Instructions:\n${bot.system_prompt}`;
+                })
                 .join("\n");
         },
     };

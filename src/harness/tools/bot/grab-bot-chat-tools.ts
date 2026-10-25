@@ -23,9 +23,16 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
 import startTaskTool from "./start-task-tool";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
+import type { BotRunPowers } from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
+import grabWorkspaceAdminTools, { type WorkspaceAdminTools } from "./grab-workspace-admin-tools";
+import setBotTypeTool from "./set-bot-type-tool";
 
 type Params = {
     bot: BUN_SQLITE_COBBLE_BOTS;
+    /**
+     * What the bot's types let it do on this run (`grabBotRunPowers`).
+     */
+    powers: BotRunPowers;
     user_id: number | string;
     /**
      * The bot's computers where it runs, the current one first
@@ -58,6 +65,11 @@ type Params = {
      * user to confirm.
      */
     onPropose?: (params: { ref: string }) => void;
+    /**
+     * Called with what a workspace admin leads, when the run is one, so
+     * the reply can say so in its prompt.
+     */
+    onWorkspaceAdmin?: (params: WorkspaceAdminTools) => void;
 };
 
 /**
@@ -76,11 +88,15 @@ type Params = {
  * computers, and which name, role and core instructions each crew member
  * gets, and what goes) and the install's skills, MCP servers and custom
  * tools (`grabCoordinatorExtensionTools`) or, in a workspace,
- * set_bot_workspace_instructions. Anything else on a computer goes through
- * a task, never mid-reply.
+ * set_bot_workspace_instructions, plus set_bot_type to make a worker a
+ * workspace's admin. A workspace admin, in the workspace it leads, gets
+ * `grabWorkspaceAdminTools`. Every gate reads the bot's types (`powers`),
+ * never `bots.kind`. Anything else on a computer goes through a task,
+ * never mid-reply.
  */
 export default async function grabBotChatTools({
     bot,
+    powers,
     user_id,
     computers,
     session_id,
@@ -89,6 +105,7 @@ export default async function grabBotChatTools({
     scopes = [],
     onTakeOver,
     onPropose,
+    onWorkspaceAdmin,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
@@ -98,7 +115,8 @@ export default async function grabBotChatTools({
             workspace_id,
             computers,
             session_id,
-            is_coordinator: bot.kind == "coordinator",
+            is_coordinator: powers.is_coordinator,
+            admin_workspace_ids: powers.admin_workspace_ids,
             scopes,
         })),
         startTaskTool({
@@ -121,7 +139,16 @@ export default async function grabBotChatTools({
             : []),
     ];
 
-    if (bot.kind != "coordinator") return tools;
+    if (!powers.is_coordinator) {
+        if (!workspace_id || !powers.is_workspace_admin) return tools;
+
+        const admin = await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, session_id, scopes });
+
+        onWorkspaceAdmin?.(admin);
+        tools.push(...admin.tools);
+
+        return tools;
+    }
 
     const workspaces = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
 
@@ -140,13 +167,18 @@ export default async function grabBotChatTools({
 
         tools.push(delegateTaskTool({
             user_id,
-            coordinator_id: bot_id,
+            requester_id: bot_id,
             session_id,
             workspace_id,
-            coordinator_name: bot.name || "The coordinator",
+            requester_name: bot.name || "The coordinator",
             workers,
         }));
         tools.push(setWorkspaceInstructionsTool({ user_id, workspace_id, workers }));
+
+        if (powers.can("set_bot_types")) {
+            tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces, workspace_id }));
+        }
+
         return tools;
     }
 
@@ -165,10 +197,10 @@ export default async function grabBotChatTools({
     tools.push(
         delegateTaskTool({
             user_id,
-            coordinator_id: bot_id,
+            requester_id: bot_id,
             session_id,
             workspace_id,
-            coordinator_name: bot.name || "The coordinator",
+            requester_name: bot.name || "The coordinator",
             workers,
             workspaces,
         }),
@@ -197,6 +229,10 @@ export default async function grabBotChatTools({
             addBotToWorkspaceTool({ user_id, workers, workspaces }),
             removeBotFromWorkspaceTool({ user_id, workers, workspaces }),
         );
+
+        if (powers.can("set_bot_types")) {
+            tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces }));
+        }
     }
 
     return tools;

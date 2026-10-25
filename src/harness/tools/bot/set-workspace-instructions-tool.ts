@@ -12,6 +12,12 @@ type Params = {
      * The workspace's crew members (not the coordinator).
      */
     workers: BUN_SQLITE_COBBLE_BOTS[];
+    /**
+     * Reads whose instructions it may set when it's called.
+     * `grabCrewWorkers` by default (the coordinator); a workspace admin's
+     * are `grabDirectableBots`.
+     */
+    grabTargets?: () => Promise<BUN_SQLITE_COBBLE_BOTS[]>;
 };
 
 type Args = {
@@ -20,13 +26,14 @@ type Args = {
 };
 
 /**
- * Lets the coordinator set a crew member's instructions for this
- * workspace: how that bot should do its job here.
+ * Lets the coordinator, or the workspace's admin, set a crew member's
+ * instructions for this workspace: how that bot should do its job here.
  */
 export default function setWorkspaceInstructionsTool({
     user_id,
     workspace_id,
     workers,
+    grabTargets = () => grabCrewWorkers({ workspace_id }),
 }: Params): HarnessTool<Args> {
     const crew = workers.map((bot) => `${bot.id}: ${bot.name}`).join("; ");
 
@@ -38,7 +45,7 @@ export default function setWorkspaceInstructionsTool({
             instructions: z.string().trim().max(AppData.PromptMaxLength),
         }),
         run: async ({ args }) => {
-            const fresh = await grabCrewWorkers({ workspace_id });
+            const fresh = await grabTargets();
             const worker = fresh.find((bot) => bot.id == args.bot_id);
 
             if (!worker?.id) {
