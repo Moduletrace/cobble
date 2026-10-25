@@ -32,6 +32,7 @@ import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import withTakeOverRefs from "./with-take-over-refs";
 import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
+import computerRunDirs from "@/src/utils/computer-work-dirs";
 
 type Params = BotJobContext & {
     bot: Pick<BUN_SQLITE_COBBLE_BOTS, "kind"> & { id: number };
@@ -62,12 +63,17 @@ export default async function runBotTask({
     report,
 }: Params): Promise<BotJobOutcome> {
     const workspace_id = job.workspace_id || null;
+    /**
+     * Where the run works on a computer: the user's folder in the bot's.
+     */
+    const dirs = computerRunDirs({ bot_id: bot.id, bot_kind: bot.kind, user_id, workspace_id });
 
     const computer = job.computer_id
         ? await openComputerTools({
               computer_id: job.computer_id,
               bot_id: bot.id,
               workspace_id,
+              dirs,
               signal,
           })
         : null;
@@ -142,7 +148,7 @@ export default async function runBotTask({
                 : []),
             ...(computers.length
                 ? [
-                      searchComputersTool({ bot_id: bot.id, computers, workspace_id }),
+                      searchComputersTool({ bot_id: bot.id, computers, workspace_id, dirs }),
                       askToTakeOverTool({
                           computers: take_over_computers,
                           in_task: true,
@@ -159,6 +165,7 @@ export default async function runBotTask({
                           scopes,
                           bot_id: bot.id,
                           user_id,
+                          dirs,
                       }),
                   ]
                 : []),
@@ -176,6 +183,7 @@ export default async function runBotTask({
             bot_id: bot.id,
             workspace_id,
             computer_id: job.computer_id || null,
+            dirs,
             taken: tools.map((tool) => tool.name),
             signal,
         });
@@ -192,7 +200,7 @@ export default async function runBotTask({
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
                 botFilesNote({ bot_id: bot.id }),
-                ComputerFilesNote({ computer_id: job.computer_id || 0 }),
+                ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
                 TasksNote,
                 ActionCheckNote,
                 workspace_id ? WorkspaceLearningNote : "",

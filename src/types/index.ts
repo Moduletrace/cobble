@@ -879,6 +879,11 @@ export type StorageEntry = {
      * streaming route.
      */
     url?: string;
+    /**
+     * What an id folder in a computer's workspace is: the bot's, user's or
+     * workspace's name.
+     */
+    label?: string;
 };
 
 /**

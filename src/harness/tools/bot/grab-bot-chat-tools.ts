@@ -22,6 +22,7 @@ import updateWorkspaceTool from "./update-workspace-tool";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
 import startTaskTool from "./start-task-tool";
+import computerRunDirs from "@/src/utils/computer-work-dirs";
 
 type Params = {
     bot: BUN_SQLITE_COBBLE_BOTS;
@@ -109,7 +110,12 @@ export default async function grabBotChatTools({
         }),
         ...(computers.length
             ? [
-                  searchComputersTool({ bot_id, computers, workspace_id }),
+                  searchComputersTool({
+                      bot_id,
+                      computers,
+                      workspace_id,
+                      dirs: computerRunDirs({ bot_id, bot_kind: bot.kind, user_id, workspace_id }),
+                  }),
                   askToTakeOverTool({ computers, onAsk: (params) => onTakeOver?.(params) }),
               ]
             : []),

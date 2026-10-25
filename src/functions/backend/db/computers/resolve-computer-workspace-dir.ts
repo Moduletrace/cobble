@@ -27,8 +27,9 @@ type Params = {
 };
 
 /**
- * Where a computer's home (`AppData.ComputerHomeDir` in its container)
- * actually is on this app's disk, for the files browser and for anything
+ * Where a computer's workspace (`AppData.ComputerWorkspaceDir` in its
+ * container, the only directory mounted from the data volume) actually is
+ * on this app's disk, for the files browser and for anything
  * else that has to read a computer's files.
  *
  * A container the app provisioned recorded the directory it bind-mounted
@@ -36,15 +37,16 @@ type Params = {
  * that path can be anywhere the docker host allows. A computer the app
  * didn't provision has no record. That is the install's main computer on a
  * server reached at `MAIN_COMPUTER_URL` (a dev server outside docker),
- * whose sandbox keeps its home wherever its compose file says, so
- * `MAIN_COMPUTER_DATA_DIR` names that directory for this app. Without
+ * whose sandbox keeps its workspace wherever its compose file says, so
+ * `MAIN_COMPUTER_DATA_DIR` names that directory (the host side of
+ * `AppData.ComputerWorkspaceDir`) for this app. Without
  * either, the conventional place every app-provisioned computer uses:
  * `DATA_DIR/<AppData.ComputerDataDir>/<id>`.
  *
  * Kept apart from the docker and database calls so the precedence is
  * testable on its own.
  */
-export default function resolveComputerHomeDir({
+export default function resolveComputerWorkspaceDir({
     computer_id,
     kind,
     metadata,

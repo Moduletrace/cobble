@@ -5,8 +5,10 @@ import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-comput
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerRef from "@/src/utils/computer-ref";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
+import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import redactSecrets from "@/src/utils/redact-secrets";
 import type { HarnessTool } from "../../types";
+import computerDirsShell from "./computer-dirs-shell";
 import runComputerCommand from "./run-computer-command";
 
 type Params = {
@@ -22,6 +24,11 @@ type Params = {
      * The bot's computers, the current one first (`grabBotComputers`).
      */
     computers: BUN_SQLITE_COBBLE_COMPUTERS[];
+    /**
+     * The run's folders (`computerRunDirs`): the command starts in the
+     * user's.
+     */
+    dirs: ComputerRunDirs;
 };
 
 type Args = {
@@ -32,16 +39,18 @@ type Args = {
  * Lets a bot look for something across every computer it has: one shell
  * command runs on each at once (`runComputerCommand`), and the outputs come
  * back labelled with each computer's ref (`computerRef`), secrets redacted,
- * so the bot can tell the user exactly which computer holds what.
+ * so the bot can tell the user exactly which computer holds what. It
+ * starts in the run's own folder on each (`computerDirsShell`).
  */
 export default function searchComputersTool({
     bot_id,
     workspace_id,
     computers,
+    dirs,
 }: Params): HarnessTool<Args> {
     return {
         name: "search_computers",
-        description: `Run one read-only shell command (bash) on every computer you have at once, to find which one holds something: a file, a running app, a logged-in browser session, a setting. Each computer's output comes back under its ref, e.g. ${computerRef({ id: computers[0]?.id || 1 })}. For a logged-in site, look for its domain in the browser profiles' cookie databases (copy the file first, since the browser locks it) and list only host names, never cookie values. Don't change anything with it; use start_task for that. Output past ${AppData.ComputerSearchMaxOutputChars} characters per computer is cut, so filter in the command.`,
+        description: `Run one read-only shell command (bash) on every computer you have at once, to find which one holds something: a file, a running app, a logged-in browser session, a setting. Each computer's output comes back under its ref, e.g. ${computerRef({ id: computers[0]?.id || 1 })}. For a logged-in site, look for its domain in the browser profiles' cookie databases (copy the file first, since the browser locks it) and list only host names, never cookie values. It starts in your folder on each computer (${dirs.cwd}, also ~). Don't change anything with it; use start_task for that. Output past ${AppData.ComputerSearchMaxOutputChars} characters per computer is cut, so filter in the command.`,
         schema: z.object({
             command: z.string().min(1).max(4000),
         }),
@@ -60,7 +69,7 @@ export default function searchComputersTool({
                         const [result, envs] = await Promise.all([
                             runComputerCommand({
                                 base_url: target.base_url,
-                                command: args.command,
+                                command: `${computerDirsShell({ dirs })}${args.command}`,
                                 timeout_ms: AppData.ComputerSearchTimeoutMs,
                                 signal,
                             }),

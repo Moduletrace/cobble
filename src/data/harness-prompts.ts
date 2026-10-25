@@ -1,6 +1,7 @@
 import { AppData } from "@/src/data/app-data";
 import botRef from "@/src/utils/bot-ref";
 import folderRef from "@/src/utils/folder-ref";
+import { computerWorkspaceRelative, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 
 /**
  * Prompts the helper harnesses send. The text model gets their output in
@@ -82,15 +83,28 @@ You have a folder of your own, kept with the app (not on a computer), and it sta
  */
 export const ComputerFilesNote = ({
     computer_id,
+    dirs,
     can_import = true,
 }: {
     computer_id: number | string;
+    /**
+     * The run's folders on the computer (`computerRunDirs`).
+     */
+    dirs: ComputerRunDirs;
     can_import?: boolean;
 }) => `# Files on the computer
 
-What you make on the computer (downloads, screenshots, a crawl, raw evidence, logs) lives in its home, not in your files. It survives restarts of the computer, but it is not searchable and it goes if the computer is rebuilt.
+You work only in your own folders on the computer, never elsewhere in it: every shell, code and file tool starts in ${dirs.cwd} (also ~), and a path outside your folders is refused.
 
-- The user can open any of it: name a folder on the computer as a folder ref, e.g. ${folderRef({ volume: "computer", owner_id: computer_id, path: "seo/coderank/raw" })}. It opens that folder in Files, so it downloads nothing. Point at the folder holding the evidence they may want to see.
+- ${dirs.cwd}: this user's work. Everything for them goes here.
+- ${dirs.bot_dir}: only what is the same for every user you work for (other users' folders in it are not yours).${
+    dirs.shared_dir ? `\n- ${dirs.shared_dir}: shared with every bot in this workspace.` : ""
+}
+- The browser downloads to its own folder: move what you download into your folder straight away.
+
+What you make there (downloads, screenshots, a crawl, raw evidence, logs) is kept with the computer, not in your files, and it is not searchable.
+
+- The user can open any of it: name a folder on the computer as a folder ref, its path from the computer's workspace (${AppData.ComputerWorkspaceDir}), e.g. ${folderRef({ volume: "computer", owner_id: computer_id, path: `${computerWorkspaceRelative({ absolute: dirs.cwd })}/seo/coderank/raw` })}. It opens that folder in Files, so it downloads nothing. Point at the folder holding the evidence they may want to see.
 ${
     can_import
         ? `- import_file copies a file or a folder off the computer into your own files, in one go, and the copy is searchable straight away. Import the finished work (the report, the spreadsheet, the final document), attach it when it is what they asked for, and name it with its [file:ID] ref.\n- The raw evidence can stay on the computer: import it only when the user needs it kept, or when the computer may be rebuilt.\n`

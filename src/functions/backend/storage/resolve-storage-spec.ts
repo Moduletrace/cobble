@@ -8,9 +8,10 @@ import grabDirNames from "@/src/utils/grab-dir-names";
 import type { CrewRole } from "@/src/utils/rbac/crew-role";
 import { storageVolumeLabel, type StorageSpec } from "@/src/utils/storage-volumes";
 import grabCrewRole from "../db/access/grab-crew-role";
+import grabComputerFolderAccess from "./grab-computer-folder-access";
 import grabUserBot from "../db/bots/grab-user-bot";
 import grabUserComputer from "../db/computers/grab-user-computer";
-import resolveComputerHomeDir from "../db/computers/resolve-computer-home-dir";
+import resolveComputerWorkspaceDir from "../db/computers/resolve-computer-workspace-dir";
 import grabEnv from "../db/envs/grab-env";
 import grabUserWorkspace from "../db/workspaces/grab-user-workspace";
 
@@ -29,7 +30,9 @@ type Params = {
  * crew uses (`grabUserBot`, `grabUserWorkspace`, `grabUserComputer`, so a
  * member sees only their own grants); their own media folder, and only
  * their own whatever their role; an MCP server's install folder for crew
- * managers; the database for the super admin alone.
+ * managers; the database for the super admin alone. Inside a computer's
+ * workspace a member sees only their bots' folders, their own user folder
+ * in each, and their workspaces' (`computerPathAllowed`).
  */
 export default async function resolveStorageSpec({ user_id, spec }: Params) {
     const role = await grabCrewRole({ user_id });
@@ -41,6 +44,11 @@ export default async function resolveStorageSpec({ user_id, spec }: Params) {
         spec,
         root,
         label: await storageLabel({ spec, role, user_id }),
+        /**
+         * A computer's workspace: which of its folders the user may see,
+         * and their names (`computerPathAllowed`, `computerFolderLabel`).
+         */
+        computer: spec.volume == "computers" ? await grabComputerFolderAccess({ role, user_id }) : null,
     };
 }
 
@@ -76,7 +84,7 @@ async function storageRoot({
 
             if (!computer) return null;
 
-            return resolveComputerHomeDir({
+            return resolveComputerWorkspaceDir({
                 computer_id: spec.owner_id,
                 kind: computer.kind,
                 metadata: await computerContainerMetadata({ container_id: computer.container_id }),

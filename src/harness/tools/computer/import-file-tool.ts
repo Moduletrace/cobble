@@ -7,6 +7,11 @@ import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
 import recordBotFile, { grabBotFileRow } from "@/src/functions/backend/db/bot-files/record-bot-file";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
+import {
+    computerWorkspaceRelative,
+    resolveComputerPath,
+    type ComputerRunDirs,
+} from "@/src/utils/computer-work-dirs";
 import folderRef from "@/src/utils/folder-ref";
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
@@ -16,7 +21,7 @@ import walkRegularFiles from "@/src/utils/walk-regular-files";
 
 type Params = {
     /**
-     * The computer the run is on: what it made is in its home.
+     * The computer the run is on: what it made is in its workspace.
      */
     computer_id: number | string;
     /**
@@ -26,6 +31,11 @@ type Params = {
     scopes: StorageScope[];
     bot_id: number | string;
     user_id: number | string;
+    /**
+     * The run's folders on the computer (`computerRunDirs`): only they are
+     * imported from, a relative path from the user's.
+     */
+    dirs: ComputerRunDirs;
     onAttach?: (params: { media_id: number; name: string }) => void;
 };
 
@@ -52,6 +62,7 @@ export default function importFileTool({
     scopes,
     bot_id,
     user_id,
+    dirs,
     onAttach,
 }: Params): HarnessTool<Args> {
     const own = scopes[0];
@@ -59,7 +70,7 @@ export default function importFileTool({
 
     return {
         name: "import_file",
-        description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
+        description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, relative to your folder there (${dirs.cwd}), e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
             own?.scope == "workspace" ? " The copies land in the workspace's shared files." : ""
         } Imports are searchable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit.`,
         schema: z.object({
@@ -67,7 +78,7 @@ export default function importFileTool({
                 .string()
                 .min(1)
                 .max(AppData.BotFilePathMaxChars)
-                .describe(`The file or folder on the computer, relative to its home, e.g. "seo/coderank/raw"`),
+                .describe(`The file or folder on the computer, relative to your folder there, e.g. "seo/coderank/raw"`),
             name: z
                 .string()
                 .max(AppData.BotFilePathMaxChars)
@@ -78,9 +89,15 @@ export default function importFileTool({
         run: async ({ args, signal }) => {
             if (!own) return `You have no files folder to import into.`;
 
-            const source = normalizeSourcePath({ path: args.path });
+            /**
+             * Workspace-relative from here on, which is what a folder ref
+             * names.
+             */
+            const source = computerWorkspaceRelative({
+                absolute: resolveComputerPath({ path: args.path, dirs }),
+            });
 
-            if (!source) return `Give a path inside the computer's home, e.g. "seo/coderank/raw".`;
+            if (!source) return `Give a file or folder inside your folder, e.g. "seo/coderank/raw".`;
 
             const target = await grabComputerMcpUrl({ computer_id });
 
@@ -91,7 +108,7 @@ export default function importFileTool({
             const kind = await sourceKind({ base_url: target.base_url, source, signal });
 
             if (kind == "missing") {
-                return `Nothing at ~/${source} on this computer. Check it with search_computers or the computer's own tools before importing.`;
+                return `Nothing at ${onComputer({ source })} on this computer. Check it with search_computers or the computer's own tools before importing.`;
             }
 
             if (kind == "folder") {
@@ -149,7 +166,7 @@ async function importOneFile({
 }) {
     const download = await downloadComputerFile({
         base_url: target.base_url,
-        path: `${AppData.ComputerHomeDir}/${target.source}`,
+        path: onComputer({ source: target.source }),
         max_bytes: AppData.BotFileImportMaxBytes,
         signal,
     });
@@ -182,7 +199,7 @@ async function importOneFile({
     return [
         previous?.id
             ? `You already had ${saved.path} (same ref, no second copy): its bytes are now this file, ${formatSize({ bytes: download.size })} byte for byte.`
-            : `Copied ~/${target.source} into your files as ${saved.path} [file:${saved.id}], ${formatSize({ bytes: download.size })} byte for byte.`,
+            : `Copied ${onComputer({ source: target.source })} into your files as ${saved.path} [file:${saved.id}], ${formatSize({ bytes: download.size })} byte for byte.`,
         `The original is still on the computer, in ${folderRef({
             volume: "computer",
             owner_id: target.computer_id,
@@ -220,10 +237,10 @@ async function importFolder({
 
     const saved = await unpackArchive({ archive: archive.bytes, folder: name.replace(/\/+$/, ""), scope, bot_id, user_id });
 
-    if (!saved.length) return `The folder ~/${target.source} is empty, so nothing was imported.`;
+    if (!saved.length) return `The folder ${onComputer({ source: target.source })} is empty, so nothing was imported.`;
 
     return [
-        `Copied ${saved.length} file(s) from ~/${target.source} into your files under ${name}/:`,
+        `Copied ${saved.length} file(s) from ${onComputer({ source: target.source })} into your files under ${name}/:`,
         ...saved.slice(0, 20).map((file) => `- ${file.path} [file:${file.id}]`),
         saved.length > 20 ? `(and ${saved.length - 20} more)` : "",
         `The originals are still on the computer, in ${folderRef({
@@ -261,7 +278,7 @@ async function sourceKind({
 }): Promise<"file" | "folder" | "missing"> {
     const result = await runComputerCommand({
         base_url,
-        command: `d="$HOME"/${shellQuote({ text: source })}; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
+        command: `d=${shellQuote({ text: onComputer({ source }) })}; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
         timeout_ms: AppData.ComputerSearchTimeoutMs,
         signal,
     });
@@ -287,14 +304,14 @@ function importFailure({
     const limit = formatSize({ bytes: AppData.BotFileImportMaxBytes });
 
     if (reason == "missing") {
-        return `Nothing at ~/${source} on this computer. Check it with search_computers or the computer's own tools before importing.`;
+        return `Nothing at ${onComputer({ source })} on this computer. Check it with search_computers or the computer's own tools before importing.`;
     }
 
     if (reason == "too_big") {
-        return `~/${source} is ${formatSize({ bytes: size })}, over the ${limit} limit, so nothing was copied. Zip it on the computer first, or import the files that matter on their own.`;
+        return `${onComputer({ source })} is ${formatSize({ bytes: size })}, over the ${limit} limit, so nothing was copied. Zip it on the computer first, or import the files that matter on their own.`;
     }
 
-    return `The copy of ~/${source} came back with ${formatSize({ bytes: size })} of its bytes, so it was thrown away rather than saved. Try again; if it keeps happening, the file is changing while it is read.`;
+    return `The copy of ${onComputer({ source })} came back with ${formatSize({ bytes: size })} of its bytes, so it was thrown away rather than saved. Try again; if it keeps happening, the file is changing while it is read.`;
 }
 
 /**
@@ -326,7 +343,7 @@ async function readFolderArchive({
     const result = await runComputerCommand({
         base_url,
         command: [
-            `d="$HOME"/${shellQuote({ text: source })}`,
+            `d=${shellQuote({ text: onComputer({ source }) })}`,
             `t=$(mktemp /tmp/cobble-import-XXXXXX.tgz)`,
             `tar -czf "$t" -C "$(dirname "$d")" "$(basename "$d")" || { rm -f "$t"; echo FAILED; exit 0; }`,
             `s=$(wc -c < "$t")`,
@@ -437,19 +454,9 @@ function archiveRoot({ dir }: { dir: string }) {
 }
 
 /**
- * The path the tool was given, made relative to the computer's home and
- * refused if it leaves it.
+ * A workspace-relative path as it is on the computer.
  */
-function normalizeSourcePath({ path: requested }: { path: string }) {
-    const clean = requested
-        .trim()
-        .replace(/^~\/?/, "")
-        .replace(/^\/+|\/+$/g, "");
-
-    if (!clean) return null;
-
-    if (clean.split("/").some((segment) => segment == ".." || segment == ".")) return null;
-
-    return clean;
+function onComputer({ source }: { source: string }) {
+    return `${AppData.ComputerWorkspaceDir}/${source}`;
 }
 

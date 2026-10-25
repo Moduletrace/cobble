@@ -10,18 +10,20 @@ import pushComputerUpdate from "./push-computer-update";
 type Params = {
     computer_id: number;
     /**
-     * A brand new computer: start from an empty home directory.
+     * A brand new computer: start from an empty workspace.
      */
     fresh?: boolean;
 };
 
 /**
- * Sets up a computer's container: prepares its home directory, pulls the
+ * Sets up a computer's container: prepares its workspace directory, pulls the
  * sandbox image and starts the container with the computer's resources
  * (`cpus`, `memory_mb`, else the `AppData` defaults), then records it (`containers`:
  * docker id, state, and its IP address on the network). A failure is
  * recorded as `failed` with its reason, which the computer lists show. The
- * owner's tabs hear about it either way. Never throws.
+ * owner's tabs hear about it either way. The metadata's `layout` says the
+ * container mounts only the workspace (`syncComputers` recreates one that
+ * doesn't). Never throws.
  */
 export default async function provisionComputer({ computer_id, fresh }: Params) {
     const row = (
@@ -65,7 +67,12 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
                 created.ip_address,
                 AppData.ComputerPort,
                 created.status,
-                JSON.stringify({ ...kept, data_dir, host_dir: created.host_dir }),
+                JSON.stringify({
+                    ...kept,
+                    data_dir,
+                    host_dir: created.host_dir,
+                    layout: AppData.ComputerWorkspaceLayout,
+                }),
                 Date.now(),
                 Date.now(),
                 row.id,

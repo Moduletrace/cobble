@@ -63,7 +63,7 @@ describe("resolveStoragePath", () => {
 
     test("refuses a path that is too deep", () => {
         expect(() =>
-            resolveStoragePath({ root, path: Array.from({ length: 12 }, (_, i) => `f${i}`).join("/") }),
+            resolveStoragePath({ root, path: Array.from({ length: 20 }, (_, i) => `f${i}`).join("/") }),
         ).toThrow();
     });
 });

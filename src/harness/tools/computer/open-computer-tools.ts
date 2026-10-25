@@ -1,12 +1,17 @@
+import { AppData } from "@/src/data/app-data";
 import { ComputerMcpExcludedTools } from "@/src/dict/computer-dict";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
+import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import grabMcpTools from "../../mcp/grab-mcp-tools";
 import readImage from "../../media/read-image";
 import type { HarnessTool } from "../../types";
+import computerDirsShell from "./computer-dirs-shell";
+import runComputerCommand from "./run-computer-command";
+import withComputerDirs from "./with-computer-dirs";
 import withComputerEnv from "./with-computer-env";
 import writeComputerEnv from "./write-computer-env";
 
@@ -21,6 +26,11 @@ type Params = {
      * screenshots.
      */
     workspace_id?: number | string | null;
+    /**
+     * The run's folders on the computer (`computerRunDirs`): every tool is
+     * kept inside them.
+     */
+    dirs: ComputerRunDirs;
     signal?: AbortSignal;
 };
 
@@ -43,14 +53,16 @@ export type OpenComputer = {
  * Connects to a computer (its AIO sandbox, over MCP) and returns its tools:
  * shell, files, code and browser. Its envs (`grabComputerEnvs`) are written
  * to the computer and loaded by the shell and code tools; secret values are
- * redacted from everything the tools return. Screenshots come back as
- * readings from the media reading harness. Call `close` when the run ends.
+ * redacted from everything the tools return. Every tool is kept in the
+ * run's folders (`withComputerDirs`), which are created first. Screenshots
+ * come back as readings from the media reading harness. Call `close` when the run ends.
  * Throws when the computer can't be reached, which the queue retries.
  */
 export default async function openComputerTools({
     computer_id,
     bot_id,
     workspace_id,
+    dirs,
     signal,
 }: Params): Promise<OpenComputer> {
     const target = await grabComputerMcpUrl({ computer_id });
@@ -65,6 +77,14 @@ export default async function openComputerTools({
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, workspace_id });
     const paths = await writeComputerEnv({ base_url: target.base_url, envs, signal });
+
+    await runComputerCommand({
+        base_url: target.base_url,
+        command: `${computerDirsShell({ dirs })}true`,
+        timeout_ms: AppData.McpConnectTimeoutMs,
+        signal,
+    });
+
     const secrets = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
 
@@ -87,7 +107,7 @@ export default async function openComputerTools({
 
         return {
             name: target.name,
-            tools: tools.map((tool) => withComputerEnv({ tool, ...paths })),
+            tools: tools.map((tool) => withComputerDirs({ tool: withComputerEnv({ tool, ...paths }), dirs })),
             envs: envs.map((env) => ({ key: env.key, description: env.description })),
             redact,
             close: () => client.close().catch(() => {}),

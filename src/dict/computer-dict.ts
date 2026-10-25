@@ -1,7 +1,8 @@
 /**
  * A computer is an AIO sandbox running in its own docker container on the
- * cobble network, created by the app (`createComputer`), its home
- * directory kept under `DATA_DIR/computers/<id>`.
+ * cobble network, created by the app (`createComputer`), only its
+ * workspace (`AppData.ComputerWorkspaceDir`) kept under
+ * `DATA_DIR/computers/<id>`.
  */
 export const ComputerKinds = [
     {

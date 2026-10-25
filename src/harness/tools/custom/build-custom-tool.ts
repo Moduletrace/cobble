@@ -6,6 +6,7 @@ import checkRequiredArgs from "./check-required-args";
 import runHttpTool from "./run-http-tool";
 import runPromptTool from "./run-prompt-tool";
 import runScriptTool from "./run-script-tool";
+import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 
 type Params = {
     tool: CustomToolRecord;
@@ -20,6 +21,11 @@ type Params = {
     computer_id?: number | string | null;
     bot_id?: number | string;
     workspace_id?: number | string | null;
+    /**
+     * The run's folders on the computer (`computerRunDirs`), where a
+     * script runs. None for a try from the settings page.
+     */
+    dirs?: ComputerRunDirs | null;
     /**
      * Saves how each run went on the tool. Off for a draft being tried.
      */
@@ -40,6 +46,7 @@ export default function buildCustomTool({
     computer_id,
     bot_id,
     workspace_id,
+    dirs,
     record = true,
 }: Params): HarnessTool<Record<string, unknown>> | null {
     if (tool.kind == "script" && !computer_id) return null;
@@ -58,6 +65,7 @@ export default function buildCustomTool({
                     computer_id: computer_id!,
                     bot_id,
                     workspace_id,
+                    dirs,
                     signal,
                 });
             case "prompt":

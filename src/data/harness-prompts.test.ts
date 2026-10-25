@@ -6,6 +6,7 @@ import {
     coordinatorReplyNote,
     TasksNote,
 } from "./harness-prompts";
+import computerRunDirs from "@/src/utils/computer-work-dirs";
 
 /**
  * Every note a bot reads names it by its own id, so a bot copying an
@@ -46,8 +47,15 @@ describe("harness prompts", () => {
         expect(botFilesNote({ bot_id: 5 })).toContain("[folder:bot:5:reports]");
     });
 
-    test("the computer files note keeps naming the computer it was given", () => {
-        expect(ComputerFilesNote({ computer_id: 8 })).toContain("[folder:computer:8:seo/coderank/raw]");
+    test("the computer files note names the computer and the run's folders", () => {
+        const note = ComputerFilesNote({
+            computer_id: 8,
+            dirs: computerRunDirs({ bot_id: 3, user_id: 7, workspace_id: 2 }),
+        });
+
+        expect(note).toContain("[folder:computer:8:bots/3/users/7/seo/coderank/raw]");
+        expect(note).toContain("/home/gem/workspace/bots/3/users/7");
+        expect(note).toContain("/home/gem/workspace/workspaces/2");
     });
 
     test("notes with nothing bot-specific carry no ref example", () => {

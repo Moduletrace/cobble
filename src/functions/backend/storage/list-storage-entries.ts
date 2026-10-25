@@ -4,6 +4,8 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_FILES } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import grabMediaURL from "../media/grab-media-url";
+import computerFolderLabel from "@/src/utils/computer-folder-label";
+import computerPathAllowed from "@/src/utils/computer-path-allowed";
 import { isInsideRoot } from "./resolve-storage-path";
 import type { ResolvedStorageSpec } from "./resolve-storage-spec";
 import {
@@ -52,13 +54,20 @@ export type StorageEntry = {
      * browser's own streaming route.
      */
     url?: string;
+    /**
+     * What an id folder in a computer's workspace is: the bot's, user's or
+     * workspace's name.
+     */
+    label?: string;
 };
 
 /**
  * One directory on the data volume, for the files browser: its entries
  * (folders first), a page of them, and a `bot_files` row attached to any
  * that has one. Entries a symlink leads out of the volume with are left
- * out, so nothing outside the folder is ever listed.
+ * out, so nothing outside the folder is ever listed. In a computer's
+ * workspace only what the user may see is listed (`computerPathAllowed`),
+ * and a folder they may not see reads as missing.
  */
 export default async function listStorageEntries({
     resolved,
@@ -74,7 +83,9 @@ export default async function listStorageEntries({
      * all, which a stale folder link lands on (the page says so, instead of
      * claiming the folder is empty).
      */
-    if (!existsSync(absolute)) return { entries: [], total: 0, offset, missing: true };
+    if (!existsSync(absolute) || !canSeePath({ resolved, path: relative })) {
+        return { entries: [], total: 0, offset, missing: true };
+    }
 
     const rows = readdirSync(absolute, { withFileTypes: true });
     const indexed = await botFileRows({ resolved, paths: rows.map((row) => joinPath({ relative, name: row.name })) });
@@ -85,6 +96,8 @@ export default async function listStorageEntries({
         if (row.name == ".DS_Store") continue;
 
         const entry_path = joinPath({ relative, name: row.name });
+
+        if (!canSeePath({ resolved, path: entry_path })) continue;
 
         if (needle && !entry_path.toLowerCase().includes(needle)) continue;
 
@@ -114,6 +127,9 @@ export default async function listStorageEntries({
                 size: 0,
                 modified_at: Math.round(stats.mtimeMs),
                 url: storageSpecHref({ spec: resolved.spec, path: entry_path }),
+                label: resolved.computer
+                    ? computerFolderLabel({ path: entry_path, names: resolved.computer.names }) || undefined
+                    : undefined,
             });
             continue;
         }
@@ -195,6 +211,14 @@ async function botFileRows({
     }
 
     return rows;
+}
+
+/**
+ * Whether the user may see a path in the folder: anything in it, except
+ * inside a computer's workspace (`computerPathAllowed`).
+ */
+export function canSeePath({ resolved, path }: { resolved: ResolvedStorageSpec; path: string }) {
+    return !resolved.computer || computerPathAllowed({ ...resolved.computer, path });
 }
 
 function joinPath({ relative, name }: { relative: string; name: string }) {

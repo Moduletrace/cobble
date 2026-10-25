@@ -96,12 +96,34 @@ export const AppData = {
     ComputerImage: "ghcr.io/agent-infra/sandbox:latest",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
-     * A computer's home directory (`ComputerHomeDir` in its container) is
-     * kept at `DATA_DIR/<ComputerDataDir>/<id>`, owned by the sandbox's
-     * user. It stays when the computer is deleted.
+     * Only a computer's workspace (`ComputerWorkspaceDir` in its
+     * container) is kept, at `DATA_DIR/<ComputerDataDir>/<id>`, owned by
+     * the sandbox's user. It stays when the computer is deleted. The rest
+     * of its home (`ComputerHomeDir`: dotfiles, browser profile, the env
+     * files) lives in the container and goes with it. Every bot works in
+     * `bots/<bot id>` there, a user's work in `bots/<bot id>/users/<user
+     * id>`, and a workspace's bots share `workspaces/<workspace id>`
+     * (`computerRunDirs`).
      */
     ComputerDataDir: "computers",
     ComputerHomeDir: "/home/gem",
+    ComputerWorkspaceDir: "/home/gem/workspace",
+    /**
+     * Written at the root of a computer's workspace once it uses that
+     * layout, so an older computer's whole home is told apart and moved
+     * aside (`prepareComputerDataDir`).
+     */
+    ComputerWorkspaceMarker: ".cobble-workspace",
+    /**
+     * An older computer's whole home is moved aside to
+     * `<id><ComputerOldHomeSuffix><timestamp>` and kept, never archived.
+     */
+    ComputerOldHomeSuffix: "-home-",
+    /**
+     * Recorded in a container's `metadata.layout` once it mounts only the
+     * workspace.
+     */
+    ComputerWorkspaceLayout: "workspace",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
     /**
@@ -488,6 +510,12 @@ export const AppData = {
      * Most folders deep a path may go, so nothing buries a file.
      */
     BotFilePathMaxDepth: 8,
+    /**
+     * Most folders deep the files browser opens: a computer's workspace
+     * starts four down (`bots/<bot>/users/<user>`) before a bot's own
+     * folders begin.
+     */
+    StorageBrowserMaxDepth: 16,
     /**
      * The files modal and the bot's file list: one page of them.
      */

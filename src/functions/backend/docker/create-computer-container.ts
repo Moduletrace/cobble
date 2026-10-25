@@ -19,7 +19,7 @@ type Params = {
      */
     name: string;
     /**
-     * The computer's home directory as this app sees it.
+     * The computer's workspace directory as this app sees it.
      */
     data_dir: string;
     /**
@@ -36,7 +36,7 @@ type Params = {
  * Creates and starts (the API's `docker run`) an AIO sandbox container
  * for a computer (`AppData.ComputerImage`), attached to the computers'
  * network (created first when missing), with its home directory
- * bind-mounted from `data_dir`, limited to `cpus` and `memory_mb`, with a
+ * bind-mounted from `data_dir` (only its workspace, `AppData.ComputerWorkspaceDir`: the rest of its home lives and dies with the container), limited to `cpus` and `memory_mb`, with a
  * health check (`AppData.ComputerHealthcheck`), and restarted with
  * docker. A container left by an earlier try is stopped and replaced.
  * Resolves once the health check passes, with its IP address on the network, which a dev
@@ -78,7 +78,7 @@ export default async function createComputerContainer({
                 Retries: AppData.ComputerHealthcheck.Retries,
             },
             HostConfig: {
-                Binds: [`${host_dir}:${AppData.ComputerHomeDir}`],
+                Binds: [`${host_dir}:${AppData.ComputerWorkspaceDir}`],
                 NetworkMode: network,
                 RestartPolicy: { Name: "unless-stopped" },
                 SecurityOpt: ["seccomp=unconfined"],

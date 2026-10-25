@@ -67,7 +67,7 @@ Then tell the bot you're signed in, or click **Hand back** if it asked you to ta
 
 ### If it doesn't work
 
-- **The paste in step 7 or 8 is empty.** Use the computer's code editor instead: switch to **Code**, create a file such as \`cookies.json\`, and paste into it (that paste always works). In the computer's Chrome, open \`file:///home/gem/cookies.json\`, press Ctrl+A then Ctrl+C, and import as in step 8. **Delete the file afterwards.**
+- **The paste in step 7 or 8 is empty.** Use the computer's code editor instead: switch to **Code**, create a file such as \`workspace/cookies.json\`, and paste into it (that paste always works). In the computer's Chrome, open \`file:///home/gem/workspace/cookies.json\`, press Ctrl+A then Ctrl+C, and import as in step 8. **Delete the file afterwards.**
 - **You're signed in, then signed out again soon after.** Google sometimes ends a session it sees used from a new place. Sign out and back in on your own browser, export again, and import straight away. Using the same account and keeping the bot's work regular helps the session last.
 - **Cookie-Editor's icon doesn't show.** You're in the **Browser** view, which shows pages only. Switch to **Desktop**.
 - **Another site still says no.** Make sure you exported while on that site (Cookie-Editor exports the cookies of the site you're on), and that you opened the same site on the computer before importing.`,

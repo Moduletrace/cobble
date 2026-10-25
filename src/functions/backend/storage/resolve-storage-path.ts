@@ -78,9 +78,9 @@ export default function resolveStoragePath({
         }
     }
 
-    if (segments.length > AppData.BotFilePathMaxDepth) {
+    if (segments.length > AppData.StorageBrowserMaxDepth) {
         throw new AppError(
-            `That path is too deep: at most ${AppData.BotFilePathMaxDepth} folders.`,
+            `That path is too deep: at most ${AppData.StorageBrowserMaxDepth} folders.`,
         );
     }
 

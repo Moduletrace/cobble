@@ -37,6 +37,13 @@ export default async function writeDataBackupArchive(): Promise<CreatedDataBacku
                 // after it and an extract drops a single folder.
                 "--transform",
                 `s,^\\.$,${archive_root},;s,^\\./,${archive_root}/,`,
+                // A computer's old whole home, moved aside when only its
+                // workspace became the mount (`prepareComputerDataDir`),
+                // is kept on disk but never archived: only workspaces are.
+                // `*` stops at `/`, so a file inside a workspace whose name
+                // happens to hold the suffix is still archived.
+                "--no-wildcards-match-slash",
+                `--exclude=./${AppData.ComputerDataDir}/*${AppData.ComputerOldHomeSuffix}*`,
                 "-C",
                 DATA_DIR,
                 ".",

@@ -35,6 +35,7 @@ import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
 import type { BotMessageWithAttachments } from "@/src/types";
 import type { HarnessMessage } from "@/src/harness/types";
 import type { BotJobContext, BotJobOutcome } from "./types";
+import computerRunDirs from "@/src/utils/computer-work-dirs";
 
 type Params = BotJobContext & {
     bot: BUN_SQLITE_COBBLE_BOTS & { id: number };
@@ -169,10 +170,16 @@ export default async function runBotReply({
         onPropose: ({ ref }) => proposals.push(ref),
     });
 
+    /**
+     * Where the run works on a computer: the user's folder in the bot's.
+     */
+    const dirs = computerRunDirs({ bot_id: bot.id, bot_kind: bot.kind, user_id, workspace_id });
+
     const extensions = await openBotExtensions({
         bot_id: bot.id,
         workspace_id,
         computer_id: computers[0]?.id || null,
+        dirs,
         taken: tools.map((tool) => tool.name),
         signal,
     });
@@ -202,7 +209,7 @@ export default async function runBotReply({
                 carry_over,
                 chatReplyNote({ bot_id: bot.id }),
                 botFilesNote({ bot_id: bot.id }),
-                ComputerFilesNote({ computer_id: computers[0]?.id || 0, can_import: false }),
+                ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: false }),
                 TasksNote,
                 TaskReminderNote,
                 ActionCheckNote,

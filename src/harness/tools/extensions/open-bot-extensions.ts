@@ -8,6 +8,7 @@ import openMcpServer from "../../mcp/open-mcp-server";
 import readImage from "../../media/read-image";
 import type { HarnessTool } from "../../types";
 import buildCustomTool from "../custom/build-custom-tool";
+import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 
 type Params = {
     bot_id: number | string;
@@ -17,6 +18,11 @@ type Params = {
      * current one. None leaves script tools out.
      */
     computer_id?: number | string | null;
+    /**
+     * The run's folders on that computer (`computerRunDirs`), where its
+     * scripts run.
+     */
+    dirs: ComputerRunDirs;
     /**
      * Names the run's built-in tools already use: they win.
      */
@@ -50,6 +56,7 @@ export default async function openBotExtensions({
     bot_id,
     workspace_id,
     computer_id,
+    dirs,
     taken = [],
     signal,
 }: Params): Promise<OpenBotExtensions> {
@@ -74,7 +81,7 @@ export default async function openBotExtensions({
     };
 
     for (const tool of tools) {
-        add(buildCustomTool({ tool, envs, computer_id, bot_id, workspace_id }));
+        add(buildCustomTool({ tool, envs, computer_id, bot_id, workspace_id, dirs }));
     }
 
     for (const server of servers) {

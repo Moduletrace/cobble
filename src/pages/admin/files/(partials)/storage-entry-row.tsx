@@ -64,6 +64,7 @@ export default function StorageEntryRow({ entry, selected, onOpenFolder }: Props
                 <Span className="text-[12px] leading-4 text-ink-secondary">
                     {[
                         is_folder ? "Folder" : formatBytes({ bytes: entry.size }),
+                        entry.label || "",
                         entry.modified_at ? relativeTime({ at: entry.modified_at }) : "",
                         entry.file_id ? "Saved by the bot" : "",
                     ]

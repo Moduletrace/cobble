@@ -2,6 +2,7 @@ import { statSync } from "node:fs";
 import path from "node:path";
 import { AppData } from "@/src/data/app-data";
 import { mimeTypeForFile } from "../db/bot-files/media-type-for-file";
+import { canSeePath } from "./list-storage-entries";
 import resolveStoragePath from "./resolve-storage-path";
 import type { ResolvedStorageSpec } from "./resolve-storage-spec";
 
@@ -31,13 +32,16 @@ export type StorageFile = {
 /**
  * One file for the browser to open: checked to be inside the volume (the
  * same rules a bot's own path gets), to exist, and to be a regular file
- * rather than a folder. Null when it isn't one, so a caller can answer
+ * rather than a folder, and one the user may see in a computer's workspace
+ * (`canSeePath`). Null when it isn't one, so a caller can answer
  * "not found" without leaking what is there.
  */
 export default function grabStorageFile({ resolved, path: requested }: Params): StorageFile | null {
     const resolved_path = resolveStoragePath({ root: resolved.root, path: requested });
 
     if (!resolved_path.name) return null;
+
+    if (!canSeePath({ resolved, path: resolved_path.relative })) return null;
 
     let stats;
 
