@@ -9,7 +9,7 @@ import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
 import InlineAddSelect from "@/src/components/general/inline-add-select";
-import WorkspaceBotModal from "./workspace-bot-modal";
+import WorkspaceBotModal from "@/src/components/general/workspace-bot-modal";
 import WorkspaceBotRow from "./workspace-bot-row";
 
 type Props = {
@@ -148,7 +148,10 @@ export default function WorkspaceBotsGroup({ workspace_id, workspace_name, bots:
                 <WorkspaceBotModal
                     workspace_id={workspace_id}
                     workspace_name={workspace_name}
-                    bot={editing}
+                    bot_id={Number(editing.id)}
+                    bot_name={editing.name}
+                    system_prompt={editing.workspace_system_prompt}
+                    memory={editing.workspace_memory}
                     onClose={() => setEditing(undefined)}
                     onSaved={setBots}
                 />

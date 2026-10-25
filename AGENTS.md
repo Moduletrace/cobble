@@ -123,7 +123,7 @@ Server push only. `pushBotNotice` (`server:bot-message`, `server:bot-updated`), 
 
 ### Workspaces
 
-`workspaces` (`description`, shared `system_prompt`, default `computer_id` (not an FK), `archived`), `workspace_bots` (per-bot instructions and memory there; coordinator is an implicit member), `workspace_computers`. First computer linked becomes the default. Workspace models win over a bot's own, then the defaults. Helpers in `src/functions/backend/db/workspaces/` are access-checked; structural ones are crew-manager only.
+`workspaces` (`description`, shared `system_prompt`, default `computer_id` (not an FK), `archived`), `workspace_bots` (per-bot instructions and memory there; coordinator is an implicit member), `workspace_computers`. First computer linked becomes the default. Workspace models win over a bot's own, then the defaults. A bot's instructions and memory there (`WorkspaceBotModal`/`WorkspaceBotForm`, crew managers) open from the workspace's settings, the bot's settings and the conversation menu's "Instructions here" (loaded on open). Helpers in `src/functions/backend/db/workspaces/` are access-checked; structural ones are crew-manager only.
 
 ### Computers
 

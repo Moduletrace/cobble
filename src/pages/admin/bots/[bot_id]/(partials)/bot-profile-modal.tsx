@@ -70,7 +70,7 @@ export default function BotProfileModal({ bot }: Props) {
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {bot.kind == "coordinator"
                         ? "The coordinator keeps its name. Give it a picture, or change its core instructions."
-                        : `${name}'s core instructions apply everywhere. What it does in one workspace is set on that workspace's page.`}
+                        : `${name}'s core instructions apply everywhere. What it does in one workspace is under Instructions here in the menu of its conversation there.`}
                 </Span>
             </Stack>
             {!open ? null : system_prompt != undefined ? (

@@ -207,6 +207,15 @@ export type WorkspaceBot = BotWithLastMessage & {
 };
 
 /**
+ * A bot's instructions and memory for one workspace, as its editor loads
+ * them (`api/admin/workspaces/workspace-bot`).
+ */
+export type WorkspaceBotInstructions = {
+    system_prompt: string;
+    memory: string;
+};
+
+/**
  * A workspace a bot works in, with what the bot has for that workspace
  * alone.
  */

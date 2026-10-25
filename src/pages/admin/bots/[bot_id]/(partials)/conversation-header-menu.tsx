@@ -15,6 +15,7 @@ import BotTasksModal from "./bot-tasks-modal";
 import BotRoutinesModal from "./bot-routines-modal";
 import BotModelsModal from "./bot-models-modal";
 import BotAdminMenuItem from "./bot-admin-menu-item";
+import BotWorkspaceInstructionsModal from "./bot-workspace-instructions-modal";
 import HeaderMenuItem from "./header-menu-item";
 import NewSessionButton from "./new-session-button";
 import CopyChatMenuItem from "./copy-chat-menu-item";
@@ -56,7 +57,8 @@ type Props = {
 
 /**
  * The conversation header's menu: the sessions, a new session, copying
- * the session, the bot's computer, its models, in a workspace making it the admin there, its
+ * the session, the bot's computer, its models, in a workspace its
+ * instructions there and making it the admin there, its
  * settings and, while it works, stopping it. A
  * row that opens a modal closes the menu first, so the modal never sits
  * behind an open menu.
@@ -77,6 +79,13 @@ export default function ConversationHeaderMenu({
         bot.kind == "coordinator"
             ? isPassThroughUser({ user_types: pageProps?.user_types })
             : canManageCrew({ user_types: pageProps?.user_types });
+    /**
+     * A bot's instructions for one workspace, only there, for crew
+     * managers (the coordinator's too: only the super admin sees it).
+     */
+    const can_edit_here = Boolean(
+        workspace?.id && canManageCrew({ user_types: pageProps?.user_types }),
+    );
     /**
      * Admin is per workspace, so only in one, for a worker, and only for
      * those who hand out roles.
@@ -161,6 +170,13 @@ export default function ConversationHeaderMenu({
                     on_open={on_open}
                     onSaved={on_model_saved}
                 />
+                {can_edit_here && workspace?.id ? (
+                    <BotWorkspaceInstructionsModal
+                        bot={bot}
+                        workspace={workspace}
+                        on_open={on_open}
+                    />
+                ) : null}
                 {can_set_admin && workspace?.id ? (
                     <BotAdminMenuItem
                         bot_id={Number(bot.id)}

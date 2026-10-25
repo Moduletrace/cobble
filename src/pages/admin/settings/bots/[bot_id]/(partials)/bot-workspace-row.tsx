@@ -7,16 +7,22 @@ import SettingsRowAction from "../../../(partials)/settings-row-action";
 type Props = {
     workspace: BotWorkspace;
     busy?: boolean;
+    /**
+     * Opens what the bot has for this workspace alone.
+     */
+    onEdit?: () => void;
     onRemove?: () => void;
 };
 
 /**
  * One workspace the bot works in. Its title opens the workspace's
- * settings; a worker can be taken out from here.
+ * settings; its instructions and memory there are edited from here, and a
+ * worker can be taken out.
  */
 export default function BotWorkspaceRow({
     workspace,
     busy,
+    onEdit,
     onRemove,
 }: Props) {
     const name = workspace.name || `Workspace ${workspace.id}`;
@@ -41,6 +47,14 @@ export default function BotWorkspaceRow({
                     : workspace.description || "Uses the workspace's context"
             }
         >
+            {onEdit ? (
+                <SettingsRowAction
+                    title={`Instructions and memory in ${name}`}
+                    label="Instructions"
+                    disabled={busy}
+                    onClick={onEdit}
+                />
+            ) : null}
             {onRemove ? (
                 <SettingsRowAction
                     title={`Take ${name} out of this workspace`}

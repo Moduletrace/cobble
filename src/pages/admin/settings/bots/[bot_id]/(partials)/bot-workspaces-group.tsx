@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { BotWorkspace, BotWithLastMessage, WorkspaceWithActivity } from "@/src/types";
+import type { BotWorkspace, BotWithLastMessage, WorkspaceBot, WorkspaceWithActivity } from "@/src/types";
 import InlineAddSelect from "@/src/components/general/inline-add-select";
+import WorkspaceBotModal from "@/src/components/general/workspace-bot-modal";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import SettingsGroup from "../../../(partials)/settings-group";
 import SettingsList from "../../../(partials)/settings-list";
@@ -33,6 +34,7 @@ export default function BotWorkspacesGroup({
     const [bot_workspaces, setBotWorkspaces] = useState(initial);
     const [busy_id, setBusyId] = useState<number | "add">();
     const [status, setStatus] = useState<Status>();
+    const [editing, setEditing] = useState<BotWorkspace>();
     const is_coordinator = bot.kind == "coordinator";
 
     const addable = workspaces.filter(
@@ -86,6 +88,27 @@ export default function BotWorkspacesGroup({
         setStatus({ success: true, msg: res.msg || "Saved." });
     };
 
+    /**
+     * The save answers with the workspace's crew: this bot's row there
+     * carries what it has for the workspace now.
+     */
+    const saved = ({ workspace_id, bots }: { workspace_id: number; bots: WorkspaceBot[] }) => {
+        const member = bots.find((item) => item.id == bot.id);
+
+        setBotWorkspaces((prev) =>
+            prev.map((workspace) =>
+                Number(workspace.id) == workspace_id
+                    ? {
+                          ...workspace,
+                          workspace_system_prompt: member?.workspace_system_prompt || null,
+                          workspace_memory: member?.workspace_memory || null,
+                      }
+                    : workspace,
+            ),
+        );
+        setStatus({ success: true, msg: "Saved." });
+    };
+
     return (
         <SettingsGroup
             id="workspaces"
@@ -109,6 +132,7 @@ export default function BotWorkspacesGroup({
                         key={workspace.id}
                         workspace={workspace}
                         busy={busy_id == workspace.id}
+                        onEdit={() => setEditing(workspace)}
                         onRemove={
                             is_coordinator
                                 ? undefined
@@ -141,6 +165,18 @@ export default function BotWorkspacesGroup({
                 />
             )}
             <SettingsStatus status={status} />
+            {editing ? (
+                <WorkspaceBotModal
+                    workspace_id={Number(editing.id)}
+                    workspace_name={editing.name}
+                    bot_id={Number(bot.id)}
+                    bot_name={bot.name}
+                    system_prompt={editing.workspace_system_prompt}
+                    memory={editing.workspace_memory}
+                    onClose={() => setEditing(undefined)}
+                    onSaved={(bots) => saved({ workspace_id: Number(editing.id), bots })}
+                />
+            ) : null}
         </SettingsGroup>
     );
 }
