@@ -31,31 +31,70 @@ if [ -t 1 ]; then
     C_RESET=$'\033[0m'
     C_BOLD=$'\033[1m'
     C_DIM=$'\033[2m'
+    C_UNDERLINE=$'\033[4m'
     C_RED=$'\033[31m'
     C_GREEN=$'\033[32m'
     C_YELLOW=$'\033[33m'
-    C_BLUE=$'\033[34m'
+    C_CYAN=$'\033[36m'
+    # The ember stone's hue (--color-hue-ember in src/styles/main.css), in
+    # true colour where the terminal says it has it, else the nearest of 256.
+    case "${COLORTERM:-}" in
+        truecolor | 24bit) C_EMBER=$'\033[38;2;228;87;46m' ;;
+        *) C_EMBER=$'\033[38;5;166m' ;;
+    esac
+    # Clickable links (OSC 8) everywhere but the bare Linux console.
+    case "${TERM:-}" in
+        linux | dumb | "") LINKS=0 ;;
+        *) LINKS=1 ;;
+    esac
 else
     C_RESET=""
     C_BOLD=""
     C_DIM=""
+    C_UNDERLINE=""
     C_RED=""
     C_GREEN=""
     C_YELLOW=""
-    C_BLUE=""
+    C_CYAN=""
+    C_EMBER=""
+    LINKS=0
 fi
 
-say() { printf '%s==>%s %s\n' "$C_BLUE" "$C_RESET" "$*"; }
-ok() { printf '%s ok%s %s\n' "$C_GREEN" "$C_RESET" "$*"; }
-warn() { printf '%swarn%s %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2; }
+say() { printf '  %s›%s %s\n' "$C_EMBER" "$C_RESET" "$*"; }
+ok() { printf '  %s✓%s %s\n' "$C_GREEN" "$C_RESET" "$*"; }
+warn() { printf '  %s!%s %s%s%s\n' "$C_YELLOW" "$C_RESET" "$C_YELLOW" "$*" "$C_RESET" >&2; }
 fail() {
-    printf '%sfail%s %s\n' "$C_RED" "$C_RESET" "$*" >&2
+    printf '  %s✗ %s%s\n' "$C_RED" "$*" "$C_RESET" >&2
     exit 1
+}
+
+# A URL, underlined and clickable where the terminal can.
+link() {
+    if [ "$LINKS" = 1 ]; then
+        printf '\033]8;;%s\033\\%s%s%s%s\033]8;;\033\\' "$1" "$C_CYAN" "$C_UNDERLINE" "$1" "$C_RESET"
+    else
+        printf '%s%s%s%s' "$C_CYAN" "$C_UNDERLINE" "$1" "$C_RESET"
+    fi
+}
+
+# One line of the closing summary: a dim label, then its value.
+summary_row() { printf '  %s%-12s%s %s\n' "$C_DIM" "$1" "$C_RESET" "$2"; }
+
+banner() {
+    local s="$C_EMBER" w="$C_BOLD" d="$C_DIM" r="$C_RESET"
+    printf '\n'
+    printf '  %s   ▄▄██████▄▄ %s\n' "$s" "$r"
+    printf '  %s ▄████████████%s    %s           █     █     █      %s\n' "$s" "$r" "$w" "$r"
+    printf '  %s ███  ███  ███%s    %s ▄▄▄  ▄▄▄  █▄▄▄  █▄▄▄  █  ▄▄▄ %s\n' "$s" "$r" "$w" "$r"
+    printf '  %s █████████████%s    %s█    █   █ █   █ █   █ █ █▄▄▄█%s\n' "$s" "$r" "$w" "$r"
+    printf '  %s ▀████████████%s    %s▀▄▄▄ ▀▄▄▄▀ █▄▄▄▀ █▄▄▄▀ █ ▀▄▄▄▄%s\n' "$s" "$r" "$w" "$r"
+    printf '  %s   ▀▀██████▀▀ %s    %sa crew of small AI worker bots%s\n' "$s" "$r" "$d" "$r"
+    printf '\n'
 }
 
 on_error() {
     local code=$?
-    printf '%sfail%s line %s exited with status %s\n' "$C_RED" "$C_RESET" "${BASH_LINENO[0]:-?}" "$code" >&2
+    printf '  %s✗ line %s exited with status %s%s\n' "$C_RED" "${BASH_LINENO[0]:-?}" "$code" "$C_RESET" >&2
     exit "$code"
 }
 trap on_error ERR
@@ -509,7 +548,7 @@ host_ips() {
 wait_for_health() {
     local url start=0
     url="$(health_url)"
-    say "Waiting for Cobble to answer at $url"
+    say "Waiting for Cobble to answer at $(link "$url")"
     while [ "$start" -lt "$HEALTH_TIMEOUT_SECONDS" ]; do
         if curl -fsS --max-time 3 -o /dev/null "$url" 2>/dev/null; then
             ok "Cobble is healthy"
@@ -774,6 +813,8 @@ uninstall() {
 
 # ---------------------------------------------------------------- main
 
+banner
+
 command -v curl >/dev/null 2>&1 || fail "curl is required"
 
 ensure_docker
@@ -856,7 +897,7 @@ if [ "$FORCE" = 0 ] && container_matches; then
     connect_extra_network
     if curl -fsS --max-time 3 -o /dev/null "$(health_url)" 2>/dev/null; then
         ok "Cobble is already up to date"
-        say "Healthy at http://$(health_host):$PORT"
+        say "Healthy at $(link "http://$(health_host):$PORT")"
         exit 0
     fi
     warn "The container is running but not answering; recreating it"
@@ -880,26 +921,27 @@ wait_for_health
 
 ok "Cobble is running"
 printf '\n'
-printf '  %s%s%s\n' "$C_BOLD" "Open Cobble" "$C_RESET"
+printf '  %sOpen Cobble%s\n' "$C_BOLD" "$C_RESET"
 if [ "$BIND" = "0.0.0.0" ]; then
     while IFS= read -r ip; do
-        [ -n "$ip" ] && printf '    http://%s:%s\n' "$ip" "$PORT"
+        [ -n "$ip" ] && printf '    %s\n' "$(link "http://$ip:$PORT")"
     done < <(host_ips)
 fi
-printf '    http://127.0.0.1:%s\n' "$PORT"
+printf '    %s\n' "$(link "http://127.0.0.1:$PORT")"
 printf '\n'
-printf '  Put a reverse proxy or tunnel in front for HTTPS, and open that\n'
-printf '  address instead. The installed app and notifications need it.\n'
+printf '  %sPut a reverse proxy or tunnel in front for HTTPS, and open that\n' "$C_DIM"
+printf '  address instead. The installed app and notifications need it.%s\n' "$C_RESET"
 printf '\n'
-printf '  First visit: create the super admin account.\n'
-printf '  Data:        %s\n' "$DATA_DIR"
-printf '  Settings:    %s\n' "$ENV_FILE"
-printf '  Backups:     %s\n' "$BACKUP_DIR"
-printf '  Archives:    %s\n' "$BACKUP_ARCHIVE_DIR_HOST"
-printf '  Logs:        docker logs -f %s\n' "$CONTAINER"
-printf '  Update:      curl -fsSL %s | sudo bash\n' "$INSTALL_URL"
-printf '  Uninstall:   curl -fsSL %s | sudo bash -s -- --uninstall\n' "$INSTALL_URL"
+summary_row "First visit" "create the super admin account."
+summary_row "Data" "$DATA_DIR"
+summary_row "Settings" "$ENV_FILE"
+summary_row "Backups" "$BACKUP_DIR"
+summary_row "Archives" "$BACKUP_ARCHIVE_DIR_HOST"
+printf '\n'
+summary_row "Logs" "${C_BOLD}docker logs -f $CONTAINER${C_RESET}"
+summary_row "Update" "${C_BOLD}curl -fsSL${C_RESET} $(link "$INSTALL_URL") ${C_BOLD}| sudo bash${C_RESET}"
+summary_row "Uninstall" "${C_BOLD}curl -fsSL${C_RESET} $(link "$INSTALL_URL") ${C_BOLD}| sudo bash -s -- --uninstall${C_RESET}"
 printf '\n'
 if [ "$BIND" = "0.0.0.0" ]; then
-    printf '  %sThis port is reachable on your network, without encryption. Put a proxy or tunnel in front of it for HTTPS.%s\n\n' "$C_DIM" "$C_RESET"
+    printf '  %s!%s %sThis port is reachable on your network, without encryption. Put a proxy or tunnel in front of it for HTTPS.%s\n\n' "$C_YELLOW" "$C_RESET" "$C_DIM" "$C_RESET"
 fi
