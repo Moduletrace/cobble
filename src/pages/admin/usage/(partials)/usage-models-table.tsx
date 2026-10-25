@@ -3,7 +3,9 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { UsageOverview } from "@/src/types";
+import { twMerge } from "tailwind-merge";
 import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group";
+import { UsageModelColumns } from "../(data)/usage-table-columns";
 import UsageModelHeadCell from "./usage-model-head-cell";
 import UsageModelRow from "./usage-model-row";
 
@@ -34,14 +36,19 @@ export default function UsageModelsTable({ rows, days }: Props) {
             description={`The models this install ran in the last ${days} days, busiest first. The price per thousand tokens is read from what the provider reported.`}
         >
             <Stack className="w-full gap-0! overflow-x-auto">
-                <Row className="w-full pb-2 gap-3! items-center border-0 border-b border-solid border-hairline min-w-[640px]">
-                    <UsageModelHeadCell className="grow text-left" title="Model" />
-                    <UsageModelHeadCell className="w-14" title="Calls" />
-                    <UsageModelHeadCell className="w-16" title="In" />
-                    <UsageModelHeadCell className="w-16" title="Out" />
-                    <UsageModelHeadCell className="w-16" title="Tokens" />
-                    <UsageModelHeadCell className="w-16" title="Per 1K" />
-                    <UsageModelHeadCell className="w-14" title="Cost" />
+                <Row
+                    className={twMerge(
+                        UsageModelColumns,
+                        "w-full pb-2 gap-3! items-center border-0 border-b border-solid border-hairline",
+                    )}
+                >
+                    <UsageModelHeadCell className="text-left" title="Model" />
+                    <UsageModelHeadCell title="Calls" />
+                    <UsageModelHeadCell title="In" />
+                    <UsageModelHeadCell title="Out" />
+                    <UsageModelHeadCell title="Tokens" />
+                    <UsageModelHeadCell title="Per 1K" />
+                    <UsageModelHeadCell title="Cost" />
                 </Row>
                 {rows.map((row) => (
                     <UsageModelRow

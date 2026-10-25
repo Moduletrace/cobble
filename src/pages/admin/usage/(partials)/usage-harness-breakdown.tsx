@@ -3,7 +3,9 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { UsageOverview } from "@/src/types";
+import { twMerge } from "tailwind-merge";
 import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group";
+import { UsageHarnessColumns } from "../(data)/usage-table-columns";
 import sumTokens from "../(functions)/sum-tokens";
 import UsageHarnessRow from "./usage-harness-row";
 
@@ -32,17 +34,22 @@ export default function UsageHarnessBreakdown({ rows }: Props) {
     return (
         <SettingsGroup title="By kind of call" description="Where the period's tokens went.">
             <Stack className="w-full gap-0!">
-                <Row className="w-full pb-2 gap-3! items-center border-0 border-b border-solid border-hairline">
-                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary grow">
+                <Row
+                    className={twMerge(
+                        UsageHarnessColumns,
+                        "w-full pb-2 gap-3! items-center border-0 border-b border-solid border-hairline",
+                    )}
+                >
+                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary">
                         Kind
                     </Span>
-                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary w-10 text-right">
+                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary text-right">
                         Share
                     </Span>
-                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary w-20 text-right">
+                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary text-right">
                         Tokens
                     </Span>
-                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary w-16 text-right">
+                    <Span className="text-[11px] uppercase tracking-wide text-ink-secondary text-right">
                         Cost
                     </Span>
                 </Row>

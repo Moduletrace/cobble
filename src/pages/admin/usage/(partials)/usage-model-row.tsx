@@ -1,9 +1,11 @@
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import { twMerge } from "tailwind-merge";
 import type { UsageOverview } from "@/src/types";
 import formatTokens from "@/src/utils/format-tokens";
 import { UsageHarnessTitles } from "../(data)/usage-harness-titles";
+import { UsageModelColumns } from "../(data)/usage-table-columns";
 
 type Props = {
     row: UsageOverview["models"][number];
@@ -20,8 +22,13 @@ export default function UsageModelRow({ row }: Props) {
         : "-";
 
     return (
-        <Row className="w-full py-2.5 gap-3! items-center border-0 border-b border-solid border-hairline last:border-b-0">
-            <Stack className="grow min-w-0 gap-0!">
+        <Row
+            className={twMerge(
+                UsageModelColumns,
+                "w-full py-2.5 gap-3! items-center border-0 border-b border-solid border-hairline last:border-b-0",
+            )}
+        >
+            <Stack className="min-w-0 gap-0! items-stretch">
                 <Span className="text-[13px] leading-5 text-ink truncate" title={row.model_slug}>
                     {row.model_name || row.model_slug}
                 </Span>
@@ -29,22 +36,22 @@ export default function UsageModelRow({ row }: Props) {
                     {row.provider_name} - {UsageHarnessTitles[row.harness] || row.harness}
                 </Span>
             </Stack>
-            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums w-14 text-right">
+            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
                 {formatTokens({ tokens: row.calls })}
             </Span>
-            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums w-16 text-right">
+            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
                 {formatTokens({ tokens: row.prompt_tokens })}
             </Span>
-            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums w-16 text-right">
+            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
                 {formatTokens({ tokens: row.completion_tokens })}
             </Span>
-            <Span className="text-[13px] leading-5 text-ink tabular-nums w-16 text-right">
+            <Span className="text-[13px] leading-5 text-ink tabular-nums text-right truncate">
                 {formatTokens({ tokens: row.total_tokens })}
             </Span>
-            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums w-16 text-right">
+            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
                 {per_thousand}
             </Span>
-            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums w-14 text-right">
+            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
                 {row.cost ? `$${row.cost.toFixed(2)}` : "-"}
             </Span>
         </Row>

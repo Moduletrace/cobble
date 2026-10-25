@@ -13,7 +13,7 @@ export default function UsageModelHeadCell({ title, className }: Props) {
     return (
         <Span
             className={twMerge(
-                "text-[11px] uppercase tracking-wide text-ink-secondary text-right shrink-0",
+                "text-[11px] uppercase tracking-wide text-ink-secondary text-right truncate",
                 className,
             )}
         >

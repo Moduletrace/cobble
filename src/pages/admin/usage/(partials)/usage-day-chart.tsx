@@ -13,10 +13,12 @@ type Props = {
 
 /**
  * The period day by day, one bar a day, so a spike or a quiet stretch is
- * read at a glance. The busiest day's total labels the top.
+ * read at a glance. The busiest day's total labels the top, and each bar
+ * opens a small summary of its day.
  */
 export default function UsageDayChart({ days }: Props) {
     const max = days.reduce((highest, day) => Math.max(highest, day.total_tokens), 0);
+    const total_tokens = days.reduce((total, day) => total + day.total_tokens, 0);
     const first = days[0];
     const last = days[days.length - 1];
 
@@ -30,9 +32,9 @@ export default function UsageDayChart({ days }: Props) {
             }
         >
             <Stack className="w-full gap-2!">
-                <Row className="w-full gap-1! items-end">
+                <Row className="w-full gap-1! flex-nowrap items-end">
                     {days.map((day) => (
-                        <UsageDayBar day={day} max={max} key={day.at} />
+                        <UsageDayBar day={day} max={max} total_tokens={total_tokens} key={day.at} />
                     ))}
                 </Row>
                 {first && last ? (

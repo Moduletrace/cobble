@@ -1,6 +1,6 @@
-import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import { UsageRanges } from "../(data)/usage-ranges";
+import UsageRangeButton from "./usage-range-button";
 
 type Props = {
     days: number;
@@ -9,26 +9,20 @@ type Props = {
 };
 
 /**
- * The periods the page totals, one button each. The one showing is the
- * one that reads as pressed.
+ * The periods the page totals, one segment each in a hairline track. The
+ * one showing is filled in ink, so it reads as pressed.
  */
 export default function UsageRangePicker({ days, loading, onChange }: Props) {
     return (
-        <Row className="gap-1! items-center">
+        <Row className="gap-0.5! p-0.5 flex-nowrap items-center rounded-default border border-solid border-hairline">
             {UsageRanges.map((range) => (
-                <Button
+                <UsageRangeButton
                     key={range.days}
-                    title={range.title}
-                    type="button"
-                    size="small"
-                    variant={range.days == days ? "outlined" : "ghost"}
-                    color="text"
-                    disabled={loading}
-                    onClick={() => onChange(range.days)}
-                    className="px-2.5! py-1! text-[12px]! rounded-default-xs"
-                >
-                    {range.title}
-                </Button>
+                    range={range}
+                    selected={range.days == days}
+                    loading={loading}
+                    onChange={onChange}
+                />
             ))}
         </Row>
     );
