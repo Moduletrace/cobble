@@ -9,6 +9,7 @@ import relayJobToRequester from "./relay-job-to-requester";
 import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
 import grabRunningBotJobFace from "./grab-running-bot-job-face";
+import withMessageUsage from "../usage/with-message-usage";
 
 type Params = {
     job_id: number | string;
@@ -78,7 +79,7 @@ export default async function completeBotJob({
         });
     }
 
-    const message = silent
+    const inserted = silent
         ? null
         : await insertBotMessage({
               bot_id: job.bot_id,
@@ -89,7 +90,7 @@ export default async function completeBotJob({
               media_ids: attachments,
           });
 
-    if (job.id && message?.id) {
+    if (job.id && inserted?.id) {
         /**
          * The job's model calls were written down as they happened, before
          * its message existed. Now that it does, they belong to it, so the
@@ -97,9 +98,17 @@ export default async function completeBotJob({
          */
         await BunSQLite.sql({
             sql: `UPDATE token_usages SET message_id = ? WHERE job_id = ? AND message_id IS NULL`,
-            values: [message.id, job.id],
+            values: [inserted.id, job.id],
         }).catch(() => {});
     }
+
+    /**
+     * Pushed live as it is returned, so it carries its usage now: the
+     * thread shows the tokens without a reload.
+     */
+    const message = inserted
+        ? ((await withMessageUsage({ messages: [inserted] }).catch(() => [inserted]))[0] ?? inserted)
+        : null;
 
     const user_id = await grabJobUserId({ job });
 

@@ -5,6 +5,7 @@ import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
 import type { HarnessUsage } from "../types";
 import grabChatParams from "../text/grab-chat-params";
+import flattenSentParams from "../usage/flatten-sent-params";
 import buildUsageCall from "../usage/build-usage-call";
 import recordHarnessUsage from "../usage/record-harness-usage";
 
@@ -45,18 +46,35 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
         workspace_id,
     });
 
-    const { result } = await withCandidates<{ text: string; usage?: HarnessUsage }>({
+    const { result } = await withCandidates<{
+        text: string;
+        usage?: HarnessUsage;
+        sent_params: Record<string, number | string | { effort: string }>;
+    }>({
         harness: "vision",
         candidates,
-        on_success: async ({ candidate, result: answer }): Promise<void> =>
+        on_success: async ({ candidate, result: answer, failed }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "vision",
                     candidate,
                     usage: answer.usage,
+                    failed,
+                    settings: {
+                        settings_source: saved_params.source,
+                        params: flattenSentParams({ params: answer.sent_params }),
+                    },
                 }),
             }),
         run: async (candidate) => {
+            /**
+             * Reading is a lookup, so it stays literal unless a
+             * temperature was set for the vision harness.
+             */
+            const sent_params = {
+                temperature: 0,
+                ...saved_params.paramsFor(candidate.model),
+            };
             const answer = await grabHarnessAdapter({
                 kind: candidate.provider.kind,
             }).chat({
@@ -75,14 +93,7 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
                         ],
                     },
                 ],
-                /**
-                 * Reading is a lookup, so it stays literal unless a
-                 * temperature was set for the vision harness.
-                 */
-                params: {
-                    temperature: 0,
-                    ...saved_params(candidate.model),
-                },
+                params: sent_params,
                 signal: signal || new AbortController().signal,
             });
 
@@ -94,7 +105,7 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
                 });
             }
 
-            return { text: answer.text.trim(), usage: answer.usage };
+            return { text: answer.text.trim(), usage: answer.usage, sent_params };
         },
     });
 

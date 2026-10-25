@@ -58,11 +58,12 @@ export default async function embedText({
     const { result } = await withCandidates<HarnessEmbedResult>({
         harness: "embedding",
         candidates,
-        on_success: async ({ candidate, result: embedded }): Promise<void> =>
+        on_success: async ({ candidate, result: embedded, failed }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "embedding",
                     candidate,
+                    failed,
                     usage: embedded.usage,
                 }),
             }),

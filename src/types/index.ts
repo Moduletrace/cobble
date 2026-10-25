@@ -32,7 +32,7 @@ import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
-import type { TokenUsageSummary } from "../harness/usage/types";
+import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type {
     CustomToolHttpMethod,
@@ -1024,6 +1024,88 @@ export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
      * summed. Only on bot messages that took at least one call.
      */
     usage?: TokenUsageSummary | null;
+};
+
+/**
+ * One model call behind a message, as its details modal lists it: which
+ * provider and model answered, for which harness, and what it spent.
+ */
+export type MessageDetailsCall = {
+    id: number;
+    created_at: number;
+    harness: string;
+    provider_id: number | null;
+    provider_name: string | null;
+    /**
+     * The provider's kind (`HarnessProviderKinds`), while the provider
+     * still exists.
+     */
+    provider_kind: string | null;
+    model_slug: string | null;
+    /**
+     * The catalog's display name, while the model is still in it.
+     */
+    model_name: string | null;
+    prompt_tokens: number;
+    completion_tokens: number;
+    cost: number | null;
+    /**
+     * How it was made (`token_usages.settings`); null for a call recorded
+     * before settings were.
+     */
+    settings: HarnessCallSettings | null;
+};
+
+/**
+ * The calls of one provider, model and harness, summed: what the modal's
+ * "Models" list shows.
+ */
+export type MessageDetailsModel = TokenUsageSummary & {
+    harness: string;
+    provider_name: string | null;
+    provider_kind: string | null;
+    model_slug: string | null;
+    model_name: string | null;
+    /**
+     * The latest call's settings: a run keeps its settings, so they are
+     * the same for every call but a fallback.
+     */
+    settings: HarnessCallSettings | null;
+};
+
+/**
+ * The queued job that produced a message, while it is kept
+ * (`BotQueueRetentionDays`).
+ */
+export type MessageDetailsJob = {
+    id: number;
+    kind: string | null;
+    title: string | null;
+    status: string | null;
+    attempts: number;
+    started_at: number | null;
+    finished_at: number | null;
+    /**
+     * How many model turns and notes it recorded (`bots_queue_updates`).
+     */
+    steps: number;
+};
+
+/**
+ * Everything known about how one bot message was generated: the job that
+ * ran it, every model call it took and their totals.
+ */
+export type MessageDetails = {
+    message_id: number;
+    created_at: number | null;
+    totals: TokenUsageSummary;
+    models: MessageDetailsModel[];
+    /**
+     * The calls in the order they were made, up to
+     * `AppData.MessageDetailsMaxCalls`; `totals.calls` counts them all.
+     */
+    calls: MessageDetailsCall[];
+    job: MessageDetailsJob | null;
 };
 
 /**

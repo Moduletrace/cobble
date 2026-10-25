@@ -44,6 +44,24 @@ describe("buildUsageCall", () => {
             prompt_tokens: 1200,
             completion_tokens: 340,
             cost: 0.0042,
+            settings: { model_source: "auto" },
+        });
+    });
+
+    test("keeps the settings sent and the models that failed first", () => {
+        const call = buildUsageCall({
+            harness: "text",
+            candidate: candidate({ source: "pinned" }),
+            settings: { settings_source: "bot", params: { temperature: 0.3 }, max_tokens: 800 },
+            failed: ["2:other/model"],
+        });
+
+        expect(call.settings).toEqual({
+            model_source: "pinned",
+            settings_source: "bot",
+            params: { temperature: 0.3 },
+            max_tokens: 800,
+            fell_back_from: ["2:other/model"],
         });
     });
 

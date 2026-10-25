@@ -51,11 +51,12 @@ export default async function transcribeAudio({
     const { result } = await withCandidates<{ text: string; usage?: HarnessUsage }>({
         harness: "transcription",
         candidates,
-        on_success: async ({ candidate, result: transcript }): Promise<void> =>
+        on_success: async ({ candidate, result: transcript, failed }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "transcription",
                     candidate,
+                    failed,
                     usage: transcript.usage,
                 }),
             }),

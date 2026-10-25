@@ -332,6 +332,11 @@ export const AppData = {
      */
     ConversationOlderMessages: 30,
     /**
+     * The most model calls a message's details modal lists one by one. A
+     * long task can take hundreds; the totals still count every one.
+     */
+    MessageDetailsMaxCalls: 200,
+    /**
      * Days of usage the usage page totals by default, and the most it will
      * total at once.
      */
@@ -396,7 +401,7 @@ export const AppData = {
      * setting, Settings > General), which wins over this one; a reply
      * reads it through `grabReplyMaxToolSteps`.
      */
-    BotReplyMaxToolSteps: 8,
+    BotReplyMaxToolSteps: 20,
     /**
      * The most steps a saved run limit may ask for, for a task run or a
      * chat reply. A typo in the settings page can't turn one run into an

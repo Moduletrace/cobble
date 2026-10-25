@@ -1787,6 +1787,10 @@ export type BUN_SQLITE_COBBLE_TOKEN_USAGES = {
      * The provider's price in USD, when it reports one
      */
     cost?: number | "";
+    /** 
+     * JSON (`HarnessCallSettings`): how the call was made. The generation settings sent (temperature, reasoning effort, max tokens, voice), where they came from, whether the model was picked or automatic, and the models that failed before it
+     */
+    settings?: string;
 }
 
 export type BUN_SQLITE_COBBLE_BOT_FILE_VECTORS = {

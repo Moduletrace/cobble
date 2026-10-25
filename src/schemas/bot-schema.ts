@@ -176,3 +176,9 @@ export const SpeakBotMessageRequestSchema = z.object({
 });
 
 export type SpeakBotMessageRequest = z.infer<typeof SpeakBotMessageRequestSchema>;
+
+export const MessageDetailsRequestSchema = z.object({
+    message_id: z.coerce.number().int().positive("Pick a message"),
+});
+
+export type MessageDetailsRequest = z.infer<typeof MessageDetailsRequestSchema>;

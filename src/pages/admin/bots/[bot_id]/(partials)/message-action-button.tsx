@@ -4,7 +4,10 @@ import type { ReactNode } from "react";
 type Props = {
     title: string;
     aria_label: string;
-    onClick: () => void;
+    /**
+     * Left out when a wrapper (a modal's target) handles the click.
+     */
+    onClick?: () => void;
     children: ReactNode;
 };
 

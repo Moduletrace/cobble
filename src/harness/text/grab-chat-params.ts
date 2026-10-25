@@ -18,22 +18,24 @@ type Params = {
  * harness's setting (the workspace's, the bot's, else the default), else
  * `HarnessParameterDefaults` so a fresh install is ready to go. Keyed by
  * the field sent on the wire, keeping only what the model says it takes
- * (a default only where the model explicitly advertises it).
+ * (a default only where the model explicitly advertises it). `source`
+ * says whose setting it was, for the call's usage row.
  */
 export default async function grabChatParams({
     harness,
     bot_id,
     workspace_id,
-}: Params): Promise<
-    (model: HarnessModelInfo) => Record<string, number | string | { effort: string }>
-> {
+}: Params): Promise<{
+    paramsFor: (model: HarnessModelInfo) => Record<string, number | string | { effort: string }>;
+    source: "default" | "bot" | "workspace";
+}> {
     const setting = await grabHarnessSetting({
         harness,
         bot_id,
         workspace_id,
     });
 
-    return (model) =>
+    const paramsFor = (model: HarnessModelInfo) =>
         Object.fromEntries(
             HarnessParameters.flatMap((parameter) => {
                 const { value, saved } = harnessParameterValue({
@@ -67,4 +69,6 @@ export default async function grabChatParams({
                 ];
             }),
         );
+
+    return { paramsFor, source: setting.source };
 }

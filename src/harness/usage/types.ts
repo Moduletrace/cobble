@@ -30,6 +30,33 @@ export type HarnessUsageScope = {
  * asked, and which candidate answered. Both are filled in by the call's
  * own entry point, never by the code that runs it.
  */
+export type HarnessCallSettings = {
+    /**
+     * `pinned`: the model picked in the setting. `auto`: an automatic pick.
+     */
+    model_source: "pinned" | "auto";
+    /**
+     * Whose setting the call used: the workspace's, the bot's own or the
+     * install's default. Left out when the call overrode it.
+     */
+    settings_source?: "default" | "bot" | "workspace";
+    /**
+     * The generation settings sent, by their setting key
+     * (`HarnessParameters`: `temperature`, `reasoning_effort`, ...).
+     */
+    params?: Record<string, number | string>;
+    max_tokens?: number;
+    /**
+     * The voice asked for (speech).
+     */
+    voice?: string;
+    /**
+     * The candidates (`<provider id>:<slug>`) that failed before this one
+     * answered, in the order they were tried.
+     */
+    fell_back_from?: string[];
+};
+
 export type HarnessUsageCall = {
     harness: "text" | "vision" | "transcription" | "speech" | "image" | "embedding";
     provider_id?: number;
@@ -39,6 +66,7 @@ export type HarnessUsageCall = {
     prompt_tokens: number;
     completion_tokens: number;
     cost?: number;
+    settings?: HarnessCallSettings;
 };
 
 /**

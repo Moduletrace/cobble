@@ -41,11 +41,12 @@ export default async function generateImage({
     const { result } = await withCandidates<{ images: HarnessImageOutput[]; usage?: HarnessUsage }>({
         harness: "image",
         candidates,
-        on_success: async ({ candidate, result: made }): Promise<void> =>
+        on_success: async ({ candidate, result: made, failed }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "image",
                     candidate,
+                    failed,
                     usage: made.usage,
                 }),
             }),

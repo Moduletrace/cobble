@@ -41,6 +41,12 @@ export default async function speakText({
         grabHarnessSetting({ harness: "speech", bot_id, workspace_id }),
     ]);
 
+    const voiceFor = (candidate: HarnessCandidate) =>
+        pickVoice({
+            candidate,
+            voice: typeof setting.options.voice == "string" ? setting.options.voice : undefined,
+        });
+
     const { result } = await withCandidates<HarnessAudioStream>({
         harness: "speech",
         candidates,
@@ -49,25 +55,24 @@ export default async function speakText({
          * completion count to read: the call is recorded as it is, with
          * the text's length standing in for what was spoken.
          */
-        on_success: async ({ candidate }) =>
+        on_success: async ({ candidate, failed }) =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "speech",
                     candidate,
                     usage: { prompt_tokens: text.length, completion_tokens: 0 },
+                    failed,
+                    settings: {
+                        settings_source: setting.source,
+                        voice: voiceFor(candidate),
+                    },
                 }),
             }),
         run: async (candidate) =>
             await grabHarnessAdapter({ kind: candidate.provider.kind }).speak({
                 candidate,
                 text,
-                voice: pickVoice({
-                    candidate,
-                    voice:
-                        typeof setting.options.voice == "string"
-                            ? setting.options.voice
-                            : undefined,
-                }),
+                voice: voiceFor(candidate),
                 format,
                 signal: signal || new AbortController().signal,
             }),

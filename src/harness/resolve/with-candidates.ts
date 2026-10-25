@@ -22,6 +22,10 @@ type Params<T> = {
     on_success?: (params: {
         candidate: HarnessCandidate;
         result: T;
+        /**
+         * The candidates that failed before this one answered, by key.
+         */
+        failed: string[];
     }) => Promise<void> | void;
     cooldowns?: HarnessCooldowns;
     now?: () => number;
@@ -105,7 +109,11 @@ export default async function withCandidates<T>({
         try {
             const result = await run(candidate);
 
-            await on_success?.({ candidate, result });
+            await on_success?.({
+                candidate,
+                result,
+                failed: errors.flatMap((e) => (e.candidate_key ? [e.candidate_key] : [])),
+            });
 
             return { result, candidate };
         } catch (error: unknown) {

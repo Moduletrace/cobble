@@ -5,6 +5,7 @@ import type { BotMessageWithAttachments } from "@/src/types";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import CopyMessageButton from "./copy-message-button";
 import MessageActionButton from "./message-action-button";
+import MessageDetailsModal from "./message-details-modal";
 import MessageReactionPicker from "./message-reaction-picker";
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
 };
 
 /**
- * A message's copy, reply and reaction actions, shown under it. A message
+ * A message's copy, reply, reaction and details actions, shown under it. A message
  * still on its way to the server has no id yet, so it can only be copied.
  */
 export default function MessageActions({ message }: Props) {
@@ -36,6 +37,7 @@ export default function MessageActions({ message }: Props) {
                         message_id={message.id}
                         onReact={onReact}
                     />
+                    {message.author == "bot" ? <MessageDetailsModal message_id={Number(message.id)} /> : null}
                 </>
             ) : null}
         </Row>

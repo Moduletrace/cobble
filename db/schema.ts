@@ -2985,6 +2985,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `The provider's price in USD, when it reports one`,
                     dataType: "REAL",
                 },
+                {
+                    fieldName: "settings",
+                    fieldDescription: `JSON (\`HarnessCallSettings\`): how the call was made. The generation settings sent (temperature, reasoning effort, max tokens, voice), where they came from, whether the model was picked or automatic, and the models that failed before it`,
+                    dataType: "TEXT",
+                },
             ],
             indexes: [
                 {

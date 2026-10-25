@@ -219,9 +219,20 @@ export default function Conversation() {
                 return;
             }
 
+            /**
+             * A copy already shown keeps its place; one that arrives with
+             * its usage (the relay or the catch-up, after a push without
+             * it) fills in the tokens.
+             */
             setMessages((prev) =>
                 prev.some((m) => m.id == message.id)
-                    ? prev
+                    ? message.usage
+                        ? prev.map((m) =>
+                              m.id == message.id && !m.usage
+                                  ? { ...m, usage: message.usage }
+                                  : m,
+                          )
+                        : prev
                     : [...prev, message],
             );
 

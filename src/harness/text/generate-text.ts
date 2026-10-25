@@ -11,6 +11,7 @@ import type {
 import buildUsageCall from "../usage/build-usage-call";
 import recordHarnessUsage from "../usage/record-harness-usage";
 import grabChatParams from "./grab-chat-params";
+import flattenSentParams from "../usage/flatten-sent-params";
 import prepareMessagesForModel from "./prepare-messages-for-model";
 import stripThinkTags from "./strip-think-tags";
 
@@ -55,6 +56,10 @@ export type GenerateTextResult = HarnessChatResult & {
  */
 type ChatAnswer = Omit<HarnessChatResult, "text"> & {
     text: string | null;
+    /**
+     * The generation settings sent to this candidate, for its usage row.
+     */
+    sent_params?: Record<string, number | string | { effort: string }>;
 };
 
 /**
@@ -85,15 +90,22 @@ export default async function generateText({
         harness: "text",
         candidates: resolved,
         prefer_key,
-        on_success: async ({ candidate: answered, result: answer }): Promise<void> =>
+        on_success: async ({ candidate: answered, result: answer, failed }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "text",
                     candidate: answered,
                     usage: answer.usage,
+                    failed,
+                    settings: {
+                        ...(saved_params ? { settings_source: saved_params.source } : {}),
+                        params: flattenSentParams({ params: answer.sent_params }),
+                        ...(max_tokens ? { max_tokens } : {}),
+                    },
                 }),
             }),
         run: async (candidate) => {
+            const sent_params = params || saved_params?.paramsFor(candidate.model);
             const answer = await grabHarnessAdapter({
                 kind: candidate.provider.kind,
             }).chat({
@@ -108,7 +120,7 @@ export default async function generateText({
                 }),
                 tools,
                 max_tokens,
-                params: params || saved_params?.(candidate.model),
+                params: sent_params,
                 signal,
             });
 
@@ -122,7 +134,7 @@ export default async function generateText({
                 });
             }
 
-            return { ...answer, text: text || null };
+            return { ...answer, text: text || null, sent_params };
         },
     });
 
