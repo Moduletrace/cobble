@@ -121,6 +121,11 @@ export type BotHookWithNames = Omit<BUN_SQLITE_COBBLE_BOT_HOOKS, "token_hash" | 
      * For browser notifications: the watched computer's name.
      */
     watch_computer_name?: string | null;
+    /**
+     * The title of the session its runs land in, when it has one of its
+     * own (`session_id`).
+     */
+    session_title?: string | null;
     bot_name?: string | null;
     bot_kind?: string | null;
     bot_hue?: string | null;
@@ -160,6 +165,22 @@ export type BotHookWithToken = {
     hook: BotHookWithNames;
     token?: string;
     watch?: NotifyWatchSync;
+};
+
+/**
+ * Which session a hook's runs land in: `current` follows the
+ * conversation's active session, `new` starts one of its own beside it,
+ * a number is one of the conversation's sessions.
+ */
+export type HookSessionChoice = "current" | "new" | number;
+
+/**
+ * Where a hook can run, for the picker: its bot's own chat
+ * (`workspace_id` null) or one of the bot's workspaces.
+ */
+export type HookPlace = {
+    workspace_id: number | null;
+    name: string;
 };
 
 /**

@@ -65,8 +65,18 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
         if (open) on_open?.();
     }, [open]);
 
+    /**
+     * A hook saved to run elsewhere (another workspace, or the bot's own
+     * chat) leaves this conversation's list.
+     */
     const replace = ({ hook }: { hook: BotHookWithNames }) =>
-        setHooks((prev) => (prev.some((h) => h.id == hook.id) ? prev.map((h) => (h.id == hook.id ? hook : h)) : [hook, ...prev]));
+        setHooks((prev) => {
+            const rest = prev.filter((h) => h.id != hook.id);
+
+            if ((Number(hook.workspace_id) || null) != (Number(workspace?.id) || null)) return rest;
+
+            return prev.some((h) => h.id == hook.id) ? prev.map((h) => (h.id == hook.id ? hook : h)) : [hook, ...prev];
+        });
 
     const back = () => {
         set_view(undefined);

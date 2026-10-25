@@ -15,17 +15,25 @@ type Params = {
      * The session this one carries on from.
      */
     previous_session_id?: number | null;
+    /**
+     * `closed` starts it in the background (a hook's own session), leaving
+     * the conversation's active one as it is. Active by default.
+     */
+    status?: "active" | "closed";
+    title?: string | null;
 };
 
 /**
- * Starts an active session in a user's conversation. Callers close the old one
- * first (`startBotSession`).
+ * Starts a session in a user's conversation: an active one (callers close
+ * the old one first, `startBotSession`) or, `closed`, one beside it.
  */
 export default async function createBotSession({
     user_id,
     bot_id,
     workspace_id,
     previous_session_id,
+    status = "active",
+    title,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_SESSIONS> {
     const now = Date.now();
 
@@ -34,7 +42,8 @@ export default async function createBotSession({
         bot_id: Number(bot_id),
         workspace_id: workspace_id ? Number(workspace_id) : undefined,
         previous_session_id: previous_session_id || undefined,
-        status: "active",
+        status,
+        title: title || undefined,
         unread: 0,
         last_activity_at: now,
     };

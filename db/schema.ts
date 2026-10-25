@@ -1187,6 +1187,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     },
                 },
                 {
+                    fieldName: "session_id",
+                    fieldDescription: `The session (of this user, bot and place) its runs and results land in, open or closed; null follows the conversation's active session. A bot's proposed hook gets the session it was proposed in. Not a foreign key: a missing one is replaced by a new session on the next call`,
+                    dataType: "INTEGER",
+                },
+                {
                     fieldName: "title",
                     dataType: "TEXT",
                 },

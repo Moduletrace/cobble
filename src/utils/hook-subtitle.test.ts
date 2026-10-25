@@ -39,4 +39,10 @@ describe("hookSubtitle", () => {
             "1 run · called 5m · signed · This hook is paused.",
         );
     });
+
+    test("a hook with a session of its own names it", () => {
+        const hook = { bot_name: "Scout", session_id: 9, session_title: "Hook: Issues", run_count: 1 } as BotHookWithNames;
+
+        expect(hookSubtitle({ hook, now })).toBe('Scout · in "Hook: Issues" · 1 run · never called');
+    });
 });

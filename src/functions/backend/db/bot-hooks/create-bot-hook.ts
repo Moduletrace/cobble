@@ -1,7 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_HOOKS, BunSQLiteTables } from "@/db/types/db";
 import type { BotHookSignatureFormat, BotHookSource } from "@/src/dict/bot-hook-dict";
-import type { BotHookWithToken } from "@/src/types";
+import type { BotHookWithToken, HookSessionChoice } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import { encrypt } from "@/src/utils/crypt";
 import generateHookToken from "@/src/utils/generate-hook-token";
@@ -10,6 +10,8 @@ import assertHookComputers from "./assert-hook-computers";
 import assertHookRoom from "./assert-hook-room";
 import syncComputerNotifyWatch from "./sync-computer-notify-watch";
 import grabUserBotHook from "./grab-user-bot-hook";
+import noteHookSession from "./note-hook-session";
+import pickHookSession from "./pick-hook-session";
 
 type Params = {
     user_id: number | string;
@@ -18,6 +20,16 @@ type Params = {
      * The workspace it runs in; none for the bot's own chat.
      */
     workspace_id?: number | string | null;
+    /**
+     * The session its runs land in (`pickHookSession`); left out, the
+     * conversation's active one, whichever that is at the time.
+     */
+    session?: HookSessionChoice;
+    /**
+     * A chosen session that's gone starts a new one instead (a bot's
+     * proposal, pinned to the session it was made in).
+     */
+    session_missing_starts_new?: boolean;
     title: string;
     instructions: string;
     /**
@@ -45,7 +57,8 @@ type Params = {
 /**
  * Gives one of the user's bots a hook: a secret URL whose calls each queue
  * the brief, with the call's payload, as a task in the bot's conversation
- * there (`fireBotHook`). Returns the hook and its token, which is shown
+ * there (`fireBotHook`): in a session of its own, a chosen one, or the
+ * active one at the time. Returns the hook and its token, which is shown
  * this once: only its hash is kept. A browser-notification hook needs a
  * computer both the user and the bot reach; its token is kept encrypted
  * for that computer's watcher, set up before this returns
@@ -55,6 +68,8 @@ export default async function createBotHook({
     user_id,
     bot_id,
     workspace_id,
+    session = "current",
+    session_missing_starts_new,
     title,
     instructions,
     computer_id,
@@ -86,6 +101,15 @@ export default async function createBotHook({
         throw new AppError(`Say which header carries the signature.`);
     }
 
+    const session_id = await pickHookSession({
+        user_id,
+        bot_id: bot_id_num,
+        workspace_id: conversation.workspace_id,
+        choice: session,
+        title,
+        missing_starts_new: session_missing_starts_new,
+    });
+
     const { token, prefix, hash } = generateHookToken();
 
     const res = await BunSQLite.insert<BUN_SQLITE_COBBLE_BOT_HOOKS, (typeof BunSQLiteTables)[number]>({
@@ -95,6 +119,7 @@ export default async function createBotHook({
                 user_id: Number(user_id),
                 bot_id: bot_id_num,
                 workspace_id: conversation.workspace_id || undefined,
+                session_id: session_id || undefined,
                 title,
                 instructions,
                 computer_id: run_computer_id ? Number(run_computer_id) : undefined,
@@ -117,6 +142,10 @@ export default async function createBotHook({
 
     if (!res.success || !hook_id) {
         throw new Error(`Couldn't save the hook: ${res.msg}`);
+    }
+
+    if (session_id) {
+        await noteHookSession({ bot_id: bot_id_num, session_id, workspace_id: conversation.workspace_id, title });
     }
 
     if (watching) {

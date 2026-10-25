@@ -10,7 +10,7 @@ import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**
- * Changes one of the session user's hooks: its name, brief, whether it's on, or how its calls are signed. Returns the hook.
+ * Changes one of the session user's hooks: its name, brief, whether it's on, how its calls are signed, or where and in which session it runs. Returns the hook.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BotHookWithNames>> = async ({ req, body }) => {
     try {

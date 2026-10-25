@@ -16,7 +16,8 @@ type Params = {
  * The user confirmed a hook proposal from its card: claims it (once, and
  * only while it's pending and not expired), checks it again against the
  * hook and the bot's reach now, then saves it with the Hooks modal's own
- * helpers, as that user. Returns the proposal and, for a new hook called
+ * helpers, as that user. A new hook runs in the session it was proposed
+ * in (a new one of its own if that's gone). Returns the proposal and, for a new hook called
  * at a URL, its token: the card shows it this once, and it's never
  * stored in the outcome, which the bot is told. Whatever happens is
  * recorded on the proposal as its `outcome`.
@@ -46,6 +47,8 @@ export default async function confirmHookProposal({ user_id, proposal_id }: Para
                 user_id,
                 bot_id: proposal.bot_id,
                 workspace_id: proposal.workspace_id,
+                session: proposal.session_id ? Number(proposal.session_id) : "current",
+                session_missing_starts_new: true,
                 title: data.title!,
                 instructions: data.instructions!,
                 computer_id: data.computer_id,

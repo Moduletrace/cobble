@@ -16,10 +16,16 @@ const SignatureHeaderField = z
 const SourceField = z.enum(BotHookSources.map((s) => s.value) as [string, ...string[]]);
 const WatchFilterField = z.string().trim().max(300, "Keep the filter under 300 characters");
 const SigningSecretField = z.string().trim().min(8, "Use a secret of at least 8 characters").max(500);
+/**
+ * `current`: the conversation's active session; `new`: one of its own;
+ * a number: one of the conversation's sessions.
+ */
+const SessionField = z.union([z.literal("current"), z.literal("new"), z.coerce.number().int().positive()]);
 
 export const CreateBotHookRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot"),
     workspace_id: z.coerce.number().int().positive().nullable().optional(),
+    session: SessionField.optional(),
     title: TitleField,
     instructions: InstructionsField,
     signing_secret: SigningSecretField.nullable().optional(),
@@ -44,9 +50,20 @@ export const UpdateBotHookRequestSchema = z.object({
     signature_header: SignatureHeaderField.optional(),
     signature_format: SignatureFormatField.optional(),
     watch_filter: WatchFilterField.optional(),
+    /**
+     * Where it runs from now (same bot); `null` for the bot's own chat.
+     */
+    workspace_id: z.coerce.number().int().positive().nullable().optional(),
+    session: SessionField.optional(),
 });
 
 export type UpdateBotHookRequest = z.infer<typeof UpdateBotHookRequestSchema>;
+
+export const HookPlacesRequestSchema = z.object({
+    bot_id: z.coerce.number().int().positive("Pick a bot"),
+});
+
+export type HookPlacesRequest = z.infer<typeof HookPlacesRequestSchema>;
 
 export const BotHookIdRequestSchema = z.object({
     hook_id: HookIdField,

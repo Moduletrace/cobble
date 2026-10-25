@@ -57,6 +57,7 @@ export default async function grabBotHooks({
                 h.instructions, h.computer_id, h.token_prefix, h.signature_header, h.signature_format,
                 h.enabled, h.run_count, h.last_called_at, h.last_job_id, h.last_error,
                 h.source, h.watch_computer_id, h.watch_filter, wc.name AS watch_computer_name,
+                h.session_id, s.title AS session_title,
                 (COALESCE(h.signing_secret, '') != '') AS has_signing_secret,
                 b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone, ${face.sql},
                 b.image_media_id AS bot_image_media_id, w.name AS workspace_name
@@ -64,6 +65,7 @@ export default async function grabBotHooks({
             JOIN bots b ON b.id = h.bot_id
             LEFT JOIN workspaces w ON w.id = h.workspace_id
             LEFT JOIN computers wc ON wc.id = h.watch_computer_id
+            LEFT JOIN bot_sessions s ON s.id = h.session_id
             WHERE ${where.join(" AND ")}
             ORDER BY h.enabled DESC, h.last_called_at IS NULL, h.last_called_at DESC, h.id DESC`,
         values: [...face.values, ...values],

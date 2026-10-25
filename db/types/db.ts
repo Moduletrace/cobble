@@ -742,6 +742,10 @@ export type BUN_SQLITE_COBBLE_BOT_HOOKS = {
      * The workspace it runs in (context, computers, models, and the conversation its results go to); null for the bot's own chat
      */
     workspace_id?: number | "";
+    /** 
+     * The session (of this user, bot and place) its runs and results land in, open or closed; null follows the conversation's active session. A bot's proposed hook gets the session it was proposed in. Not a foreign key: a missing one is replaced by a new session on the next call
+     */
+    session_id?: number | "";
     title?: string;
     /** 
      * The brief each run gets (markdown); the call's payload is added below it as data

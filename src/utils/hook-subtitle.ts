@@ -13,7 +13,8 @@ type Params = {
 };
 
 /**
- * The line under a hook's name: whose it is, where it runs, which
+ * The line under a hook's name: whose it is, where it runs (and in which
+ * session, when it has one of its own), which
  * computer's notifications it gets (and its filter), how many runs
  * it started and when it was last called, whether calls must be signed,
  * then why its last call or run failed.
@@ -24,6 +25,7 @@ export default function hookSubtitle({ hook, now = Date.now(), show_bot = true, 
     return [
         show_bot ? hook.bot_name || "A bot" : "",
         show_workspace ? hook.workspace_name || "" : "",
+        hook.session_id ? `in "${hook.session_title || `session ${hook.session_id}`}"` : "",
         hook.source == "browser_notifications"
             ? `notifications on ${hook.watch_computer_name || "a computer"}${hook.watch_filter ? ` with "${hook.watch_filter}"` : ""}`
             : "",
