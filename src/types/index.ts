@@ -1439,6 +1439,11 @@ export type PagePropsType = {
      */
     skill_limits?: SkillLimitsOverview | null;
     /**
+     * The name the install goes by as an installed app (Settings >
+     * General, and the root's head tags). Empty when never named.
+     */
+    install_name?: string | null;
+    /**
      * The release the server is running, for the General settings page.
      */
     running_version?: RunningVersion | null;

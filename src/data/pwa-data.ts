@@ -90,3 +90,23 @@ export const PwaIconPath = (name: `icon` | `maskable`, size: number) =>
  */
 export const PwaManifestName = SiteData["SiteName"];
 export const PwaShortName = SiteData["SiteName"];
+
+/**
+ * A notification's `badge`: the stone's white silhouette, since Android
+ * draws only its alpha. `public/sw.js` repeats the path.
+ */
+export const PwaBadgeSize = 96;
+export const PwaBadgePath = `/icons/badge-${PwaBadgeSize}.png`;
+
+/**
+ * What `handlePrecacheGate` swaps for the install's name in the loading
+ * page's title.
+ */
+export const PwaLoadingNamePlaceholder = "{{name}}";
+
+/**
+ * The install's own name (Settings > General), so two installs on one
+ * phone don't both read `SiteName`. Saved in `app_settings`.
+ */
+export const PwaInstallNameSettingKey = "install_name";
+export const PwaInstallNameMaxLength = 30;

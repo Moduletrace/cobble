@@ -59,8 +59,17 @@ const ASSET_PATHS = ["/favicon.ico", "/favicon.png", "/apple-touch-icon.png"];
 const BYPASS_PREFIXES = ["/api/", "/ws", "/media", "/computers/"];
 const BYPASS_PATHS = ["/sw.js", "/manifest.webmanifest", "/auth/logout", BUILD_INFO_URL];
 
+/**
+ * Android draws a badge from its alpha alone, so it's the white stone on
+ * transparent (`PwaBadgePath`); the app icon sits on opaque paper and
+ * would show as a square.
+ */
 const DEFAULT_ICON = "/icons/icon-192.png";
-const DEFAULT_BADGE = "/icons/icon-192.png";
+const DEFAULT_BADGE = "/icons/badge-96.png";
+
+function absoluteUrl(path) {
+    return new URL(path, self.location.origin).href;
+}
 
 function isAssetRequest(url) {
     return (
@@ -203,8 +212,8 @@ self.addEventListener("push", (event) => {
     const title = payload.title || "Cobble";
     const options = {
         body: payload.body || "",
-        icon: payload.icon || DEFAULT_ICON,
-        badge: payload.badge || DEFAULT_BADGE,
+        icon: absoluteUrl(payload.icon || DEFAULT_ICON),
+        badge: absoluteUrl(payload.badge || DEFAULT_BADGE),
         tag: payload.tag || undefined,
         renotify: Boolean(payload.tag),
         requireInteraction: Boolean(payload.requireInteraction),

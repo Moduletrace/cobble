@@ -147,6 +147,8 @@ Set in Settings > Environment (super admin), not `.env`. `envs` (private; encryp
 ### PWA and notifications
 
 - Generated assets (manifest, icons, `offline.html`, `loading.html`) come from `bun run gen:favicon`, which reads `main.css`; outputs are committed. Shared paths in `src/data/pwa-data.ts`.
+- **Install name:** app setting `install_name` (Settings > General, super admin). `handlePwaFile` rewrites the manifest's `name`/`short_name` per request (`namePwaManifest`), the root head uses it for iOS tags, the loading page's `<title>` is the `{{name}}` placeholder. Devices pick up a new name only on reinstall.
+- Notification `badge` is `icons/badge-96.png` (white silhouette; Android masks by alpha, so never the opaque app icon). Brave on Android has no WebAPK, so its notifications always carry Brave's name and icon.
 - `public/sw.js` is served `no-store`; navigations network-only (authenticated HTML never cached); `/api/`, `/ws`, `/media/`, `/computers/`, `/build-info.json` never intercepted. It never reloads on its own. In development the worker and caches are actively removed (`clear-development-service-worker.ts`, stub `/sw.js`).
 - **Precache (production):** a navigation without the current build cookie gets `loading.html`, which downloads all of `.bunext/public` into `cobble-assets-<build_id>`, verifies, sets the cookie and reloads (falls back to network on stall). React knows nothing of this.
 - Phone shell: rail is a slide-over below `md`; rail internals use the `@rail:` container variant, not viewport `lg:`. `LiveSocket` is remounted on online/pageshow/visibility since twui stops retrying after three attempts. Nothing is queued offline.

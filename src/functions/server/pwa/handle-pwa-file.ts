@@ -1,5 +1,7 @@
 import path from "path";
 import { PwaManifestPath, PwaServiceWorkerPath } from "@/src/data/pwa-data";
+import grabInstallName from "@/src/functions/backend/db/app-settings/grab-install-name";
+import namePwaManifest from "@/src/utils/name-pwa-manifest";
 
 const PUBLIC_DIR = path.resolve(import.meta.dir, "../../../../public");
 
@@ -77,7 +79,11 @@ export default async function handlePwaFile({
         headers.set("Service-Worker-Allowed", "/");
     }
 
-    const response = new Response(development_stub || file, { headers });
+    const response = new Response(
+        development_stub ||
+            (file_name == "manifest.webmanifest" ? await namedManifest({ file }) : file),
+        { headers },
+    );
 
     /**
      * `Bun.file` adds a filename disposition; a manifest is inline data.
@@ -85,4 +91,21 @@ export default async function handlePwaFile({
     response.headers.delete("content-disposition");
 
     return response;
+}
+
+/**
+ * The generated manifest under the install's own name (Settings >
+ * General). Unnamed, or when the file isn't JSON, it goes out as it is.
+ */
+async function namedManifest({ file }: { file: ReturnType<typeof Bun.file> }) {
+    const text = await file.text();
+    const install_name = await grabInstallName().catch(() => "");
+
+    if (!install_name) return text;
+
+    try {
+        return JSON.stringify(namePwaManifest({ manifest: JSON.parse(text), install_name }), null, 4);
+    } catch {
+        return text;
+    }
 }

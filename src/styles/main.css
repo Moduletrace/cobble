@@ -73,7 +73,7 @@
 @theme inline {
     /* Typography */
     --font-sans:
-        "Lato", "Liberation Sans", system-ui, -apple-system, sans-serif;
+        "Archivo", "Liberation Sans", system-ui, -apple-system, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
     /* Cobble neutrals - switch with the color scheme */

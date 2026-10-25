@@ -5,8 +5,11 @@ import { SiteData } from "../data/site-data";
 import { AppData } from "../data/app-data";
 import { HashedAssetPattern } from "../utils/is-hashed-asset-path";
 import {
+    PwaBadgePath,
+    PwaBadgeSize,
     PwaBuildInfoPath,
     PwaIcons,
+    PwaLoadingNamePlaceholder,
     PwaPrecacheCachePrefix,
     PwaPrecacheMarkerPath,
     PwaServiceWorkerPath,
@@ -66,6 +69,52 @@ function buildIco(pngs: Record<number, Buffer>): Buffer {
     }
 
     return Buffer.concat([header, ...entries, ...blobs]);
+}
+
+/**
+ * The app's font, loaded the way `src/pages/__root.tsx` loads it, so the
+ * generated pages read like the app. Offline, the browser's cached copy is
+ * used when it has one, else the fallbacks.
+ */
+const FontLinks = `<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&display=swap" />`;
+
+/**
+ * The status-bar icon Android draws from a notification's `badge`. Only
+ * the alpha channel counts, so it is the stone's silhouette alone, white
+ * on transparent (the app icons sit on opaque paper and mask to a square).
+ */
+async function renderBadge({ svg, size }: { svg: Buffer; size: number }) {
+    const silhouette = await sharp(svg)
+        .resize(Math.round(size * 0.84), Math.round(size * 0.84), { fit: "contain" })
+        .ensureAlpha()
+        .extractChannel("alpha")
+        .toBuffer();
+
+    const mark = await sharp({
+        create: {
+            width: Math.round(size * 0.84),
+            height: Math.round(size * 0.84),
+            channels: 3,
+            background: "#ffffff",
+        },
+    })
+        .joinChannel(silhouette)
+        .png()
+        .toBuffer();
+
+    return sharp({
+        create: {
+            width: size,
+            height: size,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+        },
+    })
+        .composite([{ input: mark, gravity: "center" }])
+        .png()
+        .toBuffer();
 }
 
 function escapeHtml(text: string) {
@@ -202,6 +251,7 @@ function buildOfflinePage({
 <meta name="theme-color" content="${colors.paper}" />
 <title>Offline | ${name}</title>
 <link rel="manifest" href="${PwaManifestPath}" />
+${FontLinks}
 <style>
 :root {
     --paper: ${colors.paper};
@@ -228,7 +278,7 @@ body {
     padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
     background: var(--paper);
     color: var(--ink);
-    font-family: "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Archivo", "Liberation Sans", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 main {
@@ -310,8 +360,9 @@ function buildLoadingPage({
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="${colors.paper}" />
 <meta name="robots" content="noindex" />
-<title>${name}</title>
+<title>${PwaLoadingNamePlaceholder}</title>
 <link rel="manifest" href="${PwaManifestPath}" />
+${FontLinks}
 <style>
 :root {
     --paper: ${colors.paper};
@@ -338,7 +389,7 @@ body {
     padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
     background: var(--paper);
     color: var(--ink);
-    font-family: "Lato", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Archivo", "Liberation Sans", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 main {
@@ -611,6 +662,11 @@ async function main() {
     }
 
     writeFileSync(
+        path.join(PUBLIC_DIR, PwaBadgePath.replace(/^\//, "")),
+        await renderBadge({ svg, size: PwaBadgeSize }),
+    );
+
+    writeFileSync(
         path.join(PUBLIC_DIR, "manifest.webmanifest"),
         `${JSON.stringify(buildManifest({ colors }), null, 4)}\n`,
     );
@@ -634,6 +690,7 @@ async function main() {
     console.log("  public/icons/icon-512.png        (app icon)");
     console.log("  public/icons/maskable-192.png    (maskable, safe zone)");
     console.log("  public/icons/maskable-512.png    (maskable, safe zone)");
+    console.log("  public/icons/badge-96.png        (notification badge, alpha only)");
     console.log("  public/manifest.webmanifest      (name, colors and icons)");
     console.log("  public/offline.html              (self-contained offline page)");
     console.log("  public/loading.html              (precache loading page)");

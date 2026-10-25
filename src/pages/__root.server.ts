@@ -6,6 +6,7 @@ import isAdminSectionPath from "../utils/is-admin-section-path";
 import { AdminHomePath } from "../dict/admin-sections-dict";
 import isUnknownSettingsPath from "../utils/is-unknown-settings-path";
 import { SettingsDefaultPath } from "../dict/settings-pages-dict";
+import grabInstallName from "../functions/backend/db/app-settings/grab-install-name";
 
 /**
  * Routing for a local install. There are no public pages:
@@ -80,6 +81,7 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
             },
             user,
             user_types,
+            install_name: await grabInstallName().catch(() => ""),
         },
     };
 };

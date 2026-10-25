@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PwaInstallNameMaxLength } from "@/src/data/pwa-data";
 
 const PushEndpointField = z
     .string()
@@ -33,4 +34,8 @@ export const PushEndpointRequestSchema = z.object({
 
 export const PushSubscriptionIdRequestSchema = z.object({
     id: z.coerce.number().int().positive("Pick a device"),
+});
+
+export const SaveInstallNameRequestSchema = z.object({
+    install_name: z.string().trim().max(PwaInstallNameMaxLength),
 });

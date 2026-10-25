@@ -13,6 +13,7 @@ import type {
     PagePropsType,
 } from "@/src/types";
 import { SiteData } from "@/src/data/site-data";
+import installDisplayName from "@/src/utils/install-display-name";
 import Layout from "../layouts/main";
 import AuthLayout from "../layouts/auth";
 import BotsLayout from "../layouts/bots";
@@ -93,16 +94,23 @@ export default function App({
 }
 
 export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
+    /**
+     * iOS names a home-screen app from these tags, not the manifest.
+     */
+    const app_name = installDisplayName({
+        install_name: (serverRes?.props as PagePropsType | undefined)?.install_name,
+    });
+
     return (
         <>
             <ThemeInitScript />
             <PwaInitScript />
-            <meta name="application-name" content={SiteData["SiteName"]} />
+            <meta name="application-name" content={app_name} />
             <meta name="mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-capable" content="yes" />
             <meta
                 name="apple-mobile-web-app-title"
-                content={SiteData["SiteName"]}
+                content={app_name}
             />
             <meta
                 name="apple-mobile-web-app-status-bar-style"
@@ -115,7 +123,7 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
                 crossOrigin=""
             />
             <link
-                href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..900&display=swap"
                 rel="stylesheet"
             />
             <link

@@ -1,6 +1,9 @@
 import path from "path";
 import { AppData } from "@/src/data/app-data";
-import { PwaLoadingPath } from "@/src/data/pwa-data";
+import { PwaLoadingNamePlaceholder, PwaLoadingPath } from "@/src/data/pwa-data";
+import grabInstallName from "@/src/functions/backend/db/app-settings/grab-install-name";
+import installDisplayName from "@/src/utils/install-display-name";
+import escapeHtml from "@/src/utils/escape-html";
 import { getCookie } from "@/src/utils/cookies";
 import needsPrecachePage from "@/src/utils/needs-precache-page";
 import grabPrecacheManifest from "./grab-precache-manifest";
@@ -53,7 +56,15 @@ export default async function handlePrecacheGate({
         total: manifest.files.length,
     }).replace(/</g, "\\u003c");
 
-    return new Response((await file.text()).replace(BuildPlaceholder, build), {
+    const name = escapeHtml({
+        text: installDisplayName({ install_name: await grabInstallName().catch(() => "") }),
+    });
+
+    const page = (await file.text())
+        .replace(BuildPlaceholder, build)
+        .replace(PwaLoadingNamePlaceholder, name);
+
+    return new Response(page, {
         headers: {
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "no-store, max-age=0, must-revalidate",
