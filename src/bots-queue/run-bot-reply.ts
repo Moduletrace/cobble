@@ -1,4 +1,5 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
+import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings/grab-skill-limits";
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
@@ -204,6 +205,7 @@ export default async function runBotReply({
      */
     const skills = openBotSkills({
         skills: extensions.skills,
+        shown_chars: await grabSkillBodyShownChars(),
         taken: [...tools, ...extensions.tools].map((tool) => tool.name),
     });
 

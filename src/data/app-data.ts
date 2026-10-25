@@ -309,10 +309,14 @@ export const AppData = {
     /**
      * Skills (Settings, under Skills): how long one's body may be, and how
      * much of it `load_skill` hands back in one call. A runbook past that
-     * is worth splitting into two skills.
+     * is worth splitting into two skills. These are the defaults: the
+     * install sets its own on Settings > General (`skill_body_max_chars`,
+     * `skill_body_shown_chars`, `grab-skill-limits.ts`), never past
+     * `SkillBodyLimitMax`.
      */
     SkillBodyMaxChars: 60000,
     SkillBodyShownChars: 30000,
+    SkillBodyLimitMax: 1000000,
     SkillDescriptionMaxChars: 300,
     /**
      * How long the super admin has to confirm an MCP server or tool the

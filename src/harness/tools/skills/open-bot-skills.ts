@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { AppData } from "@/src/data/app-data";
 import { SkillsNote } from "@/src/data/harness-prompts";
 import { LoadSkillToolName } from "@/src/dict/skill-dict";
 import type { SkillRecord } from "@/src/types";
@@ -10,6 +9,11 @@ type Params = {
      * The skills the run reaches (`grabBotExtensions`).
      */
     skills: SkillRecord[];
+    /**
+     * How much of a runbook `load_skill` hands back at once
+     * (`grabSkillBodyShownChars`).
+     */
+    shown_chars: number;
     /**
      * Names the run's built-in tools already use: they win.
      */
@@ -30,7 +34,7 @@ export type OpenBotSkills = {
  * which ones exist. A skill's body costs nothing until the bot asks for it,
  * so a run that never needs a long runbook never pays for it.
  */
-export default function openBotSkills({ skills, taken = [] }: Params): OpenBotSkills {
+export default function openBotSkills({ skills, shown_chars, taken = [] }: Params): OpenBotSkills {
     const enabled = skills.filter((skill) => skill.enabled);
 
     if (!enabled.length || taken.includes(LoadSkillToolName)) return { tools: [], note: "" };
@@ -57,9 +61,9 @@ export default function openBotSkills({ skills, taken = [] }: Params): OpenBotSk
 
             if (!body) return `The skill ${skill.name} (${skill.slug}) is empty.`;
 
-            if (body.length <= AppData.SkillBodyShownChars) return body;
+            if (body.length <= shown_chars) return body;
 
-            return `${body.slice(0, AppData.SkillBodyShownChars)}\n\n[Cut at ${AppData.SkillBodyShownChars} characters. The skill continues: ask the user to split it if you need the rest.]`;
+            return `${body.slice(0, shown_chars)}\n\n[Cut at ${shown_chars} characters. The skill continues: ask the user to split it if you need the rest.]`;
         },
     };
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import createExtensionProposal from "@/src/functions/backend/db/extension-proposals/create-extension-proposal";
 import grabExtensionProposalView from "@/src/functions/backend/db/extension-proposals/grab-extension-proposal-view";
+import assertSkillBodyFits from "@/src/functions/backend/db/extensions/assert-skill-body-fits";
 import grabSkill from "@/src/functions/backend/db/extensions/grab-skill";
 import { SaveSkillRequestSchema } from "@/src/schemas/extension-schema";
 import parseWithSchema from "@/src/utils/parse-with-schema";
@@ -51,7 +52,7 @@ export default function proposeSkillTool({ user_id, bot_id, session_id, workspac
             name: z.string().trim().max(80).optional(),
             slug: z.string().trim().max(80).optional(),
             description: z.string().trim().max(AppData.SkillDescriptionMaxChars).optional(),
-            body: z.string().max(AppData.SkillBodyMaxChars).optional().describe("The runbook, markdown"),
+            body: z.string().max(AppData.SkillBodyLimitMax).optional().describe("The runbook, markdown"),
             enabled: z.boolean().optional(),
             all_bots: z.boolean().optional(),
             ...SkillReviewFields,
@@ -72,6 +73,8 @@ export default function proposeSkillTool({ user_id, bot_id, session_id, workspac
                     all_bots: args.all_bots ?? current?.all_bots ?? false,
                 },
             });
+
+            if (data.body != current?.body) await assertSkillBodyFits({ body: data.body });
 
             const id = await createExtensionProposal({
                 user_id,

@@ -3,6 +3,7 @@ import attachToAllBots from "./attach-to-all-bots";
 import type { BUN_SQLITE_COBBLE_SKILLS, BunSQLiteTables } from "@/db/types/db";
 import type { SaveSkillRequest } from "@/src/schemas/extension-schema";
 import AppError from "@/src/utils/app-error";
+import assertSkillBodyFits from "./assert-skill-body-fits";
 import grabSkill from "./grab-skill";
 
 type Params = {
@@ -15,7 +16,9 @@ type Params = {
 
 /**
  * Adds or edits a skill and returns its id. Slugs are unique: a bot loads a
- * skill by its slug, so two skills can't answer to the same one.
+ * skill by its slug, so two skills can't answer to the same one. A new or
+ * changed runbook must fit the install's limit; one saved before the limit
+ * was lowered keeps saving while its runbook is left as it is.
  */
 export default async function saveSkill({ user_id, data }: Params) {
     const clash = (
@@ -38,6 +41,9 @@ export default async function saveSkill({ user_id, data }: Params) {
 
     if (data.skill_id) {
         const skill = await grabSkill({ skill_id: data.skill_id });
+
+        if (data.body != skill.body) await assertSkillBodyFits({ body: data.body });
+
         const res = await BunSQLite.update<BUN_SQLITE_COBBLE_SKILLS, (typeof BunSQLiteTables)[number]>({
             table: "skills",
             targetId: skill.id,
@@ -50,6 +56,8 @@ export default async function saveSkill({ user_id, data }: Params) {
 
         return skill.id;
     }
+
+    await assertSkillBodyFits({ body: data.body });
 
     const res = await BunSQLite.insert<BUN_SQLITE_COBBLE_SKILLS, (typeof BunSQLiteTables)[number]>({
         table: "skills",

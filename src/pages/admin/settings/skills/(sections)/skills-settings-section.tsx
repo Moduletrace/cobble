@@ -41,6 +41,7 @@ export default function SkillsSettingsSection() {
         >
             {adding ? (
                 <SkillModal
+                    limits={overview.limits}
                     onSaved={(next, msg) => {
                         setAdding(false);
                         changed(next, msg);
@@ -54,6 +55,7 @@ export default function SkillsSettingsSection() {
                         key={`${skill.id}-${version}`}
                         skill={skill}
                         targets={overview}
+                        limits={overview.limits}
                         onChanged={changed}
                         onError={failed}
                     />

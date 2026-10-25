@@ -1,4 +1,5 @@
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
+import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings/grab-skill-limits";
 import grabWorkspaceAdminTools from "@/src/harness/tools/bot/grab-workspace-admin-tools";
 import workspaceAdminsNote from "./workspace-admins-note";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
@@ -207,6 +208,7 @@ export default async function runBotTask({
 
         skills = openBotSkills({
             skills: extensions.skills,
+            shown_chars: await grabSkillBodyShownChars(),
             taken: [...tools, ...extensions.tools].map((tool) => tool.name),
         });
 

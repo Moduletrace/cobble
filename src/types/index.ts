@@ -803,8 +803,38 @@ export type McpServersOverviewPayload = ExtensionTargets & {
     servers: PublicMcpServer[];
 };
 
+/**
+ * The install's skill limits (Settings > General, `grab-skill-limits.ts`).
+ */
+export type SkillLimitsOverview = {
+    /**
+     * The longest runbook a skill may save right now.
+     */
+    body_max_chars: number;
+    /**
+     * How much of a runbook `load_skill` hands back right now.
+     */
+    body_shown_chars: number;
+    /**
+     * The longest runbook when the install saved no limit.
+     */
+    body_max_default: number;
+    /**
+     * What `load_skill` hands back when the install saved no limit.
+     */
+    body_shown_default: number;
+    /**
+     * The most the settings page accepts for either.
+     */
+    max: number;
+};
+
 export type SkillsOverviewPayload = ExtensionTargets & {
     skills: PublicSkill[];
+    /**
+     * The install's runbook limits, for the skill form's hints.
+     */
+    limits: SkillLimitsOverview;
 };
 
 export type CustomToolsOverviewPayload = ExtensionTargets & {
@@ -1403,6 +1433,11 @@ export type PagePropsType = {
         reply_default: number;
         max: number;
     } | null;
+    /**
+     * The longest runbook a skill may save and how much of it a bot reads
+     * at once, with the code's defaults (the General settings page).
+     */
+    skill_limits?: SkillLimitsOverview | null;
     /**
      * The release the server is running, for the General settings page.
      */

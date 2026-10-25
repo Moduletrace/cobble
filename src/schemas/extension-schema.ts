@@ -193,9 +193,22 @@ export const SaveSkillRequestSchema = z.object({
         .string()
         .trim()
         .min(1, "Write the runbook")
-        .max(AppData.SkillBodyMaxChars, `Keep the runbook under ${AppData.SkillBodyMaxChars} characters`),
+        /**
+         * Only the ceiling: the install's own limit is a setting, checked by
+         * `assertSkillBodyFits` when a runbook is saved or proposed.
+         */
+        .max(AppData.SkillBodyLimitMax, `Keep the runbook under ${AppData.SkillBodyLimitMax} characters`),
     enabled: z.boolean().default(true),
     all_bots: z.boolean().default(false),
+});
+
+/**
+ * The install's skill limits (Settings > General). Zero puts the code's
+ * default back for that one.
+ */
+export const SaveSkillLimitsRequestSchema = z.object({
+    body_max_chars: z.coerce.number().int().min(0).max(AppData.SkillBodyLimitMax),
+    body_shown_chars: z.coerce.number().int().min(0).max(AppData.SkillBodyLimitMax),
 });
 
 export const SkillIdRequestSchema = z.object({

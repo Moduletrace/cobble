@@ -3,7 +3,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import { BookOpen } from "lucide-react";
 import IconTile from "@/src/components/general/icon-tile";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
-import type { ExtensionTargets, PublicSkill, SkillsOverviewPayload } from "@/src/types";
+import type { ExtensionTargets, PublicSkill, SkillLimitsOverview, SkillsOverviewPayload } from "@/src/types";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
@@ -13,6 +13,7 @@ import SkillModal from "./skill-modal";
 type Props = {
     skill: PublicSkill;
     targets: ExtensionTargets;
+    limits: SkillLimitsOverview;
     onChanged: (overview: SkillsOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
 };
@@ -21,7 +22,7 @@ type Props = {
  * One skill: its slug and when it applies, and who gets it. Edit and Access
  * open in a modal.
  */
-export default function SkillRow({ skill, targets, onChanged, onError }: Props) {
+export default function SkillRow({ skill, targets, limits, onChanged, onError }: Props) {
     const [open, setOpen] = useState<"edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -73,7 +74,7 @@ export default function SkillRow({ skill, targets, onChanged, onError }: Props) 
                 ) : null}
             </SettingsListRow>
             {open == "edit" ? (
-                <SkillModal skill={skill} onSaved={saved} onCancel={() => setOpen(undefined)} />
+                <SkillModal skill={skill} limits={limits} onSaved={saved} onCancel={() => setOpen(undefined)} />
             ) : null}
             {open == "access" ? (
                 <ExtensionAccessModal<SkillsOverviewPayload>

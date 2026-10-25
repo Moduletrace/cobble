@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { AppData } from "@/src/data/app-data";
 import type { SkillRecord } from "@/src/types";
 import openBotSkills from "./open-bot-skills";
+
+const shown_chars = 30000;
 
 function skill(overrides: Partial<SkillRecord> & { slug: string }): SkillRecord {
     return {
@@ -17,18 +18,18 @@ function skill(overrides: Partial<SkillRecord> & { slug: string }): SkillRecord 
 
 describe("openBotSkills", () => {
     test("no skills means no tool and no note", () => {
-        expect(openBotSkills({ skills: [] })).toEqual({ tools: [], note: "" });
+        expect(openBotSkills({ skills: [], shown_chars })).toEqual({ tools: [], note: "" });
     });
 
     test("a disabled skill is left out entirely", () => {
-        const opened = openBotSkills({ skills: [skill({ slug: "seo", enabled: false })] });
+        const opened = openBotSkills({ skills: [skill({ slug: "seo", enabled: false })], shown_chars });
 
         expect(opened.tools).toHaveLength(0);
         expect(opened.note).toBe("");
     });
 
     test("one tool, named load_skill, whose description lists the slugs", () => {
-        const opened = openBotSkills({ skills: [skill({ slug: "seo" }), skill({ slug: "inbox", id: 2 })] });
+        const opened = openBotSkills({ skills: [skill({ slug: "seo" }), skill({ slug: "inbox", id: 2 })], shown_chars });
 
         expect(opened.tools).toHaveLength(1);
         expect(opened.tools[0]!.name).toBe("load_skill");
@@ -38,21 +39,21 @@ describe("openBotSkills", () => {
     });
 
     test("a built-in that took the name wins", () => {
-        expect(openBotSkills({ skills: [skill({ slug: "seo" })], taken: ["load_skill"] })).toEqual({
+        expect(openBotSkills({ skills: [skill({ slug: "seo" })], taken: ["load_skill"], shown_chars })).toEqual({
             tools: [],
             note: "",
         });
     });
 
     test("the tool returns the body of the slug it's given", async () => {
-        const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "1. Pull rankings" })] });
+        const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "1. Pull rankings" })], shown_chars });
         const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
 
         expect(output).toBe("1. Pull rankings");
     });
 
     test("an unknown slug fails with the slugs it does have", async () => {
-        const opened = openBotSkills({ skills: [skill({ slug: "seo" })] });
+        const opened = openBotSkills({ skills: [skill({ slug: "seo" })], shown_chars });
 
         await expect(opened.tools[0]!.run!({ args: { slug: "nope" }, signal: AbortSignal.timeout(1000) })).rejects.toThrow(
             /no skill called "nope".*seo/,
@@ -61,16 +62,24 @@ describe("openBotSkills", () => {
 
     test("a long body is cut at the limit and says so", async () => {
         const opened = openBotSkills({
-            skills: [skill({ slug: "seo", body: "x".repeat(AppData.SkillBodyShownChars + 500) })],
+            skills: [skill({ slug: "seo", body: "x".repeat(shown_chars + 500) })],
+            shown_chars,
         });
         const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
 
         expect(output).toContain("Cut at");
-        expect(output.length).toBeLessThan(AppData.SkillBodyShownChars + 200);
+        expect(output.length).toBeLessThan(shown_chars + 200);
+    });
+
+    test("the cut follows the install's limit", async () => {
+        const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "x".repeat(1500) })], shown_chars: 1000 });
+        const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
+
+        expect(output).toContain("Cut at 1000 characters");
     });
 
     test("an empty body says it is empty rather than returning nothing", async () => {
-        const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "" })] });
+        const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "" })], shown_chars });
         const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
 
         expect(output).toContain("is empty");

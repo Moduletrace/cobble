@@ -6,15 +6,18 @@ import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
 import Textarea from "@moduletrace/twui/form/Textarea";
 import CodeEditor from "@/src/components/general/code-editor";
-import { AppData } from "@/src/data/app-data";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
-import type { PublicSkill, SkillsOverviewPayload } from "@/src/types";
+import type { PublicSkill, SkillLimitsOverview, SkillsOverviewPayload } from "@/src/types";
 
 type Props = {
     /**
      * Edits this skill; adds one when not given.
      */
     skill?: PublicSkill;
+    /**
+     * The install's runbook limits, for the hint.
+     */
+    limits: SkillLimitsOverview;
     onSaved: (overview: SkillsOverviewPayload, msg: string) => void;
     onCancel: () => void;
 };
@@ -24,7 +27,7 @@ type Props = {
  * loads it by, the one line that tells the bot when it applies, and the
  * runbook itself in markdown.
  */
-export default function SkillModal({ skill, onSaved, onCancel }: Props) {
+export default function SkillModal({ skill, limits, onSaved, onCancel }: Props) {
     const [name, setName] = useState(skill?.name || "");
     const [slug, setSlug] = useState(skill?.slug || "");
     const [description, setDescription] = useState(skill?.description || "");
@@ -103,7 +106,7 @@ export default function SkillModal({ skill, onSaved, onCancel }: Props) {
                     className="h-80"
                     title="Runbook"
                     content={body}
-                    info={`Markdown. The steps, the checks, and what good looks like. A bot reads it only when it loads the skill, up to ${AppData.SkillBodyShownChars} characters of it at a time.`}
+                    info={`Markdown. The steps, the checks, and what good looks like. Up to ${limits.body_max_chars} characters. A bot reads it only when it loads the skill, up to ${limits.body_shown_chars} characters of it at a time.`}
                     onChange={(value) => setBody(value)}
                 />
                 <Checkbox title="On" label="On: bots get it" checked={enabled} changeHandler={setEnabled} />

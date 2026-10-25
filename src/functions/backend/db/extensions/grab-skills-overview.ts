@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_SKILLS } from "@/db/types/db";
 import type { SkillsOverviewPayload } from "@/src/types";
+import grabSkillLimitsOverview from "../app-settings/grab-skill-limits";
 import grabCrewRole from "../access/grab-crew-role";
 import grabExtensionAccess from "./grab-extension-access";
 import grabExtensionTargets from "./grab-extension-targets";
@@ -17,14 +18,16 @@ type Params = {
  */
 export default async function grabSkillsOverview({ user_id }: Params): Promise<SkillsOverviewPayload> {
     const role = await grabCrewRole({ user_id });
-    const [rows, access, targets] = await Promise.all([
+    const [rows, access, targets, limits] = await Promise.all([
         BunSQLite.sql<BUN_SQLITE_COBBLE_SKILLS>({ sql: `SELECT * FROM skills ORDER BY name COLLATE NOCASE ASC, id ASC` }),
         grabExtensionAccess({ kind: "skill" }),
         grabExtensionTargets({ role }),
+        grabSkillLimitsOverview(),
     ]);
 
     return {
         ...targets,
+        limits,
         skills: (rows.payload || []).map((row) => {
             const { all_bots, ...skill } = parseSkillRow({ row });
 
