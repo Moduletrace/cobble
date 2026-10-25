@@ -73,3 +73,13 @@ export type CreateTaskRequest = z.infer<typeof CreateTaskRequestSchema>;
 export type UpdateTaskRequest = z.infer<typeof UpdateTaskRequestSchema>;
 export type TaskNoteRequest = z.infer<typeof TaskNoteRequestSchema>;
 export type TaskFileRequest = z.infer<typeof TaskFileRequestSchema>;
+
+export const HandOverTaskRequestSchema = z.object({
+    task_id: z.number().int().positive(),
+    bot_id: z.number().int().positive("Pick a bot"),
+    instructions: z.string().max(AppData.TaskDescriptionMaxLength).optional(),
+});
+
+export const TaskIdRequestSchema = z.object({
+    task_id: z.number().int().positive(),
+});

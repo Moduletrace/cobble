@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import insertBotMessage from "../bots/insert-bot-message";
 import setBotFace from "../bots/set-bot-face";
 import relayJobToRequester from "./relay-job-to-requester";
+import noteTrackerTask from "./note-tracker-task";
 import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
 import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
@@ -16,7 +17,8 @@ type Params = {
  * Wraps up a job that is out of attempts: stamps `finished_at` (so it's
  * reported once), tells the user in the bot's conversation and sets the
  * bot to needs-you for that user. Its task stays active, since the work isn't done. A
- * handed-over job's failure also goes to the bot that handed it over.
+ * handed-over job's failure also goes to the bot that handed it over, and
+ * blocks the handed-over task it worked on (`noteTrackerTask`).
  */
 export default async function notifyBotJobFailed({
     job,
@@ -58,6 +60,8 @@ export default async function notifyBotJobFailed({
               status_line: BotNeedsYouStatusLine,
           })
         : null;
+
+    await noteTrackerTask({ job, failure: failure_message || job.last_error || "" });
 
     const relay = await relayJobToRequester({
         job,

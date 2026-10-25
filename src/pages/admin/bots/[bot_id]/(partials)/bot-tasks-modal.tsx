@@ -181,9 +181,19 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                         task={open_task}
                         can_manage={can_manage}
                         onChanged={(saved, msg) => {
+                            set_status(msg);
+
+                            /**
+                             * Handed to another bot, it's on that bot's list now.
+                             */
+                            if (!workspace?.id && saved.bot_id != bot.id) {
+                                setTasks((prev) => prev.filter((item) => item.id != saved.id));
+                                set_open_task(null);
+                                return;
+                            }
+
                             set_open_task(saved);
                             replace({ task: saved });
-                            set_status(msg);
                         }}
                         onDeleted={() => {
                             setTasks((prev) => prev.filter((item) => item.id != open_task.id));

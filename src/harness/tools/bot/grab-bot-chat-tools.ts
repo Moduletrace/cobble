@@ -10,6 +10,7 @@ import assignComputerTool from "./assign-computer-tool";
 import createBotTool from "./create-bot-tool";
 import createWorkspaceTool from "./create-workspace-tool";
 import delegateTaskTool from "./delegate-task-tool";
+import handOverScheduleTool from "./hand-over-schedule-tool";
 import deleteBotTool from "./delete-bot-tool";
 import deleteWorkspaceTool from "./delete-workspace-tool";
 import findBotTool from "./find-bot-tool";
@@ -81,7 +82,7 @@ type Params = {
  * update_workspace (a workspace and its shared context), create_bot to
  * grow the crew, delegate_task to every worker (the workspace's in a
  * workspace, where the task runs; from its own chat, in the worker's own
- * chat or in a workspace it names) plus, in its own chat, find_bot and
+ * chat or in a workspace it names) and hand_over_schedule beside it, plus, in its own chat, find_bot and
  * find_workspace,
  * add_bot_to_workspace and remove_bot_from_workspace, assign_computer,
  * update_bot, delete_bot and delete_workspace (which workspace, which
@@ -172,6 +173,14 @@ export default async function grabBotChatTools({
             workspace_id,
             requester_name: bot.name || "The coordinator",
             workers,
+            is_coordinator: true,
+        }));
+        tools.push(handOverScheduleTool({
+            user_id,
+            bot_id,
+            workspace_id,
+            requester_name: bot.name || "The coordinator",
+            workers,
         }));
         tools.push(setWorkspaceInstructionsTool({ user_id, workspace_id, workers }));
 
@@ -199,6 +208,15 @@ export default async function grabBotChatTools({
             user_id,
             requester_id: bot_id,
             session_id,
+            workspace_id,
+            requester_name: bot.name || "The coordinator",
+            workers,
+            workspaces,
+            is_coordinator: true,
+        }),
+        handOverScheduleTool({
+            user_id,
+            bot_id,
             workspace_id,
             requester_name: bot.name || "The coordinator",
             workers,

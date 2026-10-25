@@ -17,3 +17,10 @@ export const CronJobIdRequestSchema = z.object({
 });
 
 export type CronJobIdRequest = z.infer<typeof CronJobIdRequestSchema>;
+
+export const HandOverCronJobRequestSchema = z.object({
+    cron_job_id: CronJobIdField,
+    bot_id: z.coerce.number().int().positive("Pick a bot"),
+});
+
+export type HandOverCronJobRequest = z.infer<typeof HandOverCronJobRequestSchema>;

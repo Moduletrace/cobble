@@ -8,6 +8,7 @@ import Button from "@moduletrace/twui/layout/Button";
 import { Clock } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, CronJobWithNames } from "@/src/types";
+import HandOverForm from "@/src/components/general/hand-over-form";
 import RoutineForm from "@/src/components/general/routine-form";
 import RoutineRow from "@/src/components/general/routine-row";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
@@ -33,12 +34,13 @@ type Props = {
  * The routines that run in this conversation: the schedules whose result
  * lands here, a bot's own on its chat or the ones it runs in this
  * workspace. Open it from the header menu; the list loads then, so the
- * page's props stay small. The user pauses, resumes, edits and deletes
- * their own; the bot makes them when asked in chat.
+ * page's props stay small. The user pauses, resumes, edits, hands over
+ * and deletes their own; the bot makes them when asked in chat.
  */
 export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Props) {
     const [open, set_open] = useState(false);
     const [editing, set_editing] = useState<CronJobWithNames>();
+    const [handing, set_handing] = useState<CronJobWithNames>();
     const [busy, set_busy] = useState(false);
     const [status, set_status] = useState<Status>();
     const { routines, setRoutines, loading, error } = useBotRoutines({
@@ -124,6 +126,7 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
 
                 if (!next) {
                     set_editing(undefined);
+                    set_handing(undefined);
                     set_status(undefined);
                 }
             }}
@@ -132,9 +135,9 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
             <Stack className="w-full gap-1! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <H2 className="grow text-lg! leading-6! tracking-normal! font-bold text-ink">
-                        {editing ? editing.title || "Routine" : title}
+                        {editing ? editing.title || "Routine" : handing ? `Hand over ${handing.title || "the routine"}` : title}
                     </H2>
-                    {editing ? (
+                    {editing || handing ? (
                         <Button
                             title="Back to the list"
                             type="button"
@@ -143,6 +146,7 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
                             size="small"
                             onClick={() => {
                                 set_editing(undefined);
+                                set_handing(undefined);
                                 set_status(undefined);
                             }}
                             className="px-2! text-[12px]"
@@ -154,7 +158,9 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {editing
                         ? `${name} gets this brief as a task at every run, and the result lands here.`
-                        : workspace?.id
+                        : handing
+                          ? `It keeps its schedule and where it runs; from then on its results land in the new bot's conversation.`
+                          : workspace?.id
                           ? `Work ${name} does on a schedule in ${place}. Each run is a task, and its result lands here.`
                           : `Work ${name} does on its own, on a schedule. Each run is a task, and its result lands here.`}
                 </Span>
@@ -172,6 +178,20 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
                             set_status({ success: true, msg: "Saved." });
                         }}
                     />
+                ) : handing ? (
+                    <HandOverForm<CronJobWithNames>
+                        key={handing.id}
+                        what={`"${handing.title}"`}
+                        targets_path="routines/hand-over-targets"
+                        submit_path="routines/hand-over-routine"
+                        body={{ cron_job_id: handing.id }}
+                        onCancel={() => set_handing(undefined)}
+                        onHandedOver={({ saved, msg }) => {
+                            setRoutines((prev) => dropRoutine({ routines: prev, cron_job_id: saved.id }));
+                            set_handing(undefined);
+                            set_status({ success: true, msg });
+                        }}
+                    />
                 ) : (
                     <SettingsList
                         is_empty={!routines.length}
@@ -185,6 +205,7 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
                                 busy={busy}
                                 onToggle={() => toggle({ cron_job }).catch(() => {})}
                                 onEdit={() => set_editing(cron_job)}
+                                onHandOver={() => set_handing(cron_job)}
                                 onDelete={() => remove({ cron_job }).catch(() => {})}
                             />
                         ))}
@@ -194,7 +215,7 @@ export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Prop
 
             <Stack className="mt-3 gap-1! items-stretch">
                 <SettingsStatus status={status} />
-                {editing ? null : (
+                {editing || handing ? null : (
                     <Span className="text-[12px] leading-4 text-ink-secondary">
                         {`Ask ${name} in chat to set one up, or change one here.`}
                     </Span>

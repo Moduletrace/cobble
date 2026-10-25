@@ -89,6 +89,14 @@ export type BotWithLastMessage = BotWithFace & {
  * A bot's schedule with what the routines page shows beside it: the bot
  * and the workspace it runs in.
  */
+/**
+ * A bot a task or routine can be handed over to, for the picker.
+ */
+export type HandOverTarget = {
+    id: number;
+    name: string;
+};
+
 export type CronJobWithNames = BUN_SQLITE_COBBLE_CRON_JOBS & {
     bot_name?: string | null;
     bot_kind?: string | null;

@@ -107,6 +107,7 @@ export const JobStepToolLabels: Record<string, string> = {
     ask_user_to_take_over: "Asking you to take over",
     start_task: "Starting a task",
     delegate_task: "Handing work to the crew",
+    hand_over_schedule: "Handing a routine to the crew",
     assign_computer: "Changing computer access",
     update_memory: "Updating memory",
     update_instructions: "Updating instructions",

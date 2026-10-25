@@ -6,6 +6,7 @@ import grabUserWorkspace from "@/src/functions/backend/db/workspaces/grab-user-w
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import delegateTaskTool from "./delegate-task-tool";
+import handOverScheduleTool from "./hand-over-schedule-tool";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
 import updateWorkspaceTool from "./update-workspace-tool";
 
@@ -33,8 +34,8 @@ export type WorkspaceAdminTools = {
 
 /**
  * The tools a workspace admin leads its workspace with, each only while
- * its types allow it there (`BotRunPowers.can`): delegate_task and
- * set_bot_workspace_instructions for the members it may direct
+ * its types allow it there (`BotRunPowers.can`): delegate_task (with
+ * hand_over_schedule beside it) and set_bot_workspace_instructions for the members it may direct
  * (`grabDirectableBots`), and update_workspace for this workspace alone,
  * only when the user the run works for may change it too (a crew manager).
  */
@@ -63,6 +64,15 @@ export default async function grabWorkspaceAdminTools({
                 user_id,
                 requester_id: bot_id,
                 session_id,
+                workspace_id,
+                requester_name: bot.name || "The workspace's admin",
+                workers: members,
+                grabTargets,
+                admin_workspace_ids: powers.admin_workspace_ids,
+            }),
+            handOverScheduleTool({
+                user_id,
+                bot_id,
                 workspace_id,
                 requester_name: bot.name || "The workspace's admin",
                 workers: members,

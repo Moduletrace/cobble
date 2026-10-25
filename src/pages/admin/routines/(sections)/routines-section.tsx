@@ -6,12 +6,14 @@ import SettingsGroup from "@/src/pages/admin/settings/(partials)/settings-group"
 import SettingsList from "@/src/pages/admin/settings/(partials)/settings-list";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
+import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
+import HandOverForm from "@/src/components/general/hand-over-form";
 import RoutineEditModal from "@/src/components/general/routine-edit-modal";
 import RoutineRow from "@/src/components/general/routine-row";
 
 /**
  * Every routine the user's bots have: chat with the bot, pause or resume
- * one, edit it, delete it. Bots create them when asked in chat.
+ * one, edit it, hand it to another bot, delete it. Bots create them when asked in chat.
  */
 export default function RoutinesSection() {
     const { pageProps } = useContext(AppContext);
@@ -19,6 +21,7 @@ export default function RoutinesSection() {
         items: pageProps?.cron_jobs || [],
     });
     const [editing, setEditing] = useState<CronJobWithNames>();
+    const [handing, setHanding] = useState<CronJobWithNames>();
 
     const replace = ({ cron_job }: { cron_job: CronJobWithNames }) =>
         setItems((prev) => prev.map((item) => (item.id == cron_job.id ? cron_job : item)));
@@ -53,6 +56,7 @@ export default function RoutinesSection() {
                         busy={busy}
                         onToggle={() => toggle({ cron_job })}
                         onEdit={() => setEditing(cron_job)}
+                        onHandOver={() => setHanding(cron_job)}
                         onDelete={() =>
                             remove({
                                 id: cron_job.id,
@@ -74,6 +78,28 @@ export default function RoutinesSection() {
                     setStatus({ success: true, msg: "Saved." });
                 }}
             />
+            <AddModalShell
+                open={Boolean(handing)}
+                setOpen={(open) => !open && setHanding(undefined)}
+                title={`Hand over ${handing?.title || "the routine"}`}
+                description="It keeps its schedule and where it runs; its results land in the new bot's conversation."
+            >
+                {handing ? (
+                    <HandOverForm<CronJobWithNames>
+                        key={handing.id}
+                        what={`"${handing.title}"`}
+                        targets_path="routines/hand-over-targets"
+                        submit_path="routines/hand-over-routine"
+                        body={{ cron_job_id: handing.id }}
+                        onCancel={() => setHanding(undefined)}
+                        onHandedOver={({ saved, msg }) => {
+                            replace({ cron_job: saved });
+                            setHanding(undefined);
+                            setStatus({ success: true, msg });
+                        }}
+                    />
+                ) : null}
+            </AddModalShell>
         </SettingsGroup>
     );
 }

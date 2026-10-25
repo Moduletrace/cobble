@@ -13,6 +13,10 @@ type Props = {
     onEdit: () => void;
     onDelete: () => void;
     /**
+     * Hand it to another bot where it runs.
+     */
+    onHandOver?: () => void;
+    /**
      * In a conversation's own modal the Chat link and the bot's and
      * workspace's names are already the ones on screen.
      */
@@ -21,9 +25,10 @@ type Props = {
 
 /**
  * One routine: its bot's avatar, its name (Paused or Done when it is),
- * whose it is and when it runs, then Chat, Pause or Resume, Edit, Delete.
+ * whose it is and when it runs, then Chat, Pause or Resume, Edit, Hand
+ * over, Delete.
  */
-export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete, compact }: Props) {
+export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete, onHandOver, compact }: Props) {
     const title = cron_job.title || `Routine ${cron_job.id}`;
     const done = Boolean(cron_job.max_runs && Number(cron_job.run_count || 0) >= cron_job.max_runs);
     const chat_url = cron_job.workspace_id
@@ -57,6 +62,14 @@ export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete,
                 onClick={onToggle}
             />
             <SettingsRowAction title={`Edit ${title}`} label="Edit" disabled={busy} onClick={onEdit} />
+            {onHandOver ? (
+                <SettingsRowAction
+                    title={`Hand ${title} to another bot`}
+                    label="Hand over"
+                    disabled={busy}
+                    onClick={onHandOver}
+                />
+            ) : null}
             <SettingsRowAction title={`Delete ${title}`} label="Delete" disabled={busy} onClick={onDelete} />
         </SettingsListRow>
     );

@@ -6,6 +6,7 @@ import nextCronRun from "@/src/utils/next-cron-run";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import ensureBotSession from "../bot-sessions/ensure-bot-session";
 import enqueueBotJob from "../bots-queue/enqueue-bot-job";
+import isBotJobOpen from "../bots-queue/is-bot-job-open";
 import grabBotComputers from "../computers/grab-bot-computers";
 
 type Params = {
@@ -42,7 +43,7 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
     if (!claimed.payload?.[0]) return;
 
     try {
-        if (cron_job.last_job_id && (await isJobOpen({ job_id: cron_job.last_job_id }))) {
+        if (cron_job.last_job_id && (await isBotJobOpen({ job_id: cron_job.last_job_id }))) {
             await saveRun({ id, last_error: `Skipped a run: the last one was still going.` });
             return;
         }
@@ -97,15 +98,6 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
             metadata: { cron_job_id: id },
         }).catch(() => {});
     }
-}
-
-async function isJobOpen({ job_id }: { job_id: number }) {
-    const res = await BunSQLite.sql({
-        sql: `SELECT id FROM bots_queue WHERE id = ? AND status IN ('pending', 'processing') LIMIT 1`,
-        values: [job_id],
-    });
-
-    return Boolean(res.payload?.[0]);
 }
 
 async function saveRun({

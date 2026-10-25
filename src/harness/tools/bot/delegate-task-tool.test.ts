@@ -85,4 +85,27 @@ describe("delegateTaskTool", () => {
             tool.run({ args: { bot_id: 8, title: "Dig", instructions: "x" }, signal }),
         ).rejects.toThrow(/No crew member has id 8 in workspace 3. Crew: 5: Researcher/);
     });
+
+    test("takes the id of a task already on a list in place of a brief", () => {
+        const tool = coordinatorTool();
+
+        expect(tool.schema?.safeParse({ bot_id: 5, task_id: 12 }).success).toBe(true);
+        expect(tool.schema?.safeParse({ bot_id: 5, task_id: 12, instructions: "Start with the intro." }).success).toBe(
+            true,
+        );
+        expect(tool.description).toContain("task_id");
+    });
+
+    test("without a task_id, still needs a title and instructions", async () => {
+        const tool = delegateTaskTool({
+            user_id: 1,
+            requester_id: 1,
+            session_id: 10,
+            requester_name: "Coordinator",
+            workers: [worker],
+            grabTargets: async () => [worker],
+        });
+
+        await expect(tool.run({ args: { bot_id: 5 }, signal })).rejects.toThrow(/Give a title and instructions/);
+    });
 });

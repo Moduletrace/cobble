@@ -4,8 +4,10 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Textarea from "@moduletrace/twui/form/Textarea";
+import { OpenTaskStatuses } from "@/src/dict/task-dict";
 import type { TaskDetail, TaskFile } from "@/src/types";
 import TaskFileRow from "@/src/components/general/task-file-row";
+import HandOverForm from "@/src/components/general/hand-over-form";
 import TaskForm from "@/src/components/general/task-form";
 import TaskStatusChip from "@/src/components/general/task-status-chip";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
@@ -24,10 +26,12 @@ type Props = {
 /**
  * One task opened: what it is, its notes oldest first, its files (each
  * opening its bytes), a box to add a note, and edit or delete. A crew
- * manager can file a new deliverable straight onto it.
+ * manager can file a new deliverable straight onto it, or hand an open
+ * one to another bot, which starts on it.
  */
 export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted }: Props) {
     const [editing, setEditing] = useState(false);
+    const [handing_over, setHandingOver] = useState(false);
     const [note, setNote] = useState("");
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<string>();
@@ -107,6 +111,23 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
         );
     }
 
+    if (handing_over) {
+        return (
+            <HandOverForm<TaskDetail>
+                what={`"${task.title}"`}
+                targets_path="tasks/hand-over-targets"
+                submit_path="tasks/hand-over-task"
+                body={{ task_id: Number(task.id) }}
+                with_note
+                onCancel={() => setHandingOver(false)}
+                onHandedOver={({ saved, msg }) => {
+                    setHandingOver(false);
+                    onChanged(saved, msg);
+                }}
+            />
+        );
+    }
+
     const deliverables = task.files.filter((file) => file.kind != "reference");
     const references = task.files.filter((file) => file.kind == "reference");
 
@@ -121,6 +142,20 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                 </Span>
                 {can_manage ? (
                     <Row className="shrink-0 gap-1! flex-nowrap">
+                        {(OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
+                            <Button
+                                title="Hand the task to another bot"
+                                type="button"
+                                variant="ghost"
+                                color="gray"
+                                size="small"
+                                disabled={busy}
+                                onClick={() => setHandingOver(true)}
+                                className="px-2! text-[12px]"
+                            >
+                                Hand over
+                            </Button>
+                        ) : null}
                         <Button
                             title="Edit the task"
                             type="button"

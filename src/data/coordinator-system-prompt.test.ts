@@ -38,6 +38,7 @@ describe("CoordinatorSystemPrompt", () => {
         const tools = [
             "start_task",
             "delegate_task",
+            "hand_over_schedule",
             "create_bot",
             "create_workspace",
             "update_workspace",

@@ -1,12 +1,11 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import pushBotCreated from "@/src/bots-queue/push-bot-created";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
-import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
-import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
-import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
+import ensureBotInWorkspace from "@/src/functions/backend/db/workspaces/ensure-bot-in-workspace";
+import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
+import handOverTask from "@/src/functions/backend/db/tasks/hand-over-task";
 import insertBotMessage from "@/src/functions/backend/db/bots/insert-bot-message";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
@@ -48,12 +47,24 @@ type Params = {
      * nothing to pick: the task runs there.
      */
     workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[];
+    /**
+     * The requester's reach over the task tracker (`grabBotRunPowers`), so
+     * `task_id` only hands over a task its run reaches.
+     */
+    is_coordinator?: boolean;
+    admin_workspace_ids?: number[];
 };
 
 type Args = {
     bot_id: number;
-    title: string;
-    instructions: string;
+    /**
+     * A task already on a list (`list_tasks`) to hand over instead of a
+     * new brief: it moves to the worker (or stays on its workspace's list)
+     * and the worker works that same task.
+     */
+    task_id?: number;
+    title?: string;
+    instructions?: string;
     /**
      * The workspace the worker runs the task in, from the coordinator's own
      * chat. Left out, the worker runs it in its own chat, on its own
@@ -69,7 +80,8 @@ type Args = {
  * The worker runs it on the computer it's on there (if it has one) and
  * posts the result in that conversation, where a note says who asked; the
  * result (or failure) is also reported back in the coordinator's
- * conversation.
+ * conversation. Given a `task_id`, it hands over a task already on a list
+ * instead (`handOverTask`): the worker works that same task.
  */
 export default function delegateTaskTool({
     user_id,
@@ -80,6 +92,8 @@ export default function delegateTaskTool({
     workers,
     workspaces = [],
     grabTargets = ({ workspace_id }) => grabCrewWorkers({ workspace_id }),
+    is_coordinator = false,
+    admin_workspace_ids = [],
 }: Params): HarnessTool<Args> {
     const crew = workers
         .map((bot) => `${bot.id}: ${bot.name}${bot.role ? ` (${bot.role})` : ""}`)
@@ -90,15 +104,16 @@ export default function delegateTaskTool({
 
     return {
         name: "delegate_task",
-        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. Crew: ${crew}.${
+        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. To hand over a task already on a list (list_tasks), pass its task_id instead of writing a new one: it moves to the crew member's list (a workspace's task stays on the workspace's list and runs there), goes to doing, and they work that same task; title and instructions are then optional, the task's brief is used and yours is added to it. Crew: ${crew}.${
             workspace_id
                 ? ` You are working in a workspace, so the task runs there: in this workspace's context.`
                 : ` Leave workspace_id out to run it in the crew member's own chat: only its own memory, files and directly assigned computers apply there, and the user finds the result by talking to it on its own. Add workspace_id to run it in one of the user's workspaces instead: the workspace's shared context, the member's instructions and memory there, its files and its computers (the workspace's own and the member's) all apply, and the result lands in its conversation in that workspace, beside the project it belongs to. Pick a workspace when the work belongs to that project; the member is added to it when it isn't in it yet. Workspaces: ${places || "none"}.`
         }`,
         schema: z.object({
             bot_id: z.number().int(),
-            title: z.string().min(1).max(80),
-            instructions: z.string().min(1).max(8000),
+            task_id: z.number().int().optional().describe("An open task (list_tasks) to hand over as it is"),
+            title: z.string().min(1).max(80).optional(),
+            instructions: z.string().min(1).max(8000).optional(),
             workspace_id: z
                 .number()
                 .int()
@@ -120,11 +135,31 @@ export default function delegateTaskTool({
                 );
             }
 
+            /**
+             * A task on a list is read first: one on a workspace's list is
+             * worked in that workspace, so the crew comes from there.
+             */
+            const task = args.task_id
+                ? await grabRunTask({ task_id: args.task_id, bot_id: requester_id, is_coordinator, admin_workspace_ids })
+                : null;
+
+            const asked_workspace_id = workspace_id || args.workspace_id;
+
+            if (task?.workspace_id && asked_workspace_id && Number(task.workspace_id) != Number(asked_workspace_id)) {
+                throw new Error(
+                    `Task #${task.id} is on workspace ${task.workspace_id}'s list, so it's worked there. Leave workspace_id out${
+                        workspace_id ? ", and hand it over from that workspace or your own chat" : ""
+                    }.`,
+                );
+            }
+
             const target_workspace_id = workspace_id
                 ? Number(workspace_id)
-                : args.workspace_id
-                  ? Number(args.workspace_id)
-                  : null;
+                : task?.workspace_id
+                  ? Number(task.workspace_id)
+                  : args.workspace_id
+                    ? Number(args.workspace_id)
+                    : null;
 
             const fresh = await grabTargets({ workspace_id: target_workspace_id });
             const worker = fresh.find((bot) => bot.id == args.bot_id);
@@ -139,8 +174,32 @@ export default function delegateTaskTool({
                 );
             }
 
+            if (task) {
+                const handed = await handOverTask({
+                    user_id,
+                    task_id: Number(task.id),
+                    to_bot_id: Number(worker.id),
+                    workspace_id: target_workspace_id,
+                    instructions: args.instructions,
+                    handed_by: requester_name,
+                    requested_by_bot_id: requester_id,
+                    requested_by_session_id: session_id,
+                });
+
+                return `Task #${task.id} "${task.title}" is with ${worker.name} now (job #${handed.job_id})${
+                    handed.workspace_id ? ` in workspace ${handed.workspace_id}` : " in their own chat"
+                }, marked doing.${handed.joined} They work that same task; the result is reported back here.`;
+            }
+
+            if (!args.title?.trim() || !args.instructions?.trim()) {
+                throw new Error(`Give a title and instructions, or the task_id of a task to hand over.`);
+            }
+
+            const title = args.title;
+            const instructions = args.instructions;
+
             const joined = target_workspace_id
-                ? await ensureWorkerInWorkspace({ user_id, worker, target_workspace_id })
+                ? await ensureBotInWorkspace({ user_id, bot: worker, workspace_id: target_workspace_id })
                 : "";
 
             const computers = await grabBotComputers({
@@ -155,12 +214,12 @@ export default function delegateTaskTool({
             const open = await grabOpenBotTask({
                 bot_id: worker.id,
                 session_id: Number(worker_session.id),
-                title: args.title,
+                title,
             });
 
             if (open) {
                 throw new Error(
-                    `${worker.name} already has task #${open.id} "${args.title}" ${open.status == "pending" ? "queued" : "under way"}. Don't hand it over again; it's reported back here when they finish.`,
+                    `${worker.name} already has task #${open.id} "${title}" ${open.status == "pending" ? "queued" : "under way"}. Don't hand it over again; it's reported back here when they finish.`,
                 );
             }
 
@@ -168,8 +227,8 @@ export default function delegateTaskTool({
                 user_id,
                 bot_id: worker.id,
                 session_id: Number(worker_session.id),
-                title: args.title,
-                instructions: args.instructions,
+                title,
+                instructions,
                 computer_id: computers[0]?.id || undefined,
                 requested_by_bot_id: requester_id,
                 requested_by_session_id: session_id,
@@ -181,7 +240,7 @@ export default function delegateTaskTool({
                     bot_id: worker.id,
                     session_id: Number(worker_session.id),
                     workspace_id: target_workspace_id,
-                    text: `${requester_name} asked me to: **${args.title}**`,
+                    text: `${requester_name} asked me to: **${title}**`,
                 }),
             });
 
@@ -190,48 +249,4 @@ export default function delegateTaskTool({
             }.${joined} Their result will be in that conversation and reported back here.`;
         },
     };
-}
-
-type EnsureParams = {
-    user_id: number | string;
-    worker: BUN_SQLITE_COBBLE_BOTS;
-    target_workspace_id: number;
-};
-
-/**
- * A worker can only run a task in a workspace it's in, and a workspace's
- * members were already listed by `grabCrewWorkers`. Anyone else is added
- * first, since delegation is exactly the moment the broker decides who
- * does the work where.
- */
-async function ensureWorkerInWorkspace({
-    user_id,
-    worker,
-    target_workspace_id,
-}: EnsureParams) {
-    if (!worker.id) return "";
-
-    const workspaces = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
-    const workspace = workspaces.find((w) => w.id == target_workspace_id);
-
-    if (!workspace) {
-        throw new Error(
-            `No workspace has id ${target_workspace_id}. Workspaces: ${
-                workspaces.map((w) => `${w.id}: ${w.name}`).join("; ") || "none"
-            }. Hand the task over without workspace_id to run it in the crew member's own chat.`,
-        );
-    }
-
-    const members = await grabWorkspaceBots({ user_id, workspace_id: target_workspace_id });
-
-    if (members.some((bot) => bot.id == worker.id)) return "";
-
-    await addBotToWorkspace({
-        user_id,
-        workspace_id: target_workspace_id,
-        bot_id: Number(worker.id),
-    });
-    await pushBotCreated({ bot: worker });
-
-    return ` ${worker.name} wasn't in "${workspace.name}", so it was added to it first.`;
 }
