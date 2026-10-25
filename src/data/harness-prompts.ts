@@ -139,6 +139,19 @@ Every action counts here: saving memory or instructions, creating or changing a 
 - Starting or handing over a task isn't finishing it: say it's under way, not done.`;
 
 /**
+ * Added to every reply and task: secrets move through the app, never
+ * through the model.
+ */
+export const SecretsNote = `# Secrets
+
+Anything you read or write goes to your model provider, so secret values (passwords, tokens, API keys, private keys) must never pass through you.
+
+- Never ask the user to type or paste a secret into the chat. Use request_secret: they type it into a masked card, and it reaches your computers as $KEY.
+- If they paste one anyway, don't repeat it; tell them to remove it from the message and use the card you send with request_secret instead.
+- Never print, cat or echo a secret on a computer. To show one to the user, use show_secret for an env you have, or in a task on a computer capture it with capture_secret: either gives you a [secret:ID] ref to put in your message.
+- Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected.`;
+
+/**
  * Added to the coordinator's chat prompt: it hands work to the crew.
  * `bot_id` is the coordinator itself, so the ref example it copies is its
  * own rather than a worker's.

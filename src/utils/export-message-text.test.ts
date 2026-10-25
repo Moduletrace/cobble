@@ -14,6 +14,12 @@ describe("exportMessageText", () => {
         ).toBe("@Ada and a bot in #Launch on computer 4, see file 12 and `seo/raw`. (take over computer 4, browser)");
     });
 
+    test("words secrets and secret requests by number, never a value", () => {
+        expect(exportMessageText({ text: "Here: [secret:12]. [secret-request:4]", ...names, heading_offset: 0 })).toBe(
+            "Here: (secret 12, hidden). (secret request 4)",
+        );
+    });
+
     test("leaves refs that are already links alone", () => {
         expect(exportMessageText({ text: "[bot:3](#x)", ...names, heading_offset: 0 })).toBe("[bot:3](#x)");
     });

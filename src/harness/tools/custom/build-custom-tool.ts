@@ -20,6 +20,10 @@ type Params = {
      */
     computer_id?: number | string | null;
     bot_id?: number | string;
+    /**
+     * The user the run is for: their personal envs for the bot apply.
+     */
+    user_id?: number | string | null;
     workspace_id?: number | string | null;
     /**
      * The run's folders on the computer (`computerRunDirs`), where a
@@ -45,6 +49,7 @@ export default function buildCustomTool({
     envs,
     computer_id,
     bot_id,
+    user_id,
     workspace_id,
     dirs,
     record = true,
@@ -64,6 +69,7 @@ export default function buildCustomTool({
                     args,
                     computer_id: computer_id!,
                     bot_id,
+                    user_id,
                     workspace_id,
                     dirs,
                     signal,

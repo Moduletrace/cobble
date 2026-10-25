@@ -3,6 +3,7 @@ import deleteMedia from "@/src/functions/backend/db/media/delete-media";
 import purgeStorage, { grabStorageMediaIds } from "@/src/functions/backend/db/bot-files/purge-storage";
 import { grabTaskMediaIds } from "@/src/functions/backend/db/tasks/purge-task-media";
 import AppError from "@/src/utils/app-error";
+import { clearEnvCache } from "../envs/grab-all-envs";
 import grabUserBot from "./grab-user-bot";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
@@ -13,7 +14,8 @@ type Params = {
 
 /**
  * Deletes one of the user's worker bots with its conversations, tasks,
- * jobs, models and workspace places. A job it's running stops: it loses
+ * jobs, models, envs (users' personal secrets for it too) and workspace
+ * places. A job it's running stops: it loses
  * its row. The coordinator can't be deleted.
  */
 export default async function deleteBot({ user_id, bot_id }: Params) {
@@ -42,12 +44,16 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
      * Explicitly, since foreign keys are off outside the server process.
      */
     await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE bot_id = ?`, values: [bot.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM envs WHERE bot_id = ?`, values: [bot.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM secret_requests WHERE bot_id = ?`, values: [bot.id] });
 
     const res = await BunSQLite.sql({ sql: `DELETE FROM bots WHERE id = ?`, values: [bot.id] });
 
     if (!res.success) {
         throw new Error(`Couldn't delete the bot: ${res.error}`);
     }
+
+    clearEnvCache();
 
     if (bot.image_media_id) {
         await deleteMedia({ id: bot.image_media_id, user_id: Number(user_id) }).catch(() => {});

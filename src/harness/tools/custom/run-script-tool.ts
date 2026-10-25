@@ -19,6 +19,10 @@ type Params = {
      */
     bot_id?: number | string | null;
     /**
+     * The user the run is for: their personal envs for the bot apply.
+     */
+    user_id?: number | string | null;
+    /**
      * The workspace the run is in: its envs apply on the computer.
      */
     workspace_id?: number | string | null;
@@ -44,6 +48,7 @@ export default async function runScriptTool({
     args,
     computer_id,
     bot_id,
+    user_id,
     workspace_id,
     dirs,
     signal,
@@ -53,7 +58,7 @@ export default async function runScriptTool({
     if (!target) throw new Error(`Computer #${computer_id} has no container to run on.`);
     if (!target.ready) throw new Error(computerNotReadyMessage(target));
 
-    const envs = await grabComputerEnvs({ computer_id, bot_id, workspace_id });
+    const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
     const { shell_path } = await writeComputerEnv({ base_url: target.base_url, envs, signal });
     const language =
         CustomToolScriptLanguages.find((l) => l.value == config.language) || CustomToolScriptLanguages[0];

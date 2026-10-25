@@ -17,6 +17,10 @@ type Params = {
      */
     bot_id?: number | string | null;
     /**
+     * The user the run is for: their personal envs for the bot apply.
+     */
+    user_id?: number | string | null;
+    /**
      * The workspace the run is in: its envs apply.
      */
     workspace_id?: number | string | null;
@@ -44,6 +48,7 @@ type Args = {
  */
 export default function searchComputersTool({
     bot_id,
+    user_id,
     workspace_id,
     computers,
     dirs,
@@ -76,6 +81,7 @@ export default function searchComputersTool({
                             grabComputerEnvs({
                                 computer_id: computer.id || 0,
                                 bot_id,
+                                user_id,
                                 workspace_id,
                             }),
                         ]);

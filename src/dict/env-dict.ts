@@ -1,8 +1,9 @@
 import { HarnessProviderKinds } from "./harness-provider-dict";
 
 /**
- * Where an env applies. A bot's own env beats the computer it runs on,
- * which beats the workspace it works in, which beats a general one.
+ * Where an env applies. A user's personal one (for one bot, set from the
+ * chat) beats the bot's own, which beats the computer it runs on, which
+ * beats the workspace it works in, which beats a general one.
  */
 export const EnvParadigms = [
     {
@@ -20,6 +21,10 @@ export const EnvParadigms = [
     {
         title: "Bot",
         value: "bot",
+    },
+    {
+        title: "Personal",
+        value: "user",
     },
 ] as const;
 
@@ -109,3 +114,11 @@ export const ProcessOnlyEnvKeys = [
  * What an env key may look like: a shell variable name.
  */
 export const EnvKeyRegex = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
+
+/**
+ * Where a secret a bot asked a user for stands (`secret_requests.status`):
+ * `pending` until the user saves a value (`saved`) or declines it.
+ */
+export const SecretRequestStatuses = ["pending", "saved", "declined"] as const;
+
+export type SecretRequestStatus = (typeof SecretRequestStatuses)[number];

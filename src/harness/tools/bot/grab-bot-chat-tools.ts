@@ -133,6 +133,7 @@ export default async function grabBotChatTools({
             ? [
                   searchComputersTool({
                       bot_id,
+                      user_id,
                       computers,
                       workspace_id,
                       dirs: computerRunDirs({ bot_id, bot_kind: bot.kind, user_id, workspace_id }),

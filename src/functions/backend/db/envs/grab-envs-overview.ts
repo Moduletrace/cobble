@@ -7,6 +7,7 @@ import type {
 import { EnvDict } from "@/src/dict/env-dict";
 import type { EnvsOverviewPayload } from "@/src/types";
 import grabAllEnvs, { type DecryptedEnv } from "./grab-all-envs";
+import grabPersonalSecrets from "./grab-personal-secrets";
 
 type Params = {
     /**
@@ -19,10 +20,11 @@ type Params = {
 /**
  * The Environment settings page: where envs can be set (general, every
  * workspace, bot and computer), every env (secret values left out),
- * and the app settings with where each comes from.
+ * the app settings with where each comes from, and every user's personal
+ * secrets (set from the chat, listed apart, values never shown).
  */
 export default async function grabEnvsOverview(_params: Params): Promise<EnvsOverviewPayload> {
-    const [workspaces, bots, computers, envs] = await Promise.all([
+    const [workspaces, bots, computers, envs, personal] = await Promise.all([
         BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACES>({
             sql: `SELECT id, name, archived FROM workspaces ORDER BY archived ASC, id ASC`,
         }),
@@ -33,6 +35,7 @@ export default async function grabEnvsOverview(_params: Params): Promise<EnvsOve
             sql: `SELECT id, name, kind FROM computers ORDER BY kind = 'main' DESC, id ASC`,
         }),
         grabAllEnvs(),
+        grabPersonalSecrets(),
     ]);
 
     const known_keys = new Set(EnvDict.map((env) => env.key));
@@ -58,7 +61,8 @@ export default async function grabEnvsOverview(_params: Params): Promise<EnvsOve
                 })),
             ].sort(compareScopes),
         ],
-        envs: envs.map((env) => publicEnv({ env, known_keys })),
+        envs: envs.filter((env) => env.paradigm != "user").map((env) => publicEnv({ env, known_keys })),
+        personal,
         known: EnvDict.map((env) => ({
             ...env,
             saved: envs.some((saved) => saved.paradigm == "general" && saved.key == env.key),

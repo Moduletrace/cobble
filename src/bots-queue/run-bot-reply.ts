@@ -3,6 +3,7 @@ import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
+    SecretsNote,
     botFilesNote,
     chatReplyNote,
     ComputerFilesNote,
@@ -38,6 +39,7 @@ import hasUnansweredMessage from "./has-unanswered-message";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
+import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import type { BotMessageWithAttachments } from "@/src/types";
 import type { HarnessMessage } from "@/src/harness/types";
 import type { BotJobContext, BotJobOutcome } from "./types";
@@ -145,6 +147,11 @@ export default async function runBotReply({
      */
     const proposals: string[] = [];
     /**
+     * The secrets the bot showed (`show_secret`), whose chips the reply
+     * always carries.
+     */
+    const shown: string[] = [];
+    /**
      * Files the bot wrote and asked to send with its reply.
      */
     const attachments: number[] = [];
@@ -194,6 +201,7 @@ export default async function runBotReply({
 
     const extensions = await openBotExtensions({
         bot_id: bot.id,
+        user_id,
         workspace_id,
         computer_id: computers[0]?.id || null,
         dirs,
@@ -236,6 +244,7 @@ export default async function runBotReply({
                 TasksNote,
                 TaskReminderNote,
                 ActionCheckNote,
+                SecretsNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({
                     computers,
@@ -253,6 +262,15 @@ export default async function runBotReply({
             tools: [
                 ...tools,
                 sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
+                ...grabBotSecretTools({
+                    user_id,
+                    bot_id: bot.id,
+                    session_id,
+                    workspace_id,
+                    computer_id: computers[0]?.id || null,
+                    onRequest: ({ ref }) => proposals.push(ref),
+                    onShow: ({ ref }) => shown.push(ref),
+                }),
                 ...file_tools,
                 ...extensions.tools,
                 ...skills.tools,
@@ -273,6 +291,7 @@ export default async function runBotReply({
             ...withTakeOverRefs({
                 text: stripAppRecords({ text: result.text }),
                 refs: [...take_overs, ...proposals],
+                shown,
             }),
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,

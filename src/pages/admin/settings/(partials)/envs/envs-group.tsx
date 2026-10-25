@@ -41,6 +41,7 @@ const Descriptions: Record<EnvScope["paradigm"], string> = {
     computer:
         "For this computer only. Beats a workspace, loses to the bot's own.",
     bot: "For this bot only, everywhere it works. Beats the workspace, the computer and general.",
+    user: "For one user's runs of one bot, set from the chat. Beats everything else.",
 };
 
 /**

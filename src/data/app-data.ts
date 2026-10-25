@@ -367,6 +367,13 @@ export const AppData = {
     ComputerSearchTimeoutMs: 30 * 1000,
     ComputerSearchMaxOutputChars: 4000,
     /**
+     * `capture_secret`: the longest value it saves (a file or a command's
+     * output; longer is refused, never cut), and how long the command may
+     * run.
+     */
+    CapturedSecretMaxChars: 8000,
+    CaptureSecretTimeoutMs: 30 * 1000,
+    /**
      * How many of a job's latest steps (`bots_queue_updates`) the
      * working-on panel shows.
      */

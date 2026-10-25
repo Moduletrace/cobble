@@ -52,11 +52,25 @@ export const ProposalRefHrefPrefix = "#proposal-";
 export const HookProposalRefHrefPrefix = "#hook-proposal-";
 
 /**
+ * The link target a secret ref (`secretRef`) becomes, e.g. `#secret-ref-12`.
+ * The chat renders it as a masked chip with Reveal and Copy.
+ */
+export const SecretRefHrefPrefix = "#secret-ref-";
+
+/**
+ * The link target a secret request ref (`secretRequestRef`) becomes, e.g.
+ * `#secret-request-4`. The chat renders it as a chip that opens the card
+ * the user types the secret into.
+ */
+export const SecretRequestRefHrefPrefix = "#secret-request-";
+
+/**
  * Turns every computer ref (`[computer:3]`) and take-over ref
  * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
  * (`[workspace:2]`), file ref (`[file:12]`), folder ref
  * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
- * proposal ref (`[hook-proposal:4]`) in a message into a markdown link, so it
+ * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
+ * request ref (`[secret-request:4]`) in a message into a markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button,
  * chip or download.
  *
@@ -86,6 +100,11 @@ export default function linkComputerRefs({ text }: { text: string }) {
         .replace(
             /\[hook-proposal:(\d+)\](?!\()/g,
             (_, id: string) => `[hook proposal ${id}](${HookProposalRefHrefPrefix}${id})`,
+        )
+        .replace(/\[secret:(\d+)\](?!\()/g, (_, id: string) => `[secret ${id}](${SecretRefHrefPrefix}${id})`)
+        .replace(
+            /\[secret-request:(\d+)\](?!\()/g,
+            (_, id: string) => `[secret request ${id}](${SecretRequestRefHrefPrefix}${id})`,
         )
         .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
         .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>

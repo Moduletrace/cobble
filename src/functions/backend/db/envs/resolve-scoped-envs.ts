@@ -7,6 +7,11 @@ type Params = {
      * The bot the run is for: its own envs beat everything else.
      */
     bot_id?: number | string | null;
+    /**
+     * The user the run is for: their personal envs for this bot beat the
+     * bot's own.
+     */
+    user_id?: number | string | null;
     computer_id?: number | string | null;
     /**
      * The workspaces whose envs apply, in order of precedence (first wins).
@@ -15,7 +20,8 @@ type Params = {
 };
 
 /**
- * The envs that reach one run, one per key: the bot's own beat the
+ * The envs that reach one run, one per key: the user's personal ones for
+ * this bot beat the bot's own, which beat the
  * computer's, which beat its workspaces' (the first listed workspace wins
  * a tie), which beat general ones. Only envs exposed to computers; app
  * settings never are.
@@ -23,6 +29,7 @@ type Params = {
 export default function resolveScopedEnvs({
     envs,
     bot_id,
+    user_id,
     computer_id,
     workspace_ids = [],
 }: Params): DecryptedEnv[] {
@@ -46,6 +53,14 @@ export default function resolveScopedEnvs({
             : [],
         bot_id
             ? exposed.filter((env) => env.paradigm == "bot" && env.bot_id == Number(bot_id))
+            : [],
+        bot_id && user_id
+            ? exposed.filter(
+                  (env) =>
+                      env.paradigm == "user" &&
+                      env.bot_id == Number(bot_id) &&
+                      env.user_id == Number(user_id),
+              )
             : [],
     ];
 

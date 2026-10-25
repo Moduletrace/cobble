@@ -29,6 +29,10 @@ type Params = {
     workspace_id?: number | null;
     computer_id?: number | null;
     bot_id?: number | null;
+    /**
+     * The user a personal env (paradigm user, with `bot_id`) is for.
+     */
+    owner_user_id?: number | null;
     secret: boolean;
     expose_to_computers: boolean;
 };
@@ -37,7 +41,7 @@ type Params = {
  * Adds or edits an env. One per key and scope: SQLite unique constraints
  * treat NULL ids as distinct, so the check is here. App settings
  * (`EnvDict`) are general only, never go to computers, and keep their
- * dict's secret flag.
+ * dict's secret flag. Returns the env's id.
  */
 export default async function saveEnv({
     user_id,
@@ -49,9 +53,10 @@ export default async function saveEnv({
     workspace_id,
     computer_id,
     bot_id,
+    owner_user_id,
     secret,
     expose_to_computers,
-}: Params) {
+}: Params): Promise<number> {
     const final_key = key.trim();
 
     if (!EnvKeyRegex.test(final_key)) {
@@ -68,13 +73,13 @@ export default async function saveEnv({
         throw new AppError(`${final_key} is an app setting, so it can only be set in General.`);
     }
 
-    const scope = await resolveScope({ user_id, paradigm, workspace_id, computer_id, bot_id });
+    const scope = await resolveScope({ user_id, paradigm, workspace_id, computer_id, bot_id, owner_user_id });
 
     const duplicate = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_ENVS>({
             sql: `SELECT id FROM envs WHERE key = ? AND paradigm = ?
                 AND COALESCE(workspace_id, 0) = ? AND COALESCE(computer_id, 0) = ?
-                AND COALESCE(bot_id, 0) = ?
+                AND COALESCE(bot_id, 0) = ? AND COALESCE(user_id, 0) = ?
                 AND id != ? LIMIT 1`,
             values: [
                 final_key,
@@ -82,6 +87,7 @@ export default async function saveEnv({
                 scope.workspace_id ?? 0,
                 scope.computer_id ?? 0,
                 scope.bot_id ?? 0,
+                scope.user_id ?? 0,
                 env_id ?? 0,
             ],
         })
@@ -98,6 +104,7 @@ export default async function saveEnv({
         workspace_id: scope.workspace_id,
         computer_id: scope.computer_id,
         bot_id: scope.bot_id,
+        user_id: scope.user_id,
         secret: (known ? known.secret : secret) ? 1 : 0,
         expose_to_computers: !known && expose_to_computers ? 1 : 0,
     };
@@ -126,6 +133,10 @@ export default async function saveEnv({
         });
 
         if (!res.success) throw new Error(`Couldn't save the env: ${res.error}`);
+
+        clearEnvCache();
+
+        return env_id;
     } else {
         if (value === undefined) {
             throw new AppError(`Enter a value.`);
@@ -134,16 +145,18 @@ export default async function saveEnv({
         const row = { ...fields, value: await encrypt(value) };
         const now = Date.now();
 
-        const res = await BunSQLite.sql({
+        const res = await BunSQLite.sql<{ id: number }>({
             sql: `INSERT INTO envs (created_at, updated_at, ${Object.keys(row).join(", ")})
-                VALUES (?, ?, ${Object.keys(row).map(() => "?").join(", ")})`,
+                VALUES (?, ?, ${Object.keys(row).map(() => "?").join(", ")}) RETURNING id`,
             values: [now, now, ...Object.values(row)] as any[],
         });
 
         if (!res.success) throw new Error(`Couldn't save the env: ${res.error}`);
-    }
 
-    clearEnvCache();
+        clearEnvCache();
+
+        return Number(res.payload?.[0]?.id);
+    }
 }
 
 async function resolveScope({
@@ -152,15 +165,30 @@ async function resolveScope({
     workspace_id,
     computer_id,
     bot_id,
+    owner_user_id,
 }: {
     user_id: number;
     paradigm: EnvParadigm;
     workspace_id?: number | null;
     computer_id?: number | null;
     bot_id?: number | null;
-}) {
+    owner_user_id?: number | null;
+}): Promise<{
+    workspace_id: number | null;
+    computer_id: number | null;
+    bot_id: number | null;
+    user_id: number | null;
+}> {
     if (paradigm == "general") {
-        return { workspace_id: null, computer_id: null, bot_id: null };
+        return { workspace_id: null, computer_id: null, bot_id: null, user_id: null };
+    }
+
+    if (paradigm == "user") {
+        if (!owner_user_id) throw new AppError(`A personal env needs its user.`);
+
+        const scope = await resolveScope({ user_id, paradigm: "bot", bot_id });
+
+        return { ...scope, user_id: Number(owner_user_id) };
     }
 
     const table =
@@ -181,8 +209,8 @@ async function resolveScope({
     }
 
     return paradigm == "workspace"
-        ? { workspace_id: Number(id), computer_id: null, bot_id: null }
+        ? { workspace_id: Number(id), computer_id: null, bot_id: null, user_id: null }
         : paradigm == "bot"
-          ? { workspace_id: null, computer_id: null, bot_id: Number(id) }
-          : { workspace_id: null, computer_id: Number(id), bot_id: null };
+          ? { workspace_id: null, computer_id: null, bot_id: Number(id), user_id: null }
+          : { workspace_id: null, computer_id: Number(id), bot_id: null, user_id: null };
 }

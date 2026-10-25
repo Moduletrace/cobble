@@ -33,7 +33,7 @@ import {
     BotFileSources,
 } from "@/src/dict/bot-file-dict";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
-import { EnvParadigms } from "@/src/dict/env-dict";
+import { EnvParadigms, SecretRequestStatuses } from "@/src/dict/env-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
 import {
     CustomToolKinds,
@@ -1427,6 +1427,68 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             indexes: [
                 {
                     indexName: "idx_hook_proposals_session_id",
+                    indexTableFields: ["session_id"],
+                },
+            ],
+        },
+        {
+            tableName: "secret_requests",
+            tableDescription: `A secret (a password, token or key) a bot asked a user for in their conversation. The user types it into the request's card, never into the chat, so the model never sees it: it's saved as their personal env (paradigm user) for that bot, which reaches that user's runs on computers by key`,
+            fields: [
+                {
+                    fieldName: "key",
+                    fieldDescription: `The env key it's saved under`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "description",
+                    fieldDescription: `What it is, saved as the env's description`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "reason",
+                    fieldDescription: `Why the bot asks, in its own words, shown on the card as such`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: [...SecretRequestStatuses],
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "env_id",
+                    fieldDescription: `The env it saved, once saved. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "decided_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user it was asked of, who alone answers it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that asked, whose runs for that user get it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it was asked in. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_secret_requests_session_id",
                     indexTableFields: ["session_id"],
                 },
             ],
@@ -3086,7 +3148,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "paradigm",
-                    fieldDescription: `Where it applies: general, a workspace, a computer, or a single bot. A bot's own beats the computer, which beats the workspace, which beats general`,
+                    fieldDescription: `Where it applies: general, a workspace, a computer, a single bot, or one user's runs of one bot (user, set from the chat). A user's own beats the bot's, which beats the computer, which beats the workspace, which beats general`,
                     dataType: "TEXT",
                     options: EnvParadigms.map((p) => p.value),
                     defaultValue: "general",
@@ -3117,7 +3179,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "bot_id",
-                    fieldDescription: `The bot, for paradigm bot. Goes with the bot`,
+                    fieldDescription: `The bot, for paradigm bot or user. Goes with the bot`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,
@@ -3125,6 +3187,18 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
                         foreignKeyName: "envs_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user, for paradigm user: only their runs of \`bot_id\` get it, and only they may reveal it. Goes with the user`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "envs_user_fk",
                     },
                 },
                 {

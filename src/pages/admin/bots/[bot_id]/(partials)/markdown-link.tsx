@@ -7,6 +7,8 @@ import {
     FileRefHrefPrefix,
     HookProposalRefHrefPrefix,
     ProposalRefHrefPrefix,
+    SecretRefHrefPrefix,
+    SecretRequestRefHrefPrefix,
     TakeOverRefHrefPrefix,
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
@@ -17,6 +19,8 @@ import FileRefChip from "./file-ref-chip";
 import FolderRefChip from "./folder-ref-chip";
 import HookProposalRefChip from "./hook-proposal-ref-chip";
 import ProposalRefChip from "./proposal-ref-chip";
+import SecretRefChip from "./secret-ref-chip";
+import SecretRequestRefChip from "./secret-request-ref-chip";
 import TakeOverChip from "./take-over-chip";
 import WorkspaceRefChip from "./workspace-ref-chip";
 
@@ -26,7 +30,9 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * computer, a bot it named a link to that bot's conversation, a workspace
  * a link to that workspace, a file it saved a chip that downloads it, a
  * folder it named a chip that opens it in the files browser, an MCP server,
- * tool, skill or hook it proposed a chip that opens the confirm card;
+ * tool, skill or hook it proposed a chip that opens the confirm card, a
+ * secret it showed a masked chip, a secret it asked for a chip that opens
+ * the card it's typed into;
  * anything else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
@@ -79,6 +85,18 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
         const proposal_id = Number(href.slice(HookProposalRefHrefPrefix.length));
 
         if (proposal_id) return <HookProposalRefChip proposal_id={proposal_id} />;
+    }
+
+    if (href?.startsWith(SecretRefHrefPrefix)) {
+        const env_id = Number(href.slice(SecretRefHrefPrefix.length));
+
+        if (env_id) return <SecretRefChip env_id={env_id} />;
+    }
+
+    if (href?.startsWith(SecretRequestRefHrefPrefix)) {
+        const request_id = Number(href.slice(SecretRequestRefHrefPrefix.length));
+
+        if (request_id) return <SecretRequestRefChip request_id={request_id} />;
     }
 
     const folder_ref = parseFolderRefHref({ href });

@@ -15,7 +15,8 @@ type Params = {
 /**
  * A message's markdown as it reads outside the app: its refs in words
  * (`[bot:3]` as `@Ada`, `[workspace:2]` as `#Launch`, `[computer:3]` as
- * "computer 3", a folder as its path) and its headings dropped by
+ * "computer 3", a folder as its path, a secret by number only, never its
+ * value) and its headings dropped by
  * `heading_offset`. Code blocks are left exactly as they are.
  */
 export default function exportMessageText({
@@ -82,6 +83,8 @@ function wordRefs({
         .replace(/\[take-over:(\d+):([a-z]+)\](?!\()/g, "(take over computer $1, $2)")
         .replace(/\[proposal:(\d+)\](?!\()/g, "proposal $1")
         .replace(/\[hook-proposal:(\d+)\](?!\()/g, "hook proposal $1")
+        .replace(/\[secret:(\d+)\](?!\()/g, "(secret $1, hidden)")
+        .replace(/\[secret-request:(\d+)\](?!\()/g, "(secret request $1)")
         .replace(/\[file:(\d+)\](?!\()/g, "file $1")
         .replace(/\[folder:[a-z]+:\d+:([^\]\n]+)\](?!\()/g, "`$1`")
         .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, "the $1 $2 folder");

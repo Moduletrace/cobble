@@ -5,6 +5,7 @@ import workspaceAdminsNote from "./workspace-admins-note";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
+    SecretsNote,
     botFilesNote,
     ComputerFilesNote,
     ScheduledRunNote,
@@ -22,6 +23,7 @@ import openComputerTools from "@/src/harness/tools/computer/open-computer-tools"
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
+import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
@@ -75,12 +77,20 @@ export default async function runBotTask({
      */
     const dirs = computerRunDirs({ bot_id: bot.id, bot_kind: bot.kind, user_id, workspace_id });
 
+    /**
+     * The secrets the bot captured or showed, whose chips the report
+     * always carries.
+     */
+    const shown: string[] = [];
+
     const computer = job.computer_id
         ? await openComputerTools({
               computer_id: job.computer_id,
               bot_id: bot.id,
+              user_id,
               workspace_id,
               dirs,
+              onSecretRef: ({ ref }) => shown.push(ref),
               signal,
           })
         : null;
@@ -175,7 +185,7 @@ export default async function runBotTask({
                 : []),
             ...(computers.length
                 ? [
-                      searchComputersTool({ bot_id: bot.id, computers, workspace_id, dirs }),
+                      searchComputersTool({ bot_id: bot.id, user_id, computers, workspace_id, dirs }),
                       askToTakeOverTool({
                           computers: take_over_computers,
                           in_task: true,
@@ -183,6 +193,16 @@ export default async function runBotTask({
                       }),
                   ]
                 : []),
+            ...grabBotSecretTools({
+                user_id,
+                bot_id: bot.id,
+                session_id,
+                workspace_id,
+                computer_id: job.computer_id || null,
+                in_task: true,
+                onRequest: hooked ? undefined : ({ ref }) => take_overs.push(ref),
+                onShow: ({ ref }) => shown.push(ref),
+            }),
             ...(scheduled || hooked ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
             ...(computer?.tools || []),
             ...(job.computer_id
@@ -208,6 +228,7 @@ export default async function runBotTask({
 
         extensions = await openBotExtensions({
             bot_id: bot.id,
+            user_id,
             workspace_id,
             computer_id: job.computer_id || null,
             dirs,
@@ -232,6 +253,7 @@ export default async function runBotTask({
                 ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
                 TasksNote,
                 ActionCheckNote,
+                SecretsNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 powers.is_coordinator
                     ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`
@@ -288,6 +310,7 @@ export default async function runBotTask({
             ...withTakeOverRefs({
                 text: computer ? computer.redact(text) : text,
                 refs: take_overs,
+                shown,
             }),
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,

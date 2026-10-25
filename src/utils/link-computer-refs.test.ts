@@ -5,6 +5,8 @@ import computerRef from "./computer-ref";
 import linkComputerRefs from "./link-computer-refs";
 import hookProposalRef from "./hook-proposal-ref";
 import proposalRef from "./proposal-ref";
+import secretRef from "./secret-ref";
+import secretRequestRef from "./secret-request-ref";
 import takeOverRef from "./take-over-ref";
 
 describe("linkComputerRefs", () => {
@@ -32,6 +34,12 @@ describe("linkComputerRefs", () => {
         expect(
             linkComputerRefs({ text: `${hookProposalRef({ id: 4 })} and ${proposalRef({ id: 4 })}` }),
         ).toBe("[hook proposal 4](#hook-proposal-4) and [proposal 4](#proposal-4)");
+    });
+
+    test("links secrets and secret requests, never confusing the two", () => {
+        expect(
+            linkComputerRefs({ text: `${secretRef({ id: 12 })} and ${secretRequestRef({ id: 4 })}` }),
+        ).toBe("[secret 12](#secret-ref-12) and [secret request 4](#secret-request-4)");
     });
 
     test("links take-over requests", () => {

@@ -12,6 +12,11 @@ import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 
 type Params = {
     bot_id: number | string;
+    /**
+     * The user the run is for: their personal envs for the bot fill
+     * templates and reach scripts.
+     */
+    user_id?: number | string | null;
     workspace_id?: number | string | null;
     /**
      * Where script tools run: the task's computer, or in chat the bot's
@@ -54,6 +59,7 @@ export type OpenBotExtensions = {
  */
 export default async function openBotExtensions({
     bot_id,
+    user_id,
     workspace_id,
     computer_id,
     dirs,
@@ -66,7 +72,7 @@ export default async function openBotExtensions({
         return { tools: [], note: "", skills, close: async () => {} };
     }
 
-    const envs = await grabRunEnvs({ bot_id, workspace_id });
+    const envs = await grabRunEnvs({ bot_id, user_id, workspace_id });
     const secrets = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
     const names = new Set(taken);
@@ -81,7 +87,7 @@ export default async function openBotExtensions({
     };
 
     for (const tool of tools) {
-        add(buildCustomTool({ tool, envs, computer_id, bot_id, workspace_id, dirs }));
+        add(buildCustomTool({ tool, envs, computer_id, bot_id, user_id, workspace_id, dirs }));
     }
 
     for (const server of servers) {

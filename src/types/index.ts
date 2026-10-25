@@ -31,7 +31,7 @@ import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "./sql-joins";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
 import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
-import type { EnvParadigm, KnownEnv } from "../dict/env-dict";
+import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
@@ -601,6 +601,50 @@ export type PublicEnv = {
  * Somewhere envs can be set: general, or one of the user's workspaces,
  * computers or bots.
  */
+/**
+ * A user's personal secret for one bot (an env with paradigm \`user\`), as
+ * settings pages list it: never its value.
+ */
+export type PersonalSecret = {
+    id: number;
+    key: string;
+    description: string;
+    bot_id: number;
+    bot_name: string;
+    user_id: number;
+    user_name: string;
+    updated_at: number;
+};
+
+/**
+ * A secret a bot asked the user for (\`[secret-request:ID]\`), as its chip
+ * and card show it. Never holds a value.
+ */
+export type SecretRequestView = {
+    id: number;
+    key: string;
+    description: string;
+    reason: string;
+    status: SecretRequestStatus;
+    bot_id: number;
+    bot_name: string;
+    /**
+     * The personal secret it saved, once saved.
+     */
+    env_id: number | null;
+};
+
+/**
+ * A secret ref (\`[secret:ID]\`) as its chip shows it before anyone asks
+ * for the value: the key, and whether this viewer may reveal it.
+ */
+export type SecretRefView = {
+    id: number;
+    key: string;
+    description: string;
+    can_reveal: boolean;
+};
+
 export type EnvScope = {
     paradigm: EnvParadigm;
     id: number | null;
@@ -984,6 +1028,10 @@ export type EnvsOverviewPayload = {
     scopes: EnvScope[];
     envs: PublicEnv[];
     known: KnownEnvStatus[];
+    /**
+     * Every user's personal secrets, set from the chat.
+     */
+    personal: PersonalSecret[];
 };
 
 /**
@@ -1556,6 +1604,10 @@ export type PagePropsType = {
     harness_overview?: HarnessOverviewPayload | null;
     bot_harness_overview?: BotHarnessOverviewPayload | null;
     envs_overview?: EnvsOverviewPayload | null;
+    /**
+     * The viewer's own personal secrets (the Secrets settings page).
+     */
+    personal_secrets?: PersonalSecret[] | null;
     /**
      * What bots keep on disk: the per-folder quota and its usage (the
      * General settings page).

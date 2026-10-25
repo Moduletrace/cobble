@@ -13,6 +13,10 @@ export type DecryptedEnv = {
     workspace_id: number | null;
     computer_id: number | null;
     bot_id: number | null;
+    /**
+     * The user, for a personal env (paradigm user, with `bot_id`).
+     */
+    user_id: number | null;
     secret: boolean;
     expose_to_computers: boolean;
 };
@@ -70,6 +74,7 @@ async function load() {
             workspace_id: typeof row.workspace_id == "number" ? row.workspace_id : null,
             computer_id: typeof row.computer_id == "number" ? row.computer_id : null,
             bot_id: typeof row.bot_id == "number" ? row.bot_id : null,
+            user_id: typeof row.user_id == "number" ? row.user_id : null,
             secret: row.secret != 0,
             expose_to_computers: row.expose_to_computers != 0,
         })),

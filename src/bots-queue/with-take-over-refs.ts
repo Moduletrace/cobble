@@ -5,6 +5,11 @@ type Params = {
      * and the proposals it made for the user to confirm (`proposalRef`).
      */
     refs: string[];
+    /**
+     * The secrets it showed (`secretRef`): added the same way, but they
+     * don't need the user.
+     */
+    shown?: string[];
 };
 
 /**
@@ -13,8 +18,8 @@ type Params = {
  * end, so the user always gets the button. A message asking for either
  * needs the user.
  */
-export default function withTakeOverRefs({ text, refs }: Params) {
-    const missing = [...new Set(refs)].filter((ref) => !text.includes(ref));
+export default function withTakeOverRefs({ text, refs, shown = [] }: Params) {
+    const missing = [...new Set([...refs, ...shown])].filter((ref) => !text.includes(ref));
 
     return {
         result: [text.trim(), ...missing].filter(Boolean).join("\n\n"),

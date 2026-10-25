@@ -10,6 +10,7 @@ import grabMcpTools from "../../mcp/grab-mcp-tools";
 import readImage from "../../media/read-image";
 import type { HarnessTool } from "../../types";
 import computerDirsShell from "./computer-dirs-shell";
+import captureSecretTool from "./capture-secret-tool";
 import runComputerCommand from "./run-computer-command";
 import withComputerDirs from "./with-computer-dirs";
 import withComputerEnv from "./with-computer-env";
@@ -22,6 +23,10 @@ type Params = {
      */
     bot_id?: number | string;
     /**
+     * The user the run is for: their personal envs for the bot apply.
+     */
+    user_id?: number | string | null;
+    /**
      * The workspace the run is in: its envs apply, and its models read
      * screenshots.
      */
@@ -31,6 +36,12 @@ type Params = {
      * kept inside them.
      */
     dirs: ComputerRunDirs;
+    /**
+     * Called with the ref of each secret the bot captures on the computer
+     * (`capture_secret`), so the run's message always carries its chip.
+     * Without it, or without a user, the bot can't capture secrets.
+     */
+    onSecretRef?: (params: { ref: string }) => void;
     signal?: AbortSignal;
 };
 
@@ -61,8 +72,10 @@ export type OpenComputer = {
 export default async function openComputerTools({
     computer_id,
     bot_id,
+    user_id,
     workspace_id,
     dirs,
+    onSecretRef,
     signal,
 }: Params): Promise<OpenComputer> {
     const target = await grabComputerMcpUrl({ computer_id });
@@ -75,7 +88,7 @@ export default async function openComputerTools({
         throw new Error(computerNotReadyMessage(target));
     }
 
-    const envs = await grabComputerEnvs({ computer_id, bot_id, workspace_id });
+    const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
     const paths = await writeComputerEnv({ base_url: target.base_url, envs, signal });
 
     await runComputerCommand({
@@ -85,7 +98,11 @@ export default async function openComputerTools({
         signal,
     });
 
-    const secrets = envs.filter((env) => env.secret);
+    /**
+     * Grows as the bot captures secrets, so a value it saved is blanked
+     * from everything it reads afterwards too.
+     */
+    const secrets: { key: string; value: string }[] = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
 
     const client = await connectMcpServer({ url: target.url, signal });
@@ -107,7 +124,24 @@ export default async function openComputerTools({
 
         return {
             name: target.name,
-            tools: tools.map((tool) => withComputerDirs({ tool: withComputerEnv({ tool, ...paths }), dirs })),
+            tools: [
+                ...tools.map((tool) => withComputerDirs({ tool: withComputerEnv({ tool, ...paths }), dirs })),
+                ...(user_id && bot_id && onSecretRef
+                    ? [
+                          captureSecretTool({
+                              base_url: target.base_url,
+                              shell_path: paths.shell_path,
+                              dirs,
+                              user_id,
+                              bot_id,
+                              onCapture: ({ key, value, ref }) => {
+                                  secrets.push({ key, value });
+                                  onSecretRef({ ref });
+                              },
+                          }),
+                      ]
+                    : []),
+            ],
             envs: envs.map((env) => ({ key: env.key, description: env.description })),
             redact,
             close: () => client.close().catch(() => {}),

@@ -9,7 +9,12 @@ export const SaveEnvRequestSchema = z.object({
      */
     value: z.string().max(20000, "Keep values under 20,000 characters").optional(),
     description: z.string().trim().max(500).optional(),
-    paradigm: z.enum(EnvParadigms.map((p) => p.value) as [EnvParadigm, ...EnvParadigm[]]),
+    /**
+     * Personal envs (`user`) are set from the chat, never here.
+     */
+    paradigm: z.enum(
+        EnvParadigms.filter((p) => p.value != "user").map((p) => p.value) as [EnvParadigm, ...EnvParadigm[]],
+    ),
     workspace_id: z.coerce.number().int().positive().nullable().optional(),
     computer_id: z.coerce.number().int().positive().nullable().optional(),
     bot_id: z.coerce.number().int().positive().nullable().optional(),

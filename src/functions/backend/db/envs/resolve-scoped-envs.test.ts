@@ -11,6 +11,7 @@ const env = (fields: Partial<DecryptedEnv> & { key: string; value: string }): De
     workspace_id: null,
     computer_id: null,
     bot_id: null,
+    user_id: null,
     secret: true,
     expose_to_computers: true,
     ...fields,
@@ -80,5 +81,21 @@ describe("resolveScopedEnvs", () => {
         ];
 
         expect(resolveScopedEnvs({ envs, computer_id: 7, workspace_ids: [] })).toEqual([]);
+    });
+
+    test("a user's personal env beats the bot's own, for that user and bot only", () => {
+        const envs = [
+            env({ key: "TOKEN", value: "bot", paradigm: "bot", bot_id: 4 }),
+            env({ key: "TOKEN", value: "mine", paradigm: "user", bot_id: 4, user_id: 9 }),
+            env({ key: "OTHER_BOT", value: "no", paradigm: "user", bot_id: 5, user_id: 9 }),
+            env({ key: "OTHER_USER", value: "no", paradigm: "user", bot_id: 4, user_id: 10 }),
+        ];
+
+        expect(values(resolveScopedEnvs({ envs, bot_id: 4, user_id: 9, computer_id: 7 }))).toEqual({
+            TOKEN: "mine",
+        });
+        expect(values(resolveScopedEnvs({ envs, bot_id: 4, computer_id: 7 }))).toEqual({
+            TOKEN: "bot",
+        });
     });
 });
