@@ -1,4 +1,5 @@
 import AppearanceSection from "./(sections)/appearance-section";
+import InstallIconSection from "./(sections)/install-icon-section";
 import InstallNameSection from "./(sections)/install-name-section";
 import NotificationsSection from "./(sections)/notifications-section";
 import PromptSection from "./(sections)/prompt-section";
@@ -15,8 +16,9 @@ export default function AdminSettingsGeneralPage() {
             title="General"
             description="How the app looks and behaves."
         >
-            <AppearanceSection />
             <InstallNameSection />
+            <InstallIconSection />
+            <AppearanceSection />
             <NotificationsSection />
             <PromptSection />
             <RunLimitsSection />

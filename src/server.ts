@@ -11,6 +11,7 @@ import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
+import handleInstallIconFile from "./functions/server/pwa/handle-install-icon-file";
 import handleBuildInfo from "./functions/server/pwa/handle-build-info";
 import handlePrecacheGate from "./functions/server/pwa/handle-precache-gate";
 import grabPrecacheManifest from "./functions/server/pwa/grab-precache-manifest";
@@ -84,6 +85,10 @@ const server = Bun.serve({
             const pwa_file = await handlePwaFile({ pathname: url.pathname });
 
             if (pwa_file) return pwa_file;
+
+            const install_icon = await handleInstallIconFile({ pathname: url.pathname });
+
+            if (install_icon) return install_icon;
 
             const build_info = handleBuildInfo({ pathname: url.pathname });
 

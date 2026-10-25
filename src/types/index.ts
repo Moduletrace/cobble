@@ -36,6 +36,7 @@ import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
+import type { PwaInstallIcon } from "../data/pwa-data";
 import type {
     CustomToolHttpMethod,
     CustomToolKind,
@@ -1443,6 +1444,11 @@ export type PagePropsType = {
      * General, and the root's head tags). Empty when never named.
      */
     install_name?: string | null;
+    /**
+     * The icon the install goes by as an installed app (Settings >
+     * General, and the root's icon links).
+     */
+    install_icon?: PwaInstallIcon | null;
     /**
      * The release the server is running, for the General settings page.
      */

@@ -2,6 +2,9 @@ import path from "path";
 import { PwaManifestPath, PwaServiceWorkerPath } from "@/src/data/pwa-data";
 import grabInstallName from "@/src/functions/backend/db/app-settings/grab-install-name";
 import namePwaManifest from "@/src/utils/name-pwa-manifest";
+import grabInstallIcon from "@/src/functions/backend/db/app-settings/grab-install-icon";
+import iconPwaManifest from "@/src/utils/icon-pwa-manifest";
+import installIconBase from "@/src/utils/install-icon-base";
 
 const PUBLIC_DIR = path.resolve(import.meta.dir, "../../../../public");
 
@@ -94,17 +97,20 @@ export default async function handlePwaFile({
 }
 
 /**
- * The generated manifest under the install's own name (Settings >
- * General). Unnamed, or when the file isn't JSON, it goes out as it is.
+ * The generated manifest under the install's own name and icon (Settings >
+ * General). Stock, or when the file isn't JSON, it goes out as it is.
  */
 async function namedManifest({ file }: { file: ReturnType<typeof Bun.file> }) {
     const text = await file.text();
     const install_name = await grabInstallName().catch(() => "");
+    const icon_base = installIconBase({ icon: await grabInstallIcon().catch(() => null) });
 
-    if (!install_name) return text;
+    if (!install_name && !icon_base) return text;
 
     try {
-        return JSON.stringify(namePwaManifest({ manifest: JSON.parse(text), install_name }), null, 4);
+        const named = namePwaManifest({ manifest: JSON.parse(text), install_name });
+
+        return JSON.stringify(iconPwaManifest({ manifest: named, icon_base }), null, 4);
     } catch {
         return text;
     }

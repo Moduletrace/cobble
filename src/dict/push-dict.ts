@@ -10,6 +10,11 @@ export type PushPayload = {
     url: string;
     tag: string;
     requireInteraction?: boolean;
+    /**
+     * The install's own icon (`deliverToUser` fills it in); the worker
+     * falls back to the stock one.
+     */
+    icon?: string;
 };
 
 /**

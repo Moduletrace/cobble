@@ -1,3 +1,4 @@
+import type { BotHue } from "@/src/dict/bot-dict";
 import { SiteData } from "./site-data";
 
 /**
@@ -110,3 +111,82 @@ export const PwaLoadingNamePlaceholder = "{{name}}";
  */
 export const PwaInstallNameSettingKey = "install_name";
 export const PwaInstallNameMaxLength = 30;
+
+/**
+ * How much of the canvas the stone fills on the app icon, and on a
+ * maskable icon (cropped to a circle of 80% of the canvas, so the stone
+ * stays well inside it).
+ */
+export const PwaAppIconMarkScale = 0.8;
+export const PwaMaskableMarkScale = 0.52;
+
+/**
+ * The install's own icon (Settings > General): one of the stones, or an
+ * uploaded image with the stone as a corner mark. Saved as JSON in
+ * `app_settings`; the generated PNGs live in `DATA_DIR/<PwaInstallIconDir>`
+ * and are served from `<PwaInstallIconRoute>/<version>/<file>.png`.
+ */
+export const PwaInstallIconSettingKey = "install_icon";
+export const PwaInstallIconDir = "install-icon";
+export const PwaInstallIconRoute = "/install-icon";
+export const PwaInstallIconModes = ["stone", "image"] as const;
+export type PwaInstallIconMode = (typeof PwaInstallIconModes)[number];
+
+export type PwaInstallIcon = {
+    mode: PwaInstallIconMode;
+    stone: BotHue;
+    /**
+     * Image mode: put the stone in the top-left corner.
+     */
+    mark: boolean;
+    /**
+     * The generated set's folder, or null for the stock ember icon.
+     */
+    version: string | null;
+};
+
+export const PwaDefaultInstallIcon: PwaInstallIcon = {
+    mode: "stone",
+    stone: "ember",
+    mark: true,
+    version: null,
+};
+
+/**
+ * The corner mark on an uploaded image: inside a launcher's circle crop
+ * (the centre 80%), top-left, clear of the browser's badge bottom-right.
+ * Fractions of the icon's side.
+ */
+export const PwaCornerMarkInset = 0.2;
+export const PwaCornerMarkScale = 0.22;
+
+/**
+ * Uploads must be at least this many pixels on their shorter side, and are
+ * kept as a square of the source size.
+ */
+export const PwaInstallIconMinSide = 512;
+export const PwaInstallIconSourceSide = 1024;
+
+export type PwaInstallIconFile = {
+    name: string;
+    size: number;
+    /**
+     * `plain` is the image without the mark (the settings preview);
+     * `favicon` never gets the mark (unreadable at 32px).
+     */
+    kind: "any" | "maskable" | "favicon" | "plain";
+};
+
+/**
+ * Every file a custom icon set holds. The `icon-*` and `maskable-*` names
+ * match `PwaIcons`, so the manifest only swaps the folder.
+ */
+export const PwaInstallIconFiles: PwaInstallIconFile[] = [
+    { name: "icon-192", size: 192, kind: "any" },
+    { name: "icon-512", size: 512, kind: "any" },
+    { name: "maskable-192", size: 192, kind: "maskable" },
+    { name: "maskable-512", size: 512, kind: "maskable" },
+    { name: "apple-touch-icon", size: 180, kind: "any" },
+    { name: "favicon", size: 32, kind: "favicon" },
+    { name: "plain-512", size: 512, kind: "plain" },
+];

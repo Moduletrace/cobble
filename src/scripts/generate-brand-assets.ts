@@ -20,7 +20,10 @@ import {
     PwaShortName,
     PwaShortcuts,
     PwaStartPath,
+    PwaAppIconMarkScale,
+    PwaMaskableMarkScale,
 } from "../data/pwa-data";
+import renderAppIcon from "../functions/server/pwa/render-app-icon";
 
 const ROOT = path.resolve(import.meta.dir, "../..");
 const LOGO_SVG = path.join(ROOT, "public/logos/logo.svg");
@@ -30,17 +33,6 @@ const MAIN_CSS = path.join(ROOT, "src/styles/main.css");
 
 const ICO_SIZES = [16, 24, 32, 48] as const;
 const PNG_SIZES = [...ICO_SIZES, 180, 512] as const;
-
-/**
- * The app icon is the stone on paper, with room around it for the
- * launcher's mask. The favicons keep the transparent stone.
- */
-const AppIconMarkScale = 0.8;
-/**
- * A maskable icon is cropped to a circle of 80% of the canvas, so the
- * stone stays inside it with room to spare.
- */
-const MaskableMarkScale = 0.52;
 
 function buildIco(pngs: Record<number, Buffer>): Buffer {
     const header = Buffer.alloc(6);
@@ -180,36 +172,6 @@ async function grabThemeColors(): Promise<ThemeColors> {
         dark_ink_secondary,
         dark_hairline,
     };
-}
-
-async function renderAppIcon({
-    svg,
-    size,
-    scale,
-    background,
-}: {
-    svg: Buffer;
-    size: number;
-    scale: number;
-    background: string;
-}) {
-    const mark_size = Math.max(1, Math.round(size * scale));
-    const mark = await sharp(svg)
-        .resize(mark_size, mark_size, { fit: "contain" })
-        .png()
-        .toBuffer();
-
-    return sharp({
-        create: {
-            width: size,
-            height: size,
-            channels: 4,
-            background,
-        },
-    })
-        .composite([{ input: mark, gravity: "center" }])
-        .png()
-        .toBuffer();
 }
 
 function buildManifest({ colors }: { colors: ThemeColors }) {
@@ -637,7 +599,7 @@ async function main() {
         await renderAppIcon({
             svg,
             size: 180,
-            scale: AppIconMarkScale,
+            scale: PwaAppIconMarkScale,
             background: colors.paper,
         }),
     );
@@ -655,7 +617,7 @@ async function main() {
             await renderAppIcon({
                 svg,
                 size,
-                scale: maskable ? MaskableMarkScale : AppIconMarkScale,
+                scale: maskable ? PwaMaskableMarkScale : PwaAppIconMarkScale,
                 background: colors.paper,
             }),
         );

@@ -3,7 +3,7 @@ import grabInstallName from "@/src/functions/backend/db/app-settings/grab-instal
 import saveAppSetting from "@/src/functions/backend/db/app-settings/save-app-setting";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { PwaInstallNameSettingKey } from "@/src/data/pwa-data";
-import { SaveInstallNameRequestSchema } from "@/src/schemas/push-schema";
+import { SaveInstallNameRequestSchema } from "@/src/schemas/install-schema";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import safeErrorMessage from "@/src/utils/safe-error-message";
