@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import postSessionApi from "@/src/functions/frontend/post-session-api";
 import type { BotMessageWithAttachments, OlderBotMessagesData } from "@/src/types";
 
 type Params = {
     session_id?: number | null;
     /**
-     * The page rendered with only the session's latest messages.
+     * The thread starts with only the session's latest messages.
      */
     has_more: boolean;
     /**
@@ -21,7 +21,8 @@ type Params = {
 /**
  * Loads the session's older messages a page at a time, when the thread
  * is scrolled to its top. A session the thread moves onto starts with
- * its first message, so it has none older.
+ * its first message, so it has none older; `reset` starts over from a
+ * loaded history instead.
  */
 export default function useOlderMessages({
     session_id,
@@ -32,14 +33,27 @@ export default function useOlderMessages({
     const [has_more, setHasMore] = useState(initial_has_more);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
-    const first_session = useRef(session_id);
+    const base_session = useRef(session_id);
 
     useEffect(() => {
-        if (session_id == first_session.current) return;
+        if (session_id == base_session.current) return;
 
+        base_session.current = session_id;
         setHasMore(false);
         setError(undefined);
     }, [session_id]);
+
+    /**
+     * A history loaded for the session: whether it has older messages.
+     */
+    const reset = useCallback(
+        ({ session_id, has_more }: { session_id: number; has_more: boolean }) => {
+            base_session.current = session_id;
+            setHasMore(has_more);
+            setError(undefined);
+        },
+        [],
+    );
 
     const loadOlder = async () => {
         if (loading || !has_more || !session_id || !first_message_id) return;
@@ -63,5 +77,5 @@ export default function useOlderMessages({
         setHasMore(res.singleRes.has_more);
     };
 
-    return { has_more, loading, error, loadOlder };
+    return { has_more, loading, error, loadOlder, reset };
 }

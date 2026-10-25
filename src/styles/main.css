@@ -184,6 +184,19 @@
     /* The rail's full (named) width: below it the rail shows icons only.
        A container query, so the mobile drawer opens full too. */
     --container-rail: 220px;
+
+    /* The thin line under a pane header while its page loads
+       (`LoadingLine`): a short bar sweeping across, again and again. */
+    --animate-loading-line: loading-line 1.2s ease-in-out infinite;
+
+    @keyframes loading-line {
+        0% {
+            transform: translateX(-100%);
+        }
+        100% {
+            transform: translateX(300%);
+        }
+    }
 }
 
 body {

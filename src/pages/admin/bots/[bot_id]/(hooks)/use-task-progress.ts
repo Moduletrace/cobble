@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import useServerEvent from "@/src/hooks/use-server-event";
 import type { BotJobUpdateData, BotTaskWithSteps, BotUpdatedData } from "@/src/types";
 
@@ -9,7 +9,7 @@ type Params = {
      */
     session_id?: number | null;
     /**
-     * The bot's active task when the page loaded.
+     * The bot's active task when the thread started.
      */
     task: BotTaskWithSteps | null;
 };
@@ -30,7 +30,7 @@ function fromTask({ task }: { task: BotTaskWithSteps | null }): Progress {
  * The open session's active task and its latest step (a
  * `bots_queue_updates` row's text), kept current from
  * `server:bot-job-update`. Starts over when `server:bot-updated` brings a
- * different task, or none.
+ * different task, or none, or `reset` brings a loaded history's.
  */
 export default function useTaskProgress({ bot_id, session_id, task }: Params) {
     const [progress, setProgress] = useState<Progress>(() => fromTask({ task }));
@@ -60,5 +60,9 @@ export default function useTaskProgress({ bot_id, session_id, task }: Params) {
         },
     });
 
-    return progress;
+    const reset = useCallback(({ task }: { task: BotTaskWithSteps | null }) => {
+        setProgress(fromTask({ task }));
+    }, []);
+
+    return { ...progress, reset };
 }

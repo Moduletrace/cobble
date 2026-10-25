@@ -33,6 +33,10 @@ import ConversationHeader from "../(partials)/conversation-header";
 import MessageThread from "../(partials)/message-thread";
 import Composer, { type ComposerHandle } from "../(partials)/composer";
 import ComputerViewerModal from "../(partials)/computer-viewer-modal";
+import HistoryErrorRow from "../(partials)/history-error-row";
+import useConversationHistory from "../(hooks)/use-conversation-history";
+import mergeLoadedHistory from "../(utils)/merge-loaded-history";
+import LoadingLine from "@/src/components/general/loading-line";
 
 /**
  * The conversation column: header, bottom-anchored thread, composer, the
@@ -42,8 +46,12 @@ import ComputerViewerModal from "../(partials)/computer-viewer-modal";
  * buttons in the thread, so a switch from either shows in both; either
  * can open one in the viewer. Bot messages can be read aloud, one at a
  * time. Text selected in the thread can be quoted in the composer, which
- * mentions the crew and workspaces the user sees. The page brings the
- * session's latest messages; older ones load as the thread scrolls up.
+ * mentions the crew and workspaces the user sees. The page brings
+ * everything but the history, so the header and composer show at once;
+ * the history (the session's latest messages and the bot's task there)
+ * loads on the client with a loading line under the header, and again
+ * when the back button restores the page. Older messages load as the
+ * thread scrolls up.
  */
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
@@ -52,7 +60,7 @@ export default function Conversation() {
     const workspace_id = workspace?.id || null;
 
     const [messages, setMessages] = useState<BotMessageWithAttachments[]>(
-        pageProps?.bot_messages || [],
+        [],
     );
     /**
      * Messages sent here that the server hasn't confirmed yet, shown after
@@ -63,9 +71,7 @@ export default function Conversation() {
     const [pending_messages, setPendingMessages] = useState<
         BotMessageWithAttachments[]
     >([]);
-    const [session_id, setSessionId] = useState<number | null>(
-        pageProps?.bot_session?.id || null,
-    );
+    const [session_id, setSessionId] = useState<number | null>(null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
     const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(
         null,
@@ -73,9 +79,19 @@ export default function Conversation() {
 
     /**
      * A quote picked in one session doesn't follow the thread to another,
-     * and neither does a message still on its way to the old one.
+     * and neither does a message still on its way to the old one. The
+     * first session the thread learns of isn't a move: what was sent
+     * before the history landed stays.
      */
+    const known_session = useRef<number | null>(null);
+
     useEffect(() => {
+        const moved = Boolean(known_session.current);
+
+        known_session.current = session_id;
+
+        if (!moved) return;
+
         setReplyTo(null);
         setPendingMessages([]);
     }, [session_id]);
@@ -108,12 +124,12 @@ export default function Conversation() {
     const progress = useTaskProgress({
         bot_id: bot?.id || 0,
         session_id,
-        task: pageProps?.bot_task || null,
+        task: null,
     });
 
     const older = useOlderMessages({
         session_id,
-        has_more: Boolean(pageProps?.bot_messages_more),
+        has_more: false,
         first_message_id: Number(messages[0]?.id) || null,
         onLoaded: ({ messages: older_messages }) =>
             setMessages((prev) => [
@@ -122,6 +138,19 @@ export default function Conversation() {
                 ),
                 ...prev,
             ]),
+    });
+
+    const history = useConversationHistory({
+        bot_id: Number(bot?.id) || 0,
+        workspace_id,
+        onLoaded: ({ history }) => {
+            const loaded_session_id = Number(history.session.id);
+
+            setSessionId(loaded_session_id);
+            setMessages((prev) => mergeLoadedHistory({ shown: prev, history }));
+            older.reset({ session_id: loaded_session_id, has_more: history.has_more });
+            progress.reset({ task: history.task });
+        },
     });
 
     const thread_messages = useMemo(
@@ -169,7 +198,15 @@ export default function Conversation() {
                 dropSentMessage({ pending: prev, message }),
             );
 
-            if (message.session_id && message.session_id != session_id) {
+            /**
+             * Before the history lands the thread has no session yet: the
+             * message waits in the thread, and the history merges with it.
+             */
+            if (
+                session_id &&
+                message.session_id &&
+                message.session_id != session_id
+            ) {
                 if (message.author == "user" && startsNewSession(message)) {
                     setSessionId(Number(message.session_id));
                     setMessages([message]);
@@ -276,6 +313,15 @@ export default function Conversation() {
                                     workspace={workspace}
                                     has_other_unread={has_other_unread}
                                 />
+                                {history.loading ? (
+                                    <LoadingLine label="Loading the conversation" />
+                                ) : null}
+                                {history.error ? (
+                                    <HistoryErrorRow
+                                        error={history.error}
+                                        onRetry={history.retry}
+                                    />
+                                ) : null}
                                 <MessageThread
                                     bot={live_bot}
                                     messages={thread_messages}

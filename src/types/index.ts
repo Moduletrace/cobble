@@ -1081,6 +1081,32 @@ export type BotTextModel = {
 };
 
 /**
+ * A conversation's history, which its page loads on the client once it
+ * renders (`grabConversationHistory`): the active session, its latest
+ * messages, whether it has older ones, and the bot's active task in it.
+ */
+export type ConversationHistory = {
+    session: BUN_SQLITE_COBBLE_BOT_SESSIONS;
+    messages: BotMessageWithAttachments[];
+    has_more: boolean;
+    /**
+     * The bot's active task in the session and what its job has done so
+     * far.
+     */
+    task: BotTaskWithSteps | null;
+};
+
+/**
+ * What `api/admin/bots/conversation-history` answers: the history, or
+ * where to go instead when the user can't chat with the bot there any
+ * more.
+ */
+export type ConversationHistoryPayload = {
+    history?: ConversationHistory;
+    redirect?: string;
+};
+
+/**
  * One build's `.bunext/public` files, downloaded by the service worker
  * before the app runs (`grabPrecacheManifest`).
  */
@@ -1107,15 +1133,6 @@ export type PagePropsType = {
     crew_workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] | null;
     bots?: BotWithLastMessage[] | null;
     bot?: BotWithLastMessage | null;
-    bot_messages?: BotMessageWithAttachments[] | null;
-    /**
-     * The session has messages older than `bot_messages`.
-     */
-    bot_messages_more?: boolean | null;
-    /**
-     * The open conversation's active session.
-     */
-    bot_session?: BUN_SQLITE_COBBLE_BOT_SESSIONS | null;
     /**
      * The user's workspaces, for the rail.
      */
@@ -1158,10 +1175,6 @@ export type PagePropsType = {
      * The open bot's computers, the one it's on first.
      */
     bot_computers?: ComputerWithStatus[] | null;
-    /**
-     * The open bot's active task and what its job has done so far.
-     */
-    bot_task?: BotTaskWithSteps | null;
     /**
      * The routines page: every schedule the user's bots have.
      */
