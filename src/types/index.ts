@@ -1326,6 +1326,38 @@ export type ConversationHistory = {
  * where to go instead when the user can't chat with the bot there any
  * more.
  */
+/**
+ * A conversation's active session for "Copy chat"
+ * (`grabConversationExport`): its messages, oldest first, and the names of
+ * the bots and workspaces they mention.
+ */
+export type ConversationExport = {
+    bot_name: string;
+    workspace_name: string | null;
+    /**
+     * Who the user messages are from.
+     */
+    user_name: string;
+    /**
+     * Null while the conversation has no session yet.
+     */
+    session: ConversationExportSession | null;
+    messages: BotMessageWithAttachments[];
+    /**
+     * Names by id, only for what the user reaches.
+     */
+    ref_names: {
+        bots: Record<number, string>;
+        workspaces: Record<number, string>;
+    };
+};
+
+export type ConversationExportSession = {
+    id: number;
+    title: string | null;
+    created_at: number;
+};
+
 export type ConversationHistoryPayload = {
     history?: ConversationHistory;
     redirect?: string;

@@ -17,6 +17,7 @@ import BotModelsModal from "./bot-models-modal";
 import BotAdminMenuItem from "./bot-admin-menu-item";
 import HeaderMenuItem from "./header-menu-item";
 import NewSessionButton from "./new-session-button";
+import CopyChatMenuItem from "./copy-chat-menu-item";
 import StopBotButton from "./stop-bot-button";
 
 type Props = {
@@ -54,8 +55,8 @@ type Props = {
 };
 
 /**
- * The conversation header's menu: the sessions, a new session, the bot's
- * computer, its models, in a workspace making it the admin there, its
+ * The conversation header's menu: the sessions, a new session, copying
+ * the session, the bot's computer, its models, in a workspace making it the admin there, its
  * settings and, while it works, stopping it. A
  * row that opens a modal closes the menu first, so the modal never sits
  * behind an open menu.
@@ -113,6 +114,11 @@ export default function ConversationHeaderMenu({
                 />
                 <NewSessionButton
                     menu
+                    bot_id={Number(bot.id)}
+                    workspace_id={workspace?.id || null}
+                    on_open={on_open}
+                />
+                <CopyChatMenuItem
                     bot_id={Number(bot.id)}
                     workspace_id={workspace?.id || null}
                     on_open={on_open}
