@@ -10,6 +10,7 @@ import grabSkill from "../extensions/grab-skill";
 import saveSkill from "../extensions/save-skill";
 import syncMcpServer from "../extensions/sync-mcp-server";
 import extensionEnvUses from "@/src/utils/extension-env-uses";
+import skillProposalChanges from "@/src/utils/skill-proposal-changes";
 import checkProposalData from "./check-proposal-data";
 import claimExtensionProposal from "./claim-extension-proposal";
 import grabExtensionProposal from "./grab-extension-proposal";
@@ -35,15 +36,16 @@ export default async function confirmExtensionProposal({ user_id, proposal_id }:
 
     try {
         if (proposal.kind == "skill") {
-            if (proposal.extension_id) await grabSkill({ skill_id: proposal.extension_id });
+            const current = proposal.extension_id ? await grabSkill({ skill_id: proposal.extension_id }) : null;
+            const changes = skillProposalChanges({ data: proposal.data, current });
 
             const result_id = await saveSkill({
                 user_id,
                 data: { ...proposal.data, skill_id: proposal.extension_id || undefined },
             });
             const outcome = `Saved as skill #${result_id} (slug ${proposal.data.slug}).${
-                !proposal.extension_id && !proposal.data.all_bots ? " No bot gets it yet." : ""
-            }`;
+                current ? describeSavedChanges({ fields: changes.fields }) : ""
+            }${!proposal.extension_id && !proposal.data.all_bots ? " No bot gets it yet." : ""}`;
 
             await BunSQLite.sql({
                 sql: `UPDATE extension_proposals SET outcome = ?, result_id = ?, updated_at = ? WHERE id = ?`,
@@ -119,4 +121,17 @@ export default async function confirmExtensionProposal({ user_id, proposal_id }:
     }
 
     return proposal;
+}
+
+/**
+ * What a confirmed change to a skill changed, so a runbook that stayed the
+ * same never reads as saved.
+ */
+function describeSavedChanges({ fields }: { fields: string[] }) {
+    if (!fields.length) return " Nothing changed: it was already saved like this.";
+
+    const named = fields.length == 1 ? fields[0] : `${fields.slice(0, -1).join(", ")} and ${fields[fields.length - 1]}`;
+    const runbook = fields.includes("runbook") ? "" : " The runbook is unchanged.";
+
+    return ` Changed: ${named}.${runbook}`;
 }
