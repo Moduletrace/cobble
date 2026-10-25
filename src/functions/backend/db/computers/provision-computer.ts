@@ -4,6 +4,7 @@ import parseJobJson from "@/src/bots-queue/parse-job-json";
 import { AppData } from "@/src/data/app-data";
 import createComputerContainer from "@/src/functions/backend/docker/create-computer-container";
 import { logError } from "@/src/functions/backend/logger";
+import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import prepareComputerDataDir from "./prepare-computer-data-dir";
 import pushComputerUpdate from "./push-computer-update";
 
@@ -16,13 +17,13 @@ type Params = {
 };
 
 /**
- * Sets up a computer's container: prepares its workspace directory, pulls the
+ * Sets up a computer's container: prepares its workspace and browser profile directories, pulls the
  * sandbox image and starts the container with the computer's resources
  * (`cpus`, `memory_mb`, else the `AppData` defaults), then records it (`containers`:
  * docker id, state, and its IP address on the network). A failure is
  * recorded as `failed` with its reason, which the computer lists show. The
  * owner's tabs hear about it either way. The metadata's `layout` says the
- * container mounts only the workspace (`syncComputers` recreates one that
+ * container mounts only the workspace and the browser profile (`syncComputers` recreates one that
  * doesn't). Never throws.
  */
 export default async function provisionComputer({ computer_id, fresh }: Params) {
@@ -46,10 +47,12 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
         });
 
         const data_dir = await prepareComputerDataDir({ computer_id, fresh });
+        const browser_dir = await prepareComputerBrowserDir({ computer_id, fresh });
         const created = await createComputerContainer({
             computer_id,
             name: row.name,
             data_dir,
+            browser_dir,
             cpus: Number(row.cpus) || AppData.ComputerDefaultCpus,
             memory_mb: Number(row.memory_mb) || AppData.ComputerDefaultMemoryMb,
         });
@@ -71,6 +74,8 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
                     ...kept,
                     data_dir,
                     host_dir: created.host_dir,
+                    browser_dir,
+                    browser_host_dir: created.browser_host_dir,
                     layout: AppData.ComputerWorkspaceLayout,
                 }),
                 Date.now(),

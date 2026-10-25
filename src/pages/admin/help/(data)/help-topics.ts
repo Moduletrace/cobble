@@ -57,13 +57,15 @@ The way around it is to sign in on your own browser, where Google trusts you, an
 ### On the bot's computer
 
 4. Open the computer: in the bot's chat, click the computer icon in the header and open the computer, or click **Take over** if the bot asked you to. Switch to **Desktop**. This is the only view that shows the browser's toolbar, where extensions live.
-5. The first time only: in the computer's Chrome, open the [Cookie-Editor page](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm), click **Add to Chrome**, then **Add extension**. Pin it from the puzzle piece so it's always one click away. It stays installed: the computer keeps its browser between restarts.
+5. The first time only: in the computer's Chrome, open the [Cookie-Editor page](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm), click **Add to Chrome**, then **Add extension**. Pin it from the puzzle piece so it's always one click away. It stays installed: the computer keeps its browser profile, even when it restarts or is rebuilt.
 6. In the computer's Chrome, go to the same site (for Google, [myaccount.google.com](https://myaccount.google.com)). It's fine that it shows the sign-in page.
 7. Put the cookies on the computer's clipboard. Desktop has a small handle on the left edge: open it, click the **Clipboard** icon, and paste into the box (Ctrl+V, or Cmd+V on a Mac). What's in that box is the computer's clipboard.
 8. Click **Cookie-Editor** in the computer's toolbar, then **Import**. Click into the box, paste (Ctrl+V), and click **Import**. Reload the page (F5): you're signed in.
 9. Clean up: open the **Clipboard** panel again and clear it.
 
 Then tell the bot you're signed in, or click **Hand back** if it asked you to take over, and it carries on.
+
+The computer keeps the session, like everything else in its browser (extensions, site permissions): restarting the computer or changing its resources doesn't sign it out. Only the site itself ending the session does.
 
 ### If it doesn't work
 

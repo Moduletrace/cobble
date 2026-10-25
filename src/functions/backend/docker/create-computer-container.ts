@@ -23,6 +23,10 @@ type Params = {
      */
     data_dir: string;
     /**
+     * The computer's browser profile directory as this app sees it.
+     */
+    browser_dir: string;
+    /**
      * CPU cores the container may use.
      */
     cpus: number;
@@ -36,7 +40,10 @@ type Params = {
  * Creates and starts (the API's `docker run`) an AIO sandbox container
  * for a computer (`AppData.ComputerImage`), attached to the computers'
  * network (created first when missing), with its home directory
- * bind-mounted from `data_dir` (only its workspace, `AppData.ComputerWorkspaceDir`: the rest of its home lives and dies with the container), limited to `cpus` and `memory_mb`, with a
+ * bind-mounted from `data_dir` (only its workspace, `AppData.ComputerWorkspaceDir`: the rest of its home lives and dies with the container), its browser profile from
+ * `browser_dir` (at `AppData.ComputerBrowserProfileDir`, which Chrome is
+ * pointed at, so logins outlive restarts and recreates; the basic password
+ * store keeps the cookies' key the same in every container), limited to `cpus` and `memory_mb`, with a
  * health check (`AppData.ComputerHealthcheck`), and restarted with
  * docker. A container left by an earlier try is stopped and replaced.
  * Resolves once the health check passes, with its IP address on the network, which a dev
@@ -47,11 +54,13 @@ export default async function createComputerContainer({
     computer_id,
     name,
     data_dir,
+    browser_dir,
     cpus,
     memory_mb,
 }: Params) {
     const network = await ensureDockerNetwork();
     const host_dir = await resolveHostPath({ local_path: data_dir });
+    const browser_host_dir = await resolveHostPath({ local_path: browser_dir });
 
     await pullDockerImage({ image: AppData.ComputerImage });
     await removeDockerContainer({ container: name });
@@ -66,6 +75,9 @@ export default async function createComputerContainer({
             Labels: {
                 [`${AppData.DockerNetworkName}.computer_id`]: String(computer_id),
             },
+            Env: [
+                `BROWSER_EXTRA_ARGS=--user-data-dir=${AppData.ComputerBrowserProfileDir} --password-store=basic`,
+            ],
             ExposedPorts: { [`${AppData.ComputerPort}/tcp`]: {} },
             Healthcheck: {
                 Test: [
@@ -78,7 +90,10 @@ export default async function createComputerContainer({
                 Retries: AppData.ComputerHealthcheck.Retries,
             },
             HostConfig: {
-                Binds: [`${host_dir}:${AppData.ComputerWorkspaceDir}`],
+                Binds: [
+                    `${host_dir}:${AppData.ComputerWorkspaceDir}`,
+                    `${browser_host_dir}:${AppData.ComputerBrowserProfileDir}`,
+                ],
                 NetworkMode: network,
                 RestartPolicy: { Name: "unless-stopped" },
                 SecurityOpt: ["seccomp=unconfined"],
@@ -112,6 +127,7 @@ export default async function createComputerContainer({
         network,
         status: state.status,
         host_dir,
+        browser_host_dir,
         ip_address: state.ip_address,
     };
 }

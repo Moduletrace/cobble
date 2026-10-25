@@ -7,6 +7,7 @@ import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import { decrypt } from "@/src/utils/crypt";
 import notifyWatchEnsureCommand from "@/src/utils/notify-watch-ensure-command";
 import grabComputerMcpUrl from "../computers/grab-computer-mcp-url";
+import isComputerBusy from "../computers/is-computer-busy";
 import callComputerApi from "./call-computer-api";
 
 type Params = {
@@ -95,14 +96,7 @@ export default async function syncComputerNotifyWatch({ computer_id }: Params): 
             body: { file: `${dir}/notify-hooks`, content: `${urls.join("\n")}\n` },
         });
 
-        const busy = Boolean(
-            (
-                await BunSQLite.sql<{ id: number }>({
-                    sql: `SELECT id FROM bots_queue WHERE computer_id = ? AND status = 'processing' LIMIT 1`,
-                    values: [computer_id],
-                })
-            ).payload?.[0],
-        );
+        const busy = await isComputerBusy({ computer_id });
 
         const res = await callComputerApi({
             base_url,

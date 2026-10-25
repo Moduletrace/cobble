@@ -98,9 +98,10 @@ export const AppData = {
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
      * container) is kept, at `DATA_DIR/<ComputerDataDir>/<id>`, owned by
-     * the sandbox's user. It stays when the computer is deleted. The rest
-     * of its home (`ComputerHomeDir`: dotfiles, browser profile, the env
-     * files) lives in the container and goes with it. Every bot works in
+     * the sandbox's user, plus its browser profile
+     * (`ComputerBrowserDataDir`). Both stay when the computer is deleted.
+     * The rest of its home (`ComputerHomeDir`: dotfiles, the env files)
+     * lives in the container and goes with it. Every bot works in
      * `bots/<bot id>` there, a user's work in `bots/<bot id>/users/<user
      * id>`, and a workspace's bots share `workspaces/<workspace id>`
      * (`computerRunDirs`).
@@ -108,6 +109,16 @@ export const AppData = {
     ComputerDataDir: "computers",
     ComputerHomeDir: "/home/gem",
     ComputerWorkspaceDir: "/home/gem/workspace",
+    /**
+     * A computer's browser profile (cookies, logins, site permissions) is
+     * kept at `DATA_DIR/<ComputerBrowserDataDir>/<id>`, outside its
+     * workspace, and mounted at `ComputerBrowserProfileDir`, which Chrome
+     * is pointed at with `--user-data-dir`. The image's own profile
+     * (`~/.config/browser`) can't be kept: every boot resets its
+     * preferences to session-only cookies.
+     */
+    ComputerBrowserDataDir: "computer-browsers",
+    ComputerBrowserProfileDir: "/home/gem/.cobble-browser",
     /**
      * Written at the root of a computer's workspace once it uses that
      * layout, so an older computer's whole home is told apart and moved
@@ -121,9 +132,10 @@ export const AppData = {
     ComputerOldHomeSuffix: "-home-",
     /**
      * Recorded in a container's `metadata.layout` once it mounts only the
-     * workspace.
+     * workspace and the browser profile. A container with another value
+     * is recreated (`migrateComputerLayout`).
      */
-    ComputerWorkspaceLayout: "workspace",
+    ComputerWorkspaceLayout: "workspace-browser",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
     /**
