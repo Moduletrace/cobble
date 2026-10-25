@@ -398,3 +398,7 @@ footer .twui-anchor.active {
 .lucide[width="24"][height="24"] {
     @apply w-[16px] h-[16px];
 }
+
+.twui-modal-content {
+    @apply pt-10;
+}
