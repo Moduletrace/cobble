@@ -1,5 +1,6 @@
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import type { TextLoopStep } from "@/src/harness/text/run-text-loop";
+import type { HarnessToolUse } from "@/src/harness/types";
 
 export type BotJobContext = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -45,6 +46,11 @@ export type BotJobOutcome = {
      * ids), attached to the result message.
      */
     attachments?: number[];
+    /**
+     * Every tool call the run made (`runTextLoop`'s `tool_uses`), kept on
+     * the result message as `tool_log`.
+     */
+    tool_log?: HarnessToolUse[];
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

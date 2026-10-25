@@ -11,6 +11,7 @@ import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
 import grabRunningBotJobFace from "./grab-running-bot-job-face";
 import withMessageUsage from "../usage/with-message-usage";
+import type { HarnessToolUse } from "@/src/harness/types";
 
 type Params = {
     job_id: number | string;
@@ -32,6 +33,10 @@ type Params = {
      * Files the bot saved and asked to send with it (`media` ids).
      */
     attachments?: number[];
+    /**
+     * Every tool call the run made, kept on the message.
+     */
+    tool_log?: HarnessToolUse[];
 };
 
 /**
@@ -50,6 +55,7 @@ export default async function completeBotJob({
     needs_you,
     silent,
     attachments,
+    tool_log,
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
 
@@ -89,6 +95,7 @@ export default async function completeBotJob({
               text: result,
               needs_you,
               media_ids: attachments,
+              tool_log,
           });
 
     if (job.id && inserted?.id) {

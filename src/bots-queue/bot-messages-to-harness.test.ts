@@ -152,4 +152,49 @@ describe("botMessagesToHarness with mentions", () => {
             { role: "assistant", content: "[bot:3] is on it" },
         ]);
     });
+
+    test("follows a recorded bot message with the app's record of its tools", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "fill in its prompt"),
+                    {
+                        ...message("bot", "Done."),
+                        tool_log: JSON.stringify([
+                            { name: "fetch_url", ok: true },
+                            { name: "fetch_url", ok: false },
+                        ]),
+                    },
+                    message("user", "and the other one?"),
+                    { ...message("bot", "Saved too."), tool_log: "[]" },
+                ],
+            }),
+        ).toEqual([
+            { role: "user", content: "fill in its prompt" },
+            {
+                role: "assistant",
+                content: "Done.\n\n[App record: this message's run called fetch_url x2 (1 failed).]",
+            },
+            { role: "user", content: "and the other one?" },
+            {
+                role: "assistant",
+                content: "Saved too.\n\n[App record: this message's run called no tools.]",
+            },
+        ]);
+    });
+
+    test("adds no record for messages whose run wasn't recorded", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "hi"),
+                    { ...message("bot", "hello"), tool_log: undefined },
+                    { ...message("bot", "again"), tool_log: "not json" },
+                ],
+            }),
+        ).toEqual([
+            { role: "user", content: "hi" },
+            { role: "assistant", content: "hello\n\nagain" },
+        ]);
+    });
 });

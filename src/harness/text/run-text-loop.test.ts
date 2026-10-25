@@ -130,11 +130,39 @@ describe("runTextLoop", () => {
         expect(seen).toHaveLength(3);
         expect(seen[2]!.tools).toBe(undefined);
         expect(seen[2]!.messages.at(-1)).toMatchObject({ role: "user" });
+        expect(seen[2]!.messages.at(-1)!.content).toContain(
+            "The tools you actually called this run: remember x2.",
+        );
+        expect(result.tool_uses).toEqual([
+            { name: "remember", ok: true },
+            { name: "remember", ok: true },
+        ]);
         expect(result.text).toBe("Ran out of room; here's where I got to.");
         expect(result.messages.at(-1)).toEqual({
             role: "assistant",
             content: "Ran out of room; here's where I got to.",
         });
+    });
+
+    test("records failed tool calls, and tells the wrap up so", async () => {
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "c", name: "missing_tool", arguments: "{}" }] },
+            { text: "Couldn't do it." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(result.tool_uses).toEqual([{ name: "missing_tool", ok: false }]);
+        expect(seen[1]!.messages.at(-1)!.content).toContain(
+            "The tools you actually called this run: missing_tool (failed).",
+        );
     });
 
     test("stops when cancelled", async () => {

@@ -89,8 +89,9 @@ type Params = {
  * computers, and which name, role and core instructions each crew member
  * gets, and what goes) and the install's skills, MCP servers and custom
  * tools (`grabCoordinatorExtensionTools`) or, in a workspace,
- * set_bot_workspace_instructions, plus set_bot_type to make a worker a
- * workspace's admin. A workspace admin, in the workspace it leads, gets
+ * set_bot_workspace_instructions and update_bot for the workspace's crew
+ * (a bot's core prompt is asked for from wherever the user is), plus
+ * set_bot_type to make a worker a workspace's admin. A workspace admin, in the workspace it leads, gets
  * `grabWorkspaceAdminTools`. Every gate reads the bot's types (`powers`),
  * never `bots.kind`. Anything else on a computer goes through a task,
  * never mid-reply.
@@ -182,7 +183,10 @@ export default async function grabBotChatTools({
             requester_name: bot.name || "The coordinator",
             workers,
         }));
-        tools.push(setWorkspaceInstructionsTool({ user_id, workspace_id, workers }));
+        tools.push(
+            setWorkspaceInstructionsTool({ user_id, workspace_id, workers }),
+            updateBotTool({ user_id, workers }),
+        );
 
         if (powers.can("set_bot_types")) {
             tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces, workspace_id }));

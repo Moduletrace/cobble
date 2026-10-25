@@ -8,8 +8,10 @@ import type {
     HarnessMessage,
     HarnessTool,
     HarnessToolCall,
+    HarnessToolUse,
     HarnessUsage,
 } from "../types";
+import describeToolUses from "./describe-tool-uses";
 import fitTranscriptToContext from "./fit-transcript-to-context";
 import generateText from "./generate-text";
 import pushUserTurn from "./push-user-turn";
@@ -70,9 +72,21 @@ export type TextLoopResult = {
     steps: number;
     candidate: HarnessCandidate;
     usage: HarnessUsage;
+    /**
+     * Every tool call the run made, in order, and whether it went through.
+     */
+    tool_uses: HarnessToolUse[];
 };
 
-const WrapUpPrompt = `You've used every step this run allows. Don't call any more tools. Report what you did, what is left, and anything you need from the user.`;
+/**
+ * Told on the last step, with the app's record of the tools the run
+ * called (`describeToolUses`): out of steps, a model tends to report the
+ * work it planned as done.
+ */
+export const wrapUpPrompt = ({ uses }: { uses: HarnessToolUse[] }) =>
+    `You've used every step this run allows. Don't call any more tools. Report what you did, what is left, and anything you need from the user.
+
+The tools you actually called this run: ${describeToolUses({ uses })}. Nothing else happened. Don't say you saved, created, changed or sent anything this list doesn't show; what you meant to do and didn't is still left, so say so.`;
 
 /**
  * Told with what the user wrote while the run worked. Whether a message
@@ -121,6 +135,7 @@ export default async function runTextLoop({
         completion_tokens: 0,
         cost: 0,
     };
+    const tool_uses: HarnessToolUse[] = [];
     let prefer_key: string | undefined;
 
     for (let index = 0; index <= max_steps; index++) {
@@ -131,7 +146,7 @@ export default async function runTextLoop({
         const wrap_up = index == max_steps;
 
         if (wrap_up) {
-            pushUserTurn({ transcript, content: WrapUpPrompt });
+            pushUserTurn({ transcript, content: wrapUpPrompt({ uses: tool_uses }) });
         }
 
         /**
@@ -194,15 +209,15 @@ export default async function runTextLoop({
                 steps: index + 1,
                 candidate: answer.candidate,
                 usage,
+                tool_uses,
             };
         }
 
         for (const call of tool_calls) {
-            transcript.push({
-                role: "tool",
-                tool_call_id: call.id,
-                content: await runToolCall({ call, tools, signal }),
-            });
+            const content = await runToolCall({ call, tools, signal });
+
+            tool_uses.push({ name: call.name, ok: !content.startsWith("Error:") });
+            transcript.push({ role: "tool", tool_call_id: call.id, content });
         }
 
         await takeIncoming({ note: IncomingMessagesNote });

@@ -1,12 +1,14 @@
-import type { HarnessContentPart, HarnessMessage } from "@/src/harness/types";
+import describeToolUses from "@/src/harness/text/describe-tool-uses";
+import type { HarnessContentPart, HarnessMessage, HarnessToolUse } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
 import describeMessageRefs, { type MessageRefNames } from "@/src/utils/describe-message-refs";
+import { AppRecordPrefix } from "@/src/utils/strip-app-records";
 import describeAttachment from "./describe-attachment";
 
 type Params = {
     messages: Pick<
         BotMessageWithAttachments,
-        "id" | "author" | "text" | "attachments" | "reply_to"
+        "id" | "author" | "text" | "attachments" | "reply_to" | "tool_log"
     >[];
     /**
      * Loaded files by message id (`loadAttachmentParts`). Files of other
@@ -27,7 +29,10 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * (with their files) as user turns, the bot's as its own. Back-to-back
  * messages from the same side are joined, since some providers reject
  * repeated roles. Leading bot messages are dropped so the conversation
- * starts with the user. A turn that is only text stays a string.
+ * starts with the user. A turn that is only text stays a string. A bot
+ * message whose run was recorded (`tool_log`) is followed by the app's
+ * record of the tools it called, so the bot can tell what its past
+ * messages actually did from what they say.
  */
 export default function botMessagesToHarness({ messages, parts, refs }: Params): HarnessMessage[] {
     const turns: Turn[] = [];
@@ -78,7 +83,13 @@ function messageParts({
     const text = replyContext({ message, text: mentions ? `${own}\n\n${mentions}` : own });
     const content: HarnessContentPart[] = text ? [{ type: "text", text }] : [];
 
-    if (role == "assistant" || !message.attachments?.length) return content;
+    if (role == "assistant") {
+        const record = text ? appRecord({ tool_log: message.tool_log }) : "";
+
+        return record ? [...content, { type: "text", text: record }] : content;
+    }
+
+    if (!message.attachments?.length) return content;
 
     const loaded = parts?.get(Number(message.id));
 
@@ -91,6 +102,28 @@ function messageParts({
             text: `[Attached earlier: ${message.attachments.map((file) => describeAttachment({ name: file.name, id: file.id })).join(", ")}]`,
         },
     ];
+}
+
+/**
+ * The app's line after a bot message naming the tools its run called, or
+ * nothing when the run wasn't recorded.
+ */
+function appRecord({ tool_log }: { tool_log?: string | null }) {
+    if (!tool_log) return "";
+
+    let uses: HarnessToolUse[];
+
+    try {
+        uses = JSON.parse(tool_log);
+    } catch {
+        return "";
+    }
+
+    if (!Array.isArray(uses)) return "";
+
+    const called = uses.length ? describeToolUses({ uses }) : "no tools";
+
+    return `${AppRecordPrefix} this message's run called ${called}.]`;
 }
 
 /**

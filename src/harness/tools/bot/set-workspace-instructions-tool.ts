@@ -39,7 +39,7 @@ export default function setWorkspaceInstructionsTool({
 
     return {
         name: "set_bot_workspace_instructions",
-        description: `Replace a crew member's instructions for this workspace with this full text (markdown): how they should do their job here, on top of their own instructions. Use it when the user tells you how someone should work in this workspace. It replaces what they had for it, so keep what still applies. Crew here: ${crew}.`,
+        description: `Replace a crew member's instructions for this workspace with this full text (markdown): how they should do their job here, on top of their own instructions. Use it when the user tells you how someone should work in this workspace. It replaces what they had for it, so keep what still applies. This is not the bot's own prompt: when the user means who the bot is and what it does everywhere ("its prompt", "its instructions", an empty prompt to fill), use update_bot where you have it. Crew here: ${crew}.`,
         schema: z.object({
             bot_id: z.number().int(),
             instructions: z.string().trim().max(AppData.PromptMaxLength),

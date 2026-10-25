@@ -20,6 +20,15 @@ export type HarnessToolCall = {
     arguments: string;
 };
 
+/**
+ * One tool call a run made, and whether it went through (a result that
+ * isn't `Error: ...`). Names only, never arguments.
+ */
+export type HarnessToolUse = {
+    name: string;
+    ok: boolean;
+};
+
 export type HarnessMessage =
     | { role: "system"; content: string }
     | { role: "user"; content: string | HarnessContentPart[] }

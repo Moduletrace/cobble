@@ -34,6 +34,7 @@ import composeJobBrief from "./compose-job-brief";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import withTakeOverRefs from "./with-take-over-refs";
+import stripAppRecords from "@/src/utils/strip-app-records";
 import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
@@ -272,12 +273,15 @@ export default async function runBotTask({
             throw new ScheduledRunFailedError(computer ? computer.redact(failure) : failure);
         }
 
+        const text = stripAppRecords({ text: result.text });
+
         return {
             ...withTakeOverRefs({
-                text: computer ? computer.redact(result.text) : result.text,
+                text: computer ? computer.redact(text) : text,
                 refs: take_overs,
             }),
             attachments: attachments.length ? attachments : undefined,
+            tool_log: result.tool_uses,
         };
     } finally {
         await extensions?.close();

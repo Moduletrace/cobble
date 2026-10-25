@@ -33,6 +33,7 @@ import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import loadAttachmentParts from "./load-attachment-parts";
 import grabMessageRefNames from "@/src/functions/backend/db/bots/grab-message-ref-names";
 import withTakeOverRefs from "./with-take-over-refs";
+import stripAppRecords from "@/src/utils/strip-app-records";
 import hasUnansweredMessage from "./has-unanswered-message";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
@@ -269,8 +270,12 @@ export default async function runBotReply({
         }
 
         return {
-            ...withTakeOverRefs({ text: result.text, refs: [...take_overs, ...proposals] }),
+            ...withTakeOverRefs({
+                text: stripAppRecords({ text: result.text }),
+                refs: [...take_overs, ...proposals],
+            }),
             attachments: attachments.length ? attachments : undefined,
+            tool_log: result.tool_uses,
         };
     } finally {
         await extensions.close();

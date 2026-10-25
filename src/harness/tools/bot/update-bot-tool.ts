@@ -35,7 +35,7 @@ export default function updateBotTool({ user_id, workers }: Params): HarnessTool
 
     return {
         name: "update_bot",
-        description: `Change an existing crew member: name, the one-line role it's shown with, and/or its core instructions (markdown: what they do and how they work, the start of their prompt in their own chat and in every workspace). Only the fields you pass change. Instructions replace what they had, so keep what still applies, their own edits included. This is not their instructions for one workspace: use set_bot_workspace_instructions for that. Crew: ${crew || "none"}.`,
+        description: `Change an existing crew member: name, the one-line role it's shown with, and/or its core instructions (markdown: what they do and how they work, the start of their prompt in their own chat and in every workspace). Only the fields you pass change. Instructions replace what they had, so keep what still applies, their own edits included. This is what "its prompt" means: use it when the user asks for a bot's prompt or instructions to be written or filled in. It is not their instructions for one workspace: use set_bot_workspace_instructions only for how they should work there. Crew: ${crew || "none"}.`,
         schema: z
             .object({
                 bot_id: z.number().int(),

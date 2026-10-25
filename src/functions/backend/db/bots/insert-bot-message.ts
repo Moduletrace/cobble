@@ -3,6 +3,7 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
+import type { HarnessToolUse } from "@/src/harness/types";
 
 type Params = {
     bot_id: number;
@@ -22,6 +23,11 @@ type Params = {
      * generated image, a document it wrote.
      */
     media_ids?: number[];
+    /**
+     * Every tool call the run behind it made, told to the bot with this
+     * message in later turns (`botMessagesToHarness`).
+     */
+    tool_log?: HarnessToolUse[];
 };
 
 /**
@@ -36,10 +42,12 @@ export default async function insertBotMessage({
     needs_you,
     interim,
     media_ids = [],
+    tool_log,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
     const needs_you_flag = needs_you ? 1 : 0;
     const interim_flag = interim ? 1 : 0;
+    const tool_log_json = tool_log ? JSON.stringify(tool_log) : undefined;
 
     const res = await BunSQLite.insert<
         BUN_SQLITE_COBBLE_BOT_MESSAGES,
@@ -55,6 +63,7 @@ export default async function insertBotMessage({
                 text,
                 needs_you: needs_you_flag,
                 interim: interim_flag,
+                tool_log: tool_log_json,
             },
         ],
     });
@@ -86,6 +95,7 @@ export default async function insertBotMessage({
         text,
         needs_you: needs_you_flag,
         interim: interim_flag,
+        tool_log: tool_log_json,
         created_at: now,
         updated_at: now,
     };
