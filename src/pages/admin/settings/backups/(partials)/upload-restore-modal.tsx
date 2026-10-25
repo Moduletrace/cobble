@@ -2,12 +2,9 @@ import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import UploadRestoreFields from "./upload-restore-fields";
 import uploadRestoreBackup from "../(functions)/upload-restore-backup";
 import uploadRestoreDataBackup from "../(functions)/upload-restore-data-backup";
-
-/**
- * How long the app is given to come back after an archive restore
- * restarted it before the page is reloaded anyway.
- */
-const RELOAD_DELAY_MS = 8000;
+import { DataBackupRunContext } from "../(data)/data-backup-run-context";
+import type { DataBackupRun } from "@/src/types";
+import { useContext } from "react";
 
 type Props = {
     open: boolean;
@@ -21,18 +18,20 @@ type Props = {
 /**
  * Uploading a file and restoring it, in a modal over the list it came
  * from. A database file is restored in place; a data archive replaces the
- * whole data volume, so the page waits for the app to restart.
+ * whole data volume in the background, so the modal closes and the
+ * section follows the run until the app is back from its restart.
  */
 export default function UploadRestoreModal({ open, onClose, is_data }: Props) {
-    const reload = () => {
-        if (!is_data) {
+    const { track } = useContext(DataBackupRunContext);
+
+    const done = ({ run }: { run?: DataBackupRun }) => {
+        if (!is_data || !run) {
             window.location.reload();
             return;
         }
 
-        setTimeout(() => {
-            window.location.reload();
-        }, RELOAD_DELAY_MS);
+        track(run);
+        onClose();
     };
 
     return (
@@ -64,7 +63,7 @@ export default function UploadRestoreModal({ open, onClose, is_data }: Props) {
                             ? uploadRestoreDataBackup
                             : uploadRestoreBackup
                     }
-                    onDone={reload}
+                    onDone={done}
                 />
             ) : null}
         </AddModalShell>

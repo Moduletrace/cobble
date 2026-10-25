@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { AppData } from "@/src/data/app-data";
 import grabBackupArchiveDir from "@/src/utils/grab-backup-archive-dir";
+import AppError from "@/src/utils/app-error";
 
 type Params = {
     file: File;
@@ -18,13 +19,13 @@ const GZIP_MAGIC = [0x1f, 0x8b];
  */
 export default async function saveUploadedDataBackup({ file }: Params) {
     if (!file.size) {
-        throw new Error(`The uploaded archive is empty`);
+        throw new AppError(`The uploaded archive is empty`);
     }
 
     const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
 
     if (head[0] != GZIP_MAGIC[0] || head[1] != GZIP_MAGIC[1]) {
-        throw new Error(`Only a gzipped tar archive can be restored`);
+        throw new AppError(`Only a gzipped tar archive can be restored`);
     }
 
     const archive_dir = grabBackupArchiveDir();

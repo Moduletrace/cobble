@@ -6,6 +6,16 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import { useState } from "react";
 import { Upload } from "lucide-react";
+import type { DataBackupRun } from "@/src/types";
+
+type UploadResult = {
+    success: boolean;
+    msg?: string;
+    /**
+     * The background restore a data archive upload started.
+     */
+    run?: DataBackupRun;
+};
 
 type Props = {
     /**
@@ -23,12 +33,12 @@ type Props = {
     /**
      * Sends the file and reports the outcome.
      */
-    upload: (params: { file: File }) => Promise<{ success: boolean; msg?: string }>;
+    upload: (params: { file: File }) => Promise<UploadResult>;
     /**
-     * Reload the page once it worked (the app restarts after an archive
-     * restore, so the caller waits for it first).
+     * Called once it worked: a database restore reloads the page, a data
+     * archive restore hands its background run to the page to follow.
      */
-    onDone: () => void;
+    onDone: (res: UploadResult) => void;
 };
 
 /**
@@ -54,7 +64,7 @@ export default function UploadRestoreFields({
         const res = await upload({ file });
 
         if (res.success) {
-            onDone();
+            onDone(res);
             return;
         }
 

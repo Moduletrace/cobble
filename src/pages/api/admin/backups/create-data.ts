@@ -1,17 +1,22 @@
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import createDataBackup from "@/src/functions/backend/backups/create-data-backup";
+import { startDataBackupRun } from "@/src/functions/backend/backups/data-backup-run";
 import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
+import safeErrorMessage from "@/src/utils/safe-error-message";
+import type { DataBackupRun } from "@/src/types";
 import type {
     APIResponseObject,
     BunextAPIRouteHandler,
 } from "@moduletrace/bunext/types";
 
 /**
- * Archives the whole `DATA_DIR` (Settings > Backups > Data archives).
+ * Starts archiving the whole `DATA_DIR` (Settings > Backups > Data
+ * archives) and answers at once: the page polls `data-status` until the
+ * archive is written.
  */
-export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
-    req,
-}) => {
+export const handler: BunextAPIRouteHandler<
+    APIResponseObject<DataBackupRun>
+> = async ({ req }) => {
     const user = await grabSuperAdminUser({ req });
 
     if (!user?.id) {
@@ -21,32 +26,43 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
         };
     }
 
-    try {
-        const backup = await createDataBackup();
+    const ip_address = grabRequestIP(req);
 
-        await logEvent({
-            title: "Data backup created",
-            category: "system",
-            user_id: user.id,
-            plain_text: `User #${user.id} created a data backup (${backup.name}).`,
-            metadata: { backup_name: backup.name },
-            ip_address: grabRequestIP(req),
+    try {
+        const run = startDataBackupRun({
+            kind: "archive",
+            task: async () => {
+                try {
+                    const backup = await createDataBackup();
+
+                    await logEvent({
+                        title: "Data backup created",
+                        category: "system",
+                        user_id: user.id,
+                        plain_text: `User #${user.id} created a data backup (${backup.name}).`,
+                        metadata: { backup_name: backup.name },
+                        ip_address,
+                    });
+
+                    return backup.name;
+                } catch (error: any) {
+                    await logError({
+                        title: "Data backup failed",
+                        error,
+                        user_id: user.id,
+                        ip_address,
+                    });
+
+                    throw error;
+                }
+            },
         });
 
         return {
             success: true,
+            singleRes: run,
         };
-    } catch (error: any) {
-        await logError({
-            title: "Data backup failed",
-            error,
-            user_id: user.id,
-            ip_address: grabRequestIP(req),
-        });
-
-        return {
-            success: false,
-            msg: error.message,
-        };
+    } catch (error: unknown) {
+        return { success: false, msg: safeErrorMessage({ error }) };
     }
 };

@@ -5,15 +5,20 @@ import Row from "@moduletrace/twui/layout/Row";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import createDataBackup from "../(functions)/create-data-backup";
 import UploadRestoreModal from "../(partials)/upload-restore-modal";
-import { useState } from "react";
+import { DataBackupRunContext } from "../(data)/data-backup-run-context";
+import { useContext, useState } from "react";
 
 /**
  * The data archive list's two ways in: make a fresh archive, or restore
- * one from a file.
+ * one from a file. Also says how the archive or restore running now is
+ * going, and why the last one failed.
  */
 export default function DataBackupListActions() {
     const { loading, setLoading, status, setStatus } = useStatus();
+    const { run, error, track } = useContext(DataBackupRunContext);
     const [uploading, setUploading] = useState(false);
+    const archiving = run?.kind == "archive";
+    const restoring = run?.kind == "restore";
 
     const create_backup = async () => {
         setStatus(undefined);
@@ -21,12 +26,12 @@ export default function DataBackupListActions() {
 
         const res = await createDataBackup();
 
-        if (res.success) {
-            window.location.reload();
+        setLoading(false);
+
+        if (res.run) {
+            track(res.run);
             return;
         }
-
-        setLoading(false);
 
         if (res.msg) {
             setStatus({ error: true, msg: res.msg });
@@ -36,11 +41,19 @@ export default function DataBackupListActions() {
     return (
         <Row className="gap-2! flex-nowrap">
             {status?.error && <Tag color="error">{status.msg}</Tag>}
+            {!status?.error && error && <Tag color="error">{error}</Tag>}
+            {archiving && (
+                <Tag color="warning">Archiving, this can take a while...</Tag>
+            )}
+            {restoring && (
+                <Tag color="warning">Restoring, the app restarts soon...</Tag>
+            )}
             <Button
                 title="Restore from an archive file"
                 variant="outlined"
                 color="gray"
                 beforeIcon={<Upload />}
+                disabled={Boolean(run)}
                 onClick={() => {
                     setUploading(true);
                 }}
@@ -50,7 +63,8 @@ export default function DataBackupListActions() {
             <Button
                 title="Create Data Archive"
                 beforeIcon={<Archive />}
-                loading={loading}
+                loading={loading || archiving}
+                disabled={Boolean(run)}
                 onClick={() => {
                     create_backup();
                 }}

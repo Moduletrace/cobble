@@ -1,11 +1,14 @@
+import type { DataBackupRun } from "@/src/types";
+
 type Params = {
     file: File;
 };
 
 /**
  * Sends the file as multipart form data (not base64 JSON) so large archives
- * aren't inflated. The app replaces the data volume and restarts, so the
- * caller reloads the page once it is back.
+ * aren't inflated. Once the file is saved the server restores it in the
+ * background and restarts, so this hands back the run for the page to
+ * follow.
  */
 export default async function uploadRestoreDataBackup({ file }: Params) {
     const confirm_msg = `Restore the data volume from "${file.name}"?\n\nEvery bot, workspace, computer home, file, media item and database snapshot is replaced by the archive's, and the app restarts. A safety archive of the current data is made first.`;
@@ -28,6 +31,7 @@ export default async function uploadRestoreDataBackup({ file }: Params) {
         return {
             success: Boolean(json.success),
             msg: json.success ? undefined : json.msg || `Couldn't restore archive`,
+            run: json.success ? (json.singleRes as DataBackupRun | undefined) : undefined,
         };
     } catch (error: any) {
         return {

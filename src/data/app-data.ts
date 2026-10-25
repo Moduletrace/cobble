@@ -608,6 +608,13 @@ export const AppData = {
     DataBackupNamePrefix: "cobble-data-",
     DataBackupsKept: 5,
     /**
+     * How often the backups page asks how a whole-data archive or restore
+     * is going, and how long it waits for the app to come back after a
+     * restore restarted it before it reloads anyway.
+     */
+    DataBackupPollMs: 2000,
+    DataRestoreWaitMs: 120000,
+    /**
      * Responses smaller than this go out uncompressed: the encoding
      * costs more than it saves.
      */

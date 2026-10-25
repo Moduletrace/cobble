@@ -5,6 +5,14 @@ type Params<T> = {
 };
 
 /**
+ * Whether a backup or restore of any kind holds the lock right now, so a
+ * background run can be refused before it starts.
+ */
+export function isBackupRunning() {
+    return is_running;
+}
+
+/**
  * Runs one backup or restore at a time, whichever kind it is, so a
  * database snapshot, a database restore and a whole-data archive never
  * overlap and never fight over the same files. Hands back what the task

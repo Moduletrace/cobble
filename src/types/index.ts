@@ -1212,6 +1212,32 @@ export type DataBackup = {
     size: number;
 };
 
+export type DataBackupRunKind = "archive" | "restore";
+
+/**
+ * The whole-data archive or restore this process last started
+ * (`startDataBackupRun`), which the backups page polls while it runs.
+ * `boot_id` changes when the process restarts, which is how the page
+ * knows a restore finished.
+ */
+export type DataBackupRun = {
+    status: "idle" | "running" | "done" | "failed";
+    kind?: DataBackupRunKind;
+    started_at?: number;
+    finished_at?: number;
+    /**
+     * The archive written or restored.
+     */
+    name?: string;
+    error?: string;
+    boot_id: string;
+};
+
+export type DataBackupStatus = {
+    run: DataBackupRun;
+    data_backups: DataBackup[];
+};
+
 export type BotVoicePayload = {
     transcription: boolean;
     speech: boolean;
@@ -1328,6 +1354,7 @@ export type PagePropsType = {
     has_password?: boolean;
     backups?: DbBackup[] | null;
     data_backups?: DataBackup[] | null;
+    data_backup_run?: DataBackupRun | null;
     harness_overview?: HarnessOverviewPayload | null;
     bot_harness_overview?: BotHarnessOverviewPayload | null;
     envs_overview?: EnvsOverviewPayload | null;
