@@ -40,6 +40,7 @@ import mergeLoadedHistory from "../(utils)/merge-loaded-history";
 import LoadingLine from "@/src/components/general/loading-line";
 import SessionMovedBar from "../(partials)/session-moved-bar";
 import syncSessionQuery from "../(utils)/sync-session-query";
+import announceShownSession from "@/src/functions/frontend/announce-shown-session";
 
 /**
  * The conversation column: header, bottom-anchored thread, composer, the
@@ -172,6 +173,11 @@ export default function Conversation() {
             setSessionId(loaded_session_id);
             setMovedToSessionId(history.moved_to_session_id || null);
             syncSessionQuery({ session: history.session });
+            announceShownSession({
+                bot_id: Number(bot?.id) || 0,
+                workspace_id,
+                session: history.session,
+            });
             setMessages((prev) => mergeLoadedHistory({ shown: prev, history }));
             older.reset({
                 session_id: loaded_session_id,

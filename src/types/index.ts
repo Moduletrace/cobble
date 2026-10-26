@@ -1581,6 +1581,16 @@ export type ConversationExportSession = {
     created_at: number;
 };
 
+/**
+ * The session a conversation page shows (`cobble:session-shown`), told to
+ * the rail so it marks it.
+ */
+export type ShownSession = {
+    bot_id: number;
+    workspace_id: number | null;
+    session: BUN_SQLITE_COBBLE_BOT_SESSIONS;
+};
+
 export type ConversationHistoryPayload = {
     history?: ConversationHistory;
     redirect?: string;

@@ -15,6 +15,11 @@ type Params = {
      * How many to load, latest first; the modal leaves it out for a page.
      */
     limit?: number;
+    /**
+     * Reloads the list whenever it changes (the session the page shows,
+     * which loading it may have reopened).
+     */
+    refresh_key?: string | number | null;
 };
 
 type ChangedSession = {
@@ -51,7 +56,7 @@ function belongsToConversation({
  * session started in the conversation (or named once its first reply is
  * in) shows without a reload.
  */
-export default function useBotSessions({ bot_id, workspace_id, open, limit }: Params) {
+export default function useBotSessions({ bot_id, workspace_id, open, limit, refresh_key }: Params) {
     const [query, setQuery] = useState("");
     const [sessions, setSessions] = useState<BotSessionListItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -111,7 +116,7 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit }: Pa
             stale = true;
             clearTimeout(timer);
         };
-    }, [open, query, bot_id, workspace_id, limit, revision]);
+    }, [open, query, bot_id, workspace_id, limit, revision, refresh_key]);
 
     const act = async ({ id, path, body }: { id: number | "new"; path: "new-session" | "reopen-session"; body: Record<string, unknown> }) => {
         if (busy_id) return;

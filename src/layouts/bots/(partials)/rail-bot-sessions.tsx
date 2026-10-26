@@ -4,6 +4,8 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import BotSessionsModal from "@/src/components/general/bot-sessions-modal";
 import { AppData } from "@/src/data/app-data";
 import useBotSessions from "@/src/hooks/use-bot-sessions";
+import useShownSession from "@/src/hooks/use-shown-session";
+import conversationHref from "@/src/utils/conversation-href";
 import type { BotWithLastMessage } from "@/src/types";
 import RailBotSessionRow from "./rail-bot-session-row";
 
@@ -13,18 +15,30 @@ type Props = {
 };
 
 /**
- * Under the open bot in the rail: its latest sessions, latest first, and,
+ * Under the open bot in the rail: its latest sessions, latest first (plus
+ * the one on screen when it's older). The one on screen (`?session_id=`,
+ * else the active one) is Current. Then,
  * once there are more than the ones listed, "All sessions" which opens the
  * conversation's sessions modal. Hidden when the rail collapses to icons.
  */
 export default function RailBotSessions({ bot, workspace_id }: Props) {
+    const on_screen = useShownSession({ bot_id: Number(bot.id), workspace_id });
     const sessions = useBotSessions({
         bot_id: Number(bot.id),
         workspace_id,
         open: true,
         limit: AppData.RailRecentSessions + 1,
+        refresh_key: on_screen ? `${on_screen.id}:${on_screen.status}` : null,
     });
-    const shown = sessions.sessions.slice(0, AppData.RailRecentSessions);
+    const recent = sessions.sessions.slice(0, AppData.RailRecentSessions);
+    /**
+     * The session on screen is always listed, even when it's older than
+     * the latest ones.
+     */
+    const shown =
+        on_screen?.id && !recent.some((session) => session.id == on_screen.id)
+            ? [...recent, { ...on_screen, message_count: 0 }]
+            : recent;
 
     if (!shown.length) return null;
 
@@ -41,7 +55,12 @@ export default function RailBotSessions({ bot, workspace_id }: Props) {
                         session={session}
                         loading={sessions.busy_id == session.id}
                         disabled={Boolean(sessions.busy_id)}
-                        onOpen={() => sessions.reopenSession({ session_id: Number(session.id) })}
+                        current={on_screen?.id ? on_screen.id == session.id : session.status == "active"}
+                        onOpen={() =>
+                            session.status == "active"
+                                ? window.location.assign(conversationHref({ bot_id: Number(bot.id), workspace_id }))
+                                : sessions.reopenSession({ session_id: Number(session.id) })
+                        }
                     />
                 ))}
             </Stack>

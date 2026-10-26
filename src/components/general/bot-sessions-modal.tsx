@@ -1,4 +1,6 @@
 import ContinueSessionButton from "./continue-session-button";
+import useShownSession from "@/src/hooks/use-shown-session";
+import conversationHref from "@/src/utils/conversation-href";
 import {
     useEffect,
     useState,
@@ -52,10 +54,12 @@ export default function BotSessionsModal({
     on_open,
 }: Props) {
     const [open, setOpen] = useState(false);
+    const on_screen = useShownSession({ bot_id: Number(bot.id), workspace_id });
     const sessions = useBotSessions({
         bot_id: Number(bot.id),
         workspace_id,
         open,
+        refresh_key: on_screen ? `${on_screen.id}:${on_screen.status}` : null,
     });
     const name = bot.name || "the bot";
 
@@ -141,10 +145,13 @@ export default function BotSessionsModal({
                         session={session}
                         loading={sessions.busy_id == session.id}
                         disabled={Boolean(sessions.busy_id)}
+                        current={on_screen?.id ? on_screen.id == session.id : session.status == "active"}
                         onOpen={() =>
-                            sessions.reopenSession({
-                                session_id: Number(session.id),
-                            })
+                            session.status == "active"
+                                ? window.location.assign(conversationHref({ bot_id: Number(bot.id), workspace_id }))
+                                : sessions.reopenSession({
+                                      session_id: Number(session.id),
+                                  })
                         }
                     />
                 ))}
