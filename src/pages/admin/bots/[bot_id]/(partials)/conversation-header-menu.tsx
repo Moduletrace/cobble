@@ -2,10 +2,16 @@ import { useContext } from "react";
 import Paper from "@moduletrace/twui/elements/Paper";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Divider from "@moduletrace/twui/layout/Divider";
-import { FolderOpen, History, Settings } from "lucide-react";
+import {
+    FolderOpen,
+    History,
+    MessageSquareShare,
+    Settings,
+} from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, HarnessOverview } from "@/src/types";
 import BotSessionsModal from "@/src/components/general/bot-sessions-modal";
+import ContinueSessionButton from "@/src/components/general/continue-session-button";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
@@ -58,7 +64,8 @@ type Props = {
 };
 
 /**
- * The conversation header's menu: the sessions, a new session, copying
+ * The conversation header's menu: the sessions, a new (fresh) session,
+ * continuing in a new session with a summary of this one, copying
  * the session, its files, tasks, routines and hooks, the bot's computer, its models, in a workspace its
  * instructions there and making it the admin there, its
  * settings and, while it works, stopping it. A
@@ -84,7 +91,9 @@ export default function ConversationHeaderMenu({
     /**
      * Hooks start work, so a read-only user doesn't get them.
      */
-    const can_make_hooks = !isReadOnlyUser({ user_types: pageProps?.user_types });
+    const can_make_hooks = !isReadOnlyUser({
+        user_types: pageProps?.user_types,
+    });
     /**
      * A bot's instructions for one workspace, only there, for crew
      * managers (the coordinator's too: only the super admin sees it).
@@ -98,8 +107,8 @@ export default function ConversationHeaderMenu({
      */
     const can_set_admin = Boolean(
         workspace?.id &&
-            bot.kind != "coordinator" &&
-            canManageCrew({ user_types: pageProps?.user_types }),
+        bot.kind != "coordinator" &&
+        canManageCrew({ user_types: pageProps?.user_types }),
     );
 
     return (
@@ -133,6 +142,19 @@ export default function ConversationHeaderMenu({
                     workspace_id={workspace?.id || null}
                     on_open={on_open}
                 />
+                <ContinueSessionButton
+                    bot_id={Number(bot.id)}
+                    workspace_id={workspace?.id || null}
+                    render={({ loading, onClick }) => (
+                        <HeaderMenuItem
+                            icon={MessageSquareShare}
+                            title="Continue in a new session"
+                            loading={loading}
+                            disabled={loading}
+                            onClick={onClick}
+                        />
+                    )}
+                />
                 <CopyChatMenuItem
                     bot_id={Number(bot.id)}
                     workspace_id={workspace?.id || null}
@@ -157,7 +179,11 @@ export default function ConversationHeaderMenu({
                     on_open={on_open}
                 />
                 {can_make_hooks ? (
-                    <BotHooksModal bot={bot} workspace={workspace} on_open={on_open} />
+                    <BotHooksModal
+                        bot={bot}
+                        workspace={workspace}
+                        on_open={on_open}
+                    />
                 ) : null}
                 <BotComputersModal
                     menu

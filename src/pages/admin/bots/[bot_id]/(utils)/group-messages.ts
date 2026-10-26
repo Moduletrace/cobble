@@ -8,6 +8,11 @@ export type MessageGroup = {
      * Time of the group's last message, shown once per group.
      */
     at: number;
+    /**
+     * The first group of a later session than the one above it (an
+     * earlier session opened above the thread): a divider goes above it.
+     */
+    starts_session?: boolean;
 };
 
 type Params = {
@@ -19,7 +24,8 @@ type Params = {
 };
 
 /**
- * Splits a conversation (oldest first) into author groups.
+ * Splits a conversation (oldest first) into author groups. A group never
+ * spans two sessions.
  */
 export default function groupMessages({
     messages,
@@ -32,7 +38,12 @@ export default function groupMessages({
         const at = Number(message.created_at || 0);
         const last = groups[groups.length - 1];
 
-        if (last && last.author === author && at - last.at <= gap_ms) {
+        const last_session = last?.messages[last.messages.length - 1]?.session_id;
+        const new_session = Boolean(
+            last && message.session_id && last_session && message.session_id != last_session,
+        );
+
+        if (last && !new_session && last.author === author && at - last.at <= gap_ms) {
             last.messages.push(message);
             last.at = at;
             continue;
@@ -43,6 +54,7 @@ export default function groupMessages({
             author,
             messages: [message],
             at,
+            starts_session: new_session || undefined,
         });
     }
 

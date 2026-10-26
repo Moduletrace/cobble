@@ -15,7 +15,8 @@ type Params = {
  * Loads the open conversation's history once the page is on screen, and
  * again whenever the browser restores the page from its back-forward
  * cache (`pageshow` with `persisted`), so going back never shows an old
- * thread. Everything else on the page (the header, the composer) comes
+ * thread. The page's `?session_id=` picks a session other than the
+ * active one, read on every load. Everything else on the page (the header, the composer) comes
  * from the server and shows at once. `loaded` turns true with the first
  * load; a conversation the user can no longer open sends them where the
  * server says.
@@ -37,7 +38,10 @@ export default function useConversationHistory({ bot_id, workspace_id, onLoaded 
         setLoading(true);
         setError(undefined);
 
-        const res = await fetchConversationHistory({ bot_id, workspace_id }).catch(() => null);
+        const session_id =
+            Number(new URLSearchParams(window.location.search).get("session_id")) || null;
+
+        const res = await fetchConversationHistory({ bot_id, workspace_id, session_id }).catch(() => null);
 
         /** A newer load started meanwhile: it has the last word. */
         if (id != request.current) return;

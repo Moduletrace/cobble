@@ -1,3 +1,4 @@
+import ContinueSessionButton from "./continue-session-button";
 import {
     useEffect,
     useState,
@@ -93,21 +94,27 @@ export default function BotSessionsModal({
                         Sessions
                     </H2>
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                        {`Each session keeps ${name}'s context short. A new one starts with a summary of the last; reopen any to pick up where you left off.`}
+                        {`Each session keeps ${name}'s context short. New starts fresh; Continue carries a summary of this one into the next. Reopen any to pick up where you left off.`}
                     </Span>
                 </Stack>
-                <Button
-                    title="Start a new session"
-                    type="button"
-                    size="small"
-                    loading={sessions.busy_id == "new"}
-                    disabled={Boolean(sessions.busy_id)}
-                    onClick={sessions.startSession}
-                    className="shrink-0 gap-1!"
-                >
-                    <Plus size={14} aria-hidden />
-                    New
-                </Button>
+                <Row className="shrink-0 gap-2! flex-nowrap items-center">
+                    <ContinueSessionButton
+                        bot_id={Number(bot.id)}
+                        workspace_id={workspace_id}
+                    />
+                    <Button
+                        title="Start a fresh session, without carrying this one over"
+                        type="button"
+                        size="small"
+                        loading={sessions.busy_id == "new"}
+                        disabled={Boolean(sessions.busy_id)}
+                        onClick={sessions.startSession}
+                        className="shrink-0 gap-1!"
+                    >
+                        <Plus size={14} aria-hidden />
+                        New
+                    </Button>
+                </Row>
             </Row>
             <Input
                 id="bot-sessions-search"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BotSessionChangedData, BotSessionListItem } from "@/src/types";
 import postSessionApi from "@/src/functions/frontend/post-session-api";
+import conversationHref from "@/src/utils/conversation-href";
 import useServerEvent from "./use-server-event";
 
 type Params = {
@@ -44,6 +45,8 @@ function belongsToConversation({
 /**
  * A conversation's sessions, latest first, searched as the user types
  * (debounced). Starting or reopening a session reloads the page onto it.
+ * A session that can't be reopened (carried over into a newer one) opens
+ * to read instead.
  * New messages and session changes pushed live reload the list, so a
  * session started in the conversation (or named once its first reply is
  * in) shows without a reload.
@@ -118,8 +121,21 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit }: Pa
 
         const res = await postSessionApi({ path, body }).catch(() => null);
 
+        /**
+         * The plain address, not a reload: one showing a session to read
+         * (`?session_id=`) would stay on it.
+         */
         if (res?.success) {
-            window.location.reload();
+            window.location.assign(conversationHref({ bot_id, workspace_id }));
+            return;
+        }
+
+        /**
+         * Carried over into a newer session, it stays closed: it opens to
+         * read, with the way to where the conversation went on.
+         */
+        if (res && path == "reopen-session") {
+            window.location.assign(conversationHref({ bot_id, workspace_id, session_id: id }));
             return;
         }
 

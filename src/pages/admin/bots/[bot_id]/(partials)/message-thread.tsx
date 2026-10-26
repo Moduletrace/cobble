@@ -34,6 +34,10 @@ type Props = {
      */
     has_task?: boolean;
     /**
+     * The conversation went on in another session: no reply is due here.
+     */
+    moved_on?: boolean;
+    /**
      * Quotes text selected in a message in the composer.
      */
     onQuote?: (params: { text: string }) => void;
@@ -42,9 +46,15 @@ type Props = {
      */
     older?: {
         has_more: boolean;
+        /**
+         * The thread reaches the start of its oldest session, which carries
+         * on from another one that can be opened above it.
+         */
+        has_previous?: boolean;
         loading: boolean;
         error?: string;
         loadOlder: () => void;
+        loadPrevious?: () => void;
     };
 };
 
@@ -53,7 +63,9 @@ type Props = {
  * upward. Empty space belongs at the top. New messages announce politely.
  * While the bot works on a reply or a task, a status row sits under the
  * last one. Text selected in a message can be quoted in the composer.
- * Older messages load as it scrolls to the top; the reversed column keeps
+ * Older messages load as it scrolls to the top, and at the start of a
+ * session that carries on from another, the earlier one can be opened
+ * above it (shown only, never put in the bot's prompt); the reversed column keeps
  * the view where it was as they land above it. The thread follows new
  * messages while it sits at its bottom, stays put while it's scrolled up
  * and then offers a button to get back down.
@@ -65,6 +77,7 @@ export default function MessageThread({
     reply_progress,
     receiving,
     has_task,
+    moved_on,
     onQuote,
     older,
 }: Props) {
@@ -92,6 +105,14 @@ export default function MessageThread({
                             error={older.error}
                             onLoad={older.loadOlder}
                         />
+                    ) : older?.has_previous && older.loadPrevious ? (
+                        <OlderMessagesLoader
+                            loading={older.loading}
+                            error={older.error}
+                            onLoad={older.loadPrevious}
+                            label="Show the previous session"
+                            manual
+                        />
                     ) : null}
                     {groups.map((group) => (
                         <MessageGroupBlock
@@ -104,10 +125,13 @@ export default function MessageThread({
                         bot={bot}
                         progress={progress}
                         reply_progress={reply_progress}
-                        awaiting_reply={isAwaitingReply({
-                            last_message: messages[messages.length - 1],
-                            face: bot.face,
-                        })}
+                        awaiting_reply={
+                            !moved_on &&
+                            isAwaitingReply({
+                                last_message: messages[messages.length - 1],
+                                face: bot.face,
+                            })
+                        }
                         receiving={receiving}
                         has_task={has_task}
                     />

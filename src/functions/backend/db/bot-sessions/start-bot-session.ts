@@ -13,10 +13,11 @@ type Params = {
 };
 
 /**
- * Closes the conversation's active session and starts the next one, which
- * carries on from it (its summary goes into the next reply's prompt,
- * rewritten first when it covers fewer messages than the session ended
- * with). An active session with no messages yet is kept as it is.
+ * New session: closes the conversation's active session and starts a
+ * fresh one, linked to nothing and carrying nothing over. Carrying a
+ * conversation on is `carryOverBotSession` (the bot, Continue in new
+ * session, the rollover). An active session with no messages yet is kept
+ * as it is.
  */
 export default async function startBotSession({
     user_id,
@@ -41,10 +42,5 @@ export default async function startBotSession({
         });
     }
 
-    return await createBotSession({
-        user_id,
-        bot_id,
-        workspace_id,
-        previous_session_id: active?.id || null,
-    });
+    return await createBotSession({ user_id, bot_id, workspace_id });
 }

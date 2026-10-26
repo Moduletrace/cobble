@@ -1,6 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabConversationHistory from "@/src/functions/backend/db/bot-sessions/grab-conversation-history";
-import { BotConversationRequestSchema } from "@/src/schemas/bot-schema";
+import { ConversationHistoryRequestSchema } from "@/src/schemas/bot-schema";
 import type { ConversationHistoryPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
@@ -12,7 +12,8 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * A conversation's history (`grabConversationHistory`: its active session,
+ * A conversation's history (`grabConversationHistory`: its active session
+ * or the one `session_id` names,
  * latest messages and the bot's active task there), which the
  * conversation pages load once they are on screen instead of rendering it
  * on the server, so a page restored by the back button never shows an
@@ -34,8 +35,8 @@ export const handler: BunextAPIRouteHandler<
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
 
-        const { bot_id, workspace_id } = parseWithSchema({
-            schema: BotConversationRequestSchema,
+        const { bot_id, workspace_id, session_id } = parseWithSchema({
+            schema: ConversationHistoryRequestSchema,
             data: body,
         });
 
@@ -43,6 +44,7 @@ export const handler: BunextAPIRouteHandler<
             user_id: Number(user.id),
             bot_id,
             workspace_id,
+            session_id,
         });
 
         if (!history) {

@@ -5,6 +5,7 @@ import InstallNameSection from "./(sections)/install-name-section";
 import NotificationsSection from "./(sections)/notifications-section";
 import PromptSection from "./(sections)/prompt-section";
 import RunLimitsSection from "./(sections)/run-limits-section";
+import SessionLengthSection from "./(sections)/session-length-section";
 import SkillLimitsSection from "./(sections)/skill-limits-section";
 import StorageSection from "./(sections)/storage-section";
 import VersionSection from "./(sections)/version-section";
@@ -23,6 +24,7 @@ export default function AdminSettingsGeneralPage() {
             <NotificationsSection />
             <PromptSection />
             <RunLimitsSection />
+            <SessionLengthSection />
             <SkillLimitsSection />
             <HookCallRetentionSection />
             <StorageSection />

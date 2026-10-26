@@ -117,6 +117,13 @@ export const BotSystemPromptAppendSettingKey = "bot_system_prompt_append";
 export const BotReplyMaxToolStepsSettingKey = "bot_reply_max_tool_steps";
 
 /**
+ * The `app_settings` key holding how many messages a session takes before
+ * the next user message starts a new one. Unset means
+ * `AppData.BotSessionMaxMessages`.
+ */
+export const BotSessionMaxMessagesSettingKey = "bot_session_max_messages";
+
+/**
  * A bot's face is its status. There are no badges or spinners.
  */
 export const BotFaces = [

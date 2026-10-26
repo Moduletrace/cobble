@@ -32,4 +32,19 @@ describe("groupMessages", () => {
 
         expect(groups).toHaveLength(2);
     });
+
+    test("never joins two sessions, and marks where the later one starts", () => {
+        const groups = groupMessages({
+            messages: [
+                { id: 1, session_id: 7, author: "bot", text: "a", created_at: 0 },
+                { id: 2, session_id: 8, author: "bot", text: "summary", created_at: MIN },
+                { id: 3, session_id: 8, author: "bot", text: "b", created_at: 2 * MIN },
+            ],
+        });
+
+        expect(groups.map((g) => [g.messages.length, g.starts_session])).toEqual([
+            [1, undefined],
+            [2, true],
+        ]);
+    });
 });

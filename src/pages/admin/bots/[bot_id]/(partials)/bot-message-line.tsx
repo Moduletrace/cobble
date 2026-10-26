@@ -8,6 +8,7 @@ import linkComputerRefs from "@/src/utils/link-computer-refs";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import { MessageMarkdownComponents } from "../(data)/message-markdown-components";
 import { QuotableAttribute } from "../(hooks)/use-message-selection";
+import CarriedOverChip from "./carried-over-chip";
 import GroupTimestamp from "./group-timestamp";
 import MessageActions from "./message-actions";
 import MessageReactions from "./message-reactions";
@@ -34,7 +35,8 @@ type Props = {
 
 /**
  * One bot message, rendered from markdown (GFM; raw HTML is never
- * rendered). Computers it names (`computerRef`) show as buttons that
+ * rendered). The summary opening a session the bot moved into is
+ * headed by a link to the session it carries on from. Computers it names (`computerRef`) show as buttons that
  * switch the bot to them. A quoted reply sits above it, its reactions
  * below, and a row under it replies, reacts, reads it aloud and shows
  * why it needs you. Its text can be selected and quoted.
@@ -48,6 +50,13 @@ function BotMessageLine({ message, bot_name, at }: Props) {
 
     return (
         <Stack className="w-full min-w-0 gap-1.5! items-start max-w-full">
+            {message.carried_from_session_id && message.bot_id ? (
+                <CarriedOverChip
+                    bot_id={message.bot_id}
+                    workspace_id={message.workspace_id}
+                    session_id={message.carried_from_session_id}
+                />
+            ) : null}
             {message.reply_to ? (
                 <MessageReplyQuote
                     reply_to={message.reply_to}

@@ -38,6 +38,8 @@ import HistoryErrorRow from "../(partials)/history-error-row";
 import useConversationHistory from "../(hooks)/use-conversation-history";
 import mergeLoadedHistory from "../(utils)/merge-loaded-history";
 import LoadingLine from "@/src/components/general/loading-line";
+import SessionMovedBar from "../(partials)/session-moved-bar";
+import syncSessionQuery from "../(utils)/sync-session-query";
 
 /**
  * The conversation column: header, bottom-anchored thread, composer, the
@@ -52,7 +54,9 @@ import LoadingLine from "@/src/components/general/loading-line";
  * the history (the session's latest messages and the bot's task there)
  * loads on the client with a loading line under the header, and again
  * when the back button restores the page. Older messages load as the
- * thread scrolls up.
+ * thread scrolls up. `?session_id=` opens another session of the
+ * conversation; a closed one shows, in the composer's place, a link to
+ * where the conversation went on.
  */
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
@@ -73,6 +77,12 @@ export default function Conversation() {
         BotMessageWithAttachments[]
     >([]);
     const [session_id, setSessionId] = useState<number | null>(null);
+    /**
+     * Set when the session shown was carried over into a newer one
+     * (opened by `?session_id=`, or carried on from while on screen): that
+     * session, which the composer gives way to a link to.
+     */
+    const [moved_to_session_id, setMovedToSessionId] = useState<number | null>(null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
     const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(
         null,
@@ -85,6 +95,12 @@ export default function Conversation() {
      * before the history landed stays.
      */
     const known_session = useRef<number | null>(null);
+    /**
+     * Set when the user's own message carried the conversation into a new
+     * session (the rollover at the session length): the thread follows
+     * it, and what's on its way goes there, so it stays.
+     */
+    const following_send = useRef(false);
 
     useEffect(() => {
         const moved = Boolean(known_session.current);
@@ -92,6 +108,12 @@ export default function Conversation() {
         known_session.current = session_id;
 
         if (!moved) return;
+
+        if (following_send.current) {
+            following_send.current = false;
+            setReplyTo(null);
+            return;
+        }
 
         setReplyTo(null);
         setPendingMessages([]);
@@ -148,8 +170,14 @@ export default function Conversation() {
             const loaded_session_id = Number(history.session.id);
 
             setSessionId(loaded_session_id);
+            setMovedToSessionId(history.moved_to_session_id || null);
+            syncSessionQuery({ session: history.session });
             setMessages((prev) => mergeLoadedHistory({ shown: prev, history }));
-            older.reset({ session_id: loaded_session_id, has_more: history.has_more });
+            older.reset({
+                session_id: loaded_session_id,
+                has_more: history.has_more,
+                previous_session_id: Number(history.session.previous_session_id) || null,
+            });
             progress.reset({ task: history.task });
         },
     });
@@ -161,7 +189,13 @@ export default function Conversation() {
 
     const last_saved_id = messages[messages.length - 1]?.id || null;
     const last_thread_message = thread_messages[thread_messages.length - 1];
-    const awaiting_reply = isAwaitingReply({ last_message: last_thread_message, face: bot?.face });
+    /**
+     * A session moved on from gets no reply here: the bot answered in the
+     * new one.
+     */
+    const awaiting_reply =
+        !moved_to_session_id &&
+        isAwaitingReply({ last_message: last_thread_message, face: bot?.face });
 
     const reply_progress = useReplyProgress({
         bot_id: bot?.id || 0,
@@ -208,9 +242,34 @@ export default function Conversation() {
                 message.session_id &&
                 message.session_id != session_id
             ) {
+                /**
+                 * This session's conversation was carried into a new one,
+                 * whose summary opens it. While the user's message is on
+                 * its way, it was that message (the rollover at the
+                 * session length): the thread follows into the new
+                 * session. Otherwise (the bot, Continue in new session in
+                 * another tab) the composer gives way to a link there.
+                 */
+                if (Number(message.carried_from_session_id) == session_id) {
+                    if (pending_messages.length) {
+                        following_send.current = true;
+                        history.retry();
+                        return;
+                    }
+
+                    setMovedToSessionId(Number(message.session_id));
+                    return;
+                }
+
+                /**
+                 * The user wrote in a newer session (another tab, or a
+                 * rollover whose summary push was missed): the thread
+                 * moves there, and loads it so its opening shows too.
+                 */
                 if (message.author == "user" && startsNewSession(message)) {
                     setSessionId(Number(message.session_id));
                     setMessages([message]);
+                    history.retry();
                 } else if (message.author == "user") {
                     window.location.reload();
                 } else {
@@ -341,11 +400,19 @@ export default function Conversation() {
                                     reply_progress={reply_progress}
                                     receiving={pending_messages.length > 0}
                                     has_task={Boolean(progress.task_id)}
+                                    moved_on={Boolean(moved_to_session_id)}
                                     older={older}
                                     onQuote={({ text }) =>
                                         composer.current?.insertQuote({ text })
                                     }
                                 />
+                                {moved_to_session_id ? (
+                                    <SessionMovedBar
+                                        bot_id={Number(bot.id)}
+                                        workspace_id={workspace_id}
+                                        moved_to_session_id={moved_to_session_id}
+                                    />
+                                ) : (
                                 <Composer
                                     handle_ref={composer}
                                     bot={bot}
@@ -381,10 +448,12 @@ export default function Conversation() {
                                             startsNewSession(message) &&
                                             message.session_id != session_id
                                         ) {
+                                            following_send.current = true;
                                             setSessionId(
                                                 Number(message.session_id),
                                             );
                                             setMessages([message]);
+                                            history.retry();
                                             return;
                                         }
 
@@ -395,6 +464,7 @@ export default function Conversation() {
                                         );
                                     }}
                                 />
+                                )}
                             </Stack>
                         </BotMessageActionsContext.Provider>
                         <ComputerViewerModal bot={live_bot} />

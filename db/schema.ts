@@ -464,6 +464,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `JSON \`[{ name, ok }]\`: every tool call the run behind a bot message made (names only, never arguments), told to the bot with the message in later turns so it can't build on work it never did. Null: not recorded (user messages, interim ones, older messages)`,
                     dataType: "TEXT",
                 },
+                {
+                    fieldName: "carried_from_session_id",
+                    fieldDescription: `Set on the message that opens a session the bot moved the conversation into (\`continue_in_new_session\`): the session it carries on from, whose summary is the message's text. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {

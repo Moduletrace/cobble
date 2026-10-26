@@ -13,9 +13,10 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * The messages before `before_id` in one of the session user's own
- * sessions, `AppData.ConversationOlderMessages` at a time, for the thread
- * scrolled to its top.
+ * The messages before `before_id` (or the latest) in one of the session
+ * user's own sessions, `AppData.ConversationOlderMessages` at a time, for
+ * the thread scrolled to its top or opening the previous session above
+ * it. Reading an old session never puts it in the bot's prompt.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<OlderBotMessagesData>
@@ -52,7 +53,17 @@ export const handler: BunextAPIRouteHandler<
 
         return {
             success: true,
-            singleRes: { messages: has_more ? messages.slice(1) : messages, has_more },
+            singleRes: {
+                messages: has_more ? messages.slice(1) : messages,
+                has_more,
+                session: {
+                    id: Number(session.id),
+                    title: session.title || null,
+                    previous_session_id: session.previous_session_id
+                        ? Number(session.previous_session_id)
+                        : null,
+                },
+            },
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

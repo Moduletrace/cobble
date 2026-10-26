@@ -2,10 +2,11 @@ import type { BUN_SQLITE_COBBLE_BOT_SESSIONS } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { AppData } from "@/src/data/app-data";
 import { SessionNamePrompt } from "@/src/data/harness-prompts";
-import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
+import grabSessionOpening from "@/src/functions/backend/db/bot-sessions/grab-session-opening";
 import generateText from "@/src/harness/text/generate-text";
 import { runWithHarnessUsageScope } from "@/src/harness/usage/harness-usage-scope";
 import parseSessionName from "./parse-session-name";
+import sessionNameTranscript from "./session-name-transcript";
 
 type Params = {
     session_id: number | string;
@@ -16,7 +17,8 @@ type Params = {
 
 /**
  * Names a session once its first exchange is in: the bot writes the title
- * the rail and sessions list show and a short summary of it. The summary
+ * the rail and sessions list show and a short summary of it, from the
+ * session's first messages (however late the first reply came). The summary
  * says how many messages it covers (`summary_message_count`), so
  * `grabSessionCarryOver` rewrites it before carrying a closed session into
  * the next one. Already named sessions are left as they are.
@@ -39,24 +41,24 @@ export default async function nameBotSession({
     if (!session?.id) return false;
     if (session.title?.trim() && session.summary?.trim()) return false;
 
-    const messages = await grabBotMessages({
+    /**
+     * The session's opening, not its latest messages: when the first
+     * replies failed or were stopped, naming first runs well into the
+     * session, and the title must still say what it was started for.
+     */
+    const messages = await grabSessionOpening({
         session_id,
         limit: AppData.BotSessionNameMessages,
     });
 
     if (
         !messages.some((message) => message.author == "user") ||
-        !messages.some((message) => message.author == "bot")
+        !messages.some((message) => message.author == "bot" && !message.carried_from_session_id)
     ) {
         return false;
     }
 
-    const transcript = messages
-        .map(
-            (message) =>
-                `${message.author == "user" ? "User" : "You"}: ${message.text || "(files only)"}`,
-        )
-        .join("\n\n");
+    const transcript = sessionNameTranscript({ messages });
 
     /**
      * The naming turn is a model call too, so it is recorded for this

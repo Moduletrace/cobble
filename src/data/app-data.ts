@@ -438,8 +438,14 @@ export const AppData = {
     /**
      * A session with this many messages is closed when the user writes
      * again, and the message starts the next one (carrying a summary).
+     * The install may save its own number (the `bot_session_max_messages`
+     * setting, Settings > General), read through `grabBotSessionMaxMessages`.
      */
     BotSessionMaxMessages: 120,
+    /**
+     * The most messages a saved session length may ask for.
+     */
+    BotSessionMaxMessagesMax: 2000,
     /**
      * How much of a closed session the bot reads to summarize it, and how
      * long the summary may be.
@@ -456,6 +462,18 @@ export const AppData = {
      * Sessions listed per page in a conversation's sessions modal.
      */
     BotSessionsPageSize: 30,
+    /**
+     * What a bot's search of its earlier sessions in a conversation
+     * (`search_past_sessions`) returns at most, and how much of each
+     * message it shows around the match.
+     */
+    PastSessionSearchLimit: 20,
+    PastSessionSnippetChars: 300,
+    /**
+     * Messages `read_past_session` returns per call, and how much of each.
+     */
+    PastSessionReadMessages: 20,
+    PastSessionReadMessageChars: 2000,
     /**
      * Worker bots the rail lists, most recently active first, before
      * "See all bots".

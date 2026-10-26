@@ -28,6 +28,11 @@ type Params = {
      * message in later turns (`botMessagesToHarness`).
      */
     tool_log?: HarnessToolUse[];
+    /**
+     * Opens a session the conversation moved into
+     * (`carryOverBotSession`): the session it carries on from.
+     */
+    carried_from_session_id?: number;
 };
 
 /**
@@ -43,6 +48,7 @@ export default async function insertBotMessage({
     interim,
     media_ids = [],
     tool_log,
+    carried_from_session_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
     const needs_you_flag = needs_you ? 1 : 0;
@@ -64,6 +70,7 @@ export default async function insertBotMessage({
                 needs_you: needs_you_flag,
                 interim: interim_flag,
                 tool_log: tool_log_json,
+                carried_from_session_id,
             },
         ],
     });
@@ -96,6 +103,7 @@ export default async function insertBotMessage({
         needs_you: needs_you_flag,
         interim: interim_flag,
         tool_log: tool_log_json,
+        carried_from_session_id,
         created_at: now,
         updated_at: now,
     };

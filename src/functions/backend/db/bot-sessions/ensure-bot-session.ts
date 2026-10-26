@@ -1,9 +1,9 @@
 import type { BUN_SQLITE_COBBLE_BOT_SESSIONS } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
-import { AppData } from "@/src/data/app-data";
+import { grabBotSessionMaxMessages } from "../app-settings/grab-bot-session-max-messages";
 import createBotSession from "./create-bot-session";
 import grabActiveBotSession from "./grab-active-bot-session";
-import startBotSession from "./start-bot-session";
+import rollOverBotSession from "./roll-over-bot-session";
 
 type Params = {
     /**
@@ -13,8 +13,8 @@ type Params = {
     bot_id: number | string;
     workspace_id?: number | string | null;
     /**
-     * Start the next session when the active one is full
-     * (`AppData.BotSessionMaxMessages`). Set when the user writes, so a
+     * Carry the conversation into a new session when the active one is
+     * full (`grabBotSessionMaxMessages`, `rollOverBotSession`). Set when the user writes, so a
      * message never lands in a session that's about to be cut.
      */
     rollover?: boolean;
@@ -22,8 +22,8 @@ type Params = {
 
 /**
  * The user's conversation's active session, started first when there is none
- * (carrying on from its latest closed one) or, with `rollover`, when the
- * active one is full.
+ * (fresh) or, with `rollover`, carried into a new one when the active one
+ * is full.
  */
 export default async function ensureBotSession({
     user_id,
@@ -46,23 +46,15 @@ export default async function ensureBotSession({
                 ).payload?.[0]?.n,
             ) || 0;
 
-        return count < AppData.BotSessionMaxMessages
+        return count < (await grabBotSessionMaxMessages())
             ? active
-            : await startBotSession({ user_id, bot_id, workspace_id });
+            : await rollOverBotSession({
+                  user_id,
+                  bot_id: Number(bot_id),
+                  workspace_id: workspace_id ? Number(workspace_id) : null,
+                  active,
+              });
     }
 
-    const latest = (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-            sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ?
-                ORDER BY last_activity_at DESC, id DESC LIMIT 1`,
-            values: [user_id, bot_id, workspace_id ? Number(workspace_id) : null],
-        })
-    ).payload?.[0];
-
-    return await createBotSession({
-        user_id,
-        bot_id,
-        workspace_id,
-        previous_session_id: latest?.id || null,
-    });
+    return await createBotSession({ user_id, bot_id, workspace_id });
 }

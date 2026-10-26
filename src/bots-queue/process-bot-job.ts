@@ -226,8 +226,12 @@ export default async function processBotJob({
          * a model that can't answer now leaves the session for the next
          * reply to name.
          */
-        if (job.kind == "reply" && completion.message && job.session_id) {
-            const session_id = Number(job.session_id);
+        if (job.kind == "reply" && completion.message?.session_id) {
+            /**
+             * The message's session, not the job's as it was claimed: a
+             * reply that moved the conversation on answered in the new one.
+             */
+            const session_id = Number(completion.message.session_id);
 
             /**
              * No job signal: the job is already complete, so its heartbeat

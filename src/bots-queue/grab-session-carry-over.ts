@@ -4,6 +4,7 @@ import { AppData } from "@/src/data/app-data";
 import { PreviousSessionNote, SessionSummaryPrompt } from "@/src/data/harness-prompts";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import generateText from "@/src/harness/text/generate-text";
+import sessionNameTranscript from "./session-name-transcript";
 
 type Params = {
     session_id: number | string;
@@ -53,9 +54,7 @@ export default async function grabSessionCarryOver({
 
     if (!messages.length) return "";
 
-    const transcript = messages
-        .map((message) => `${message.author == "user" ? "User" : "You"}: ${message.text || "(files only)"}`)
-        .join("\n\n");
+    const transcript = sessionNameTranscript({ messages });
 
     const result = await generateText({
         messages: [

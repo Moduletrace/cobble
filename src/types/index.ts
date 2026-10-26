@@ -998,6 +998,16 @@ export type McpServersOverviewPayload = ExtensionTargets & {
 };
 
 /**
+ * How many messages a session takes (Settings > General,
+ * `grab-bot-session-max-messages.ts`).
+ */
+export type SessionLengthOverview = {
+    max_messages: number;
+    default_messages: number;
+    max: number;
+};
+
+/**
  * How long hook calls are kept (Settings > General,
  * `grab-hook-events-keep-days.ts`).
  */
@@ -1434,6 +1444,15 @@ export type MessageDetails = {
 export type OlderBotMessagesData = {
     messages: BotMessageWithAttachments[];
     has_more: boolean;
+    /**
+     * The session paged, and the one it carries on from (opened above it
+     * next).
+     */
+    session: {
+        id: number;
+        title: string | null;
+        previous_session_id: number | null;
+    };
 };
 
 export type BotMessageReactionData = {
@@ -1518,6 +1537,11 @@ export type ConversationHistory = {
      * far.
      */
     task: BotTaskWithSteps | null;
+    /**
+     * When the session shown was carried over into a newer one (it stays
+     * closed, to read): that session. Null otherwise.
+     */
+    moved_to_session_id: number | null;
 };
 
 /**
@@ -1691,6 +1715,11 @@ export type PagePropsType = {
      * General settings page).
      */
     hook_call_retention?: HookCallRetentionOverview | null;
+    /**
+     * How many messages a session takes, with the code's default (the
+     * General settings page).
+     */
+    session_length?: SessionLengthOverview | null;
     /**
      * The name the install goes by as an installed app (Settings >
      * General, and the root's head tags). Empty when never named.

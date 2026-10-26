@@ -8,6 +8,7 @@ import {
     chatReplyNote,
     ComputerFilesNote,
     coordinatorReplyNote,
+    longSessionNote,
     CoordinatorSoloNote,
     TasksNote,
     TaskReminderNote,
@@ -30,6 +31,11 @@ import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import botMessagesToHarness from "./bot-messages-to-harness";
 import composeComputersNote from "./compose-computers-note";
 import grabSessionCarryOver from "./grab-session-carry-over";
+import continueInNewSessionTool from "@/src/harness/tools/bot/continue-in-new-session-tool";
+import searchPastSessionsTool from "@/src/harness/tools/bot/sessions/search-past-sessions-tool";
+import readPastSessionTool from "@/src/harness/tools/bot/sessions/read-past-session-tool";
+import { grabBotSessionMaxMessages } from "@/src/functions/backend/db/app-settings/grab-bot-session-max-messages";
+import BunSQLite from "@moduletrace/bun-sqlite";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import loadAttachmentParts from "./load-attachment-parts";
 import grabMessageRefNames from "@/src/functions/backend/db/bots/grab-message-ref-names";
@@ -76,7 +82,12 @@ export default async function runBotReply({
     signal,
     report,
 }: Params): Promise<BotJobOutcome> {
-    const session_id = await jobSessionId({ job });
+    /**
+     * Moves when the bot carries the conversation into a new session
+     * (`continue_in_new_session`): what the user writes from then on
+     * lands there.
+     */
+    let session_id = await jobSessionId({ job });
     const workspace_id = job.workspace_id || null;
 
     const history = await grabBotMessages({
@@ -139,6 +150,39 @@ export default async function runBotReply({
         workspace_id,
         signal,
     }).catch(() => "");
+
+    /**
+     * From halfway to the session's length, the bot is told to move on
+     * at a natural break.
+     */
+    const session_messages =
+        Number(
+            (
+                await BunSQLite.sql<{ n: number }>({
+                    sql: `SELECT COUNT(*) AS n FROM bot_messages WHERE session_id = ?`,
+                    values: [session_id],
+                })
+            ).payload?.[0]?.n,
+        ) || 0;
+    const session_max = await grabBotSessionMaxMessages();
+    const long_session_note =
+        session_messages >= Math.ceil(session_max / 2)
+            ? longSessionNote({ messages: session_messages, max: session_max })
+            : "";
+
+    /**
+     * The conversation's earlier sessions are searchable when it has any:
+     * the prompt only carries the last one's summary.
+     */
+    const past_scope = { user_id, bot_id: bot.id!, workspace_id, current_session_id: session_id };
+    const has_past_sessions = Boolean(
+        (
+            await BunSQLite.sql({
+                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? LIMIT 1`,
+                values: [user_id, bot.id!, workspace_id ? Number(workspace_id) : null, session_id],
+            })
+        ).payload?.[0],
+    );
 
     const take_overs: string[] = [];
     /**
@@ -238,6 +282,7 @@ export default async function runBotReply({
             system: [
                 prompt,
                 carry_over,
+                long_session_note,
                 chatReplyNote({ bot_id: bot.id }),
                 botFilesNote({ bot_id: bot.id }),
                 ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: false }),
@@ -262,6 +307,16 @@ export default async function runBotReply({
             tools: [
                 ...tools,
                 sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
+                continueInNewSessionTool({
+                    bot_id: bot.id!,
+                    user_id,
+                    session_id: Number(session_id),
+                    workspace_id,
+                    job_id: job.id || null,
+                    onMove: (moved) => {
+                        session_id = moved.session_id;
+                    },
+                }),
                 ...grabBotSecretTools({
                     user_id,
                     bot_id: bot.id,
@@ -271,6 +326,9 @@ export default async function runBotReply({
                     onRequest: ({ ref }) => proposals.push(ref),
                     onShow: ({ ref }) => shown.push(ref),
                 }),
+                ...(has_past_sessions
+                    ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]
+                    : []),
                 ...file_tools,
                 ...extensions.tools,
                 ...skills.tools,

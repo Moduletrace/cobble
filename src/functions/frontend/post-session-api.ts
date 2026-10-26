@@ -7,6 +7,7 @@ type Params = {
      */
     path: | "list-sessions"
         | "new-session"
+        | "continue-session"
         | "reopen-session"
         | "session-messages"
         | "older-messages";

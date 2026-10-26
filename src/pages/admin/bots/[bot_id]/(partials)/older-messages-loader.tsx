@@ -7,13 +7,28 @@ type Props = {
     loading: boolean;
     error?: string;
     onLoad: () => void;
+    /**
+     * Defaults to "Show earlier messages".
+     */
+    label?: string;
+    /**
+     * Loads only on a click, never as it scrolls into view.
+     */
+    manual?: boolean;
 };
 
 /**
  * The top of a thread with older messages: loads them as it scrolls into
- * view, with a button for when it can't (or a load failed).
+ * view (unless `manual`), with a button for when it can't (or a load
+ * failed).
  */
-export default function OlderMessagesLoader({ loading, error, onLoad }: Props) {
+export default function OlderMessagesLoader({
+    loading,
+    error,
+    onLoad,
+    label = "Show earlier messages",
+    manual,
+}: Props) {
     const ref = useRef<HTMLDivElement>(null);
     const load = useRef(onLoad);
 
@@ -22,7 +37,7 @@ export default function OlderMessagesLoader({ loading, error, onLoad }: Props) {
     useEffect(() => {
         const el = ref.current;
 
-        if (!el || error || typeof IntersectionObserver == "undefined") return;
+        if (!el || error || manual || typeof IntersectionObserver == "undefined") return;
 
         const observer = new IntersectionObserver(
             (entries) => {
@@ -34,7 +49,7 @@ export default function OlderMessagesLoader({ loading, error, onLoad }: Props) {
         observer.observe(el);
 
         return () => observer.disconnect();
-    }, [error, loading]);
+    }, [error, loading, manual]);
 
     return (
         <Stack
@@ -45,14 +60,14 @@ export default function OlderMessagesLoader({ loading, error, onLoad }: Props) {
                 <Loading size="smaller" />
             ) : (
                 <Button
-                    title="Show earlier messages"
+                    title={label}
                     type="button"
                     variant="ghost"
                     color="text"
                     onClick={onLoad}
                     className="text-[13px]! leading-[18px]! text-ink-secondary"
                 >
-                    {error ? `${error} Try again` : "Show earlier messages"}
+                    {error ? `${error} Try again` : label}
                 </Button>
             )}
         </Stack>

@@ -24,6 +24,14 @@ export const SaveSystemPromptAppendRequestSchema = z.object({
         .default(""),
 });
 
+/**
+ * How many messages a session takes before the next one starts (Settings >
+ * General). Zero puts the code's default back.
+ */
+export const SaveSessionLengthRequestSchema = z.object({
+    max_messages: z.coerce.number().int().min(0).max(AppData.BotSessionMaxMessagesMax),
+});
+
 export const SendBotMessageRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot to message"),
     workspace_id: WorkspaceIdField,
@@ -88,8 +96,12 @@ export const BotSessionIdRequestSchema = z.object({
 
 export type BotSessionIdRequest = z.infer<typeof BotSessionIdRequestSchema>;
 
+/**
+ * A page of a session's messages before `before_id`, or (left out) its
+ * latest: the previous session opened above a thread.
+ */
 export const OlderBotMessagesRequestSchema = BotSessionIdRequestSchema.extend({
-    before_id: z.coerce.number().int().positive("Pick a message"),
+    before_id: z.coerce.number().int().positive("Pick a message").nullish(),
 });
 
 export type OlderBotMessagesRequest = z.infer<typeof OlderBotMessagesRequestSchema>;
@@ -100,6 +112,16 @@ export const BotConversationRequestSchema = z.object({
 });
 
 export type BotConversationRequest = z.infer<typeof BotConversationRequestSchema>;
+
+/**
+ * A conversation's history: its active session, or the one the page's
+ * `?session_id=` names.
+ */
+export const ConversationHistoryRequestSchema = BotConversationRequestSchema.extend({
+    session_id: z.coerce.number().int().positive().nullish(),
+});
+
+export type ConversationHistoryRequest = z.infer<typeof ConversationHistoryRequestSchema>;
 
 export const ListBotSessionsRequestSchema = BotConversationRequestSchema.extend({
     query: z.string().trim().max(200).optional(),

@@ -258,8 +258,19 @@ update_memory and update_instructions save to this workspace by default: what yo
 export const SessionNamePrompt = `Name and summarize this conversation from its first exchange. Answer with a JSON object only, no markdown fence and no other text:
 {"title": "...", "summary": "..."}
 
-- title: what the conversation is about, at most 60 characters, no quotes and no trailing period. Say what the user wanted, not that it is a conversation.
+- title: what the conversation is about, at most 60 characters, no quotes and no trailing period. Say what the user wanted, not that it is a conversation. When it opens with a summary of an earlier session, name what this one carries on with, not every topic the summary recaps.
 - summary: what the user wanted and what was done so far. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
+
+/**
+ * Asks the text model to carry a conversation into a new session when the
+ * user asks to (Continue in new session): what the bot itself writes with
+ * `continue_in_new_session`.
+ */
+export const SessionContinuePrompt = `This conversation is moving into a new session: only what you write now carries over, so whoever picks it up must be able to go on from it alone. Answer with a JSON object only, no markdown fence and no other text:
+{"title": "...", "summary": "..."}
+
+- title: what the new session carries on with, at most 60 characters, no quotes and no trailing period.
+- summary: what the user wants, decisions made, what's done, what's in progress or still open, and every name, number, path, link and ref ([bot:ID], [file:ID], ...) exactly. Plain markdown bullets, no preamble.`;
 
 /**
  * Asks the text model for a closed session's summary, carried into the
@@ -269,8 +280,17 @@ export const SessionNamePrompt = `Name and summarize this conversation from its 
 export const SessionSummaryPrompt = `Summarize this conversation for whoever picks it up next: what the user wanted, what was done, decisions made, open questions and anything still in progress. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
 
 /**
+ * Told to a reply once its session is long: offer to move on.
+ */
+export function longSessionNote({ messages, max }: { messages: number; max: number }) {
+    return `# Long session
+
+This session has ${messages} messages (a new one starts on its own after ${max}). Every reply re-reads the recent ones, so each costs more as it grows. When the current topic reaches a natural break, or the user moves on to something new, carry the conversation into a fresh session with continue_in_new_session and say so in your answer.`;
+}
+
+/**
  * Heads the previous session's summary in a bot's prompt.
  */
 export const PreviousSessionNote = `# Earlier in this conversation
 
-This session carries on from an earlier one. What happened there:`;
+This session carries on from an earlier one. Only this summary of it is in front of you; when you need more (an exact figure, a link, what was agreed), look it up with search_past_sessions and read_past_session instead of guessing. What happened there:`;

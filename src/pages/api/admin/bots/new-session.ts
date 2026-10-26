@@ -13,8 +13,9 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * Closes the active session of one of the session user's conversations and
- * starts the next one, which carries on from it.
+ * New session: closes the active session of one of the session user's
+ * conversations and starts a fresh one, linked to nothing and carrying no
+ * summary. Carrying the conversation on is `continue-session`.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<BUN_SQLITE_COBBLE_BOT_SESSIONS>
