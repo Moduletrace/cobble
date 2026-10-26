@@ -3,7 +3,6 @@ import type { BUN_SQLITE_COBBLE_BOTS, BunSQLiteTables } from "@/db/types/db";
 import { CoordinatorBotName } from "@/src/dict/bot-dict";
 import { CoordinatorSystemPrompt } from "@/src/data/coordinator-system-prompt";
 import attachDefaultExtensions from "../extensions/attach-default-extensions";
-import ensureCoordinatorType from "../bot-types/ensure-coordinator-type";
 
 type Params = {
     /**
@@ -17,8 +16,7 @@ type Params = {
  * alone), creating it first (with the default `CoordinatorSystemPrompt`)
  * if there is none. A
  * coordinator without a prompt gets the default; an edited prompt is never
- * overwritten. Its install-wide `coordinator` bot type is written too
- * (`ensureCoordinatorType`), which backfills older installs. Safe to call
+ * overwritten. Its `kind` is what makes it the coordinator. Safe to call
  * on every visit.
  */
 export default async function ensureCoordinatorBot({ user_id }: Params) {
@@ -46,8 +44,6 @@ export default async function ensureCoordinatorBot({ user_id }: Params) {
             });
         }
 
-        await ensureCoordinatorType({ bot_id: existing.id });
-
         return existing.id;
     }
 
@@ -73,7 +69,6 @@ export default async function ensureCoordinatorBot({ user_id }: Params) {
     }
 
     await attachDefaultExtensions({ bot_id });
-    await ensureCoordinatorType({ bot_id });
 
     return bot_id;
 }

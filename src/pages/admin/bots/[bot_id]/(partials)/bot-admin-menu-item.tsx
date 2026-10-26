@@ -54,7 +54,7 @@ export default function BotAdminMenuItem({
 
         const res = await postAdminApi({
             path: "bots/set-bot-type",
-            body: { bot_id, workspace_id, bot_type: "admin", given },
+            body: { bot_id, workspace_id, bot_type: "workspace_admin", given },
         }).catch(() => null);
 
         setLoading(false);

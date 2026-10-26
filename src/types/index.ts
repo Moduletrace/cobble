@@ -34,7 +34,7 @@ import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
-import type { BotFace, BotMessageReactionEmoji } from "../dict/bot-dict";
+import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
@@ -2050,6 +2050,11 @@ export type TypeAssignmentMatrixType<
 > = Record<T, TypeAssignmentEntry<A>>;
 
 export type BotType = (typeof BotTypes)[number]["value"];
+
+/**
+ * What a bot is where it works: its kind, or a type it holds there.
+ */
+export type BotRole = BotKind | BotType;
 
 export type BotPermission = (typeof BotPermissions)[number]["value"];
 

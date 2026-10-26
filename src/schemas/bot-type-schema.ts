@@ -7,7 +7,7 @@ import { z } from "zod";
 export const SetBotTypeRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot"),
     workspace_id: z.coerce.number().int().positive("Pick a workspace"),
-    bot_type: z.enum(["admin"]).default("admin"),
+    bot_type: z.enum(["workspace_admin"]).default("workspace_admin"),
     given: z.boolean(),
 });
 

@@ -80,7 +80,7 @@ async function push({
     const admin_workspace_ids = (
         (
             await BunSQLite.sql<{ workspace_id: number }>({
-                sql: `SELECT workspace_id FROM bot_types WHERE bot_id = ? AND bot_type = 'admin' AND workspace_id IS NOT NULL`,
+                sql: `SELECT workspace_id FROM bot_types WHERE bot_id = ? AND bot_type = 'workspace_admin' AND workspace_id IS NOT NULL`,
                 values: [bot_id],
             })
         ).payload || []

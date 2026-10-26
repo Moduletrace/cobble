@@ -41,7 +41,7 @@ export default async function grabBotWorkspaces({
         (
             (
                 await BunSQLite.sql<{ workspace_id: number }>({
-                    sql: `SELECT workspace_id FROM bot_types WHERE bot_id = ? AND bot_type = 'admin'`,
+                    sql: `SELECT workspace_id FROM bot_types WHERE bot_id = ? AND bot_type = 'workspace_admin'`,
                     values: [Number(bot.id)],
                 })
             ).payload || []

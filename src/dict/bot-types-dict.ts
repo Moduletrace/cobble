@@ -1,30 +1,15 @@
-import type { BotPermission, BotType, TypeAssignmentMatrixType } from "../types";
+import type { BotPermission, BotRole, BotType, TypeAssignmentMatrixType } from "../types";
 
 /**
- * Every bot type. A bot with no `bot_types` row is a worker. A type holds
- * install-wide (`scope: "install"`, its row has no workspace) or in one
- * workspace (`scope: "workspace"`, its row names it). `bots.kind` stays the
- * legacy marker of the one coordinator for who sees it; what a bot can do
- * comes from these.
+ * Types a bot holds on top of its kind (`bots.kind`: coordinator or
+ * worker), like `user_types` for users. A bot with none is just its kind.
+ * Each `bot_types` row names the workspace the type holds in.
  */
 export const BotTypes = [
     {
-        value: "coordinator",
-        title: "Coordinator",
-        description: "Coordinates the whole crew: hands work to every bot, grows the crew, runs workspaces and extensions. One per install, the super admin's alone.",
-        scope: "install",
-    },
-    {
-        value: "admin",
+        value: "workspace_admin",
         title: "Workspace admin",
         description: "Leads one workspace: hands tasks to the other bots there, sets their instructions there, runs the workspace's task list and keeps its context.",
-        scope: "workspace",
-    },
-    {
-        value: "worker",
-        title: "Worker",
-        description: "Does its own job. Every bot without another type.",
-        scope: "install",
     },
 ] as const;
 
@@ -75,12 +60,11 @@ export const BotPermissions = [
 ] as const;
 
 /**
- * What each bot type may do, where it holds (everywhere for an
- * install-wide type, in its workspace for a workspace one).
+ * What each role (a kind, or a type held where the bot works) may do.
  */
-export const BotTypePermissionMatrix: Record<BotType, BotPermission[]> = {
+export const BotTypePermissionMatrix: Record<BotRole, BotPermission[]> = {
     coordinator: BotPermissions.map((bp) => bp.value),
-    admin: [
+    workspace_admin: [
         "delegate_task",
         "set_member_instructions",
         "manage_workspace_tasks",
@@ -91,37 +75,32 @@ export const BotTypePermissionMatrix: Record<BotType, BotPermission[]> = {
 
 /**
  * Which bots a bot may act on (hand a task to, set instructions for), keyed
- * by the target's type. Same shape as `UserTypeAssignmentMatrix`: the
+ * by the target's role. Same shape as `UserTypeAssignmentMatrix`: the
  * coordinator passes through. A workspace admin directs workers only, so
  * two admins never hand work back and forth.
  */
-export const BotTypeTargetMatrix: TypeAssignmentMatrixType<BotType> = {
+export const BotTypeTargetMatrix: TypeAssignmentMatrixType<BotRole> = {
     coordinator: {},
-    admin: {
+    workspace_admin: {
         allowed_actors: [],
     },
     worker: {
-        allowed_actors: ["admin"],
+        allowed_actors: ["workspace_admin"],
     },
 };
 
 /**
  * Who may grant a bot type: user types (`admin`; the super admin passes
- * through) and bot types (`coordinator`). The coordinator type is never
- * granted: `ensureCoordinatorBot` writes it.
+ * through) and bot kinds (`coordinator`).
  */
 export const BotTypeAssignmentMatrix: TypeAssignmentMatrixType<BotType> = {
-    coordinator: {},
-    admin: {
+    workspace_admin: {
         allowed_actors: ["admin", "coordinator"],
     },
-    worker: {},
 };
 
 export const BotTypeDeletionMatrix: TypeAssignmentMatrixType<BotType> = {
-    coordinator: {},
-    admin: {
+    workspace_admin: {
         allowed_actors: ["admin", "coordinator"],
     },
-    worker: {},
 };

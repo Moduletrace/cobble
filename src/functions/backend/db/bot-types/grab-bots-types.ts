@@ -9,7 +9,7 @@ type Row = BotTypeRow & { bot_id: number };
 
 /**
  * `grabBotTypes` for a list of bots at once, keyed by bot id. A bot with no
- * row is missing from the map (a worker).
+ * row is missing from the map (just its kind).
  */
 export default async function grabBotsTypes({ bot_ids }: Params): Promise<Map<number, BotTypeRow[]>> {
     const ids = [...new Set(bot_ids.map(Number).filter(Boolean))];
@@ -19,9 +19,8 @@ export default async function grabBotsTypes({ bot_ids }: Params): Promise<Map<nu
 
     const marks = ids.map(() => "?").join(", ");
     const res = await BunSQLite.sql<Row>({
-        sql: `SELECT bot_id, bot_type, workspace_id FROM bot_types WHERE bot_id IN (${marks})
-            UNION SELECT id AS bot_id, 'coordinator' AS bot_type, NULL AS workspace_id FROM bots WHERE id IN (${marks}) AND kind = 'coordinator'`,
-        values: [...ids, ...ids],
+        sql: `SELECT bot_id, bot_type, workspace_id FROM bot_types WHERE bot_id IN (${marks}) AND workspace_id IS NOT NULL`,
+        values: ids,
     });
 
     for (const row of res.payload || []) {

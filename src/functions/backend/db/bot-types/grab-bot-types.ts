@@ -6,15 +6,13 @@ type Params = {
 };
 
 /**
- * A bot's types (`bot_types`), plus the install-wide coordinator type for
- * the legacy `kind = 'coordinator'` bot, so the coordinator keeps its
- * powers before `ensureCoordinatorBot` has written its row.
+ * A bot's types (`bot_types`), each held in one workspace. Its kind
+ * (`bots.kind`) is read on its own.
  */
 export default async function grabBotTypes({ bot_id }: Params): Promise<BotTypeRow[]> {
     const res = await BunSQLite.sql<BotTypeRow>({
-        sql: `SELECT bot_type, workspace_id FROM bot_types WHERE bot_id = ?
-            UNION SELECT 'coordinator' AS bot_type, NULL AS workspace_id FROM bots WHERE id = ? AND kind = 'coordinator'`,
-        values: [Number(bot_id), Number(bot_id)],
+        sql: `SELECT bot_type, workspace_id FROM bot_types WHERE bot_id = ? AND workspace_id IS NOT NULL`,
+        values: [Number(bot_id)],
     });
 
     return res.payload || [];

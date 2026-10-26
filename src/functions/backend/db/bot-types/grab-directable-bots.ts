@@ -1,7 +1,7 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import botCanTarget from "@/src/utils/rbac/bot-can-target";
 import grabCrewWorkers from "../bots/grab-crew-workers";
-import grabBotTypes from "./grab-bot-types";
+import grabBotRunPowers from "./grab-bot-run-powers";
 import grabBotsTypes from "./grab-bots-types";
 
 type Params = {
@@ -22,12 +22,14 @@ export default async function grabDirectableBots({ bot_id, workspace_id }: Param
 
     if (!members.length) return [];
 
-    const actor_bot_types = await grabBotTypes({ bot_id });
+    const actor = await grabBotRunPowers({ bot_id, workspace_id });
     const types = await grabBotsTypes({ bot_ids: members.map((bot) => bot.id) });
 
     return members.filter((bot) =>
         botCanTarget({
-            actor_bot_types,
+            actor_kind: actor.is_coordinator ? "coordinator" : "worker",
+            actor_bot_types: actor.bot_types,
+            target_kind: bot.kind,
             target_bot_types: types.get(Number(bot.id)) || [],
             workspace_id,
         }),

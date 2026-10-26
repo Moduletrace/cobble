@@ -60,7 +60,7 @@ export default function findBotTool(): HarnessTool<Args> {
             return matches
                 .map((bot) => {
                     const led = (types.get(Number(bot.id)) || [])
-                        .filter((bt) => bt.bot_type == "admin" && bt.workspace_id)
+                        .filter((bt) => bt.bot_type == "workspace_admin" && bt.workspace_id)
                         .map((bt) => workspaceRef({ id: Number(bt.workspace_id) }));
 
                     return `${botRef({ id: bot.id || 0 })} ${bot.name} (${bot.kind}${bot.role ? `: ${bot.role}` : ""})${led.length ? `, admin of ${led.join(", ")}` : ""}\n## Instructions:\n${bot.system_prompt}`;

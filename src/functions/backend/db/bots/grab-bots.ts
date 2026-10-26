@@ -42,7 +42,7 @@ export default async function grabBots({
     sql += `    t.last_activity_at AS last_activity_at,\n`;
     sql += `    lm.text AS last_message_text,\n`;
     sql += `    lm.created_at AS last_message_at,\n`;
-    sql += `    EXISTS (SELECT 1 FROM bot_types bt WHERE bt.bot_id = b.id AND bt.bot_type = 'admin' AND bt.workspace_id = ?) AS is_admin\n`;
+    sql += `    EXISTS (SELECT 1 FROM bot_types bt WHERE bt.bot_id = b.id AND bt.bot_type = 'workspace_admin' AND bt.workspace_id = ?) AS is_admin\n`;
     sql += `FROM bots b\n`;
     sql += `LEFT JOIN (\n`;
     sql += `    SELECT bot_id, MAX(unread) AS unread, MAX(last_activity_at) AS last_activity_at\n`;

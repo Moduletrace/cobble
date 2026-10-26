@@ -6,7 +6,7 @@ import botTypeAssignment from "@/src/utils/rbac/bot-type-assignment";
 import grabUserBot from "../bots/grab-user-bot";
 import grabUserTypes from "../users/grab-user-types";
 import grabUserWorkspace from "../workspaces/grab-user-workspace";
-import grabBotTypes from "./grab-bot-types";
+import grabBotRunPowers from "./grab-bot-run-powers";
 
 export type BotTypeChangeParams = {
     /**
@@ -25,9 +25,8 @@ export type BotTypeChangeParams = {
 
 /**
  * Checks a grant or removal of a bot type: the user (and the bot, when one
- * acts) may do it (`botTypeAssignment`), only workspace types are ever
- * changed (the coordinator's is written by `ensureCoordinatorBot`), and the
- * bot works in the workspace. Returns the bot and the workspace id.
+ * acts) may do it (`botTypeAssignment`), the type exists, and the bot
+ * works in the workspace. Returns the bot and the workspace id.
  */
 export default async function assertBotTypeChange({
     user_id,
@@ -39,8 +38,8 @@ export default async function assertBotTypeChange({
 }: BotTypeChangeParams & { action: "assign" | "delete" }) {
     const type = BotTypes.find((bt) => bt.value == bot_type);
 
-    if (!type || type.scope != "workspace") {
-        throw new AppError(`Only a workspace type can be given or taken away.`);
+    if (!type) {
+        throw new AppError(`There's no such bot type.`);
     }
 
     if (!workspace_id) {
@@ -54,9 +53,10 @@ export default async function assertBotTypeChange({
     }
 
     if (actor_bot_id) {
-        const actor_bot_types = await grabBotTypes({ bot_id: actor_bot_id });
+        const actor = await grabBotRunPowers({ bot_id: actor_bot_id });
+        const actor_bot = { kind: actor.is_coordinator ? ("coordinator" as const) : ("worker" as const), bot_types: actor.bot_types };
 
-        if (!botTypeAssignment({ actor_bot_types, target_bot_type: bot_type, action })) {
+        if (!botTypeAssignment({ actor_bot, target_bot_type: bot_type, action })) {
             throw new AppError(`Only the coordinator can do that.`);
         }
     }

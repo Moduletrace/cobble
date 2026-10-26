@@ -238,7 +238,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "kind",
-                    fieldDescription: `Legacy: marks the one coordinator, which only the super admin sees and reaches. What a bot can do comes from \`bot_types\``,
+                    fieldDescription: `Worker or the one coordinator (which only the super admin sees and reaches). \`bot_types\` add to it`,
                     dataType: "TEXT",
                     options: BotKinds.map((bk) => bk.value),
                     defaultValue: "worker",
@@ -1621,7 +1621,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "bot_types",
-            tableDescription: `A bot's types, like \`user_types\` for users: what it can do (\`BotTypePermissionMatrix\`). A row with no workspace holds everywhere (the coordinator); one with a workspace only there (a workspace admin). A bot with no row is a worker. One per bot, type and workspace, enforced in \`setBotType\` since SQLite treats NULL ids as distinct`,
+            tableDescription: `Types a bot holds on top of its \`kind\`, like \`user_types\` for users (\`BotTypePermissionMatrix\`): each row holds in one workspace (a workspace admin). A bot with no row is just its kind. One per bot, type and workspace, enforced in \`setBotType\``,
             fields: [
                 {
                     fieldName: "bot_id",
@@ -1641,7 +1641,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "workspace_id",
-                    fieldDescription: `The workspace the type holds in; null for install-wide`,
+                    fieldDescription: `The workspace the type holds in`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,

@@ -198,7 +198,7 @@ export type BUN_SQLITE_COBBLE_BOTS = {
     user_id?: number | "";
     name?: string;
     /** 
-     * Legacy: marks the one coordinator, which only the super admin sees and reaches. What a bot can do comes from `bot_types`
+     * Worker or the one coordinator (which only the super admin sees and reaches). `bot_types` add to it
      */
     kind?: "worker" | "coordinator" | "";
     /** 
@@ -1036,9 +1036,9 @@ export type BUN_SQLITE_COBBLE_BOT_TYPES = {
      */
     updated_at?: number | "";
     bot_id?: number | "";
-    bot_type?: "coordinator" | "admin" | "worker" | "";
+    bot_type?: "workspace_admin" | "";
     /** 
-     * The workspace the type holds in; null for install-wide
+     * The workspace the type holds in
      */
     workspace_id?: number | "";
     /** 

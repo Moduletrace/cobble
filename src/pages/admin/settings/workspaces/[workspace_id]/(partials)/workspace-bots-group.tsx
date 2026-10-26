@@ -81,7 +81,7 @@ export default function WorkspaceBotsGroup({ workspace_id, workspace_name, bots:
 
         const res = await postAdminApi<WorkspaceBot>({
             path: "bots/set-bot-type",
-            body: { workspace_id, bot_id: bot.id, bot_type: "admin", given },
+            body: { workspace_id, bot_id: bot.id, bot_type: "workspace_admin", given },
         });
 
         setAdminBusyId(undefined);

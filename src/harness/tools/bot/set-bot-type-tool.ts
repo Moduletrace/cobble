@@ -68,14 +68,14 @@ export default function setBotTypeTool({ user_id, bot_id, workers, workspaces, w
                 user_id,
                 actor_bot_id: bot_id,
                 bot_id: args.bot_id,
-                bot_type: "admin" as const,
+                bot_type: "workspace_admin" as const,
                 workspace_id: target_workspace_id,
             };
 
             const { bot, workspace } = args.admin ? await setBotType(change) : await removeBotType(change);
 
             const saved = (await grabBotTypes({ bot_id: args.bot_id })).some(
-                (bt) => bt.bot_type == "admin" && bt.workspace_id == target_workspace_id,
+                (bt) => bt.bot_type == "workspace_admin" && bt.workspace_id == target_workspace_id,
             );
 
             if (saved != args.admin) {
