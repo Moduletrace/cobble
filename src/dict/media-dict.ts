@@ -50,4 +50,8 @@ export const MediaParadigms = [
         title: "Task Media",
         value: "task-media",
     },
+    {
+        title: "Knowledgebase Document",
+        value: "knowledgebase-document",
+    },
 ] as const;

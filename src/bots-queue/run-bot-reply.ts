@@ -28,6 +28,8 @@ import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
+import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
+import grabKnowledgebaseContext from "@/src/harness/tools/knowledgebases/grab-knowledgebase-context";
 import botMessagesToHarness from "./bot-messages-to-harness";
 import composeComputersNote from "./compose-computers-note";
 import grabSessionCarryOver from "./grab-session-carry-over";
@@ -263,6 +265,22 @@ export default async function runBotReply({
     });
 
     /**
+     * The run's knowledgebases: a search tool and a reader, and the
+     * passages found for what the user just asked, so a plain question is
+     * answered from the documents.
+     */
+    const knowledge = openBotKnowledgebases({
+        knowledgebases: extensions.knowledgebases,
+        taken: [...tools, ...extensions.tools, ...skills.tools].map((tool) => tool.name),
+    });
+    const knowledge_context = await grabKnowledgebaseContext({
+        knowledgebases: extensions.knowledgebases,
+        ids: knowledge.ids,
+        query: unansweredText({ messages: history, answered_id }),
+        signal,
+    });
+
+    /**
      * delegate_task is only there while the coordinator, or a workspace's
      * admin, has bots to hand work to. Anyone else in a workspace with an
      * admin is told who leads it.
@@ -298,7 +316,9 @@ export default async function runBotReply({
                 }),
                 crew_note,
                 skills.note,
+                knowledge.note,
                 extensions.note,
+                knowledge_context,
                 `Now: ${new Date().toUTCString()}.`,
             ]
                 .filter(Boolean)
@@ -332,6 +352,7 @@ export default async function runBotReply({
                 ...file_tools,
                 ...extensions.tools,
                 ...skills.tools,
+                ...knowledge.tools,
             ],
             max_steps: await grabReplyMaxToolSteps(),
             bot_id: bot.id,
@@ -364,4 +385,23 @@ function newestUserMessageId({ messages }: { messages: Pick<BotMessageWithAttach
         0,
         ...messages.filter((message) => message.author == "user").map((message) => Number(message.id)),
     );
+}
+
+/**
+ * The text of the user messages the reply answers (those after the last
+ * answered one), else the newest user message: what the knowledgebases are
+ * searched for ahead of the reply.
+ */
+function unansweredText({
+    messages,
+    answered_id,
+}: {
+    messages: Pick<BotMessageWithAttachments, "id" | "author" | "text">[];
+    answered_id?: number | string | null;
+}) {
+    const from_user = messages.filter((message) => message.author == "user");
+    const unanswered = from_user.filter((message) => Number(message.id) > Number(answered_id || 0));
+    const picked = unanswered.length ? unanswered : from_user.slice(-1);
+
+    return picked.map((message) => message.text || "").join("\n");
 }

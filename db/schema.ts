@@ -1,6 +1,7 @@
 import { LogCategories } from "@/src/dict/log-categories";
 import { BotTypes } from "@/src/dict/bot-types-dict";
 import { MediaParadigms, MediaTypes } from "@/src/dict/media-dict";
+import { KnowledgebaseDocumentSources } from "@/src/dict/knowledgebase-dict";
 import {
     BotFaces,
     BotHues,
@@ -3006,6 +3007,280 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "knowledgebases",
+            tableDescription: `Collections of documents bots search before they answer (Settings, under Knowledgebases): retrieval over the install's one embedding model. Per bot (bot_knowledgebases), per workspace (workspace_knowledgebases) or every bot (all_bots)`,
+            fields: [
+                {
+                    fieldName: "name",
+                    fieldDescription: `What the settings page and the composer call it, e.g. "Product handbook"`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "description",
+                    fieldDescription: `The one line a bot reads to know what it holds and when to search it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "all_bots",
+                    fieldDescription: `1 gives it to every bot, the coordinator included`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Who created it. Not a foreign key: it belongs to the install`,
+                    dataType: "INTEGER",
+                },
+            ],
+        },
+        {
+            tableName: "knowledgebase_documents",
+            tableDescription: `One document in a knowledgebase: an uploaded file (bytes in private media) or text written in. Chunked and embedded by the ingest worker`,
+            fields: [
+                {
+                    fieldName: "knowledgebase_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "knowledgebases",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "knowledgebase_documents_knowledgebases_fk",
+                    },
+                },
+                {
+                    fieldName: "name",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "source",
+                    dataType: "TEXT",
+                    options: KnowledgebaseDocumentSources.map((s) => s.value),
+                    defaultValue: "file",
+                },
+                {
+                    fieldName: "media_id",
+                    fieldDescription: `The uploaded file's private \`media\` row (a file document). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "content",
+                    fieldDescription: `The text of a text document, markdown`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "mime_type",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "size",
+                    fieldDescription: `Bytes`,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "chunk_count",
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "embedding_model",
+                    fieldDescription: `The model its vectors came from, null when it's searchable by words only. A change of the install's embedding model calls for a re-index`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "ingested_at",
+                    fieldDescription: `Unix ms of its last ingest, null while it waits`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "ingest_error",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Who added it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_knowledgebase_documents_knowledgebase_id",
+                    indexTableFields: ["knowledgebase_id"],
+                },
+            ],
+        },
+        {
+            tableName: "knowledgebase_chunks",
+            tableDescription: `A piece of a knowledgebase document's text, the unit a search returns. Replaced whole when the document is ingested again`,
+            fields: [
+                {
+                    fieldName: "document_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "knowledgebase_documents",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "knowledgebase_chunks_documents_fk",
+                    },
+                },
+                {
+                    fieldName: "knowledgebase_id",
+                    fieldDescription: `Copied from the document, so a search filters without a join`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "chunk_index",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "text",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "token_estimate",
+                    fieldDescription: `A rough count (characters / 4)`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_knowledgebase_chunks_document_id",
+                    indexTableFields: ["document_id", "chunk_index"],
+                },
+                {
+                    indexName: "idx_knowledgebase_chunks_knowledgebase_id",
+                    indexTableFields: ["knowledgebase_id"],
+                },
+            ],
+        },
+        {
+            tableName: "knowledgebase_vectors",
+            tableDescription: `sqlite-vec vectors of knowledgebase chunks, \`AppData.EmbeddingDimensions\` wide, from the install's embedding model. A vec0 table is only recreated with \`bunx bun-sqlite schema --vector\`, so the entrypoint never passes it`,
+            isVector: true,
+            vectorType: "vec0",
+            fields: [
+                {
+                    fieldName: "embedding",
+                    fieldDescription: `Normalized, padded or cut to \`AppData.EmbeddingDimensions\``,
+                    dataType: "BLOB",
+                    isVector: true,
+                    vectorSize: AppData.EmbeddingDimensions,
+                },
+                {
+                    fieldName: "chunk_id",
+                    dataType: "INTEGER",
+                    sideCar: true,
+                },
+                {
+                    fieldName: "document_id",
+                    dataType: "INTEGER",
+                    sideCar: true,
+                },
+                {
+                    fieldName: "knowledgebase_id",
+                    dataType: "INTEGER",
+                    sideCar: true,
+                },
+            ],
+        },
+        {
+            tableName: "bot_knowledgebases",
+            tableDescription: `A bot that searches a knowledgebase everywhere it works`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_knowledgebases_bots_fk",
+                    },
+                },
+                {
+                    fieldName: "knowledgebase_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "knowledgebases",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_knowledgebases_knowledgebases_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_knowledgebase_per_bot",
+                    constraintName: "A bot gets a knowledgebase once",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "knowledgebase_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_knowledgebases_knowledgebase_id",
+                    indexTableFields: ["knowledgebase_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_knowledgebases",
+            tableDescription: `Every bot in the workspace searches the knowledgebase there`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_knowledgebases_workspaces_fk",
+                    },
+                },
+                {
+                    fieldName: "knowledgebase_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "knowledgebases",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_knowledgebases_knowledgebases_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_knowledgebase_per_workspace",
+                    constraintName: "A workspace gets a knowledgebase once",
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "knowledgebase_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_knowledgebases_knowledgebase_id",
+                    indexTableFields: ["knowledgebase_id"],
+                },
+            ],
+        },
+        {
             tableName: "logs",
             fields: [
                 {
@@ -3594,7 +3869,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "file_ingest_queue",
-            tableDescription: `Files waiting to have their text chunked and embedded. A queue, so a restart never strands a file and an upload never waits on a model. A finished job is deleted: \`bot_files.ingested_at\` and \`ingest_error\` keep the outcome`,
+            tableDescription: `Files (and knowledgebase documents) waiting to have their text chunked and embedded. A queue, so a restart never strands a file and an upload never waits on a model. A finished job is deleted: \`bot_files.ingested_at\` and \`ingest_error\` keep the outcome`,
             isQueue: {
                 maxAttempts: 3,
                 lockTimeout: 10 * 60 * 1000,
@@ -3607,11 +3882,20 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `The \`bot_files\` row to (re)ingest`,
                     dataType: "INTEGER",
                 },
+                {
+                    fieldName: "document_id",
+                    fieldDescription: `The \`knowledgebase_documents\` row to (re)ingest, instead of a file`,
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {
                     indexName: "idx_file_ingest_queue_file_id",
                     indexTableFields: ["file_id"],
+                },
+                {
+                    indexName: "idx_file_ingest_queue_document_id",
+                    indexTableFields: ["document_id"],
                 },
             ],
         },

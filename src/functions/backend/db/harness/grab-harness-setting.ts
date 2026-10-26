@@ -4,7 +4,7 @@ import type {
     BUN_SQLITE_COBBLE_HARNESS_SETTINGS,
     BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS,
 } from "@/db/types/db";
-import type { HarnessKind } from "@/src/dict/harness-dict";
+import { isInstallWideHarness, type HarnessKind } from "@/src/dict/harness-dict";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import grabDefaultHarnessProviderId from "./grab-default-harness-provider-id";
 
@@ -51,14 +51,18 @@ type SettingRow = Pick<
 /**
  * A harness's setting for a call: the workspace's, else the bot's, else
  * the default. With no row it is automatic on the default provider
- * (OpenRouter), on, with fallback. Text is always on.
+ * (OpenRouter), on, with fallback. Text is always on. An install-wide
+ * harness (embeddings) always takes the default: rows a bot or workspace
+ * saved before it was one are ignored.
  */
 export default async function grabHarnessSetting({
     harness,
     bot_id,
     workspace_id,
 }: Params): Promise<HarnessSetting> {
-    const workspace_row = workspace_id
+    const install_wide = isInstallWideHarness({ harness });
+
+    const workspace_row = workspace_id && !install_wide
         ? await grabWorkspaceOverride({ harness, workspace_id })
         : undefined;
 
@@ -66,7 +70,7 @@ export default async function grabHarnessSetting({
         return toSetting({ harness, row: workspace_row, source: "workspace" });
     }
 
-    const bot_row = bot_id
+    const bot_row = bot_id && !install_wide
         ? await grabBotOverride({ harness, bot_id })
         : undefined;
 

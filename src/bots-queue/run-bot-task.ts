@@ -22,6 +22,7 @@ import runTextLoop from "@/src/harness/text/run-text-loop";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
+import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
@@ -242,6 +243,11 @@ export default async function runBotTask({
             taken: [...tools, ...extensions.tools].map((tool) => tool.name),
         });
 
+        const knowledge = openBotKnowledgebases({
+            knowledgebases: extensions.knowledgebases,
+            taken: [...tools, ...extensions.tools, ...skills.tools].map((tool) => tool.name),
+        });
+
         const result = await runTextLoop({
             system: [
                 prompt,
@@ -277,6 +283,7 @@ export default async function runBotTask({
                           .join("\n")}`
                     : "",
                 skills.note,
+                knowledge.note,
                 extensions.note,
             ]
                 .filter(Boolean)
@@ -291,7 +298,7 @@ export default async function runBotTask({
                     }),
                 },
             ],
-            tools: [...tools, ...extensions.tools, ...skills.tools],
+            tools: [...tools, ...extensions.tools, ...skills.tools, ...knowledge.tools],
             max_steps: await grabHarnessMaxToolSteps(),
             bot_id: bot.id,
             workspace_id,

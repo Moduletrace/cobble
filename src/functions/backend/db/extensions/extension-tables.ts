@@ -24,6 +24,13 @@ export const ExtensionTables = {
         column: "skill_id",
         label: "skill",
     },
+    knowledgebase: {
+        table: "knowledgebases",
+        bot_link: "bot_knowledgebases",
+        workspace_link: "workspace_knowledgebases",
+        column: "knowledgebase_id",
+        label: "knowledgebase",
+    },
 } as const;
 
 export type ExtensionKind = keyof typeof ExtensionTables;

@@ -1,6 +1,7 @@
 import IconTile from "@/src/components/general/icon-tile";
 import extensionIcon from "@/src/components/general/extension-icon";
 import type { BotExtension } from "@/src/types";
+import extensionStateNote from "@/src/utils/extension-state-note";
 import SettingsListRow from "./settings-list-row";
 import SettingsRowAction from "./settings-row-action";
 
@@ -17,23 +18,15 @@ const ExtensionHrefs = {
     mcp: "/admin/settings/mcps",
     tool: "/admin/settings/tools",
     skill: "/admin/settings/skills",
+    knowledgebase: "/admin/settings/knowledgebases",
 } as const;
 
 /**
- * One MCP server, tool or skill a bot or workspace has, and whether it's
- * working. A skill has nothing to connect or run, so it never reports a
- * failure.
+ * One MCP server, tool, skill or knowledgebase a bot or workspace has,
+ * and whether it's working (`extensionStateNote`).
  */
 export default function ExtensionRow({ item, busy, onRemove }: Props) {
-    const state = !item.enabled
-        ? "Off for every bot"
-        : item.kind == "skill"
-          ? ""
-          : item.state == "error"
-            ? "Not working"
-            : item.state == "untested"
-              ? "Not checked yet"
-              : "";
+    const state = extensionStateNote({ item });
 
     return (
         <SettingsListRow

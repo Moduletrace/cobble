@@ -975,11 +975,17 @@ export type ExtensionTargets = {
 };
 
 /**
- * One MCP server or tool a bot has, as its settings page and its chat's
- * composer show it.
+ * What a bot can be given: an MCP server, a custom tool, a skill or a
+ * knowledgebase.
+ */
+export type BotExtensionKind = "mcp" | "tool" | "skill" | "knowledgebase";
+
+/**
+ * One MCP server, tool, skill or knowledgebase a bot has, as its settings
+ * page and its chat's composer show it.
  */
 export type BotExtension = {
-    kind: "mcp" | "tool" | "skill";
+    kind: BotExtensionKind;
     id: number;
     name: string;
     description: string;
@@ -1002,7 +1008,7 @@ export type BotExtension = {
  */
 export type BotExtensionsPayload = {
     attached: BotExtension[];
-    addable: { kind: "mcp" | "tool" | "skill"; id: number; name: string }[];
+    addable: { kind: BotExtensionKind; id: number; name: string }[];
     can_manage: boolean;
 };
 
@@ -1062,6 +1068,84 @@ export type SkillsOverviewPayload = ExtensionTargets & {
      * The install's runbook limits, for the skill form's hints.
      */
     limits: SkillLimitsOverview;
+};
+
+/**
+ * A `knowledgebases` row with its flags read as booleans.
+ */
+export type KnowledgebaseRecord = {
+    id: number;
+    name: string;
+    description: string;
+    all_bots: boolean;
+    enabled: boolean;
+    updated_at: number | null;
+};
+
+/**
+ * A knowledgebase as its settings page lists it: who gets it and how much
+ * of it is searchable. Its documents load when it's opened.
+ */
+export type PublicKnowledgebase = Omit<KnowledgebaseRecord, "all_bots"> & {
+    access: ExtensionAccess;
+    document_count: number;
+    /**
+     * Documents still waiting to be read, and ones that failed with
+     * nothing to search.
+     */
+    pending_count: number;
+    error_count: number;
+    /**
+     * Documents whose last read went wrong in any way, even ones still
+     * found by their words.
+     */
+    warning_count: number;
+    /**
+     * Documents searchable by words only (no model, or it failed), or
+     * embedded by another model than the install's current one: a
+     * re-index fixes all three.
+     */
+    stale_count: number;
+    size: number;
+};
+
+/**
+ * One document in a knowledgebase.
+ */
+export type KnowledgebaseDocument = {
+    id: number;
+    knowledgebase_id: number;
+    name: string;
+    source: "file" | "text";
+    mime_type: string;
+    size: number;
+    chunk_count: number;
+    embedding_model: string | null;
+    ingested_at: number | null;
+    ingest_error: string | null;
+    /**
+     * Being read now: never read yet, or queued to be read again.
+     */
+    indexing: boolean;
+    created_at: number | null;
+};
+
+/**
+ * A knowledgebase's documents, and a text document's content when one is
+ * opened to edit.
+ */
+export type KnowledgebaseDocumentsPayload = {
+    knowledgebase_id: number;
+    documents: KnowledgebaseDocument[];
+};
+
+export type KnowledgebasesOverviewPayload = ExtensionTargets & {
+    knowledgebases: PublicKnowledgebase[];
+    /**
+     * The install's embedding model (Settings > Models), null when none is
+     * picked: then knowledgebases are searched by words only.
+     */
+    embedding_model: string | null;
 };
 
 export type CustomToolsOverviewPayload = ExtensionTargets & {
@@ -1761,6 +1845,7 @@ export type PagePropsType = {
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
     skills_overview?: SkillsOverviewPayload | null;
+    knowledgebases_overview?: KnowledgebasesOverviewPayload | null;
     bot_extensions?: BotExtensionsPayload | null;
     /**
      * The files browser's folders (a user's own crew and media, and what a

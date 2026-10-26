@@ -33,6 +33,11 @@ export type EmbeddingResult = {
      * change of model is visible.
      */
     model_dimensions: number;
+    /**
+     * The model that answered (its provider slug), so stored vectors can
+     * say where they came from.
+     */
+    model: string;
 };
 
 /**
@@ -47,7 +52,7 @@ export default async function embedText({
     bot_id,
     workspace_id,
 }: Params): Promise<EmbeddingResult> {
-    if (!input.length) return { vectors: [], model_dimensions: 0 };
+    if (!input.length) return { vectors: [], model_dimensions: 0, model: "" };
 
     const candidates = await resolveHarnessCandidates({
         harness: "embedding",
@@ -55,7 +60,7 @@ export default async function embedText({
         workspace_id,
     });
 
-    const { result } = await withCandidates<HarnessEmbedResult>({
+    const { result, candidate: answered } = await withCandidates<HarnessEmbedResult>({
         harness: "embedding",
         candidates,
         on_success: async ({ candidate, result: embedded, failed }): Promise<void> =>
@@ -78,6 +83,7 @@ export default async function embedText({
     return {
         vectors: result.vectors.map((vector) => fitVectorDimensions({ vector })),
         model_dimensions: result.vectors[0]?.length || 0,
+        model: answered.model.slug,
     };
 }
 

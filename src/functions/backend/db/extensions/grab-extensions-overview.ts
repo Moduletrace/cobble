@@ -1,12 +1,14 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type {
     BUN_SQLITE_COBBLE_CUSTOM_TOOLS,
+    BUN_SQLITE_COBBLE_KNOWLEDGEBASES,
     BUN_SQLITE_COBBLE_MCP_SERVERS,
     BUN_SQLITE_COBBLE_SKILLS,
 } from "@/db/types/db";
 import { CustomToolKinds } from "@/src/dict/custom-tool-dict";
 import { McpTransports } from "@/src/dict/mcp-dict";
 import type { BotExtension, BotExtensionsPayload } from "@/src/types";
+import parseKnowledgebaseRow from "../knowledgebases/parse-knowledgebase-row";
 import parseCustomToolRow from "./parse-custom-tool-row";
 import parseMcpServerRow from "./parse-mcp-server-row";
 import parseSkillRow from "./parse-skill-row";
@@ -28,7 +30,7 @@ type Params = {
 type Linked<T> = T & { source: "bot" | "workspace" };
 
 /**
- * The MCP servers, tools and skills a bot or a workspace has, and the rest of
+ * The MCP servers, tools, skills and knowledgebases a bot or a workspace has, and the rest of
  * them, which can be added (`grabBotExtensionsOverview`,
  * `grabWorkspaceExtensionsOverview`).
  */
@@ -51,8 +53,10 @@ export default async function grabExtensionsOverview({
     const mcp_query = linked("mcp_server_id", "bot_mcp_servers", "workspace_mcp_servers");
     const tool_query = linked("custom_tool_id", "bot_custom_tools", "workspace_custom_tools");
     const skill_query = linked("skill_id", "bot_skills", "workspace_skills");
+    const knowledgebase_query = linked("knowledgebase_id", "bot_knowledgebases", "workspace_knowledgebases");
 
-    const [servers, tools, skills, all_servers, all_tools, all_skills] = await Promise.all([
+    const [servers, tools, skills, knowledgebases, documents, all_servers, all_tools, all_skills, all_knowledgebases] =
+        await Promise.all([
         BunSQLite.sql<Linked<BUN_SQLITE_COBBLE_MCP_SERVERS>>({
             sql: mcp_query.sql.replace("%TABLE%", "mcp_servers"),
             values: mcp_query.values,
@@ -65,6 +69,15 @@ export default async function grabExtensionsOverview({
             sql: skill_query.sql.replace("%TABLE%", "skills"),
             values: skill_query.values,
         }),
+        BunSQLite.sql<Linked<BUN_SQLITE_COBBLE_KNOWLEDGEBASES>>({
+            sql: knowledgebase_query.sql.replace("%TABLE%", "knowledgebases"),
+            values: knowledgebase_query.values,
+        }),
+        BunSQLite.sql<{ knowledgebase_id: number; documents: number; failed: number }>({
+            sql: `SELECT knowledgebase_id, COUNT(*) AS documents,
+                    SUM(CASE WHEN ingest_error IS NOT NULL AND COALESCE(chunk_count, 0) = 0 THEN 1 ELSE 0 END) AS failed
+                FROM knowledgebase_documents GROUP BY knowledgebase_id`,
+        }),
         can_manage
             ? BunSQLite.sql<{ id: number; name: string }>({ sql: `SELECT id, name FROM mcp_servers ORDER BY name COLLATE NOCASE` })
             : null,
@@ -76,7 +89,16 @@ export default async function grabExtensionsOverview({
                   sql: `SELECT id, name FROM skills ORDER BY name COLLATE NOCASE`,
               })
             : null,
+        can_manage
+            ? BunSQLite.sql<{ id: number; name: string }>({
+                  sql: `SELECT id, name FROM knowledgebases ORDER BY name COLLATE NOCASE`,
+              })
+            : null,
     ]);
+
+    const document_counts = new Map(
+        (documents.payload || []).map((row) => [Number(row.knowledgebase_id), row]),
+    );
 
     const attached: BotExtension[] = [
         ...(servers.payload || []).map((row) => {
@@ -123,6 +145,22 @@ export default async function grabExtensionsOverview({
                 source: row.source,
             };
         }),
+        ...(knowledgebases.payload || []).map((row) => {
+            const knowledgebase = parseKnowledgebaseRow({ row });
+            const count = document_counts.get(knowledgebase.id);
+            const total = Number(count?.documents) || 0;
+
+            return {
+                kind: "knowledgebase" as const,
+                id: knowledgebase.id,
+                name: knowledgebase.name,
+                description: knowledgebase.description,
+                detail: `Knowledgebase · ${total} ${total == 1 ? "document" : "documents"}`,
+                state: Number(count?.failed) ? ("error" as const) : ("ok" as const),
+                enabled: knowledgebase.enabled,
+                source: row.source,
+            };
+        }),
     ];
 
     /**
@@ -144,6 +182,9 @@ export default async function grabExtensionsOverview({
             ...(all_skills?.payload || [])
                 .filter((row) => !has("skill", Number(row.id)))
                 .map((row) => ({ kind: "skill" as const, id: Number(row.id), name: row.name })),
+            ...(all_knowledgebases?.payload || [])
+                .filter((row) => !has("knowledgebase", Number(row.id)))
+                .map((row) => ({ kind: "knowledgebase" as const, id: Number(row.id), name: row.name })),
         ],
         can_manage,
     };

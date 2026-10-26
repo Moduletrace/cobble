@@ -18,13 +18,18 @@ type Props<T> = {
     /**
      * Under `/api/admin/`.
      */
-    path: "mcps/set-mcp-access" | "tools/set-tool-access" | "skills/set-skill-access";
+    path:
+        | "mcps/set-mcp-access"
+        | "tools/set-tool-access"
+        | "skills/set-skill-access"
+        | "knowledgebases/set-knowledgebase-access";
     onSaved: (overview: T, msg: string) => void;
     onCancel: () => void;
 };
 
 /**
- * Who gets an MCP server, tool or skill: the bots and workspaces picked here.
+ * Who gets an MCP server, tool, skill or knowledgebase: the bots and
+ * workspaces picked here.
  * "Every bot" (super admins only) gives it to every bot now and every new
  * one; each can still drop it. A workspace gives it to every bot in
  * it, there.

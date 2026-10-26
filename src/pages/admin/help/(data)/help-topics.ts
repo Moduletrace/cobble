@@ -119,4 +119,16 @@ A bot's own models (the model icon in its chat header) win over the defaults, an
 
 Tell the bot your time zone once ("I'm in Lagos", "I'm on New York time") and it remembers it and converts for you. To fix one yourself, open **Routines**, click **Edit**, and change the schedule to the UTC hour you want. Routines don't follow daylight saving changes, so ones near a clock change may need a nudge twice a year.`,
     },
+    {
+        id: "knowledgebase-not-found",
+        title: "A bot doesn't use a knowledgebase",
+        summary: "It answers from memory, or says it found nothing, though the document is there.",
+        body: `A super admin makes knowledgebases in **Settings, Knowledgebases**, and a bot searches one only once it's given it: from the knowledgebases button under its composer, its settings page, or a workspace it works in.
+
+If it's given and still misses:
+
+- Open the knowledgebase's documents. A document still **being read** isn't searchable yet; one that **couldn't be read** names why (a scan with no text, a file too big). Write the text in instead, or upload a version with text in it.
+- Bots search by meaning only with an embedding model, picked once for the whole install in **Settings, Models** under Embeddings. Without one they match words, which misses questions worded differently from the document. Picking or changing the model reads every document again on its own; a document shows **needs re-indexing** until it's done.
+- If a document still says it needs re-indexing, use the refresh icon on its knowledgebase's row to read them all again.`,
+    },
 ];

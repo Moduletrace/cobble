@@ -1,3 +1,5 @@
+import grabInstallEmbeddingModel from "@/src/functions/backend/db/knowledgebases/grab-install-embedding-model";
+import reindexAfterEmbeddingChange from "@/src/functions/backend/db/knowledgebases/reindex-after-embedding-change";
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import deleteHarnessProvider from "@/src/functions/backend/db/harness/delete-harness-provider";
 import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness-overview";
@@ -35,7 +37,10 @@ export const handler: BunextAPIRouteHandler<
             data: body,
         });
 
+        const embedding_before = await grabInstallEmbeddingModel();
+
         await deleteHarnessProvider({ provider_id });
+        await reindexAfterEmbeddingChange({ before: embedding_before });
 
         await logEvent({
             title: "Model provider removed",

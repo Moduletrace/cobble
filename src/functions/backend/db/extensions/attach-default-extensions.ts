@@ -5,7 +5,7 @@ type Params = {
 };
 
 /**
- * Gives a new bot every MCP server, tool and skill set to "every bot".
+ * Gives a new bot every MCP server, tool, skill and knowledgebase set to "every bot".
  * Called when a bot is created; it can drop any of them afterwards.
  */
 export default async function attachDefaultExtensions({ bot_id }: Params) {
@@ -26,6 +26,12 @@ export default async function attachDefaultExtensions({ bot_id }: Params) {
     await BunSQLite.sql({
         sql: `INSERT OR IGNORE INTO bot_skills (created_at, updated_at, bot_id, skill_id)
             SELECT ?, ?, ?, id FROM skills WHERE all_bots = 1`,
+        values: [now, now, Number(bot_id)],
+    });
+
+    await BunSQLite.sql({
+        sql: `INSERT OR IGNORE INTO bot_knowledgebases (created_at, updated_at, bot_id, knowledgebase_id)
+            SELECT ?, ?, ?, id FROM knowledgebases WHERE all_bots = 1`,
         values: [now, now, Number(bot_id)],
     });
 }

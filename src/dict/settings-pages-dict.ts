@@ -6,6 +6,7 @@ import {
     DatabaseBackup,
     KeyRound,
     Layers,
+    Library,
     LockKeyhole,
     Monitor,
     Plug,
@@ -61,6 +62,7 @@ export const SettingsPages: SettingsPage[] = [
     { title: "MCPs", url: "/admin/settings/mcps", Icon: Plug, can_view: canManageCrew },
     { title: "Tools", url: "/admin/settings/tools", Icon: Wrench, can_view: canManageCrew },
     { title: "Skills", url: "/admin/settings/skills", Icon: BookOpen, can_view: canManageCrew },
+    { title: "Knowledgebases", url: "/admin/settings/knowledgebases", Icon: Library, can_view: canManageCrew },
     {
         title: "Users",
         url: "/admin/settings/users",

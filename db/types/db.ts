@@ -48,6 +48,12 @@ export const BunSQLiteTables = [
     "workspace_custom_tools",
     "bot_skills",
     "workspace_skills",
+    "knowledgebases",
+    "knowledgebase_documents",
+    "knowledgebase_chunks",
+    "knowledgebase_vectors",
+    "bot_knowledgebases",
+    "workspace_knowledgebases",
     "logs",
     "user_presence",
     "push_subscriptions",
@@ -176,7 +182,7 @@ export type BUN_SQLITE_COBBLE_MEDIA_PARADIGMS = {
      */
     updated_at?: number | "";
     media_id?: number | "";
-    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "bot-image" | "workspace-image" | "bot-file" | "task-media" | "";
+    media_paradigm?: "user-profile-image" | "generic" | "event" | "bot-attachment" | "bot-image" | "workspace-image" | "bot-file" | "task-media" | "knowledgebase-document" | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOTS = {
@@ -1819,6 +1825,165 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_SKILLS = {
     skill_id?: number | "";
 }
 
+export type BUN_SQLITE_COBBLE_KNOWLEDGEBASES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * What the settings page and the composer call it, e.g. "Product handbook"
+     */
+    name?: string;
+    /** 
+     * The one line a bot reads to know what it holds and when to search it
+     */
+    description?: string;
+    /** 
+     * 1 gives it to every bot, the coordinator included
+     */
+    all_bots?: 0 | 1 | "";
+    enabled?: 0 | 1 | "";
+    /** 
+     * Who created it. Not a foreign key: it belongs to the install
+     */
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    knowledgebase_id?: number | "";
+    name?: string;
+    source?: "file" | "text" | "";
+    /** 
+     * The uploaded file's private `media` row (a file document). Not a foreign key
+     */
+    media_id?: number | "";
+    /** 
+     * The text of a text document, markdown
+     */
+    content?: string;
+    mime_type?: string;
+    /** 
+     * Bytes
+     */
+    size?: number | "";
+    chunk_count?: number | "";
+    /** 
+     * The model its vectors came from, null when it's searchable by words only. A change of the install's embedding model calls for a re-index
+     */
+    embedding_model?: string;
+    /** 
+     * Unix ms of its last ingest, null while it waits
+     */
+    ingested_at?: number | "";
+    ingest_error?: string;
+    /** 
+     * Who added it. Not a foreign key
+     */
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    document_id?: number | "";
+    /** 
+     * Copied from the document, so a search filters without a join
+     */
+    knowledgebase_id?: number | "";
+    chunk_index?: number | "";
+    text?: string;
+    /** 
+     * A rough count (characters / 4)
+     */
+    token_estimate?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Normalized, padded or cut to `AppData.EmbeddingDimensions`
+     */
+    embedding?: Float32Array<ArrayBuffer> | Buffer<ArrayBuffer> | null;
+    chunk_id?: number | "";
+    document_id?: number | "";
+    knowledgebase_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    knowledgebase_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    workspace_id?: number | "";
+    knowledgebase_id?: number | "";
+}
+
 export type BUN_SQLITE_COBBLE_LOGS = {
     /** 
      * The unique identifier of the record.
@@ -2196,6 +2361,10 @@ export type BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE = {
      */
     file_id?: number | "";
     /** 
+     * The `knowledgebase_documents` row to (re)ingest, instead of a file
+     */
+    document_id?: number | "";
+    /** 
      * The state of the job. (pending | processing | completed | failed)
      */
     status?: string;
@@ -2238,4 +2407,4 @@ export type BUN_SQLITE_COBBLE_APP_SETTINGS = {
     value?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_BOT_FILE_CHUNKS & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_BOT_FILE_VECTORS & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_BOT_FILE_CHUNKS & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_BOT_FILE_VECTORS & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS

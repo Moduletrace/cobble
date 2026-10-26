@@ -1,8 +1,10 @@
+import { ExtensionTables, type ExtensionKind } from "@/src/functions/backend/db/extensions/extension-tables";
+
 type Params = {
     /**
-     * Which kind: MCP servers, custom tools or skills.
+     * Which kind: MCP servers, custom tools, skills or knowledgebases.
      */
-    kind: "mcp" | "tool" | "skill";
+    kind: ExtensionKind;
     bot_id: number | string;
     /**
      * The workspace the run is in: what's attached to it counts too.
@@ -10,36 +12,15 @@ type Params = {
     workspace_id?: number | string | null;
 };
 
-const Tables = {
-    mcp: {
-        table: "mcp_servers",
-        bot_link: "bot_mcp_servers",
-        workspace_link: "workspace_mcp_servers",
-        column: "mcp_server_id",
-    },
-    tool: {
-        table: "custom_tools",
-        bot_link: "bot_custom_tools",
-        workspace_link: "workspace_custom_tools",
-        column: "custom_tool_id",
-    },
-    skill: {
-        table: "skills",
-        bot_link: "bot_skills",
-        workspace_link: "workspace_skills",
-        column: "skill_id",
-    },
-} as const;
-
 /**
- * The enabled MCP servers, custom tools or skills a bot gets on one run: those
+ * The enabled MCP servers, custom tools, skills or knowledgebases a bot gets on one run: those
  * attached to the bot, and in a workspace those attached to the
  * workspace. "Every bot" only decides what a bot is given (now and when
  * it's created, `attachToAllBots`, `attachDefaultExtensions`); one it
  * dropped stays dropped.
  */
 export default function botExtensionsSql({ kind, bot_id, workspace_id }: Params) {
-    const { table, bot_link, workspace_link, column } = Tables[kind];
+    const { table, bot_link, workspace_link, column } = ExtensionTables[kind];
 
     return {
         sql: `SELECT x.* FROM ${table} x WHERE x.enabled = 1 AND (

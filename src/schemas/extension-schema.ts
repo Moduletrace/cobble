@@ -78,7 +78,7 @@ export const SetExtensionAccessRequestSchema = z.object({
 
 export const SetBotExtensionRequestSchema = z.object({
     bot_id: Id,
-    kind: z.enum(["mcp", "tool", "skill"]),
+    kind: z.enum(["mcp", "tool", "skill", "knowledgebase"]),
     id: Id,
     /**
      * The workspace the bot is seen in, for the list that comes back.
@@ -88,7 +88,7 @@ export const SetBotExtensionRequestSchema = z.object({
 
 export const SetWorkspaceExtensionRequestSchema = z.object({
     workspace_id: Id,
-    kind: z.enum(["mcp", "tool", "skill"]),
+    kind: z.enum(["mcp", "tool", "skill", "knowledgebase"]),
     id: Id,
 });
 

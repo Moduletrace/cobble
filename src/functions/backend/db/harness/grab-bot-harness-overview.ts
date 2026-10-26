@@ -1,4 +1,10 @@
 import { Harnesses } from "@/src/dict/harness-dict";
+
+/**
+ * Only what a bot or workspace may set: install-wide harnesses are the
+ * defaults' alone.
+ */
+const OwnHarnesses = Harnesses.filter((harness) => !harness.install_wide);
 import type { BotHarnessOverviewPayload } from "@/src/types";
 import grabHarnessModelEntries from "./grab-harness-model-entries";
 import grabHarnessOverviewItem from "./grab-harness-overview-item";
@@ -20,7 +26,8 @@ type Params = {
 /**
  * A worker bot's (or a workspace's) model settings: per harness, its own
  * setting (or what it inherits), the models it can pick, what it runs on
- * now, and what it would run on without its own setting.
+ * now, and what it would run on without its own setting. Install-wide
+ * harnesses (embeddings) aren't listed.
  */
 export default async function grabBotHarnessOverview({
     bot_id,
@@ -34,7 +41,7 @@ export default async function grabBotHarnessOverview({
 
     const [own, defaults] = await Promise.all([
         Promise.all(
-            Harnesses.map((harness) =>
+            OwnHarnesses.map((harness) =>
                 grabHarnessSetting({
                     harness: harness.value,
                     bot_id: workspace_id ? undefined : bot_id,
@@ -43,7 +50,7 @@ export default async function grabBotHarnessOverview({
             ),
         ),
         Promise.all(
-            Harnesses.map((harness) =>
+            OwnHarnesses.map((harness) =>
                 grabHarnessSetting({ harness: harness.value, bot_id: inherited_bot_id }),
             ),
         ),

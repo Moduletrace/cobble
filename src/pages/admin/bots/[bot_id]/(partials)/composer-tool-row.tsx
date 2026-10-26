@@ -5,6 +5,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import { X } from "lucide-react";
 import extensionIcon from "@/src/components/general/extension-icon";
 import type { BotExtension } from "@/src/types";
+import extensionStateNote from "@/src/utils/extension-state-note";
 
 type Props = {
     item: BotExtension;
@@ -17,24 +18,16 @@ type Props = {
 };
 
 /**
- * One MCP server, tool or skill the bot can use here, in the composer's
- * tools modal. One that isn't working says so, one that's off is struck
- * out. A skill has nothing to connect or run, so it never reports one.
+ * One MCP server, tool, skill or knowledgebase the bot can use here, in
+ * the composer's modals. One that isn't working says so
+ * (`extensionStateNote`), one that's off is struck out.
  */
 export default function ComposerToolRow({ item, busy, onRemove }: Props) {
     const Icon = extensionIcon({ kind: item.kind });
     const notes = [
         item.detail,
         item.source == "workspace" ? "From this workspace" : "",
-        !item.enabled
-            ? "Off for every bot"
-            : item.kind == "skill"
-              ? ""
-              : item.state == "error"
-                ? "Not working"
-                : item.state == "untested"
-                  ? "Not checked yet"
-                  : "",
+        extensionStateNote({ item }),
     ].filter(Boolean);
 
     return (

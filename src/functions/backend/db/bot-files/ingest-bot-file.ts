@@ -166,6 +166,12 @@ export default async function ingestBotFile({
 
         return { status: "ingested", chunks: embedded };
     } catch (error) {
+        /**
+         * Every model resting means nothing was tried: the job waits for
+         * them, and the file keeps whatever it said before.
+         */
+        if (error instanceof HarnessError && error.resting) throw error;
+
         const message = error instanceof Error ? error.message : String(error);
 
         await BunSQLite.sql({

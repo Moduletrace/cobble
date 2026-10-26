@@ -9,11 +9,12 @@ type Params = {
 };
 
 /**
- * What an extension kind is called in copy: a tool, an MCP server or a
- * skill.
+ * What an extension kind is called in copy: a tool, an MCP server, a
+ * skill or a knowledgebase.
  */
 export default function extensionNoun({ kind, article }: Params) {
-    const noun = kind == "mcp" ? "MCP server" : kind == "skill" ? "skill" : "tool";
+    const noun =
+        kind == "mcp" ? "MCP server" : kind == "skill" ? "skill" : kind == "knowledgebase" ? "knowledgebase" : "tool";
 
     return article ? `the ${noun}` : noun;
 }

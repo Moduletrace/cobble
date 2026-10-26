@@ -1,3 +1,5 @@
+import grabInstallEmbeddingModel from "@/src/functions/backend/db/knowledgebases/grab-install-embedding-model";
+import reindexAfterEmbeddingChange from "@/src/functions/backend/db/knowledgebases/reindex-after-embedding-change";
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness-overview";
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
@@ -36,6 +38,8 @@ export const handler: BunextAPIRouteHandler<
             data: body,
         });
 
+        const embedding_before = await grabInstallEmbeddingModel();
+
         for (const setting of settings) {
             const existing = await grabHarnessSetting({ harness: setting.harness });
             const { voice, ...options } = existing.options;
@@ -65,9 +69,13 @@ export const handler: BunextAPIRouteHandler<
             ip_address: grabRequestIP(req),
         });
 
+        const reindexing = await reindexAfterEmbeddingChange({ before: embedding_before });
+
         return {
             success: true,
-            msg: `Saved.`,
+            msg: reindexing
+                ? `Saved. Reading ${reindexing} knowledgebase ${reindexing == 1 ? "document" : "documents"} again with the new embedding model.`
+                : `Saved.`,
             singleRes: await grabHarnessOverview(),
         };
     } catch (error: unknown) {

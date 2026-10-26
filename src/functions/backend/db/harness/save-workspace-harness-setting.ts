@@ -1,5 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { HarnessKind } from "@/src/dict/harness-dict";
+import { Harnesses, isInstallWideHarness, type HarnessKind } from "@/src/dict/harness-dict";
 import AppError from "@/src/utils/app-error";
 import assertHarnessModel from "./assert-harness-model";
 import assertHarnessProvider from "./assert-harness-provider";
@@ -46,6 +46,12 @@ export default async function saveWorkspaceHarnessSetting({
             values: [workspace_id, harness],
         });
         return;
+    }
+
+    if (isInstallWideHarness({ harness })) {
+        const title = Harnesses.find((h) => h.value == harness)?.title || harness;
+
+        throw new AppError(`${title} is set for the whole install, in Settings, under Models.`);
     }
 
     if (harness == "text" && !enabled) {

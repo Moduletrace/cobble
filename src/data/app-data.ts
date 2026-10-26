@@ -638,6 +638,17 @@ export const AppData = {
     RagTopChunks: 8,
     RagOverFetch: 4,
     RagMaxK: 60,
+    /**
+     * Knowledgebases: the most one document holds (an upload, or text
+     * written in), how much of a pasted text a form takes, how many
+     * passages a reply is handed before the bot asks for any (retrieved
+     * for the newest user message), and how much of a document
+     * `read_knowledgebase_document` hands back at once.
+     */
+    KnowledgebaseDocumentMaxBytes: 20 * 1024 * 1024,
+    KnowledgebaseTextMaxChars: 200_000,
+    KnowledgebaseAutoPassages: 4,
+    KnowledgebaseReadMaxChars: 12_000,
     FileIngestPollMs: 5000,
     FileIngestConcurrency: 2,
     FileIngestWorker: "ingest",

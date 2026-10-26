@@ -25,7 +25,7 @@ type Params = {
 };
 
 type Args = {
-    kind?: ExtensionKind;
+    kind?: z.infer<typeof ExtensionKindSchema>;
     id?: number;
     query?: string;
 };
@@ -58,7 +58,7 @@ export default function listExtensionsTool({ user_id }: Params): HarnessTool<Arg
     };
 }
 
-async function describeOne({ kind, id }: { kind: ExtensionKind; id: number }) {
+async function describeOne({ kind, id }: { kind: Exclude<ExtensionKind, "knowledgebase">; id: number }) {
     const access = (await grabExtensionAccess({ kind }))(id);
 
     if (kind == "skill") return describeExtension({ kind, item: await grabSkill({ skill_id: id }), ...access, full: true });

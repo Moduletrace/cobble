@@ -1,3 +1,5 @@
+import grabInstallEmbeddingModel from "@/src/functions/backend/db/knowledgebases/grab-install-embedding-model";
+import reindexAfterEmbeddingChange from "@/src/functions/backend/db/knowledgebases/reindex-after-embedding-change";
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness-overview";
 import saveHarnessProvider from "@/src/functions/backend/db/harness/save-harness-provider";
@@ -36,6 +38,7 @@ export const handler: BunextAPIRouteHandler<
             data: body,
         });
 
+        const embedding_before = await grabInstallEmbeddingModel();
         const provider = await saveHarnessProvider(request);
 
         await logEvent({
@@ -61,6 +64,12 @@ export const handler: BunextAPIRouteHandler<
             } catch (error: unknown) {
                 msg = `Saved, but its models couldn't be listed: ${error instanceof Error ? error.message : String(error)}`;
             }
+        }
+
+        const reindexing = await reindexAfterEmbeddingChange({ before: embedding_before });
+
+        if (reindexing) {
+            msg = `${msg} Reading ${reindexing} knowledgebase ${reindexing == 1 ? "document" : "documents"} again with the new embedding model.`;
         }
 
         return {
