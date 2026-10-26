@@ -10,6 +10,7 @@ import fileIngest from "./file-ingest";
 import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import migrateBotTypes from "./functions/backend/db/bot-types/migrate-bot-types";
+import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
 import handleInstallIconFile from "./functions/server/pwa/handle-install-icon-file";
@@ -33,6 +34,9 @@ const port = process.env.PORT || 7227;
 await enableForeignKeys();
 await migrateBotTypes().catch((error) =>
     logError({ title: "Could not migrate bot types", error }).catch(() => {}),
+);
+await clearImplicitSessionLinks().catch((error) =>
+    logError({ title: "Could not clear implicit session links", error }).catch(() => {}),
 );
 await bunext.bunextInit();
 
