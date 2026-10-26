@@ -1,4 +1,9 @@
-import type { BotPermission, BotRole, BotType, TypeAssignmentMatrixType } from "../types";
+import type {
+    BotPermission,
+    BotRole,
+    BotType,
+    TypeAssignmentMatrixType,
+} from "../types";
 
 /**
  * Types a bot holds on top of its kind (`bots.kind`: coordinator or
@@ -9,7 +14,8 @@ export const BotTypes = [
     {
         value: "workspace_admin",
         title: "Workspace admin",
-        description: "Leads one workspace: hands tasks to the other bots there, sets their instructions there, runs the workspace's task list and keeps its context.",
+        description:
+            "Leads one workspace: hands tasks to the other bots there, sets their instructions there, runs the workspace's task list and keeps its context.",
     },
 ] as const;
 
