@@ -29,5 +29,6 @@ export default function parseMcpServerRow({ row }: Params): McpServerRecord {
         status: (row.status || "untested") as McpServerStatus,
         last_error: row.last_error || "",
         last_synced_at: typeof row.last_synced_at == "number" ? row.last_synced_at : null,
+        updated_at: typeof row.updated_at == "number" ? row.updated_at : null,
     };
 }

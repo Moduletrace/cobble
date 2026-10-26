@@ -10,6 +10,7 @@ const current: SkillRecord = {
     body: "1. Install Baileys.\n2. Pair.",
     all_bots: false,
     enabled: true,
+    updated_at: null,
 };
 
 describe("skillProposalChanges", () => {

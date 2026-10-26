@@ -21,7 +21,8 @@ type Params = {
  * super admins and admins. An admin never sees the coordinator, so its
  * attachment is kept as it is; only a super admin sets "every bot", which
  * when turned on gives it to every bot (`attachToAllBots`) and every new
- * one. Turning it off takes it from no one.
+ * one. Turning it off takes it from no one. Either way it counts as a
+ * change to the extension (`updated_at`).
  */
 export default async function setExtensionAccess({ user_id, kind, id, bot_ids, workspace_ids, all_bots }: Params) {
     const role = await assertCrewManager({ user_id });
@@ -63,5 +64,7 @@ export default async function setExtensionAccess({ user_id, kind, id, bot_ids, w
         });
 
         if (all_bots && found.payload?.[0]?.all_bots != 1) await attachToAllBots({ kind, id });
+    } else {
+        await BunSQLite.sql({ sql: `UPDATE ${table} SET updated_at = ? WHERE id = ?`, values: [now, id] });
     }
 }

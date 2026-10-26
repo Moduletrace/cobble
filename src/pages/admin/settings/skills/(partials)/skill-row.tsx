@@ -8,6 +8,7 @@ import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
+import updatedAgo from "../../(utils)/updated-ago";
 import SkillModal from "./skill-modal";
 
 type Props = {
@@ -51,7 +52,12 @@ export default function SkillRow({ skill, targets, limits, onChanged, onError }:
                 avatar={<IconTile Icon={BookOpen} />}
                 title={skill.name}
                 badge={skill.enabled ? undefined : "Off"}
-                subtitle={[skill.slug, extensionAccessLabel({ access: skill.access }), skill.description]
+                subtitle={[
+                    skill.slug,
+                    extensionAccessLabel({ access: skill.access }),
+                    updatedAgo({ at: skill.updated_at }),
+                    skill.description,
+                ]
                     .filter(Boolean)
                     .join(" · ")}
             >

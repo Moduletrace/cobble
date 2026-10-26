@@ -24,6 +24,7 @@ export default function parseCustomToolRow({ row }: Params): CustomToolRecord {
         status: (row.status || "untested") as CustomToolStatus,
         last_error: row.last_error || "",
         last_checked_at: typeof row.last_checked_at == "number" ? row.last_checked_at : null,
+        updated_at: typeof row.updated_at == "number" ? row.updated_at : null,
         kind: row.kind || "prompt",
         config: parseJsonColumn<Record<string, unknown>>({ text: row.config, fallback: {} }),
     } as CustomToolRecord;

@@ -37,8 +37,8 @@ export default async function syncMcpServer({ mcp_server_id, reinstall }: Params
         const tools = await listMcpTools({ client: await open.client() });
 
         await BunSQLite.sql({
-            sql: `UPDATE mcp_servers SET tools_cache = ?, status = 'ok', last_error = '', last_synced_at = ?, updated_at = ? WHERE id = ?`,
-            values: [JSON.stringify(tools), now, now, server.id],
+            sql: `UPDATE mcp_servers SET tools_cache = ?, status = 'ok', last_error = '', last_synced_at = ? WHERE id = ?`,
+            values: [JSON.stringify(tools), now, server.id],
         });
 
         return { ok: true as const, tools };
@@ -49,8 +49,8 @@ export default async function syncMcpServer({ mcp_server_id, reinstall }: Params
         }).slice(0, 4000);
 
         await BunSQLite.sql({
-            sql: `UPDATE mcp_servers SET status = 'error', last_error = ?, last_synced_at = ?, updated_at = ? WHERE id = ?`,
-            values: [message, now, now, server.id],
+            sql: `UPDATE mcp_servers SET status = 'error', last_error = ?, last_synced_at = ? WHERE id = ?`,
+            values: [message, now, server.id],
         });
 
         return { ok: false as const, error: message };

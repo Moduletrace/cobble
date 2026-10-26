@@ -12,6 +12,7 @@ const weather: CustomToolRecord = {
     status: "ok",
     last_error: "",
     last_checked_at: null,
+    updated_at: null,
     kind: "http",
     config: {
         method: "GET",

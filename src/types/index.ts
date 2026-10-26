@@ -752,6 +752,10 @@ export type McpServerRecord = {
     status: McpServerStatus;
     last_error: string;
     last_synced_at: number | null;
+    /**
+     * When its settings last changed (an edit or who gets it), not a run or check.
+     */
+    updated_at: number | null;
 };
 
 export type CustomToolHttpConfig = {
@@ -785,6 +789,10 @@ export type CustomToolRecord = {
     status: CustomToolStatus;
     last_error: string;
     last_checked_at: number | null;
+    /**
+     * When its settings last changed (an edit or who gets it), not a run or check.
+     */
+    updated_at: number | null;
 } & (
     | { kind: "http"; config: CustomToolHttpConfig }
     | { kind: "script"; config: CustomToolScriptConfig }
@@ -802,6 +810,10 @@ export type SkillRecord = {
     body: string;
     all_bots: boolean;
     enabled: boolean;
+    /**
+     * When its settings last changed (an edit or who gets it), not a run or check.
+     */
+    updated_at: number | null;
 };
 
 /**
@@ -943,6 +955,7 @@ export type PublicCustomTool = {
     status: CustomToolStatus;
     last_error: string;
     last_checked_at: number | null;
+    updated_at: number | null;
     access: ExtensionAccess;
     parameters?: Record<string, unknown>;
     config?: CustomToolHttpConfig | CustomToolScriptConfig | CustomToolPromptConfig;

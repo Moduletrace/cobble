@@ -39,6 +39,7 @@ export default async function testMcpDraft({
                 status: "untested",
                 last_error: "",
                 last_synced_at: null,
+                updated_at: null,
             },
             envs,
         });

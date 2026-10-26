@@ -17,5 +17,6 @@ export default function parseSkillRow({ row }: Params): SkillRecord {
         body: row.body || "",
         all_bots: row.all_bots == 1,
         enabled: row.enabled != 0,
+        updated_at: typeof row.updated_at == "number" ? row.updated_at : null,
     };
 }

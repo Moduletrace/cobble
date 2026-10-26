@@ -12,6 +12,7 @@ function skill(overrides: Partial<SkillRecord> & { slug: string }): SkillRecord 
         body: `${overrides.slug} body`,
         all_bots: false,
         enabled: true,
+        updated_at: null,
         ...overrides,
     };
 }

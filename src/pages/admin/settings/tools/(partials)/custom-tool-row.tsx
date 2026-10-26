@@ -11,6 +11,7 @@ import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
 import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
+import updatedAgo from "../../(utils)/updated-ago";
 import CustomToolModal from "./custom-tool-modal";
 import CustomToolTryModal from "./custom-tool-try-modal";
 
@@ -72,6 +73,7 @@ export default function CustomToolRow({ tool, targets, onChanged, onRefreshed, o
                 subtitle={[
                     CustomToolKinds.find((k) => k.value == tool.kind)?.title,
                     extensionAccessLabel({ access: tool.access }),
+                    updatedAgo({ at: tool.updated_at }),
                     tool.description,
                 ]
                     .filter(Boolean)

@@ -10,6 +10,7 @@ const current: SkillRecord = {
     body: "1. Search the client's rankings.\n2. Write the report.\n3. Attach it.",
     all_bots: false,
     enabled: true,
+    updated_at: null,
 };
 
 describe("describeSkillProposal", () => {

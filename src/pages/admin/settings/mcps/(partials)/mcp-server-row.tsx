@@ -11,6 +11,7 @@ import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowAction from "../../(partials)/settings-row-action";
 import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
+import updatedAgo from "../../(utils)/updated-ago";
 import McpServerModal from "./mcp-server-modal";
 
 type Props = {
@@ -63,6 +64,7 @@ export default function McpServerRow({ server, targets, onChanged, onError }: Pr
                 subtitle={[
                     McpTransports.find((t) => t.value == server.transport)?.title,
                     extensionAccessLabel({ access: server.access }),
+                    updatedAgo({ at: server.updated_at }),
                 ]
                     .filter(Boolean)
                     .join(" · ")}
