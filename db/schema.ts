@@ -1523,6 +1523,67 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "bot_graphics",
+            tableDescription: `A visual a bot made for a user (a chart, diagram, timeline or report) as one self-contained HTML document. Served by the app at \`/graphics/<id>\` in a sandbox with no network and an origin of its own, so it never runs with the viewer's session. Per user like the conversation it was made in; an edit replaces the HTML and bumps \`version\``,
+            fields: [
+                {
+                    fieldName: "title",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "html",
+                    fieldDescription: `The document as the bot wrote it, never rendered on the app's origin`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "version",
+                    fieldDescription: `1 when made, one more on every edit`,
+                    dataType: "INTEGER",
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user it was made for, who alone sees it (and the super admin). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that made it, the only one that edits it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it was made in. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "job_id",
+                    fieldDescription: `The run that made it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "message_id",
+                    fieldDescription: `The message the run posted, filled in when the job completes. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_graphics_owner",
+                    indexTableFields: ["user_id", "bot_id"],
+                },
+                {
+                    indexName: "idx_bot_graphics_job_id",
+                    indexTableFields: ["job_id"],
+                },
+            ],
+        },
+        {
             tableName: "workspaces",
             fields: [
                 {

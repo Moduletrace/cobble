@@ -536,6 +536,15 @@ export const AppData = {
      */
     BotReplyAttachmentMessages: 4,
     /**
+     * Longest HTML document a bot graphic (`bot_graphics`) may be.
+     */
+    BotGraphicMaxChars: 200000,
+    /**
+     * Tallest a graphic grows inline in the thread (px) before it scrolls
+     * inside its frame.
+     */
+    BotGraphicInlineMaxHeight: 640,
+    /**
      * Longest dictation the composer records before it stops on its own.
      */
     ComposerVoiceMaxMs: 5 * 60 * 1000,

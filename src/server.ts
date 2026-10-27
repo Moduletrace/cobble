@@ -13,6 +13,7 @@ import migrateBotTypes from "./functions/backend/db/bot-types/migrate-bot-types"
 import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
+import handleGraphicsRequest from "./functions/server/graphics/handle-graphics-request";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
 import handleInstallIconFile from "./functions/server/pwa/handle-install-icon-file";
 import handleBuildInfo from "./functions/server/pwa/handle-build-info";
@@ -105,6 +106,14 @@ const server = Bun.serve({
             const build_info = handleBuildInfo({ pathname: url.pathname });
 
             if (build_info) return build_info;
+
+            /**
+             * Graphics open in a frame inside the app, never as a page of
+             * it, so the loading page never stands in for one.
+             */
+            const graphic = await handleGraphicsRequest({ req, url });
+
+            if (graphic) return await compressResponse({ req, response: graphic });
 
             const loading_page = await handlePrecacheGate({ req, url });
 

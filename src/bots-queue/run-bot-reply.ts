@@ -4,6 +4,7 @@ import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
     SecretsNote,
+    GraphicsNote,
     botFilesNote,
     chatReplyNote,
     ComputerFilesNote,
@@ -25,6 +26,7 @@ import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-comp
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
+import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
@@ -193,8 +195,8 @@ export default async function runBotReply({
      */
     const proposals: string[] = [];
     /**
-     * The secrets the bot showed (`show_secret`), whose chips the reply
-     * always carries.
+     * The secrets the bot showed (`show_secret`) and the graphics it made
+     * or changed, whose chips the reply always carries.
      */
     const shown: string[] = [];
     /**
@@ -308,6 +310,7 @@ export default async function runBotReply({
                 TaskReminderNote,
                 ActionCheckNote,
                 SecretsNote,
+                GraphicsNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({
                     computers,
@@ -350,6 +353,14 @@ export default async function runBotReply({
                     ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]
                     : []),
                 ...file_tools,
+                ...grabBotGraphicTools({
+                    bot_id: bot.id,
+                    user_id,
+                    session_id,
+                    workspace_id,
+                    job_id: job.id || null,
+                    onGraphic: ({ ref }) => shown.push(ref),
+                }),
                 ...extensions.tools,
                 ...skills.tools,
                 ...knowledge.tools,

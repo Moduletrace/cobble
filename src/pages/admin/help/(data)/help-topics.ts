@@ -87,6 +87,18 @@ The computer keeps the session, like everything else in its browser (extensions,
 A task that hit the wall stops and reports instead of waiting, so after you hand back the bot picks the work up again from the chat.`,
     },
     {
+        id: "graphics",
+        title: "A bot's graphic is blank or looks wrong",
+        summary: "A chart or diagram in a message doesn't draw, or is missing data or images.",
+        body: `Bots can answer with a graphic: a chart, diagram or visual report drawn in HTML and shown right in the message. Use the buttons on its title bar to open it large or on its own page.
+
+Graphics are sandboxed: they can't reach the app or the internet, so nothing in one can read your conversation or send it anywhere. That also means a graphic can only use what's written into it, plus the chart and diagram libraries Cobble ships (Chart.js and Mermaid). If one is blank or missing pieces, it most likely tried to load something from the web (a CDN script, an online image or font).
+
+Ask the bot to fix it, e.g. "the chart is blank, redraw it without outside files". It changes the same graphic, and every message showing it shows the new version. A graphic that tries to open another page is closed in place.
+
+Only you see the graphics a bot made for you.`,
+    },
+    {
         id: "computer-not-ready",
         title: "A computer is stuck on Creating, or isn't ready",
         summary: "Tasks fail with \"isn't ready\", or the computer never leaves Creating.",

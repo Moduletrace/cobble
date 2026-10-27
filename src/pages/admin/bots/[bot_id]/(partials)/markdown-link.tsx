@@ -13,10 +13,12 @@ import {
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
 import { parseFolderRefHref } from "@/src/utils/folder-ref";
+import { graphicRefId } from "@/src/utils/graphic-ref";
 import BotRefChip from "./bot-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
 import FileRefChip from "./file-ref-chip";
 import FolderRefChip from "./folder-ref-chip";
+import GraphicRefCard from "./graphic-ref-card";
 import HookProposalRefChip from "./hook-proposal-ref-chip";
 import ProposalRefChip from "./proposal-ref-chip";
 import SecretRefChip from "./secret-ref-chip";
@@ -32,7 +34,7 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * folder it named a chip that opens it in the files browser, an MCP server,
  * tool, skill or hook it proposed a chip that opens the confirm card, a
  * secret it showed a masked chip, a secret it asked for a chip that opens
- * the card it's typed into;
+ * the card it's typed into, a graphic it made the graphic itself;
  * anything else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
@@ -98,6 +100,10 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
 
         if (request_id) return <SecretRequestRefChip request_id={request_id} />;
     }
+
+    const graphic_id = graphicRefId({ href });
+
+    if (graphic_id) return <GraphicRefCard graphic_id={graphic_id} />;
 
     const folder_ref = parseFolderRefHref({ href });
 

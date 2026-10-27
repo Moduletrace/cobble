@@ -54,9 +54,9 @@ const ASSET_PATHS = ["/favicon.ico", "/favicon.png", "/apple-touch-icon.png"];
 
 /**
  * Never intercepted: live data, sockets, media bytes, proxied computers,
- * auth side effects, and the worker itself.
+ * bot graphics, auth side effects, and the worker itself.
  */
-const BYPASS_PREFIXES = ["/api/", "/ws", "/media", "/computers/"];
+const BYPASS_PREFIXES = ["/api/", "/ws", "/media", "/computers/", "/graphics/", "/graphics-lib/"];
 const BYPASS_PATHS = ["/sw.js", "/manifest.webmanifest", "/auth/logout", BUILD_INFO_URL];
 
 /**

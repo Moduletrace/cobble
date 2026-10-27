@@ -110,6 +110,14 @@ export default async function completeBotJob({
             sql: `UPDATE token_usages SET message_id = ? WHERE job_id = ? AND message_id IS NULL`,
             values: [inserted.id, job.id],
         }).catch(() => {});
+
+        /**
+         * Graphics the run made belong to the message it posted.
+         */
+        await BunSQLite.sql({
+            sql: `UPDATE bot_graphics SET message_id = ? WHERE job_id = ? AND message_id IS NULL`,
+            values: [inserted.id, job.id],
+        }).catch(() => {});
     }
 
     /**

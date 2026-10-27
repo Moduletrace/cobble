@@ -6,6 +6,7 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
     SecretsNote,
+    GraphicsNote,
     botFilesNote,
     ComputerFilesNote,
     ScheduledRunNote,
@@ -31,6 +32,7 @@ import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-too
 import importFileTool from "@/src/harness/tools/computer/import-file-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
+import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import computerRef from "@/src/utils/computer-ref";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
@@ -79,8 +81,8 @@ export default async function runBotTask({
     const dirs = computerRunDirs({ bot_id: bot.id, bot_kind: bot.kind, user_id, workspace_id });
 
     /**
-     * The secrets the bot captured or showed, whose chips the report
-     * always carries.
+     * The secrets the bot captured or showed and the graphics it made or
+     * changed, whose chips the report always carries.
      */
     const shown: string[] = [];
 
@@ -225,6 +227,14 @@ export default async function runBotTask({
                 scopes,
                 onAttach: ({ media_id }) => attachments.push(media_id),
             })),
+            ...grabBotGraphicTools({
+                bot_id: bot.id,
+                user_id,
+                session_id,
+                workspace_id,
+                job_id: job.id || null,
+                onGraphic: ({ ref }) => shown.push(ref),
+            }),
         ];
 
         extensions = await openBotExtensions({
@@ -260,6 +270,7 @@ export default async function runBotTask({
                 TasksNote,
                 ActionCheckNote,
                 SecretsNote,
+                GraphicsNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 powers.is_coordinator
                     ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`

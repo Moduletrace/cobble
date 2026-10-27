@@ -1,8 +1,9 @@
 /**
  * Paths the loading page never stands in for: the app's code, live data,
- * media, proxied computers and the files the loading page itself needs.
+ * media, proxied computers, bot graphics and the files the loading page
+ * itself needs.
  */
-const OpenPrefixes = ["/.bunext/", "/api/", "/ws", "/media", "/computers/"];
+const OpenPrefixes = ["/.bunext/", "/api/", "/ws", "/media", "/computers/", "/graphics/", "/graphics-lib/"];
 
 type Params = {
     method: string;

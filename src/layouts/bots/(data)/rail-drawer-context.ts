@@ -5,6 +5,11 @@ import { createContext } from "react";
 export type RailDrawerContextObject = {
     open: boolean;
     setOpen: (open: boolean) => void;
+    /**
+     * False on a page without the rail (`isRaillessPage`), where the menu
+     * button has nothing to open.
+     */
+    has_rail: boolean;
 };
 
 /**
@@ -14,4 +19,5 @@ export type RailDrawerContextObject = {
 export const RailDrawerContext = createContext<RailDrawerContextObject>({
     open: false,
     setOpen: () => {},
+    has_rail: true,
 });

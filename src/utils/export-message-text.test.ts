@@ -20,6 +20,10 @@ describe("exportMessageText", () => {
         );
     });
 
+    test("words graphics by number", () => {
+        expect(exportMessageText({ text: "See [graphic:5]", ...names, heading_offset: 0 })).toBe("See (graphic 5)");
+    });
+
     test("leaves refs that are already links alone", () => {
         expect(exportMessageText({ text: "[bot:3](#x)", ...names, heading_offset: 0 })).toBe("[bot:3](#x)");
     });

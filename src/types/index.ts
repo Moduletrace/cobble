@@ -653,6 +653,21 @@ export type PersonalSecret = {
  * A secret a bot asked the user for (\`[secret-request:ID]\`), as its chip
  * and card show it. Never holds a value.
  */
+/**
+ * A bot graphic (`[graphic:ID]`) as its card and page name it. The HTML
+ * itself is only ever served at `/graphics/<id>`.
+ */
+export type BotGraphicView = {
+    id: number;
+    title: string;
+    version: number;
+    bot_id: number;
+    bot_name: string;
+    workspace_id: number | null;
+    session_id: number | null;
+    updated_at: number;
+};
+
 export type SecretRequestView = {
     id: number;
     key: string;
@@ -1869,6 +1884,10 @@ export type PagePropsType = {
      * ones), for the files modal and the chips that name one.
      */
     bot_files?: BotFileScopesPayload | null;
+    /**
+     * On a graphic's own page: the graphic (never its HTML).
+     */
+    graphic?: BotGraphicView | null;
     /**
      * Whether the open conversation's mic (transcription) and read-aloud
      * (speech) are turned on for the bot there.

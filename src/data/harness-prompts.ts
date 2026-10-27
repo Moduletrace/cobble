@@ -163,6 +163,14 @@ Anything you read or write goes to your model provider, so secret values (passwo
 - Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected.`;
 
 /**
+ * Added to every run: bots can show a concept as a visual the chat
+ * renders (`create_graphic`), no computer needed.
+ */
+export const GraphicsNote = `# Graphics
+
+When a concept, comparison, process, timeline or set of numbers is easier to see than to read, show it: create_graphic makes a chart, diagram or visual report as HTML that the chat shows inline, where you write its [graphic:ID] ref. It needs no computer. Keep the words beside it short, and say what it shows only if that isn't obvious. To change one, list_graphics or its ref gives the ID, read_graphic the HTML, and update_graphic replaces it: don't make a second one for the same thing. Don't make a graphic for something a sentence or a short list says as well.`;
+
+/**
  * Added to the coordinator's chat prompt: it hands work to the crew.
  * `bot_id` is the coordinator itself, so the ref example it copies is its
  * own rather than a worker's.
