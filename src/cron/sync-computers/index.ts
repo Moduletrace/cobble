@@ -3,6 +3,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONTAINERS } from "@/db/types/db";
 import migrateComputerLayout from "@/src/functions/backend/db/computers/migrate-computer-layout";
 import refreshComputerContainer from "@/src/functions/backend/db/computers/refresh-computer-container";
+import syncComputerBrowserPolicy from "@/src/functions/backend/db/computers/sync-computer-browser-policy";
 
 type Row = Pick<
     BUN_SQLITE_COBBLE_CONTAINERS,
@@ -14,7 +15,9 @@ type Row = Pick<
  * (`refreshComputerContainer`), telling owners about changes. Containers
  * still being set up, or that failed, are left alone. A container that
  * still mounts its computer's whole home is recreated with only the
- * workspace (`migrateComputerLayout`, once per computer).
+ * workspace (`migrateComputerLayout`, once per computer). A running one
+ * gets the browser policy it lacks (`syncComputerBrowserPolicy`), so
+ * computers made before an extension was added get it too.
  */
 export default async function syncComputers() {
     const rows =
@@ -37,5 +40,9 @@ export default async function syncComputers() {
         });
 
         if (refreshed?.changed) changed++;
+
+        if (refreshed?.status == "running" && container.docker_id) {
+            await syncComputerBrowserPolicy({ computer_id, docker_id: container.docker_id });
+        }
     }
 }

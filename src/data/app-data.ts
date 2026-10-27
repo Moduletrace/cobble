@@ -120,6 +120,12 @@ export const AppData = {
     ComputerBrowserDataDir: "computer-browsers",
     ComputerBrowserProfileDir: "/home/gem/.cobble-browser",
     /**
+     * The managed policy file a computer's Chrome reads (the image's
+     * Chrome looks in `/etc/chromium/policies/managed`), written into the
+     * container by `syncComputerBrowserPolicy`.
+     */
+    ComputerBrowserPolicyFile: "/etc/chromium/policies/managed/cobble.json",
+    /**
      * Written at the root of a computer's workspace once it uses that
      * layout, so an older computer's whole home is told apart and moved
      * aside (`prepareComputerDataDir`).

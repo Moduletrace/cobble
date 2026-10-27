@@ -7,6 +7,7 @@ import { logError } from "@/src/functions/backend/logger";
 import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import prepareComputerDataDir from "./prepare-computer-data-dir";
 import pushComputerUpdate from "./push-computer-update";
+import syncComputerBrowserPolicy from "./sync-computer-browser-policy";
 
 type Params = {
     computer_id: number;
@@ -22,7 +23,8 @@ type Params = {
  * (`cpus`, `memory_mb`, else the `AppData` defaults), then records it (`containers`:
  * docker id, state, and its IP address on the network). A failure is
  * recorded as `failed` with its reason, which the computer lists show. The
- * owner's tabs hear about it either way. The metadata's `layout` says the
+ * owner's tabs hear about it either way. Its browser gets its policy
+ * (`syncComputerBrowserPolicy`). The metadata's `layout` says the
  * container mounts only the workspace and the browser profile (`syncComputers` recreates one that
  * doesn't). Never throws.
  */
@@ -83,6 +85,8 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
                 row.id,
             ],
         });
+
+        await syncComputerBrowserPolicy({ computer_id, docker_id: created.docker_id });
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
 
