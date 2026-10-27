@@ -1106,6 +1106,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `Unix timestamp of completion or final failure`,
                     dataType: "INTEGER",
                 },
+                {
+                    fieldName: "steps",
+                    fieldDescription: `How many steps it recorded, written when its \`bots_queue_updates\` are cleared after it ends (null while they're still there)`,
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {
@@ -1116,7 +1121,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "bots_queue_updates",
-            tableDescription: `What a bot did while working through a queued job, one row per step, oldest first. Live in the working-on panel while the job runs; deleted with the job when it's pruned`,
+            tableDescription: `What a bot did while working through a queued job, one row per step, oldest first. Live in the working-on panel while the job runs; cleared shortly after the job ends (clearFinishedJobSteps), its count kept on the job`,
             fields: [
                 {
                     fieldName: "bots_queue_id",

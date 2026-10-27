@@ -1581,7 +1581,7 @@ export type MessageDetailsJob = {
     started_at: number | null;
     finished_at: number | null;
     /**
-     * How many model turns and notes it recorded (`bots_queue_updates`).
+     * How many model turns and notes it recorded (`bots_queue.steps` once cleared, plus any `bots_queue_updates` left).
      */
     steps: number;
 };

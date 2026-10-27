@@ -415,6 +415,12 @@ export const AppData = {
      */
     BotJobUpdatesShown: 12,
     /**
+     * How long a finished job's steps stay before they're cleared
+     * (`clear-job-steps` cron). Long enough for every process's live relay
+     * to have pushed the last ones (`LiveRelayPollMs`).
+     */
+    BotJobStepsKeepMs: 60 * 1000,
+    /**
      * How often each server process reads new bot messages, job steps and
      * bot changes from the database for its own sockets (`liveRelay`).
      */

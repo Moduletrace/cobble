@@ -505,11 +505,11 @@ export type BUN_SQLITE_COBBLE_TASKS = {
      */
     updated_at?: number | "";
     /** 
-     * The bot the task belongs to; null for a workspace's task
+     * The bot that has the task: its own list's, or with `workspace_id` its task in that workspace; null for a workspace's shared task nobody has yet
      */
     bot_id?: number | "";
     /** 
-     * The workspace the task belongs to (its bots all see it); null for a bot's own
+     * The workspace the task is in; null for a bot's own list
      */
     workspace_id?: number | "";
     title?: string;
@@ -679,6 +679,10 @@ export type BUN_SQLITE_COBBLE_BOTS_QUEUE = {
      * Unix timestamp of completion or final failure
      */
     finished_at?: number | "";
+    /** 
+     * How many steps it recorded, written when its `bots_queue_updates` are cleared after it ends (null while they're still there)
+     */
+    steps?: number | "";
     /** 
      * The state of the job. (pending | processing | completed | failed)
      */

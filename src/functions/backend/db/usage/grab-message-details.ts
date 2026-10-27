@@ -105,7 +105,7 @@ async function grabJob({ job_id }: { job_id: number }): Promise<MessageDetailsJo
     const row = (
         await BunSQLite.sql<JobRow>({
             sql: `SELECT q.id, q.kind, q.title, q.status, q.attempts, q.started_at, q.finished_at,
-                    (SELECT COUNT(*) FROM bots_queue_updates u WHERE u.bots_queue_id = q.id) AS steps
+                    COALESCE(q.steps, 0) + (SELECT COUNT(*) FROM bots_queue_updates u WHERE u.bots_queue_id = q.id) AS steps
                 FROM bots_queue q WHERE q.id = ? LIMIT 1`,
             values: [job_id],
         })

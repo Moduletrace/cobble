@@ -1,6 +1,7 @@
 import bunext from "@moduletrace/bunext";
 import cronHeartbeat from "./heartbeat";
 import pruneBotsQueue from "./prune-bots-queue";
+import cronClearJobSteps from "./clear-job-steps";
 import pruneBotHookEvents from "./prune-bot-hook-events";
 import cronPruneChatrooms from "./prune-chatrooms";
 import syncNotifyWatchers from "./sync-notify-watchers";
@@ -29,6 +30,13 @@ export default function cron() {
         title: "prune-bots-queue",
         schedule: "@daily",
         task: pruneBotsQueue,
+    });
+
+    registerCronJob({
+        title: "clear-job-steps",
+        schedule: "*/5 * * * *",
+        task: cronClearJobSteps,
+        quiet: true,
     });
 
     registerCronJob({

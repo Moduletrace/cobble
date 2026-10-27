@@ -68,7 +68,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 
 ### Cron
 
-`src/cron/index.ts` registers everything via `registerCronJob` (`src/cron/register-cron-job.ts`); one folder per task. In-process `Bun.cron`, UTC, never overlapping. Notable: `heartbeat`, `sync-harness-models` (hourly), `run-cron-jobs` (every minute, fires schedules), `sync-computers`, `sync-mcp-servers`, `prune-bots-queue`, `prune-chatrooms`.
+`src/cron/index.ts` registers everything via `registerCronJob` (`src/cron/register-cron-job.ts`); one folder per task. In-process `Bun.cron`, UTC, never overlapping. Notable: `heartbeat`, `sync-harness-models` (hourly), `run-cron-jobs` (every minute, fires schedules), `sync-computers`, `sync-mcp-servers`, `clear-job-steps`, `prune-bots-queue`, `prune-chatrooms`.
 
 ### Admin CRUD API
 
@@ -113,7 +113,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 
 - Kinds (`BotJobKinds`): `reply` (chat answer, no task row) and `task` (long work, usually on a computer). bun-sqlite `isQueue` table. Helpers in `src/functions/backend/db/bots-queue/`: `enqueueBotJob`, `claimBotJobs` (kind-filtered atomic claim), `updateBotJob` (false once lost/cancelled), `completeBotJob`, `failBotJob` (backoff or fatal), `deferBotJob` (all models resting: attempt refunded, face `asleep`), `cancelBotJob`, `stop-bot-jobs`.
 - Handler `src/bots-queue/index.ts`: separate reply/task slots, heartbeat, per-attempt deadline (`AppData.BotJobAttemptTimeoutMs`), one task per computer and one reply per session (`createKeyLock`). Work in `run-bot-job.ts` -> `run-bot-reply.ts` / `run-bot-task.ts`. Throw `BotJobFatalError` for failures retrying can't fix.
-- Every model turn is a step in `bots_queue_updates` (tool names, never arguments; `describe-job-step.ts`, labels in `JobStepToolLabels`), pushed as `server:bot-job-update`.
+- Every model turn is a step in `bots_queue_updates` (tool names, never arguments; `describe-job-step.ts`, labels in `JobStepToolLabels`), pushed as `server:bot-job-update` by the live relay only. Steps feed the live working row alone: the `clear-job-steps` cron deletes them `AppData.BotJobStepsKeepMs` after the job ends, however it ended, keeping their count on `bots_queue.steps`. Never delete them the moment a job ends (the relay would miss the last ones).
 - **A bot can't vouch for itself:** a run's tool calls (`tool_uses`, names and ok, never arguments) go to the wrap-up turn when steps run out and onto the result message as `bot_messages.tool_log`; history follows each recorded bot message with an `[App record: ...]` line (`botMessagesToHarness`), and copies of that line in an answer are stripped (`stripAppRecords`).
 - **`start_task`/`delegate_task` jobs are runs, not tasks:** their results say `Run #<job id>` and that `list_tasks` doesn't show them (bots sent users to the tracker for them). `start_task` refuses a second open run in its session on the same computer unless `separate` (it would only wait behind it) and says how many runs are ahead on that computer.
 - **Replies take in messages sent mid-run** (`incoming`, `IncomingMessagesNote`, redraft); separate requests are acknowledged with `send_message` (interim). A queued reply finishes silently only when a finished reply already read every user message (`hasUnansweredMessage`), never by who wrote last.
