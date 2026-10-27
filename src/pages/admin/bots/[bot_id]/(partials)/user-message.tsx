@@ -1,10 +1,14 @@
 import { memo } from "react";
+import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageWithAttachments } from "@/src/types";
 import MessageAttachments from "./message-attachments";
 import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
 import UserBubble from "./user-bubble";
+import UserMessageCopy from "./user-message-copy";
+import UserMessageReply from "./user-message-reply";
+import GroupTimestamp from "./group-timestamp";
 
 type Props = {
     message: BotMessageWithAttachments;
@@ -14,9 +18,9 @@ type Props = {
 /**
  * One user message: the quoted message it answers, its files, then its
  * text (a file-only message has no bubble) and the bot's reactions to it.
- * The user doesn't reply to or react to their own messages, but they can
- * copy one: the group's copy buttons sit beside its timestamp, in
- * `UserMessageGroup`. Memoized, like `BotMessageLine`.
+ * The user doesn't react to their own messages, but they can copy one or
+ * reply to it: those buttons sit beside its own time. Memoized, like
+ * `BotMessageLine`.
  */
 function UserMessage({ message, bot_name }: Props) {
     return (
@@ -36,6 +40,11 @@ function UserMessage({ message, bot_name }: Props) {
                     reactions={message.reactions}
                 />
             ) : null}
+            <Row className="gap-3! items-center">
+                <UserMessageCopy text={message.text || ""} />
+                <UserMessageReply message={message} />
+                <GroupTimestamp at={Number(message.created_at || 0)} />
+            </Row>
         </Stack>
     );
 }
