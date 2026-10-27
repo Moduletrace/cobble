@@ -16,12 +16,13 @@ import scheduledRunRetryAt from "@/src/utils/scheduled-run-retry-at";
 import {
     BotComputerBusyStatusLine,
     BotReplyJobTitle,
-    BotTaskStatusLine,
     BotWaitingStatusLine,
 } from "@/src/dict/bot-queue-dict";
 import BotJobFatalError from "./bot-job-fatal-error";
 import describeJobStep from "./describe-job-step";
 import pushToSessionUser from "./push-to-session-user";
+import taskStatusLine from "@/src/utils/task-status-line";
+import grabWorkspaceName from "@/src/functions/backend/db/workspaces/grab-workspace-name";
 import pushBotNotice from "./push-bot-notice";
 import grabJobUserId from "@/src/functions/backend/db/bots-queue/grab-job-user-id";
 import runBotJob from "./run-bot-job";
@@ -167,7 +168,10 @@ export default async function processBotJob({
         const run = async () => {
             await setFace({
                 face: "working",
-                status_line: job.kind == "reply" ? BotReplyJobTitle : BotTaskStatusLine,
+                status_line:
+                    job.kind == "reply"
+                        ? BotReplyJobTitle
+                        : taskStatusLine({ workspace_name: await grabWorkspaceName({ workspace_id: job.workspace_id }) }),
             });
 
             /**
