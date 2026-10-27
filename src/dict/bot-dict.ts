@@ -224,6 +224,10 @@ export const BotSessionStatuses = [
         title: "Closed",
         value: "closed",
     },
+    {
+        title: "Chatroom",
+        value: "chatroom",
+    },
 ] as const;
 
 export type BotSessionStatus = (typeof BotSessionStatuses)[number]["value"];

@@ -8,6 +8,8 @@ import insertBotJobUpdate from "./insert-bot-job-update";
 import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import openBotJobsSql from "./open-bot-jobs-sql";
 import stoppedJobReport, { pickReportedJobs } from "./stopped-job-report";
+import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
+import closeChatroom from "../chatrooms/close-chatroom";
 
 type Params = {
     bot_id: number | string;
@@ -109,6 +111,18 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
             /**
              * The step is a courtesy: the job is stopped either way.
              */
+        }
+    }
+
+    /**
+     * A job it was doing in a chatroom stops the room: the bot that asked
+     * is told, and the room says so.
+     */
+    for (const job of jobs) {
+        const chatroom_id = await grabSessionChatroomId({ session_id: job.session_id });
+
+        if (chatroom_id) {
+            await closeChatroom({ chatroom_id, status: "stopped", outcome: "" }).catch(() => false);
         }
     }
 

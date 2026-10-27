@@ -1,3 +1,4 @@
+import { ChatroomRefHrefPrefix } from "./chatroom-ref";
 import { GraphicRefHrefPrefix } from "./graphic-ref";
 
 /**
@@ -72,7 +73,8 @@ export const SecretRequestRefHrefPrefix = "#secret-request-";
  * (`[workspace:2]`), file ref (`[file:12]`), folder ref
  * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
  * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
- * request ref (`[secret-request:4]`) and graphic ref (`[graphic:5]`) in a
+ * request ref (`[secret-request:4]`), graphic ref (`[graphic:5]`) and
+ * chatroom ref (`[room:<id>]`) in a
  * message into a markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button,
  * chip or download.
@@ -110,6 +112,7 @@ export default function linkComputerRefs({ text }: { text: string }) {
             (_, id: string) => `[secret request ${id}](${SecretRequestRefHrefPrefix}${id})`,
         )
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
+        .replace(/\[room:(\d+)\](?!\()/g, (_, id: string) => `[room ${id}](${ChatroomRefHrefPrefix}${id})`)
         .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
         .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>
             `[${path}](${FolderRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}:${path}`)})`,

@@ -31,10 +31,14 @@ export default function BotsRail() {
     const pathname = pageProps?.url?.pathname;
     const is_settings_page = Boolean(pathname?.startsWith("/admin/settings"));
     const is_rail_page = RailPages.some(
-        (page) => pathname == page.url || Boolean(pathname?.startsWith(`${page.url}/`)),
+        (page) =>
+            pathname == page.url ||
+            Boolean(pathname?.startsWith(`${page.url}/`)),
     );
     const workspace = pageProps?.workspace;
-    const in_workspace = Boolean(workspace?.id && pathname?.startsWith("/admin/workspaces/"));
+    const in_workspace = Boolean(
+        workspace?.id && pathname?.startsWith("/admin/workspaces/"),
+    );
 
     const bots = useLiveBots({
         bots: pageProps?.bots || [],
@@ -43,7 +47,9 @@ export default function BotsRail() {
     });
     const workspaces = useLiveWorkspaces({
         workspaces: pageProps?.workspaces || [],
-        open_workspace_id: in_workspace ? workspace?.id || undefined : undefined,
+        open_workspace_id: in_workspace
+            ? workspace?.id || undefined
+            : undefined,
     });
     const live_workspace = workspaces.find((w) => w.id == workspace?.id);
 
@@ -57,10 +63,18 @@ export default function BotsRail() {
                 />
             ) : null}
             <Stack
-                className={`@container fixed inset-y-0 left-0 z-40 w-[280px] max-w-[85vw] shrink-0 h-full gap-0! items-stretch bg-paper border-0 border-r border-solid border-hairline shadow-popover transition-transform duration-[var(--m-base)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:static md:z-auto md:w-16 md:max-w-none md:shadow-none md:pt-0 md:pb-0 lg:w-[260px] ${
-                    open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                className={`@container fixed inset-y-0 left-0 z-40 w-[280px] max-w-[85vw] shrink-0 h-full gap-0! items-stretch bg-paper border-0 border-r border-solid border-hairline shadow-popover transition-transform duration-[var(--m-base)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:static md:z-auto md:w-16 md:max-w-none md:shadow-none md:pt-0 md:pb-0 xl:w-[320px] ${
+                    open
+                        ? "translate-x-0"
+                        : "-translate-x-full md:translate-x-0"
                 }`}
-                aria-label={is_settings_page ? "Settings" : in_workspace ? workspace?.name || "Workspace" : "Bots"}
+                aria-label={
+                    is_settings_page
+                        ? "Settings"
+                        : in_workspace
+                          ? workspace?.name || "Workspace"
+                          : "Bots"
+                }
             >
                 <RailHeader show_add={!is_settings_page && !is_rail_page} />
                 <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch px-2 @rail:px-3 pt-1 pb-3">
@@ -73,7 +87,7 @@ export default function BotsRail() {
                             workspace={live_workspace}
                             bots={bots}
                             selected_id={pageProps?.bot?.id || undefined}
-                            on_workspace_page={!pageProps?.bot?.id}
+                            on_workspace_page={pathname == `/admin/workspaces/${workspace?.id}`}
                         />
                     ) : (
                         <RailCrewList

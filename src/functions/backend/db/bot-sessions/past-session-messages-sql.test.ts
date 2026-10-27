@@ -5,7 +5,7 @@ import searchPastSessionsSql, { type SearchPastSessionsParams } from "./past-ses
 /**
  * A bot's search of its earlier sessions reads only that user's
  * conversation with it (in the same place), never the session it's
- * answering. Run against real SQLite.
+ * answering, nor its part of a chatroom. Run against real SQLite.
  */
 const db = new Database(":memory:");
 
@@ -26,6 +26,12 @@ db.run(`INSERT INTO bot_messages (id, session_id, author, text) VALUES
     (6, 5, 'user', 'Acme invoice in the workspace'),
     (7, 1, 'user', 'Discount of 100% off'),
     (8, 1, 'user', 'Discount of 10 off')`);
+/**
+ * The bot's part of a chatroom: never one of its past sessions.
+ */
+db.run(`ALTER TABLE bot_sessions ADD COLUMN chatroom_id INTEGER`);
+db.run(`INSERT INTO bot_sessions (id, user_id, bot_id, workspace_id, title, chatroom_id) VALUES (6, 1, 10, NULL, 'A chatroom', 3)`);
+db.run(`INSERT INTO bot_messages (id, session_id, author, text) VALUES (9, 6, 'bot', 'Acme invoice asked in a chatroom')`);
 
 function ids(params: Partial<SearchPastSessionsParams>) {
     const { sql, values } = searchPastSessionsSql({

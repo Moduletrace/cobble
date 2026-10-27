@@ -204,3 +204,18 @@ export const MessageDetailsRequestSchema = z.object({
 });
 
 export type MessageDetailsRequest = z.infer<typeof MessageDetailsRequestSchema>;
+
+export const ChatroomIdRequestSchema = z.object({
+    chatroom_id: z.coerce.number().int().positive("Pick a chatroom"),
+});
+
+export type ChatroomIdRequest = z.infer<typeof ChatroomIdRequestSchema>;
+
+/**
+ * How long closed chatrooms are kept and how many one place keeps
+ * (Settings > General). Zero puts the code's default back.
+ */
+export const SaveChatroomRetentionRequestSchema = z.object({
+    keep_days: z.coerce.number().int().min(0).max(AppData.ChatroomKeepDaysMax),
+    max_per_place: z.coerce.number().int().min(0).max(AppData.ChatroomMaxPerPlaceMax),
+});

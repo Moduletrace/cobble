@@ -28,6 +28,7 @@ import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
 import nameBotSession from "./name-bot-session";
 import pushBotSession from "./push-bot-session";
+import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
 import { registerJobAbort, unregisterJobAbort } from "./job-abort-registry";
 import type { BotJobUpdateData } from "@/src/types";
 import type { BotJobContext, BotJobRunner } from "./types";
@@ -84,6 +85,12 @@ export default async function processBotJob({
      */
     const user_id = await grabJobUserId({ job }).catch(() => null);
 
+    /**
+     * Work in a chatroom shows in the room: no face changes, and its
+     * session is never named.
+     */
+    const in_room = Boolean(await grabSessionChatroomId({ session_id: job.session_id }).catch(() => null));
+
     const controller = new AbortController();
     /**
      * The deadline is the one abort that is a failure, not a cancellation:
@@ -99,7 +106,7 @@ export default async function processBotJob({
      * leave a bot that shows work with nothing behind it.
      */
     const setFace = async (face: Omit<Parameters<typeof setBotFace>[0], "bot_id" | "user_id">) => {
-        if (!user_id || controller.signal.aborted) return;
+        if (!user_id || in_room || controller.signal.aborted) return;
 
         await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
     };
@@ -226,7 +233,7 @@ export default async function processBotJob({
          * a model that can't answer now leaves the session for the next
          * reply to name.
          */
-        if (job.kind == "reply" && completion.message?.session_id) {
+        if (job.kind == "reply" && !in_room && completion.message?.session_id) {
             /**
              * The message's session, not the job's as it was claimed: a
              * reply that moved the conversation on answered in the new one.

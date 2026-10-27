@@ -3,6 +3,7 @@ import type { MessageGroup } from "../(utils)/group-messages";
 import UserMessageGroup from "./user-message-group";
 import BotMessageGroup from "./bot-message-group";
 import SessionDivider from "./session-divider";
+import CrewMessageGroup from "./crew-message-group";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -15,7 +16,9 @@ type Props = {
  */
 export default function MessageGroupBlock({ bot, group }: Props) {
     const block =
-        group.author === "user" ? (
+        group.author === "crew" ? (
+            <CrewMessageGroup group={group} />
+        ) : group.author === "user" ? (
             <UserMessageGroup bot={bot} group={group} />
         ) : (
             <BotMessageGroup bot={bot} group={group} />

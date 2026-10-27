@@ -19,8 +19,8 @@ export default async function grabUserWorkspaces({
 
     const res = await BunSQLite.sql<WorkspaceWithActivity>({
         sql: `SELECT w.*,
-                COALESCE((SELECT MAX(s.unread) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ?), 0) AS unread,
-                (SELECT MAX(s.last_activity_at) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ?) AS last_activity_at
+                COALESCE((SELECT MAX(s.unread) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.chatroom_id IS NULL), 0) AS unread,
+                (SELECT MAX(s.last_activity_at) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.chatroom_id IS NULL) AS last_activity_at
             FROM workspaces w
             WHERE w.archived = 0 AND ${access.sql}
             ORDER BY w.id ASC`,

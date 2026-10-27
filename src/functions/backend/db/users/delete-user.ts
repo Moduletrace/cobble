@@ -6,6 +6,7 @@ import parseUserTypes from "@/src/utils/parse-user-types";
 import canRevokeUser from "@/src/utils/rbac/can-revoke-user";
 import { clearEnvCache } from "../envs/grab-all-envs";
 import grabUsers from "./grab-users";
+import deleteChatrooms from "../chatrooms/delete-chatrooms";
 
 type Params = {
     /**
@@ -61,6 +62,8 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
     if (media_ids.length) {
         await deleteMedia({ ids: media_ids, user_id: user.id });
     }
+
+    await deleteChatrooms({ user_id: user.id });
 
     const res = await BunSQLite.sql({ sql: `DELETE FROM users WHERE id = ?`, values: [user.id] });
 

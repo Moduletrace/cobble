@@ -72,7 +72,7 @@ export default async function grabPastSessionMessages({
     const session = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
             sql: `SELECT id, title, previous_session_id FROM bot_sessions
-                WHERE id = ? AND user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? LIMIT 1`,
+                WHERE id = ? AND user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? AND chatroom_id IS NULL LIMIT 1`,
             values: [
                 target_session_id,
                 user_id,

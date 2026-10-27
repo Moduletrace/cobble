@@ -22,7 +22,7 @@ const QuoteMaxChars = 120;
 /**
  * A conversation's session (`grabConversationExport`) as one markdown
  * document: a title and summary, then every message under its author and
- * time. Messages' own headings drop below those (`exportMessageText`) and
+ * time (a chatroom's outcome under the coordinator). Messages' own headings drop below those (`exportMessageText`) and
  * their refs read as names.
  */
 export default function conversationMarkdown({
@@ -39,7 +39,8 @@ export default function conversationMarkdown({
     const authorName = (author?: string) => (author == "bot" ? bot_name : user_name);
 
     const messageBlock = (message: BotMessageWithAttachments) => {
-        const lines = [`## ${authorName(message.author)} · ${format_time(Number(message.created_at))}`, ""];
+        const author = message.from_chatroom_id ? "The coordinator" : authorName(message.author);
+        const lines = [`## ${author} · ${format_time(Number(message.created_at))}`, ""];
 
         if (message.reply_to) {
             const quote = messagePreview({ text: message.reply_to.text || "" });

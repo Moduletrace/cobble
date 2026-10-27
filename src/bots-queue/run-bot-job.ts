@@ -5,11 +5,14 @@ import { runWithHarnessUsageScope } from "@/src/harness/usage/harness-usage-scop
 import BotJobFatalError from "./bot-job-fatal-error";
 import runBotReply from "./run-bot-reply";
 import runBotTask from "./run-bot-task";
+import runChatroomTurn from "./run-chatroom-turn";
 import type { BotJobRunner } from "./types";
 
 /**
  * Does a job's actual work on the harness: a `reply` answers the user in
- * chat (`runBotReply`), a `task` works through its brief (`runBotTask`).
+ * chat (`runBotReply`), a `task` works through its brief (`runBotTask`),
+ * and the coordinator's turn in a chatroom works the room's request
+ * (`runChatroomTurn`).
  *
  * It works for the user whose conversation the job is in: their memory,
  * and only what they can reach.
@@ -49,9 +52,11 @@ const runBotJob: BotJobRunner = async (context) => {
                 message_id: null,
             },
             task: () =>
-                job.kind == "reply"
-                    ? runBotReply({ ...context, bot: owned, user_id })
-                    : runBotTask({ ...context, bot: owned, user_id }),
+                bot.kind == "coordinator" && context.params.chatroom_id
+                    ? runChatroomTurn({ ...context, bot: owned, user_id })
+                    : job.kind == "reply"
+                      ? runBotReply({ ...context, bot: owned, user_id })
+                      : runBotTask({ ...context, bot: owned, user_id }),
         });
     } catch (error: unknown) {
         if (

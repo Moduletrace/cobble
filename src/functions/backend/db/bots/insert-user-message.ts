@@ -25,6 +25,11 @@ type Params = {
      * (`grabAttachableMedia`).
      */
     media?: BUN_SQLITE_COBBLE_MEDIA[];
+    /**
+     * Brings a chatroom's outcome back to the bot that asked: stored on the
+     * user's side (the bot answers it), shown as from the coordinator.
+     */
+    from_chatroom_id?: number;
 };
 
 /**
@@ -40,6 +45,7 @@ export default async function insertUserMessage({
     text,
     reply_to,
     media = [],
+    from_chatroom_id,
 }: Params): Promise<BotMessageWithAttachments> {
     const now = Date.now();
 
@@ -57,6 +63,7 @@ export default async function insertUserMessage({
                 text,
                 needs_you: 0,
                 reply_to_message_id: reply_to?.id || undefined,
+                from_chatroom_id,
             },
         ],
     });
@@ -88,6 +95,7 @@ export default async function insertUserMessage({
         text,
         needs_you: 0,
         reply_to_message_id: reply_to?.id || undefined,
+        from_chatroom_id,
         created_at: now,
         updated_at: now,
         attachments: media.map((file) => mediaToAttachment({ media: file })),

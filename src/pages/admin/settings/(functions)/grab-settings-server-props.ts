@@ -8,6 +8,7 @@ import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabRunLimitsOverview from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabSkillLimitsOverview from "@/src/functions/backend/db/app-settings/grab-skill-limits";
 import grabHookCallRetentionOverview from "@/src/functions/backend/db/app-settings/grab-hook-events-keep-days";
+import grabChatroomRetentionOverview from "@/src/functions/backend/db/app-settings/grab-chatroom-retention";
 import grabSessionLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-session-max-messages";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
 import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
@@ -52,6 +53,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             run_limits: await grabRunLimitsOverview().catch(() => null),
             skill_limits: await grabSkillLimitsOverview().catch(() => null),
             hook_call_retention: await grabHookCallRetentionOverview().catch(() => null),
+            chatroom_retention: await grabChatroomRetentionOverview().catch(() => null),
             session_length: await grabSessionLengthOverview().catch(() => null),
             running_version: runningVersion({ env: process.env }),
         },

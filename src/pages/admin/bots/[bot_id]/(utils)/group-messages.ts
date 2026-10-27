@@ -2,7 +2,11 @@ import type { BotMessageWithAttachments } from "@/src/types";
 
 export type MessageGroup = {
     key: string;
-    author: "bot" | "user";
+    /**
+     * `crew`: a chatroom's outcome brought back to the bot (`from_chatroom_id`),
+     * stored on the user's side but shown as from the coordinator.
+     */
+    author: "bot" | "user" | "crew";
     messages: BotMessageWithAttachments[];
     /**
      * Time of the group's last message, shown once per group.
@@ -34,7 +38,7 @@ export default function groupMessages({
     const groups: MessageGroup[] = [];
 
     for (const message of messages) {
-        const author = message.author === "user" ? "user" : "bot";
+        const author = message.from_chatroom_id ? "crew" : message.author === "user" ? "user" : "bot";
         const at = Number(message.created_at || 0);
         const last = groups[groups.length - 1];
 

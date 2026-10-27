@@ -17,6 +17,12 @@ type Props = {
      * Controls at the end of the pane header, e.g. a settings link.
      */
     action?: ReactNode;
+    /**
+     * Leave out the breadcrumb trail: inside a workspace it would name the
+     * workspace by its id, and the workspace's rail already says where the
+     * page is.
+     */
+    no_trail?: boolean;
 };
 
 /**
@@ -30,6 +36,7 @@ export default function SettingsShell({
     children,
     wide,
     action,
+    no_trail,
 }: Props) {
     const { pageProps } = useContext(AppContext);
 
@@ -52,10 +59,14 @@ export default function SettingsShell({
                      * address would say the id of a record, or a slug that
                      * differs from the name the page shows.
                      */}
-                    <AdminBreadcrumbs
-                        pathname={pageProps?.url?.pathname}
-                        title={title}
-                    />
+                    {no_trail ? (
+                        <Stack className="w-full shrink-0 pt-5" />
+                    ) : (
+                        <AdminBreadcrumbs
+                            pathname={pageProps?.url?.pathname}
+                            title={title}
+                        />
+                    )}
                     {children}
                 </Stack>
             </Stack>

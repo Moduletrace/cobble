@@ -47,4 +47,14 @@ describe("groupMessages", () => {
             [2, true],
         ]);
     });
+    test("a chatroom's outcome is its own group, never the user's", () => {
+        const groups = groupMessages({
+            messages: [
+                { id: 1, author: "user", text: "Ask Ada", created_at: 1, session_id: 1 },
+                { id: 2, author: "user", text: "Answer", created_at: 2, session_id: 1, from_chatroom_id: 4 },
+            ],
+        });
+
+        expect(groups.map((group) => group.author)).toEqual(["user", "crew"]);
+    });
 });

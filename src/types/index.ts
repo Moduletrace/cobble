@@ -5,6 +5,7 @@ import type {
     BUN_SQLITE_COBBLE_BOT_TASK_STEPS,
     BUN_SQLITE_COBBLE_BOT_TASKS,
     BUN_SQLITE_COBBLE_BOTS,
+    BUN_SQLITE_COBBLE_CHATROOMS,
     BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES,
     BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_CRON_JOBS,
@@ -347,6 +348,53 @@ export type BotJobUpdateData = BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & {
      * The conversation session the job belongs to.
      */
     session_id: number | null;
+};
+
+/**
+ * A bot taking part in a chatroom, as the room draws it.
+ */
+export type ChatroomBot = Pick<
+    BUN_SQLITE_COBBLE_BOTS,
+    "id" | "name" | "kind" | "color" | "stone" | "hue" | "image_media_id"
+>;
+
+/**
+ * A job still open in a chatroom: which bot, in which of its room
+ * sessions, whether it has started and its latest step.
+ */
+export type ChatroomJob = {
+    bot_id: number;
+    session_id: number;
+    status: string;
+    progress?: string | null;
+};
+
+/**
+ * A chatroom with the bots in it (asking bot first, then the coordinator,
+ * then those it asked), for the rail and the room's header.
+ */
+export type ChatroomSummary = BUN_SQLITE_COBBLE_CHATROOMS & {
+    bots: ChatroomBot[];
+    /**
+     * Whether a job in the room can still run.
+     */
+    working?: boolean;
+    /**
+     * The jobs still open in the room, for its status rows.
+     */
+    jobs?: ChatroomJob[];
+    /**
+     * The workspace the request came from, by name.
+     */
+    workspace_name?: string | null;
+};
+
+/**
+ * `server:chatroom-message` data: a message one of the room's bots posted.
+ */
+export type ChatroomMessageData = {
+    chatroom_id: number;
+    message: BUN_SQLITE_COBBLE_BOT_MESSAGES;
 };
 
 /**
@@ -1045,6 +1093,15 @@ export type SessionLengthOverview = {
  * How long hook calls are kept (Settings > General,
  * `grab-hook-events-keep-days.ts`).
  */
+export type ChatroomRetentionOverview = {
+    keep_days: number;
+    default_days: number;
+    max_days: number;
+    max_per_place: number;
+    default_per_place: number;
+    max_per_place_ceiling: number;
+};
+
 export type HookCallRetentionOverview = {
     keep_days: number;
     default_days: number;
@@ -1759,6 +1816,16 @@ export type PagePropsType = {
      */
     workspace_activity?: WorkspaceActivityItem[] | null;
     /**
+     * The open chatroom (`/admin/chatrooms/[chatroom_id]`) and every
+     * message in it.
+     */
+    chatroom?: ChatroomSummary | null;
+    chatroom_messages?: BUN_SQLITE_COBBLE_BOT_MESSAGES[] | null;
+    /**
+     * The user's chatrooms (`/admin/chatrooms`).
+     */
+    chatrooms?: ChatroomSummary[] | null;
+    /**
      * A workspace's dashboard: its shared to-do list.
      */
     workspace_tasks?: TaskWithNames[] | null;
@@ -1837,6 +1904,11 @@ export type PagePropsType = {
      * General settings page).
      */
     hook_call_retention?: HookCallRetentionOverview | null;
+    /**
+     * How long closed chatrooms are kept and how many one place keeps, with
+     * the code's defaults (the General settings page).
+     */
+    chatroom_retention?: ChatroomRetentionOverview | null;
     /**
      * How many messages a session takes, with the code's default (the
      * General settings page).
@@ -2101,6 +2173,16 @@ export const WebSocketEvents = [
      */
     "server:bot-job-update",
     /**
+     * A new message in one of the user's chatrooms (`data`:
+     * `ChatroomMessageData`)
+     */
+    "server:chatroom-message",
+    /**
+     * One of the user's chatrooms opened or changed status (`data`:
+     * `ChatroomSummary`)
+     */
+    "server:chatroom-updated",
+    /**
      * A computer's container changed state, e.g. finished setting up
      * (`data`: `ComputerWithStatus`)
      */
@@ -2355,6 +2437,7 @@ export type PageQueryObject = {
     user_id?: string;
     bot_id?: string;
     workspace_id?: string;
+    chatroom_id?: string;
     computer_id?: string;
     event_id?: string;
     user_type?: UserType;

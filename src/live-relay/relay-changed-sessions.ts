@@ -23,7 +23,7 @@ export default async function relayChangedSessions({ since, users }: Params) {
     const sessions =
         (
             await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({
-                sql: `SELECT id, user_id, bot_id, workspace_id FROM bot_sessions WHERE updated_at > ?`,
+                sql: `SELECT id, user_id, bot_id, workspace_id FROM bot_sessions WHERE updated_at > ? AND chatroom_id IS NULL`,
                 values: [since],
             })
         ).payload || [];

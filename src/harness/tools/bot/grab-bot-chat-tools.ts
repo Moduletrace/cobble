@@ -71,6 +71,10 @@ type Params = {
      * the reply can say so in its prompt.
      */
     onWorkspaceAdmin?: (params: WorkspaceAdminTools) => void;
+    /**
+     * Called with the ref of each chatroom the bot opened (`ask_crew`).
+     */
+    onChatroom?: (params: { ref: string }) => void;
 };
 
 /**
@@ -108,6 +112,7 @@ export default async function grabBotChatTools({
     onTakeOver,
     onPropose,
     onWorkspaceAdmin,
+    onChatroom,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
@@ -121,6 +126,7 @@ export default async function grabBotChatTools({
             admin_workspace_ids: powers.admin_workspace_ids,
             scopes,
             onPropose,
+            onChatroom,
         })),
         startTaskTool({
             user_id,

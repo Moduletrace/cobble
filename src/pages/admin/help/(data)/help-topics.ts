@@ -87,6 +87,17 @@ The computer keeps the session, like everything else in its browser (extensions,
 A task that hit the wall stops and reports instead of waiting, so after you hand back the bot picks the work up again from the chat.`,
     },
     {
+        id: "chatrooms",
+        title: "What is a chatroom?",
+        summary: "A chatroom showed up in the rail, or a bot says it asked another bot.",
+        body: `When a bot needs something another bot is better placed to give (what it knows, a file it has, work in its line), it doesn't ask that bot directly. It asks the coordinator, which reads the request, picks who should answer, asks them and sends the answer back. Each of those exchanges is kept in a **chatroom**.
+
+- **Where:** with the conversation it came from. A request made in a workspace is listed under Chatrooms inside that workspace, after its bots; one made in a bot's own chat is listed under Chatrooms after the workspaces. The chip in the bot's message opens it too.
+- **Who can be asked:** in a workspace only the workspace's bots, otherwise any bot you work with. The work runs as you, with your access.
+- **Read-only:** nobody writes in a chatroom. To steer the coordinator, talk to it in its own chat (super admin only). You can **Stop** an open request from the room's header.
+- **What happens after:** the answer appears in the asking bot's conversation as a message from the coordinator, and the bot carries on from there.`,
+    },
+    {
         id: "graphics",
         title: "A bot's graphic is blank or looks wrong",
         summary: "A chart or diagram in a message doesn't draw, or is missing data or images.",

@@ -11,6 +11,7 @@ import updateInstructionsTool from "./update-instructions-tool";
 import updateMemoryTool from "./update-memory-tool";
 import reactToMessageTool from "./react-to-message-tool";
 import setPictureTool from "./set-picture-tool";
+import askCrewTool from "./ask-crew-tool";
 import type { StorageScope } from "@/src/utils/storage-access";
 
 type Params = {
@@ -52,12 +53,18 @@ type Params = {
      * carries its card. Without it the bot can't propose hooks.
      */
     onPropose?: (params: { ref: string }) => void;
+    /**
+     * In a chat reply: called with the ref of each chatroom the bot opened
+     * (`ask_crew`), so the reply carries its chip.
+     */
+    onChatroom?: (params: { ref: string }) => void;
 };
 
 /**
  * The tools a bot works with on every run, bound to that bot and where it
  * works: its memory and instructions, its schedules, its hooks
- * (`grabBotHookTools`), and in a workspace with several computers
+ * (`grabBotHookTools`), for a worker ask_crew (another bot, through the
+ * coordinator), and in a workspace with several computers
  * switching the default one.
  */
 export default async function grabBotTools({
@@ -71,6 +78,7 @@ export default async function grabBotTools({
     scopes = [],
     hooked,
     onPropose,
+    onChatroom,
 }: Params): Promise<HarnessTool[]> {
     return [
         setPictureTool({ user_id, bot_id, scopes, is_coordinator }),
@@ -82,6 +90,13 @@ export default async function grabBotTools({
         deleteScheduleTool({ user_id, bot_id }),
         ...grabBotHookTools({ user_id, bot_id, session_id, workspace_id, computers, hooked, onPropose }),
         ...(session_id ? [reactToMessageTool({ bot_id, user_id, session_id })] : []),
+        /**
+         * A worker asks the crew only through the coordinator, never from
+         * a hook call's run, whose payload is someone else's words.
+         */
+        ...(session_id && !is_coordinator && !hooked
+            ? [askCrewTool({ user_id, bot_id, session_id, workspace_id, onChatroom })]
+            : []),
         ...(workspace_id && computers.length > 1
             ? [setWorkspaceComputerTool({ user_id, workspace_id, computers })]
             : []),

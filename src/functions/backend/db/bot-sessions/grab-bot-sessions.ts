@@ -43,7 +43,7 @@ export default async function grabBotSessions({
     sql += `    (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = s.id) AS message_count,\n`;
     sql += `    (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text\n`;
     sql += `FROM bot_sessions s\n`;
-    sql += `WHERE s.user_id = ? AND s.bot_id = ? AND s.workspace_id IS ?\n`;
+    sql += `WHERE s.user_id = ? AND s.bot_id = ? AND s.workspace_id IS ? AND s.chatroom_id IS NULL\n`;
     sql += `AND (s.status = 'active' OR EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = s.id))\n`;
 
     if (like) {

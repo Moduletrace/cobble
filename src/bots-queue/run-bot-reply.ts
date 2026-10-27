@@ -3,6 +3,7 @@ import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
+    AskCrewNote,
     SecretsNote,
     GraphicsNote,
     botFilesNote,
@@ -182,7 +183,7 @@ export default async function runBotReply({
     const has_past_sessions = Boolean(
         (
             await BunSQLite.sql({
-                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? LIMIT 1`,
+                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? AND chatroom_id IS NULL LIMIT 1`,
                 values: [user_id, bot.id!, workspace_id ? Number(workspace_id) : null, session_id],
             })
         ).payload?.[0],
@@ -240,6 +241,7 @@ export default async function runBotReply({
         onWorkspaceAdmin: (admin) => {
             led = admin;
         },
+        onChatroom: ({ ref }) => shown.push(ref),
     });
 
     /**
@@ -318,6 +320,7 @@ export default async function runBotReply({
                     in_workspace: Boolean(workspace_id),
                 }),
                 crew_note,
+                powers.is_coordinator ? "" : AskCrewNote,
                 skills.note,
                 knowledge.note,
                 extensions.note,

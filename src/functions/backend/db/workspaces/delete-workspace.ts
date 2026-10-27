@@ -5,6 +5,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserWorkspace from "./grab-user-workspace";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
+import deleteChatrooms from "@/src/functions/backend/db/chatrooms/delete-chatrooms";
 
 type Params = {
     user_id: number | string;
@@ -40,6 +41,7 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
      * Explicitly, since foreign keys are off outside the server process.
      */
     await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE workspace_id = ?`, values: [workspace.id] });
+    await deleteChatrooms({ workspace_id: workspace.id! });
 
     const res = await BunSQLite.sql({
         sql: `DELETE FROM workspaces WHERE id = ?`,

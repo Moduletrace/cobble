@@ -31,7 +31,7 @@ export default async function grabWorkspaceActivity({
                 (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text
             FROM bot_sessions s
             JOIN bots b ON b.id = s.bot_id
-            WHERE s.workspace_id = ? AND s.user_id = ?
+            WHERE s.workspace_id = ? AND s.user_id = ? AND s.chatroom_id IS NULL
             AND (s.status = 'active' OR EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = s.id))
             AND (b.kind = 'coordinator' OR EXISTS (
                 SELECT 1 FROM workspace_bots wb WHERE wb.workspace_id = s.workspace_id AND wb.bot_id = s.bot_id

@@ -56,6 +56,7 @@ export default async function grabConversationHistory({
 
     const in_conversation =
         asked?.id &&
+        !asked.chatroom_id &&
         Number(asked.bot_id) == Number(open_bot_id) &&
         (asked.workspace_id ? Number(asked.workspace_id) : null) ==
             (conversation_workspace_id ? Number(conversation_workspace_id) : null);

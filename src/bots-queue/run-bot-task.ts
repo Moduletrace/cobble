@@ -13,6 +13,7 @@ import {
     HookRunNote,
     TasksNote,
     TaskRunNote,
+    AskCrewNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
 import { grabHarnessMaxToolSteps } from "@/src/functions/backend/db/app-settings/grab-run-limits";
@@ -280,6 +281,7 @@ export default async function runBotTask({
                 powers.is_coordinator || powers.is_workspace_admin
                     ? ""
                     : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
+                powers.is_coordinator || hooked ? "" : AskCrewNote,
                 computer
                     ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything. When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over.`
                     : workspace_id

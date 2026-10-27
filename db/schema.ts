@@ -40,6 +40,7 @@ import {
     CustomToolKinds,
     CustomToolStatuses,
 } from "@/src/dict/custom-tool-dict";
+import { ChatroomStatuses } from "@/src/dict/chatroom-dict";
 import {
     TaskAuthors,
     TaskMediaKinds,
@@ -296,6 +297,109 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "chatrooms",
+            tableDescription: `A read-only record of one worker asking another for something through the coordinator, for one user: the asking bot's request, the coordinator's turns, the asked bot's work and the answer sent back. Every bot in it has a session there (\`bot_sessions.chatroom_id\`, status \`chatroom\`) that holds its messages and jobs`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user the work is for: only they see the room, and every run in it works with their memory and reach`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "chatroom_user_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace the request was made in, where every run in the room works and only its members can be asked. Null: the asking bot's own chat`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "chatroom_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "requester_bot_id",
+                    fieldDescription: `The worker that asked. Not a foreign key, so the record outlives it`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "target_bot_id",
+                    fieldDescription: `The bot the coordinator last asked, null until it asks one. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "origin_session_id",
+                    fieldDescription: `The asking bot's session the request came from: the answer goes back there and wakes it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "parent_chatroom_id",
+                    fieldDescription: `The room the asking bot was itself working in when it asked (a nested request). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "title",
+                    fieldDescription: `A short label for the request`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "request",
+                    fieldDescription: `What the asking bot needs, in markdown, as it wrote it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: ChatroomStatuses.map((s) => s.value),
+                    defaultValue: "open",
+                },
+                {
+                    fieldName: "outcome",
+                    fieldDescription: `What was sent back to the asking bot (the answer, or why there is none), in markdown`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "coordinator_turns",
+                    fieldDescription: `How many turns the coordinator has taken in the room, capped at \`AppData.ChatroomMaxCoordinatorTurns\``,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "unread",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "last_activity_at",
+                    fieldDescription: `Unix timestamp of the latest message in the room, for ordering`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "closed_at",
+                    fieldDescription: `Unix timestamp of when the room reached a final status`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_chatrooms_user_id",
+                    indexTableFields: ["user_id", "status", "last_activity_at"],
+                },
+                {
+                    indexName: "idx_chatrooms_requester_bot_id",
+                    indexTableFields: ["requester_bot_id", "status"],
+                },
+            ],
+        },
+        {
             tableName: "bot_sessions",
             tableDescription: `A stretch of one user's conversation with a bot: in its own chat (no workspace) or in one workspace. Every user has their own. Only the active session's messages go to the model; closed ones can be searched and reopened`,
             fields: [
@@ -356,8 +460,20 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                 },
                 {
+                    fieldName: "chatroom_id",
+                    fieldDescription: `The chatroom this session is the bot's part of. Such sessions (status \`chatroom\`) never show in the bot's conversation, rails or session lists. Null: an ordinary session`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "chatrooms",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_session_chatroom_fk",
+                    },
+                },
+                {
                     fieldName: "status",
-                    fieldDescription: `One active session per conversation`,
+                    fieldDescription: `One active session per conversation; \`chatroom\` for a bot's part of a chatroom`,
                     dataType: "TEXT",
                     options: BotSessionStatuses.map((s) => s.value),
                     defaultValue: "active",
@@ -375,6 +491,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
             ],
             indexes: [
+                {
+                    indexName: "idx_bot_sessions_chatroom_id",
+                    indexTableFields: ["chatroom_id"],
+                },
                 {
                     indexName: "idx_bot_sessions_bot_id_workspace_id",
                     indexTableFields: ["bot_id", "workspace_id", "status"],
@@ -464,6 +584,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldName: "tool_log",
                     fieldDescription: `JSON \`[{ name, ok }]\`: every tool call the run behind a bot message made (names only, never arguments), told to the bot with the message in later turns so it can't build on work it never did. Null: not recorded (user messages, interim ones, older messages)`,
                     dataType: "TEXT",
+                },
+                {
+                    fieldName: "from_chatroom_id",
+                    fieldDescription: `Set on the message that brings a chatroom's outcome back into the asking bot's conversation: the room. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key`,
+                    dataType: "INTEGER",
                 },
                 {
                     fieldName: "carried_from_session_id",

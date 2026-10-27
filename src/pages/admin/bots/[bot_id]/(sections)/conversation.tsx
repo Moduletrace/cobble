@@ -272,11 +272,11 @@ export default function Conversation() {
                  * rollover whose summary push was missed): the thread
                  * moves there, and loads it so its opening shows too.
                  */
-                if (message.author == "user" && startsNewSession(message)) {
+                if (message.author == "user" && !message.from_chatroom_id && startsNewSession(message)) {
                     setSessionId(Number(message.session_id));
                     setMessages([message]);
                     history.retry();
-                } else if (message.author == "user") {
+                } else if (message.author == "user" && !message.from_chatroom_id) {
                     window.location.reload();
                 } else {
                     setHasOtherUnread(true);

@@ -27,6 +27,13 @@ export default async function reopenBotSession({
     if (session.status == "active") return session;
 
     /**
+     * A bot's part of a chatroom is only ever read in the room.
+     */
+    if (session.chatroom_id) {
+        throw new AppError(`Session not found.`);
+    }
+
+    /**
      * The bot moved the conversation on from it (`continue_in_new_session`):
      * reopened, the conversation would go on without what was said since,
      * and the user's last word there was already answered in the new one.

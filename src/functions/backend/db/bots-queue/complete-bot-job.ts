@@ -13,6 +13,8 @@ import grabJobUserId from "./grab-job-user-id";
 import grabRunningBotJobFace from "./grab-running-bot-job-face";
 import withMessageUsage from "../usage/with-message-usage";
 import type { HarnessToolUse } from "@/src/harness/types";
+import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
+import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
 
 type Params = {
     job_id: number | string;
@@ -48,7 +50,8 @@ type Params = {
  * still running (a reply in another session mustn't hide a task's row).
  * Nobody else's face changes. A handed-over job's result also goes to the bot that handed
  * it over (`relay`), and a handed-over task left open says so (`noteTrackerTask`). A hook
- * run's result is kept on the calls it answered (`recordHookCallResponse`). Throws if this handler no longer holds the job.
+ * run's result is kept on the calls it answered (`recordHookCallResponse`). A job in a chatroom
+ * moves the room on (`onChatroomJobEnded`) and leaves the bot's face alone. Throws if this handler no longer holds the job.
  */
 export default async function completeBotJob({
     job_id,
@@ -130,7 +133,12 @@ export default async function completeBotJob({
 
     const user_id = await grabJobUserId({ job });
 
-    const bot = !user_id
+    /**
+     * Work in a chatroom shows in the room, never on the bot's face.
+     */
+    const in_room = Boolean(await grabSessionChatroomId({ session_id: job.session_id }));
+
+    const bot = !user_id || in_room
         ? null
         : needs_you
           ? await setBotFace({
@@ -152,6 +160,8 @@ export default async function completeBotJob({
     await recordHookCallResponse({ job, status: "done", response: result, message_id: inserted?.id });
 
     const relay = silent ? null : await relayJobToRequester({ job, text: result });
+
+    await onChatroomJobEnded({ job, text: silent ? "" : result });
 
     return { message, bot, relay };
 }

@@ -2,6 +2,7 @@ import bunext from "@moduletrace/bunext";
 import cronHeartbeat from "./heartbeat";
 import pruneBotsQueue from "./prune-bots-queue";
 import pruneBotHookEvents from "./prune-bot-hook-events";
+import cronPruneChatrooms from "./prune-chatrooms";
 import syncNotifyWatchers from "./sync-notify-watchers";
 import cronSyncHarnessModels from "./sync-harness-models";
 import syncComputers from "./sync-computers";
@@ -34,6 +35,12 @@ export default function cron() {
         title: "prune-bot-hook-events",
         schedule: "@daily",
         task: pruneBotHookEvents,
+    });
+
+    registerCronJob({
+        title: "prune-chatrooms",
+        schedule: "@daily",
+        task: cronPruneChatrooms,
     });
 
     registerCronJob({

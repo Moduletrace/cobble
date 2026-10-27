@@ -46,11 +46,11 @@ export default async function grabBots({
     sql += `FROM bots b\n`;
     sql += `LEFT JOIN (\n`;
     sql += `    SELECT bot_id, MAX(unread) AS unread, MAX(last_activity_at) AS last_activity_at\n`;
-    sql += `    FROM bot_sessions WHERE workspace_id IS ? AND user_id = ? GROUP BY bot_id\n`;
+    sql += `    FROM bot_sessions WHERE workspace_id IS ? AND user_id = ? AND chatroom_id IS NULL GROUP BY bot_id\n`;
     sql += `) t ON t.bot_id = b.id\n`;
     sql += `LEFT JOIN bot_messages lm ON lm.id = (\n`;
     sql += `    SELECT m.id FROM bot_messages m JOIN bot_sessions s ON s.id = m.session_id\n`;
-    sql += `    WHERE m.bot_id = b.id AND m.workspace_id IS ? AND s.user_id = ?\n`;
+    sql += `    WHERE m.bot_id = b.id AND m.workspace_id IS ? AND s.user_id = ? AND s.chatroom_id IS NULL\n`;
     sql += `    ORDER BY m.created_at DESC, m.id DESC\n`;
     sql += `    LIMIT 1\n`;
     sql += `)\n`;

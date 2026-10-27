@@ -237,6 +237,27 @@ export const AppData = {
      * shortest gap between two runs, so a schedule can't flood the queue.
      */
     CronJobMaxPerBot: 20,
+    /**
+     * Chatrooms (a worker asking another through the coordinator): how many
+     * turns the coordinator gets in one room, how deep rooms may nest (a
+     * bot asked in a room asking someone else), how many rooms one bot may
+     * have open at once for a user, and how many the rail lists.
+     */
+    ChatroomMaxCoordinatorTurns: 6,
+    ChatroomMaxDepth: 2,
+    ChatroomMaxOpenPerBot: 3,
+    ChatroomCoordinatorMaxToolSteps: 6,
+    ChatroomRailLimit: 8,
+    /**
+     * Closed chatrooms are deleted after this many days, and past this many
+     * rooms in one place (a workspace, or bots' own chats) the oldest
+     * closed ones go: the defaults, each with the most an install may set
+     * (`chatroom_keep_days`, `chatroom_max_per_place`, Settings > General).
+     */
+    ChatroomKeepDays: 30,
+    ChatroomKeepDaysMax: 3650,
+    ChatroomMaxPerPlace: 200,
+    ChatroomMaxPerPlaceMax: 10000,
     CronJobMinIntervalMs: 5 * 60 * 1000,
     /**
      * Due schedules queued per tick of the `run-cron-jobs` cron.

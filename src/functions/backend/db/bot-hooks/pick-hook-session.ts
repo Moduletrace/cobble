@@ -39,6 +39,7 @@ export default async function pickHookSession({
         const session = await grabUserBotSession({ session_id: choice, user_id });
         const here =
             session?.id &&
+            !session.chatroom_id &&
             Number(session.bot_id) == Number(bot_id) &&
             (Number(session.workspace_id) || null) == (Number(workspace_id) || null);
 

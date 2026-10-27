@@ -4,11 +4,12 @@ import type { BotMessageWithAttachments } from "@/src/types";
 import describeMessageRefs, { type MessageRefNames } from "@/src/utils/describe-message-refs";
 import { AppRecordPrefix } from "@/src/utils/strip-app-records";
 import describeAttachment from "./describe-attachment";
+import crewMessageBlock from "@/src/utils/crew-message-block";
 
 type Params = {
     messages: Pick<
         BotMessageWithAttachments,
-        "id" | "author" | "text" | "attachments" | "reply_to" | "tool_log"
+        "id" | "author" | "text" | "attachments" | "reply_to" | "tool_log" | "from_chatroom_id"
     >[];
     /**
      * Loaded files by message id (`loadAttachmentParts`). Files of other
@@ -32,7 +33,9 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * starts with the user. A turn that is only text stays a string. A bot
  * message whose run was recorded (`tool_log`) is followed by the app's
  * record of the tools it called, so the bot can tell what its past
- * messages actually did from what they say.
+ * messages actually did from what they say. A chatroom's outcome brought
+ * back to the bot (`from_chatroom_id`) is a user turn fenced as what the
+ * coordinator passed on (`crewMessageBlock`), never the user's words.
  */
 export default function botMessagesToHarness({ messages, parts, refs }: Params): HarnessMessage[] {
     const turns: Turn[] = [];
@@ -78,6 +81,12 @@ function messageParts({
     parts?: Params["parts"];
     refs?: Params["refs"];
 }): HarnessContentPart[] {
+    if (role == "user" && message.from_chatroom_id) {
+        const relayed = message.text?.trim() || "";
+
+        return relayed ? [{ type: "text", text: crewMessageBlock({ from: "the coordinator", text: relayed }) }] : [];
+    }
+
     const own = message.text?.trim() || "";
     const mentions = role == "user" && refs && own ? describeMessageRefs({ text: own, names: refs }) : "";
     const text = replyContext({ message, text: mentions ? `${own}\n\n${mentions}` : own });

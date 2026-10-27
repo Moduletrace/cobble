@@ -5,6 +5,7 @@
 export const AdminSections = [
     "/admin/bots",
     "/admin/workspaces",
+    "/admin/chatrooms",
     "/admin/routines",
     "/admin/files",
     "/admin/usage",

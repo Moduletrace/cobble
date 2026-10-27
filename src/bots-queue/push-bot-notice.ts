@@ -5,6 +5,8 @@ import notifyBotMessage from "@/src/push/notify-bot-message";
 import notifyBotFace from "@/src/push/notify-bot-face";
 import pushBotUpdated from "./push-bot-updated";
 import pushToSessionUser from "./push-to-session-user";
+import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
+import pushChatroomMessage from "@/src/functions/backend/db/chatrooms/push-chatroom-message";
 
 type Params = {
     bot_id: number | string;
@@ -30,7 +32,8 @@ type Params = {
  * Pushes a new bot message to the open tabs of the user whose
  * conversation it's in, and a face change to the user it's for
  * (`pushBotUpdated`). A relayed report
- * goes to the conversation it was posted in. Best effort: a push that
+ * goes to the conversation it was posted in, and a chatroom's message to
+ * the room (`pushChatroomMessage`). Best effort: a push that
  * fails is logged and never fails the job that made the change.
  */
 export default async function pushBotNotice({ bot_id, message, bot, relay, quiet_push }: Params) {
@@ -46,7 +49,15 @@ export default async function pushBotNotice({ bot_id, message, bot, relay, quiet
 }
 
 async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
-    if (message) {
+    /**
+     * A message in a chatroom goes to the room, never to a conversation,
+     * and never as a notification: rooms are records.
+     */
+    const room_id = message ? await grabSessionChatroomId({ session_id: message.session_id }) : null;
+
+    if (message && room_id) {
+        await pushChatroomMessage({ chatroom_id: room_id, message });
+    } else if (message) {
         await pushToSessionUser({
             session_id: message.session_id,
             data: { event: "server:bot-message", data: message },

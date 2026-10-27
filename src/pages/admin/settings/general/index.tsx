@@ -1,4 +1,5 @@
 import AppearanceSection from "./(sections)/appearance-section";
+import ChatroomRetentionSection from "./(sections)/chatroom-retention-section";
 import HookCallRetentionSection from "./(sections)/hook-call-retention-section";
 import InstallIconSection from "./(sections)/install-icon-section";
 import InstallNameSection from "./(sections)/install-name-section";
@@ -27,6 +28,7 @@ export default function AdminSettingsGeneralPage() {
             <SessionLengthSection />
             <SkillLimitsSection />
             <HookCallRetentionSection />
+            <ChatroomRetentionSection />
             <StorageSection />
             <VersionSection />
         </SettingsShell>

@@ -9,6 +9,7 @@ import RailBotSessions from "./rail-bot-sessions";
 import RailBotsSection from "./rail-bots-section";
 import RailSectionAddButton from "./rail-section-add-button";
 import RailWorkspacesSection from "./rail-workspaces-section";
+import RailChatroomsSection from "./rail-chatrooms-section";
 
 type Props = {
     bots: BotWithLastMessage[];
@@ -18,7 +19,8 @@ type Props = {
 
 /**
  * The rail outside workspaces: the pinned coordinator, the crew (the
- * latest few, then "See all bots"), then the workspaces.
+ * latest few, then "See all bots"), then the workspaces, then the
+ * chatrooms.
  */
 export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
     const { openForm } = useContext(AddFlowContext);
@@ -53,6 +55,7 @@ export default function RailCrewList({ bots, workspaces, selected_id }: Props) {
                 }
             />
             <RailWorkspacesSection workspaces={workspaces} />
+            <RailChatroomsSection />
         </>
     );
 }
