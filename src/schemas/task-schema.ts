@@ -6,8 +6,9 @@ const status_values = TaskStatuses.map((status) => status.value) as [string, ...
 const media_kind_values = TaskMediaKinds.map((kind) => kind.value) as [string, ...string[]];
 
 /**
- * One collection: a bot's own list or a workspace's shared one. The helper
- * refuses both or neither (`taskScopeValues`).
+ * Where it goes: a bot's own list (`bot_id`), a workspace (`workspace_id`,
+ * shared), or a bot's task in a workspace (both). The helper refuses
+ * neither (`taskScopeValues`).
  */
 const scope = {
     bot_id: z.number().int().positive().optional(),

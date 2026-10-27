@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_TASKS } from "@/db/types/db";
 import AppError from "@/src/utils/app-error";
+import assertBotWorksThere from "./assert-bot-works-there";
 import findDuplicateTask from "./find-duplicate-task";
 import grabTaskRow from "./grab-task-scope";
 import taskScopeValues from "./task-scope-values";
@@ -8,16 +9,17 @@ import taskScopeValues from "./task-scope-values";
 type Params = {
     task_id: number | string;
     /**
-     * The collection it moves to: a bot's own list, or a workspace's.
+     * Where it goes: a bot's own list (`bot_id` alone), or a workspace,
+     * with the bot that has it there (none: unassigned).
      */
     bot_id?: number | string | null;
     workspace_id?: number | string | null;
 };
 
 /**
- * Moves a task to another collection, with its notes and files. Refused
- * when the destination already has an open task with that title, so a
- * hand-over never leaves two of the same. The caller checked who is
+ * Moves a task to another list or bot, with its notes and files. Refused
+ * when it changes list and the destination already has an open task with
+ * that title, so a hand-over never leaves two of the same. The caller checked who is
  * asking reaches both. Returns the row as it is now.
  */
 export default async function moveTask({ task_id, bot_id, workspace_id }: Params): Promise<BUN_SQLITE_COBBLE_TASKS> {
@@ -28,11 +30,17 @@ export default async function moveTask({ task_id, bot_id, workspace_id }: Params
         return task;
     }
 
-    const there = (
+    if (place.bot_id && place.workspace_id) {
+        await assertBotWorksThere({ bot_id: place.bot_id, workspace_id: place.workspace_id });
+    }
+
+    const same_list = Number(task.workspace_id || 0) == Number(place.workspace_id || 0) && Boolean(place.workspace_id);
+
+    const there = same_list ? [] : (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_TASKS>({
             sql: place.workspace_id
                 ? `SELECT * FROM tasks WHERE workspace_id = ? AND id != ?`
-                : `SELECT * FROM tasks WHERE bot_id = ? AND id != ?`,
+                : `SELECT * FROM tasks WHERE bot_id = ? AND workspace_id IS NULL AND id != ?`,
             values: [Number(place.workspace_id || place.bot_id), Number(task.id)],
         })
     ).payload || [];

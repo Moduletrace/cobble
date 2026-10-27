@@ -3,7 +3,7 @@ import type { BUN_SQLITE_COBBLE_TASK_MEDIA } from "@/db/types/db";
 
 type Params = {
     /**
-     * A bot's own tasks, or a workspace's.
+     * A bot's own list (not what it has in workspaces), or a workspace's.
      */
     bot_id?: number | string | null;
     workspace_id?: number | string | null;
@@ -25,7 +25,7 @@ export async function grabTaskMediaIds({ bot_id, workspace_id }: Params): Promis
         await BunSQLite.sql<BUN_SQLITE_COBBLE_TASK_MEDIA>({
             sql: `SELECT tm.media_id FROM task_media tm
                 JOIN tasks t ON t.id = tm.task_id
-                WHERE t.${column} = ? AND tm.bot_file_id IS NULL`,
+                WHERE t.${column} = ? ${workspace_id ? "" : "AND t.workspace_id IS NULL"} AND tm.bot_file_id IS NULL`,
             values: [Number(owner)],
         })
     ).payload || [];

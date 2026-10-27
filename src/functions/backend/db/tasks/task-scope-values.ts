@@ -6,18 +6,14 @@ type Params = {
 };
 
 /**
- * A task belongs to exactly one collection: a bot's own list, or a
- * workspace's shared one. Checked in the helpers rather than the schema,
- * since SQLite treats NULL in a unique constraint as always distinct (the
- * `envs` precedent).
+ * Where a task lives and who has it. A bot's own list is `bot_id` alone; a
+ * workspace's task has `workspace_id`, plus `bot_id` when a bot there has
+ * it (none: shared, not yet anyone's). Checked in the helpers rather than
+ * the schema.
  */
 export default function taskScopeValues({ bot_id, workspace_id }: Params) {
     const bot = bot_id ? Number(bot_id) : null;
     const workspace = workspace_id ? Number(workspace_id) : null;
-
-    if (bot && workspace) {
-        throw new AppError(`A task belongs to a bot or a workspace, not both.`);
-    }
 
     if (!bot && !workspace) {
         throw new AppError(`Say which bot or workspace the task is for.`);

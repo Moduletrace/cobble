@@ -34,12 +34,12 @@ type Args = {
 export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_workspace_ids, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "list_tasks",
-        description: `List tasks: yours, the ones in a workspace you work in, or ${is_coordinator ? "every task in the install" : "every task you can reach"}. Each line is its id, status, title, whose it is, its files and its latest note. Open ones come first (blocked, then doing, then to do). Use it to plan work, and to check what's still pending when the user says hello or asks what's next.`,
+        description: `List tasks: yours (your own list and the ones you have in workspaces), the ones in ${workspace_id ? "this workspace" : "a workspace"}, or ${is_coordinator ? "every task in the install" : "every task you can reach (yours, and in your workspaces the shared ones nobody has yet)"}. Each line is its id, status, title, whose it is, its files and its latest note. Open ones come first (blocked, then doing, then to do). Use it to plan work, and to check what's still pending when the user says hello or asks what's next.`,
         schema: z.object({
             scope: z
                 .enum(["mine", "workspace", "all"])
                 .optional()
-                .describe(`"mine" for your own list, "workspace" for ${workspace_id ? "this workspace's" : "a workspace's (none open)"}, "all" for everything you reach. Defaults to "all".`),
+                .describe(`"mine" for the tasks you have (your own list and in workspaces), "workspace" for ${workspace_id ? "this workspace's" : "a workspace's (none open)"}, "all" for everything you reach. Defaults to "all".`),
             status: z.enum(TaskStatusValues).optional(),
             open_only: z
                 .boolean()
@@ -74,9 +74,10 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
 
             return tasks
                 .map((task) => {
+                    const who = task.bot_id ? task.bot_name || `bot ${task.bot_id}` : "shared, nobody's yet";
                     const where = task.workspace_id
-                        ? `in ${names.get(Number(task.workspace_id)) || `workspace ${task.workspace_id}`}`
-                        : `on ${task.bot_name || `bot ${task.bot_id}`}`;
+                        ? `in ${names.get(Number(task.workspace_id)) || `workspace ${task.workspace_id}`}, ${who}`
+                        : `on ${who}'s list`;
                     const bits = [
                         `#${task.id}`,
                         `[${task.status}]`,

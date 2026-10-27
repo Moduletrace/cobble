@@ -29,4 +29,11 @@ describe("findDuplicateTask", () => {
         expect(findDuplicateTask({ tasks, title: "Check the invoices", bot_id: 2 })?.id).toBe(5);
         expect(findDuplicateTask({ tasks, title: "Check the invoices", bot_id: 7 })).toBeNull();
     });
+
+    test("a bot's task in a workspace isn't on its own list, and counts for the whole workspace", () => {
+        const tasks = [task({ id: 7, bot_id: 2, workspace_id: 9 })];
+
+        expect(findDuplicateTask({ tasks, title: "Check the invoices", bot_id: 2 })).toBeNull();
+        expect(findDuplicateTask({ tasks, title: "Check the invoices", workspace_id: 9, bot_id: 3 })?.id).toBe(7);
+    });
 });

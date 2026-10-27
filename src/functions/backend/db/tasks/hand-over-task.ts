@@ -60,9 +60,9 @@ export type HandedOverTask = {
 };
 
 /**
- * Hands an open task to another bot and starts the work: a task on a
- * workspace's list stays there (the work runs in that workspace), one on
- * a bot's own list moves to the new bot's. The task goes to doing, its log
+ * Hands an open task to another bot and starts the work: a task in a
+ * workspace stays there and becomes the new bot's there (the work runs in
+ * that workspace), one on a bot's own list moves to the new bot's. The task goes to doing, its log
  * says who handed it over, and a job is queued in the new bot's
  * conversation with the task's brief and `params.tracker_task_id`, so the
  * bot moves this same task along and the job's end is noted on it.
@@ -115,7 +115,11 @@ export default async function handOverTask({
         );
     }
 
-    const moved = task.workspace_id ? task : await moveTask({ task_id: task.id!, bot_id: bot.id });
+    /**
+     * A workspace's task stays in the workspace with the new bot as the one
+     * who has it; a bot's own moves to the new bot's own list.
+     */
+    const moved = await moveTask({ task_id: task.id!, bot_id: bot.id, workspace_id: task.workspace_id || null });
     const computers = await grabBotComputers({ bot_id: bot.id, workspace_id: run_workspace_id });
 
     const brief = [

@@ -785,11 +785,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "tasks",
-            tableDescription: `The crew's to-do list: work that is tracked until it's done, one collection per bot and one per workspace (exactly one of \`bot_id\` and \`workspace_id\` is set). A workspace's tasks are visible to every bot working there and to the coordinator; the coordinator reaches every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
+            tableDescription: `The crew's to-do list: work that is tracked until it's done. A bot's own list (\`bot_id\` alone), or a workspace's tasks (\`workspace_id\`, with \`bot_id\` naming the bot there that has it, or null while it's shared). A bot reaches its own list and, in each workspace it works in, its tasks there and the shared ones; a workspace admin every task in its workspace; the coordinator every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
             fields: [
                 {
                     fieldName: "bot_id",
-                    fieldDescription: `The bot the task belongs to; null for a workspace's task`,
+                    fieldDescription: `The bot that has the task: its own list's, or with \`workspace_id\` its task in that workspace; null for a workspace's shared task nobody has yet`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,
@@ -801,7 +801,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "workspace_id",
-                    fieldDescription: `The workspace the task belongs to (its bots all see it); null for a bot's own`,
+                    fieldDescription: `The workspace the task is in; null for a bot's own list`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,

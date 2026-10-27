@@ -25,8 +25,8 @@ type Props = {
 };
 
 /**
- * A workspace's shared to-do list: every bot working there sees these, and
- * the coordinator sees them all. Add and change one by hand here; the bots
+ * Every task in a workspace, whichever bot has it (or shared, nobody's
+ * yet). Each bot there sees its own and the shared ones. Add and change one by hand here; the bots
  * keep it up to date themselves as they work.
  */
 export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
@@ -82,7 +82,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
         <SettingsGroup
             id="tasks"
             title="Tasks"
-            description="The workspace's shared to-do list. Every bot here sees it, and they keep it up to date as they work."
+            description="Every task in this workspace, whichever bot has it. A bot sees its own here and the shared ones nobody has taken up yet."
         >
             <Stack className="w-full gap-2! items-stretch">
                 {open_task ? (
@@ -153,7 +153,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
                 open={adding}
                 setOpen={setAdding}
                 title="Add a task"
-                description="It goes on the workspace's shared list, where every bot here can pick it up."
+                description="It's added shared: whichever bot here takes it up has it. Hand it over to give it to one."
             >
                 <TaskForm
                     workspace_id={workspace_id}

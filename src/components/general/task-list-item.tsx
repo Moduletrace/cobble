@@ -11,6 +11,7 @@ import botStoneProps from "@/src/utils/bot-stone-props";
 import { TaskStatuses } from "@/src/dict/task-dict";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import relativeTime from "@/src/utils/relative-time";
+import taskPlaceLabel from "@/src/utils/task-place-label";
 import TaskStatusChip from "./task-status-chip";
 
 type Props = {
@@ -27,8 +28,8 @@ type Props = {
 };
 
 /**
- * One task: whose it is (a bot's stone), its title and status, the
- * workspace, what it's blocked on, its latest note and how long ago it
+ * One task: whose it is (a bot's stone), its title and status, where it
+ * is and who has it, what it's blocked on, its latest note and how long ago it
  * moved.
  */
 export default function TaskListItem({ task, onOpen, onStatusChange, busy }: Props) {
@@ -63,9 +64,7 @@ export default function TaskListItem({ task, onOpen, onStatusChange, busy }: Pro
                 </Row>
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <Span className="shrink-0 text-xs leading-4 text-ink-secondary truncate">
-                        {task.workspace_id
-                            ? task.workspace_name || `Workspace ${task.workspace_id}`
-                            : task.bot_name || `Bot ${task.bot_id}`}
+                        {taskPlaceLabel({ task })}
                     </Span>
                     {task.status == "blocked" && task.blocked_reason ? (
                         <Span className="min-w-0 text-xs leading-4 text-ink truncate">

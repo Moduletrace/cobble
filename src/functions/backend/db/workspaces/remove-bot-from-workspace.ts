@@ -31,6 +31,14 @@ export default async function removeBotFromWorkspace({
     });
 
     /**
+     * The tasks it had there stay in the workspace, shared again.
+     */
+    await BunSQLite.sql({
+        sql: `UPDATE tasks SET bot_id = NULL, updated_at = ? WHERE workspace_id = ? AND bot_id = ?`,
+        values: [Date.now(), workspace.id, bot_id],
+    });
+
+    /**
      * Its types there (workspace admin) go with its place.
      */
     await BunSQLite.sql({

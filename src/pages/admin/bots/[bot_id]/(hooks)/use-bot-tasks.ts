@@ -14,8 +14,8 @@ type Params = {
 };
 
 /**
- * A conversation's tasks: a bot's own list, or in a workspace the
- * workspace's shared one. Loaded on open and refreshed after every change,
+ * A conversation's tasks: a bot's own list, or in a workspace the ones it
+ * has there plus the shared ones nobody has yet. Loaded on open and refreshed after every change,
  * never part of the page props.
  */
 export default function useBotTasks({ bot_id, workspace_id, enabled = true }: Params) {
@@ -29,8 +29,8 @@ export default function useBotTasks({ bot_id, workspace_id, enabled = true }: Pa
 
         const query = new URLSearchParams();
 
+        query.set("bot_id", String(bot_id));
         if (workspace_id) query.set("workspace_id", String(workspace_id));
-        else query.set("bot_id", String(bot_id));
 
         const res = await fetchApi<{}, APIResponseObject<TaskWithNames>>(
             `/api/admin/tasks/list-tasks?${query.toString()}`,

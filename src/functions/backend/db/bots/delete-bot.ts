@@ -44,6 +44,15 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
      * Explicitly, since foreign keys are off outside the server process.
      */
     await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE bot_id = ?`, values: [bot.id] });
+
+    /**
+     * Its tasks in workspaces belong to the workspace: they stay, shared
+     * again, instead of cascading away with its own list.
+     */
+    await BunSQLite.sql({
+        sql: `UPDATE tasks SET bot_id = NULL, updated_at = ? WHERE bot_id = ? AND workspace_id IS NOT NULL`,
+        values: [Date.now(), bot.id],
+    });
     await BunSQLite.sql({ sql: `DELETE FROM envs WHERE bot_id = ?`, values: [bot.id] });
     await BunSQLite.sql({ sql: `DELETE FROM secret_requests WHERE bot_id = ?`, values: [bot.id] });
     await BunSQLite.sql({ sql: `DELETE FROM bot_graphics WHERE bot_id = ?`, values: [bot.id] });

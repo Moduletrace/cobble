@@ -31,7 +31,7 @@ type Props = {
 
 /**
  * The tasks this conversation works on: a bot's own list, or in a workspace
- * the workspace's shared one. Open it from the header menu; the list loads
+ * the ones it has there plus the shared ones nobody has yet. Open it from the header menu; the list loads
  * then, so the page's props stay small. A crew manager adds, moves, edits
  * and deletes; a task opens to show its notes and files.
  */
@@ -50,7 +50,7 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
     });
 
     const name = bot.name || "This bot";
-    const title = workspace?.id ? `${workspace.name || "Workspace"} tasks` : `${name}'s tasks`;
+    const title = workspace?.id ? `${name}'s tasks in ${workspace.name || "this workspace"}` : `${name}'s tasks`;
 
     useEffect(() => {
         if (open) on_open?.();
@@ -169,7 +169,7 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                 {!open_task ? (
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">
                         {workspace?.id
-                            ? `The shared to-do list of ${workspace.name || "this workspace"}. Every bot here sees it, and they keep it up to date as they work.`
+                            ? `What ${name} has in ${workspace.name || "this workspace"}, and the shared tasks there nobody has taken up yet. The workspace shows every bot's.`
                             : `What ${name} is working through, and what it's waiting on.`}
                     </Span>
                 ) : null}
@@ -184,9 +184,9 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                             set_status(msg);
 
                             /**
-                             * Handed to another bot, it's on that bot's list now.
+                             * Handed to another bot, it's that bot's now.
                              */
-                            if (!workspace?.id && saved.bot_id != bot.id) {
+                            if (saved.bot_id && saved.bot_id != bot.id) {
                                 setTasks((prev) => prev.filter((item) => item.id != saved.id));
                                 set_open_task(null);
                                 return;
@@ -203,7 +203,7 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                     />
                 ) : adding ? (
                     <TaskForm
-                        bot_id={workspace?.id ? null : Number(bot.id)}
+                        bot_id={Number(bot.id)}
                         workspace_id={workspace?.id ? Number(workspace.id) : null}
                         onCancel={() => set_adding(false)}
                         onSaved={(saved, msg) => {

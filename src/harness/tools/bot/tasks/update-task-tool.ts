@@ -4,6 +4,7 @@ import { type TaskStatus, TaskStatusValues } from "@/src/dict/task-dict";
 import addTaskNote from "@/src/functions/backend/db/tasks/add-task-note";
 import attachTaskFile from "@/src/functions/backend/db/tasks/attach-task-file";
 import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
+import moveTask from "@/src/functions/backend/db/tasks/move-task";
 import grabTaskMedia from "@/src/functions/backend/db/tasks/grab-task-media";
 import updateTask from "@/src/functions/backend/db/tasks/update-task";
 import type { StorageScope } from "@/src/utils/storage-access";
@@ -40,7 +41,7 @@ type Args = {
 export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes = [] }: Params): HarnessTool<Args> {
     return {
         name: "update_task",
-        description: `Move a task along. Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Call it as the work advances, not only at the end; every note is what the user sees on the task. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number.`,
+        description: `Move a task along. Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Setting a shared workspace task to doing makes it yours. Call it as the work advances, not only at the end; every note is what the user sees on the task. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number.`,
         schema: z.object({
             task_id: z.number().int(),
             status: z.enum(TaskStatusValues).optional(),
@@ -66,6 +67,15 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
         run: async ({ args }) => {
             const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
             const said: string[] = [];
+
+            /**
+             * A shared task in a workspace is nobody's until a bot starts on
+             * it: then it's that bot's.
+             */
+            if (args.status == "doing" && task.workspace_id && !task.bot_id && !is_coordinator) {
+                await moveTask({ task_id: task.id!, bot_id, workspace_id: task.workspace_id });
+                said.push(`it's yours now`);
+            }
 
             if (args.status || args.blocked_reason !== undefined) {
                 if (args.status == "blocked" && !args.blocked_reason?.trim()) {

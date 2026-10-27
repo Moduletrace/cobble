@@ -6,6 +6,7 @@ import type { TaskDetail } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import grabCrewRole from "../access/grab-crew-role";
 import grabTask from "./grab-task";
+import assertBotWorksThere from "./assert-bot-works-there";
 import taskScopeValues from "./task-scope-values";
 
 type Params = {
@@ -25,10 +26,12 @@ type Params = {
 };
 
 /**
- * Adds a task to a bot's own list or a workspace's shared one. A user adds
- * one to a bot they chat with or a workspace they're in; a bot's run adds
- * one to its own list or to a workspace it works in (its tool checks
- * that). Caps a collection at `TaskMaxPerScope` open and finished tasks.
+ * Adds a task to a bot's own list or a workspace's, there for one of its
+ * bots (`bot_id` too) or shared. A user adds one to a bot they chat with or
+ * a workspace they're in; a bot's run adds one to its own list or to a
+ * workspace it works in (its tool checks that). A workspace's task can
+ * only go to a bot working there. Caps a list at `TaskMaxPerScope` open and
+ * finished tasks.
  */
 export default async function createTask({
     user_id,
@@ -46,13 +49,17 @@ export default async function createTask({
         throw new AppError(`Only an admin can add a task.`);
     }
 
+    if (scope.bot_id && scope.workspace_id) {
+        await assertBotWorksThere({ bot_id: scope.bot_id, workspace_id: scope.workspace_id });
+    }
+
     const count = Number(
         (
             await BunSQLite.sql<{ n: number }>({
                 sql: `SELECT COUNT(*) AS n FROM tasks WHERE ${
-                    scope.bot_id ? `bot_id = ?` : `workspace_id = ?`
+                    scope.workspace_id ? `workspace_id = ?` : `bot_id = ? AND workspace_id IS NULL`
                 }`,
-                values: [Number(scope.bot_id || scope.workspace_id)],
+                values: [Number(scope.workspace_id || scope.bot_id)],
             })
         ).payload?.[0]?.n || 0,
     );

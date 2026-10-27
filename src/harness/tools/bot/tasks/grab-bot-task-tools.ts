@@ -17,7 +17,7 @@ type Params = {
     is_coordinator: boolean;
     /**
      * The workspaces the bot is admin of (`grabBotRunPowers`): in one of
-     * them, create_task can also add to the other members' own lists.
+     * them, create_task can also give tasks there to the other members.
      */
     admin_workspace_ids?: number[];
     workspace_id?: number | string | null;
@@ -25,11 +25,11 @@ type Params = {
 
 /**
  * The task tools every run gets (`src/harness/tools/bot/tasks/`): the
- * shared to-do list, one per bot and one per workspace, so a chat reply, a
- * task and a scheduled run all read it, move it along and file what they
- * produced. The coordinator's create_task may target any worker or
- * workspace; its update_task may link any file it can reach. A workspace
- * admin's may add to the other members' own lists there.
+ * to-do list (a bot's own, and in each workspace its tasks there and the
+ * shared ones), so a chat reply, a task and a scheduled run all read it,
+ * move it along and file what they produced. The coordinator's create_task
+ * may target any worker or workspace; its update_task may link any file it
+ * can reach. A workspace admin's may give tasks there to the other members.
  */
 export default async function grabBotTaskTools({
     user_id,
