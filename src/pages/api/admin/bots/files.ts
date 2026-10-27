@@ -1,5 +1,7 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabBotFile from "@/src/functions/backend/db/bot-files/grab-bot-file";
+import grabBotFileScope from "@/src/functions/backend/db/bot-files/grab-bot-file-scope";
+import userReachesFileScope from "@/src/functions/backend/db/bot-files/user-reaches-file-scope";
 import grabBotFileQuotaBytes, {
     grabBotFileQuotaMb,
 } from "@/src/functions/backend/db/bot-files/grab-bot-file-quota-bytes";
@@ -66,7 +68,20 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotFileScopesPaylo
                 scope.scope == "workspace" && bot_id && (await grabUserBot({ bot_id, user_id: user.id }))
                     ? [...scopes, { scope: "bot" as const, owner_id: bot_id }]
                     : scopes;
-            const file = await grabBotFile({ scopes: file_scopes, file_id });
+            /**
+             * A file from another bot's folder (an answer passed on from a
+             * chatroom names the asked bot's file) opens for a user who
+             * reaches that folder, as its bytes do (`grabBotFileMedia`).
+             */
+            let file = await grabBotFile({ scopes: file_scopes, file_id });
+
+            if (!file?.id) {
+                const elsewhere = await grabBotFileScope({ file_id });
+
+                if (elsewhere && (await userReachesFileScope({ ...elsewhere, user_id: user.id }))) {
+                    file = await grabBotFile({ scopes: [elsewhere], file_id });
+                }
+            }
 
             if (!file?.id) return { success: false, msg: `Not found.` };
 

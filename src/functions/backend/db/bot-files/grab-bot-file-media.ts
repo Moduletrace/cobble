@@ -3,9 +3,7 @@ import type {
     BUN_SQLITE_COBBLE_BOT_FILES,
     BUN_SQLITE_COBBLE_MEDIA,
 } from "@/db/types/db";
-import grabCrewRole from "../access/grab-crew-role";
-import grabUserBot from "../bots/grab-user-bot";
-import grabUserWorkspace from "../workspaces/grab-user-workspace";
+import userReachesFileScope from "./user-reaches-file-scope";
 
 type Params = {
     media_id: number | string;
@@ -32,20 +30,7 @@ export default async function grabBotFileMedia({
 
     if (!file?.id) return null;
 
-    const role = await grabCrewRole({ user_id });
-    const reaches =
-        file.scope == "workspace"
-            ? Boolean(
-                  await grabUserWorkspace({
-                      workspace_id: file.owner_id!,
-                      user_id,
-                  }),
-              )
-            : role == "super_admin"
-              ? true
-              : Boolean(await grabUserBot({ bot_id: file.owner_id!, user_id }));
-
-    if (!reaches) return null;
+    if (!(await userReachesFileScope({ scope: file.scope, owner_id: file.owner_id, user_id }))) return null;
 
     const media = await BunSQLite.sql<BUN_SQLITE_COBBLE_MEDIA>({
         sql: `SELECT * FROM media WHERE id = ? LIMIT 1`,

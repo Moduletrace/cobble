@@ -66,3 +66,17 @@ describe("linkComputerRefs", () => {
         ).toBe("Added to [workspace 2](#workspace-2). Not [workspace:x] or [workspace:3](https://example.com).");
     });
 });
+
+describe("linkComputerRefs and code", () => {
+    test("a ref quoted alone in a code span is the ref", () => {
+        expect(linkComputerRefs({ text: "saved as `[file:131]` today" })).toBe("saved as [file 131](#file-131) today");
+        expect(linkComputerRefs({ text: "see `` [room:4] ``" })).toBe("see [room 4](#room-4)");
+    });
+
+    test("refs inside longer code stay as written", () => {
+        expect(linkComputerRefs({ text: "write `[file:3] here` like so" })).toBe("write `[file:3] here` like so");
+        expect(linkComputerRefs({ text: "```\n[bot:2]\n```\nthen [bot:2]" })).toBe(
+            "```\n[bot:2]\n```\nthen [bot 2](#bot-2)",
+        );
+    });
+});

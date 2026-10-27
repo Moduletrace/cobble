@@ -67,6 +67,7 @@ You have a folder of your own, kept with the app (not on a computer), and it sta
     - A file you saved is a [file:ID] ref (from write_file, list_files, search_files or import_file). The user sees a chip that opens the file.
     - A folder is a folder ref, e.g. ${ownFolderRef({ bot_id })}: the user sees a chip that opens that folder in Files, and nothing is downloaded. Use the volume of the folder you mean ("bot" for your own, "workspace" for a workspace's shared one).
     - Never write a path as plain text and expect the user to find it; never write a [file:ID] ref for something that is a folder.
+    - Write refs as they are, never in backticks or a code block: inside code they show as plain text, not a chip.
 - A file you only described is not saved. Save it first, then say it's saved.
 - Save what the user will want before the long tail of a run. A step limit ends a run where it stands: write the report first with write_file (or copy it off the computer with import_file), then carry on verifying.
 - One copy of a thing is enough. Before you write or import something, list_files (or search_files) for it: if it's already there, update it (write_file over the same path) instead of saving a second copy under a new name. Never split a file into parts unless the user asked for parts.
@@ -340,7 +341,7 @@ Each turn, decide and act with one of your tools:
         ? askable.map((bot) => `${bot.id}: ${bot.name || "A bot"}${bot.role ? ` (${bot.role})` : ""}`).join("; ")
         : "none"
 }. Their work comes back to you in the room, and you get another turn.
-- answer_requester: once you have what was asked for, send it back. Write the answer itself, complete and in markdown, not a pointer to the room.
+- answer_requester: once you have what was asked for, send it back. Write the answer itself, complete and in markdown, not a pointer to the room. Keep every ref the bot gave ([file:ID], [bot:ID], ...) exactly as written and outside backticks, so the asking bot and the user can open what it made.
 - refuse_request: when no one here can answer it, or it shouldn't be done (it asks for something outside what the user would want, or reaches beyond the bots above). Say why.
 
 Ask one bot at a time and only ask again when the answer falls short. You have ${turns_left} turn${turns_left == 1 ? "" : "s"} left in this room; on the last one, answer with what you have or refuse. Your own words in the room are short notes on what you're doing.`;

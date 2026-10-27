@@ -1,5 +1,4 @@
-import { ChatroomRefHrefPrefix } from "./chatroom-ref";
-import { GraphicRefHrefPrefix } from "./graphic-ref";
+import linkRefsInText from "./link-refs-in-text";
 
 /**
  * The link target a computer ref (`computerRef`) becomes, e.g.
@@ -68,56 +67,33 @@ export const SecretRefHrefPrefix = "#secret-ref-";
 export const SecretRequestRefHrefPrefix = "#secret-request-";
 
 /**
- * Turns every computer ref (`[computer:3]`) and take-over ref
- * (`[take-over:3:browser]`), bot ref (`[bot:3]`), workspace ref
- * (`[workspace:2]`), file ref (`[file:12]`), folder ref
- * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
- * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
- * request ref (`[secret-request:4]`), graphic ref (`[graphic:5]`) and
- * chatroom ref (`[room:<id>]`) in a
- * message into a markdown link, so it
- * survives markdown rendering as a link the chat can swap for a button,
- * chip or download.
- *
- * A file ref and a folder ref are different things and are never guessed
- * from a name: `[file:12]` is a saved file (its chip downloads it),
- * `[folder:...]` a folder (its chip opens the files browser there).
+ * The kinds of ref a message can carry, as written before the colon.
+ */
+const RefKinds = "computer|take-over|bot|workspace|proposal|hook-proposal|secret|secret-request|graphic|room|file|folder";
+
+/**
+ * A code span holding nothing but one ref (`` `[file:12]` ``): bots often
+ * quote refs that way, and it still means the ref.
+ */
+const LoneRefInCode = new RegExp(`(?<!\`)(\`{1,2})[ \\t]*(\\[(?:${RefKinds}):[^\\]\`\\n]+\\])[ \\t]*\\1(?!\`)`, "g");
+
+/**
+ * Fenced code blocks (closed or still open at the end) and inline code
+ * spans, kept apart so refs inside them stay as written.
+ */
+const CodeParts = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]+`)/g;
+
+/**
+ * Turns the refs in a message into markdown links the chat swaps for
+ * buttons, chips and cards (`linkRefsInText`). A ref quoted alone in a code
+ * span counts as the ref; one inside longer code (a span with other text, a
+ * fenced block) stays literal text, since a link there would only show as
+ * markdown.
  */
 export default function linkComputerRefs({ text }: { text: string }) {
     return text
-        .replace(
-            /\[computer:(\d+)\](?!\()/g,
-            (_, id: string) => `[computer ${id}](${ComputerRefHrefPrefix}${id})`,
-        )
-        .replace(
-            /\[take-over:(\d+):([a-z]+)\](?!\()/g,
-            (_, id: string, mode: string) => `[take over](${TakeOverRefHrefPrefix}${id}-${mode})`,
-        )
-        .replace(/\[bot:(\d+)\](?!\()/g, (_, id: string) => `[bot ${id}](${BotRefHrefPrefix}${id})`)
-        .replace(
-            /\[workspace:(\d+)\](?!\()/g,
-            (_, id: string) => `[workspace ${id}](${WorkspaceRefHrefPrefix}${id})`,
-        )
-        .replace(
-            /\[proposal:(\d+)\](?!\()/g,
-            (_, id: string) => `[proposal ${id}](${ProposalRefHrefPrefix}${id})`,
-        )
-        .replace(
-            /\[hook-proposal:(\d+)\](?!\()/g,
-            (_, id: string) => `[hook proposal ${id}](${HookProposalRefHrefPrefix}${id})`,
-        )
-        .replace(/\[secret:(\d+)\](?!\()/g, (_, id: string) => `[secret ${id}](${SecretRefHrefPrefix}${id})`)
-        .replace(
-            /\[secret-request:(\d+)\](?!\()/g,
-            (_, id: string) => `[secret request ${id}](${SecretRequestRefHrefPrefix}${id})`,
-        )
-        .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
-        .replace(/\[room:(\d+)\](?!\()/g, (_, id: string) => `[room ${id}](${ChatroomRefHrefPrefix}${id})`)
-        .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
-        .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>
-            `[${path}](${FolderRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}:${path}`)})`,
-        )
-        .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, (_, volume: string, owner: string) =>
-            `[${volume} ${owner}](${FolderRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}`)})`,
-        );
+        .replace(LoneRefInCode, (_, _ticks: string, ref: string) => ref)
+        .split(CodeParts)
+        .map((part, index) => (index % 2 ? part : linkRefsInText({ text: part })))
+        .join("");
 }
