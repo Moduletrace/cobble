@@ -27,10 +27,13 @@ function fetchFile({
 
     if (cached) return cached;
 
-    const query = new URLSearchParams({ file_id: String(file_id) });
+    /**
+     * Both ids in a workspace: a bot working there saves to its own folder
+     * unless it picks the workspace's, and the chip has to find either.
+     */
+    const query = new URLSearchParams({ file_id: String(file_id), bot_id: String(bot_id) });
 
     if (workspace_id) query.set("workspace_id", String(workspace_id));
-    else query.set("bot_id", String(bot_id));
 
     const pending = fetchApi<{}, APIResponseObject<BotFileScopesPayload>>(
         `/api/admin/bots/files?${query.toString()}`,

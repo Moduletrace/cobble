@@ -56,7 +56,17 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotFileScopesPaylo
         const scopes = [scope];
 
         if (file_id) {
-            const file = await grabBotFile({ scopes, file_id });
+            /**
+             * A workspace run saves to the bot's own folder by default
+             * (`grabStorageScopes`, own first), so a chip in a workspace
+             * conversation looks there too, for a user who reaches that bot
+             * (the same reach `grabBotFileMedia` checks before the bytes).
+             */
+            const file_scopes =
+                scope.scope == "workspace" && bot_id && (await grabUserBot({ bot_id, user_id: user.id }))
+                    ? [...scopes, { scope: "bot" as const, owner_id: bot_id }]
+                    : scopes;
+            const file = await grabBotFile({ scopes: file_scopes, file_id });
 
             if (!file?.id) return { success: false, msg: `Not found.` };
 
