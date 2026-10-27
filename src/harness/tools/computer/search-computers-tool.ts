@@ -55,7 +55,7 @@ export default function searchComputersTool({
 }: Params): HarnessTool<Args> {
     return {
         name: "search_computers",
-        description: `Run one read-only shell command (bash) on every computer you have at once, to find which one holds something: a file, a running app, a logged-in browser session, a setting. Each computer's output comes back under its ref, e.g. ${computerRef({ id: computers[0]?.id || 1 })}. For a logged-in site, look for its domain in the browser profiles' cookie databases (copy the file first, since the browser locks it) and list only host names, never cookie values. It starts in your folder on each computer (${dirs.cwd}, also ~). Don't change anything with it; use start_task for that. Output past ${AppData.ComputerSearchMaxOutputChars} characters per computer is cut, so filter in the command.`,
+        description: `Run one read-only shell command (bash) on every computer you have at once, to find which one holds something: a file, a running app, a logged-in browser session, a setting. Each computer's output comes back under its ref, e.g. ${computerRef({ id: computers[0]?.id || 1 })}. For a logged-in site, look for its domain in the browser profiles' cookie databases (copy the file first, since the browser locks it) and list only host names, never cookie values. It starts in your folder on each computer (${dirs.cwd}, also ~). Your envs aren't loaded here (only in a task's shell), so it can't tell whether one is set: "Your envs" in your instructions says that. Don't change anything with it; use start_task for that. Output past ${AppData.ComputerSearchMaxOutputChars} characters per computer is cut, so filter in the command.`,
         schema: z.object({
             command: z.string().min(1).max(4000),
         }),

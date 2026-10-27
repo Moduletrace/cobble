@@ -37,7 +37,7 @@ export default function grabBotSecretTools({
 }: Params): HarnessTool[] {
     return [
         ...(session_id && onRequest
-            ? [requestSecretTool({ user_id, bot_id, session_id, workspace_id, in_task, onRequest })]
+            ? [requestSecretTool({ user_id, bot_id, session_id, workspace_id, computer_id, in_task, onRequest })]
             : []),
         ...(onShow ? [showSecretTool({ user_id, bot_id, workspace_id, computer_id, onShow })] : []),
     ];

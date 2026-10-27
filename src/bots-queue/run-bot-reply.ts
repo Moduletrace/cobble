@@ -35,6 +35,8 @@ import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-k
 import grabKnowledgebaseContext from "@/src/harness/tools/knowledgebases/grab-knowledgebase-context";
 import botMessagesToHarness from "./bot-messages-to-harness";
 import composeComputersNote from "./compose-computers-note";
+import composeEnvsNote from "./compose-envs-note";
+import grabReachableEnvs from "@/src/functions/backend/db/envs/grab-reachable-envs";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import continueInNewSessionTool from "@/src/harness/tools/bot/continue-in-new-session-tool";
 import searchPastSessionsTool from "@/src/harness/tools/bot/sessions/search-past-sessions-tool";
@@ -144,6 +146,17 @@ export default async function runBotReply({
 
     const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
     const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
+
+    /**
+     * The envs the reply has (keys only), so it doesn't ask for or test
+     * ones that are set.
+     */
+    const envs = await grabReachableEnvs({
+        bot_id: bot.id!,
+        user_id,
+        workspace_id,
+        computer_id: computers[0]?.id || null,
+    });
 
     /**
      * A summary that can't be written now (no model free) is left out
@@ -312,6 +325,7 @@ export default async function runBotReply({
                 TaskReminderNote,
                 ActionCheckNote,
                 SecretsNote,
+                composeEnvsNote({ ...envs, has_computer: computers.length > 0 }),
                 GraphicsNote,
                 workspace_id ? WorkspaceLearningNote : "",
                 composeComputersNote({

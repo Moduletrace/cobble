@@ -219,7 +219,7 @@ export default function delegateTaskTool({
 
             if (open) {
                 throw new Error(
-                    `${worker.name} already has task #${open.id} "${title}" ${open.status == "pending" ? "queued" : "under way"}. Don't hand it over again; it's reported back here when they finish.`,
+                    `${worker.name} already has run #${open.id} "${title}" ${open.status == "pending" ? "queued" : "under way"}. Don't hand it over again; it's reported back here when they finish.`,
                 );
             }
 
@@ -244,9 +244,9 @@ export default function delegateTaskTool({
                 }),
             });
 
-            return `Task #${job_id} is with ${worker.name}${
+            return `Run #${job_id} is with ${worker.name}${
                 target_workspace_id ? ` in workspace ${target_workspace_id}` : " in their own chat"
-            }.${joined} Their result will be in that conversation and reported back here.`;
+            } (a run, not a task on the to-do list: list_tasks doesn't show it).${joined} Their result will be in that conversation and reported back here.`;
         },
     };
 }

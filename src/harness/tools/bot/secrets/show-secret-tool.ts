@@ -1,6 +1,5 @@
 import { z } from "zod";
-import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
-import grabRunEnvs from "@/src/functions/backend/db/extensions/grab-run-envs";
+import grabReachableEnvs from "@/src/functions/backend/db/envs/grab-reachable-envs";
 import secretRef from "@/src/utils/secret-ref";
 import type { HarnessTool } from "../../../types";
 
@@ -30,18 +29,14 @@ type Args = {
 export default function showSecretTool({ user_id, bot_id, workspace_id, computer_id, onShow }: Params): HarnessTool<Args> {
     return {
         name: "show_secret",
-        description: `Show the user one of your envs (by key, e.g. a password or token they saved or you captured) without reading it: you get a [secret:ID] ref to put in your message, which the user sees masked with Reveal and Copy. Never print a secret with a command to show it. Only its owner (for a personal secret) or a super admin can reveal it.`,
+        description: `Show the user one of your envs (by key, e.g. a password or token they saved or you captured) without reading it: you get a [secret:ID] ref to put in your message, which the user sees masked with Reveal and Copy. Only when the user wants to see it: to check which envs you have, read "Your envs" in your instructions instead. Never print a secret with a command to show it. Only its owner (for a personal secret) or a super admin can reveal it.`,
         schema: z.object({
             key: z.string().trim().min(1).max(128),
         }),
         run: async ({ args }) => {
             const key = args.key.trim();
-            const on_computer = computer_id
-                ? await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id })
-                : [];
-            const env =
-                on_computer.find((e) => e.key == key) ||
-                (await grabRunEnvs({ bot_id, user_id, workspace_id })).find((e) => e.key == key);
+            const { on_computer, tools_only } = await grabReachableEnvs({ bot_id, user_id, workspace_id, computer_id });
+            const env = [...on_computer, ...tools_only].find((e) => e.key == key);
 
             if (!env) return `No env called ${key} reaches you here. Ask the user with request_secret if you need it.`;
 
