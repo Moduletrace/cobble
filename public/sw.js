@@ -85,7 +85,14 @@ function isBypassRequest(url) {
     );
 }
 
+/**
+ * Nothing the worker holds belongs to one version (navigations go to the
+ * network, the code cache belongs to the build), so a new worker takes
+ * over at once instead of waiting for every tab to close. It never
+ * reloads a page: the open one keeps running, now served by it.
+ */
 self.addEventListener("install", (event) => {
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) =>
             Promise.allSettled(SHELL.map((url) => cache.add(url))),
@@ -190,9 +197,8 @@ async function cacheFirst(request) {
 }
 
 /**
- * The page asks for a new version from its update notice: nothing skips
- * the wait until the user says so. The loading page asks too, since it
- * isn't the app and nothing of the app's is running.
+ * The loading page asks a waiting worker to take over. Workers from
+ * before `install` skipped the wait on their own only answer this.
  */
 self.addEventListener("message", (event) => {
     if (event.data?.type === "SKIP_WAITING") {
