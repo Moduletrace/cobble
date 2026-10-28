@@ -32,7 +32,7 @@ type Props = {
  */
 export default function SettingsListRow({ avatar, title, href, badge, title_icon, subtitle, children }: Props) {
     const title_content = (
-        <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
+        <Span className="block text-sm font-bold leading-5 text-ink truncate w-full">
             {title}
             {title_icon ? <Span className="ml-1.5 inline-flex align-middle">{title_icon}</Span> : null}
             {badge ? <Span className="ml-2 text-[11px] font-bold leading-4 text-ink-secondary">{badge}</Span> : null}
@@ -47,7 +47,7 @@ export default function SettingsListRow({ avatar, title, href, badge, title_icon
                     <Link
                         href={href}
                         title={title}
-                        className="block min-w-0 border-0 leading-normal hover:opacity-100 hover:underline focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-default-sm"
+                        className="block w-full min-w-0 border-0 leading-normal hover:opacity-100 hover:underline focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-surface rounded-default-sm"
                     >
                         {title_content}
                     </Link>
