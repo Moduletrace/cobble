@@ -598,6 +598,15 @@ export const AppData = {
      */
     BotGraphicInlineMaxHeight: 640,
     /**
+     * Largest text file (markdown, CSV, plain text) the file preview reads
+     * into the page (bytes); a bigger one is only offered to download.
+     */
+    FilePreviewMaxTextBytes: 2 * 1024 * 1024,
+    /**
+     * Most rows of a CSV the file preview draws.
+     */
+    FilePreviewMaxTableRows: 1000,
+    /**
      * Most questions one `ask_user` card holds.
      */
     BotQuestionMaxQuestions: 6,

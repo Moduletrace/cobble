@@ -1,9 +1,9 @@
 import Row from "@moduletrace/twui/layout/Row";
-import Link from "@moduletrace/twui/layout/Link";
 import { FileText, Image as ImageIcon } from "lucide-react";
 import Span from "@moduletrace/twui/layout/Span";
 import type { TaskFile } from "@/src/types";
 import fileRef from "@/src/utils/file-ref";
+import FilePreviewLink from "./file-preview-link";
 
 type Props = {
     file: TaskFile;
@@ -15,8 +15,8 @@ type Props = {
 };
 
 /**
- * One file on a task: its name, opening the bytes at `/media/<id>` (private,
- * so only someone who reaches the task can load it), and its file ref (built by `fileRef`) when it
+ * One file on a task: its name, opening it in the file preview (its bytes at
+ * `/media/<id>`, private, so only someone who reaches the task can load them), and its file ref (built by `fileRef`) when it
  * lives in a bot's or workspace's folder (so the file's real home is
  * reachable too).
  */
@@ -39,15 +39,14 @@ export default function TaskFileRow({ file, onDetach, busy }: Props) {
             ) : (
                 <FileText size={16} className="shrink-0 text-ink-secondary" aria-hidden />
             )}
-            <Link
-                href={`/media/${file.media_id}`}
-                target="_blank"
-                rel="noreferrer"
-                title={file.name || "Open the file"}
+            <FilePreviewLink
+                name={file.name || `File ${file.media_id}`}
+                url={`/media/${file.media_id}`}
+                media_type={file.media_type}
                 className="grow min-w-0 text-[13px] leading-[18px] text-ink truncate hover:underline"
             >
                 {file.name || `File ${file.media_id}`}
-            </Link>
+            </FilePreviewLink>
             {file.kind == "reference" ? (
                 <Span className="shrink-0 text-[11px] leading-4 text-ink-secondary">reference</Span>
             ) : null}

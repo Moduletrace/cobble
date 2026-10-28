@@ -1,4 +1,3 @@
-import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
@@ -6,6 +5,7 @@ import Button from "@moduletrace/twui/layout/Button";
 import { Trash2 } from "lucide-react";
 import type { MediaType, PublicBotFile } from "@/src/types";
 import relativeTime from "@/src/utils/relative-time";
+import FilePreviewLink from "@/src/components/general/file-preview-link";
 import AttachmentIcon from "./attachment-icon";
 
 type Props = {
@@ -29,15 +29,15 @@ export default function FileRow({ file, can_manage, busy, onDelete }: Props) {
                 <AttachmentIcon media_type={file.media_type as MediaType} size={16} />
             </Row>
             <Stack className="min-w-0 flex-1 gap-0.5!">
-                <Link
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`Open ${file.name}`}
+                <FilePreviewLink
+                    name={file.path || file.name}
+                    url={file.url}
+                    media_type={file.media_type}
+                    size={file.size}
                     className="text-[13px] font-bold leading-5 text-ink break-words hover:opacity-80"
                 >
                     {file.path || file.name}
-                </Link>
+                </FilePreviewLink>
                 <Span className="text-[12px] leading-4 text-ink-secondary">
                     {[
                         file.scope == "workspace" ? "Workspace" : "Bot files",

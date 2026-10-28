@@ -1,10 +1,10 @@
 import { useContext, useEffect, useState } from "react";
-import Link from "@moduletrace/twui/layout/Link";
 import Span from "@moduletrace/twui/layout/Span";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { AppContext } from "@/src/pages/__root";
 import type { BotFileScopesPayload, MediaType, PublicBotFile } from "@/src/types";
+import FilePreviewLink from "@/src/components/general/file-preview-link";
 import AttachmentIcon from "./attachment-icon";
 
 type Props = {
@@ -50,8 +50,8 @@ function fetchFile({
 
 /**
  * A file a bot named in a message (`fileRef`): the name it is saved under,
- * linked to its bytes at `/media/<id>` (private: only someone who reaches
- * the file's folder can load it). A folder the bot named is a `folderRef`
+ * opening it in the file preview (its bytes at `/media/<id>`, private: only
+ * someone who reaches the file's folder can load them). A folder the bot named is a `folderRef`
  * instead, and its chip opens the files browser. The conversation's files come with the page, so most
  * chips need no request; one that isn't among them (older than the page's
  * first page) is fetched by id. A file the user doesn't reach, or one
@@ -85,15 +85,15 @@ export default function FileRefChip({ file_id }: Props) {
     }
 
     return (
-        <Link
-            href={file.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={`Open ${file.name}`}
+        <FilePreviewLink
+            name={file.name}
+            url={file.url}
+            media_type={file.media_type}
+            size={file.size}
             className="inline-flex h-6 max-w-full gap-1.5 items-center px-1.5 align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink hover:opacity-80"
         >
             <AttachmentIcon media_type={file.media_type as MediaType} />
             <Span className="truncate">{file.name}</Span>
-        </Link>
+        </FilePreviewLink>
     );
 }

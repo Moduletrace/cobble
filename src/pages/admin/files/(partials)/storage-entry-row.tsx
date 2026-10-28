@@ -8,6 +8,7 @@ import type { MediaType, StorageEntry } from "@/src/types";
 import formatBytes from "@/src/utils/format-bytes";
 import relativeTime from "@/src/utils/relative-time";
 import AttachmentIcon from "@/src/pages/admin/bots/[bot_id]/(partials)/attachment-icon";
+import FilePreviewLink from "@/src/components/general/file-preview-link";
 
 type Props = {
     entry: StorageEntry;
@@ -16,8 +17,8 @@ type Props = {
 };
 
 /**
- * One entry in the open folder: a folder opens in place, a file opens in a
- * new tab (its own media record when it is one of the bot's files, else
+ * One entry in the open folder: a folder opens in place, a file opens in the
+ * file preview (its own media record when it is one of the bot's files, else
  * the browser's streaming route).
  */
 export default function StorageEntryRow({ entry, selected, onOpenFolder }: Props) {
@@ -51,15 +52,15 @@ export default function StorageEntryRow({ entry, selected, onOpenFolder }: Props
                         {entry.name}
                     </Link>
                 ) : (
-                    <Link
-                        href={entry.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={`Open ${entry.name}`}
+                    <FilePreviewLink
+                        name={entry.name}
+                        url={entry.url || ""}
+                        media_type={entry.media_type}
+                        size={entry.size}
                         className="text-[13px] font-bold leading-5 text-ink break-words hover:opacity-80"
                     >
                         {entry.name}
-                    </Link>
+                    </FilePreviewLink>
                 )}
                 <Span className="text-[12px] leading-4 text-ink-secondary">
                     {[

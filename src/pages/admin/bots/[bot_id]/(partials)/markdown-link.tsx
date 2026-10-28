@@ -34,7 +34,7 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * A link in a bot message. A computer the bot named (`linkComputerRefs`)
  * becomes its switch button, a take-over request a button that opens the
  * computer, a bot it named a link to that bot's conversation, a workspace
- * a link to that workspace, a file it saved a chip that downloads it, a
+ * a link to that workspace, a file it saved a chip that previews it, a
  * folder it named a chip that opens it in the files browser, an MCP server,
  * tool, skill or hook it proposed a chip that opens the confirm card, a
  * secret it showed a masked chip, a secret it asked for a chip that opens
