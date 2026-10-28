@@ -10,7 +10,8 @@ export type SqlCondition = {
 
 /**
  * Where a task is: a bot's own list (`bot_id` alone), or a workspace
- * (`workspace_id`, with the bot that has it, if any).
+ * (`workspace_id`, with the `bot_id` that has it there). Every task has a
+ * bot.
  */
 export type TaskScope = {
     bot_id?: number | null;

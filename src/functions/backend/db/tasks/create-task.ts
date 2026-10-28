@@ -27,7 +27,7 @@ type Params = {
 
 /**
  * Adds a task to a bot's own list or a workspace's, there for one of its
- * bots (`bot_id` too) or shared. A user adds one to a bot they chat with or
+ * bots (`bot_id` too): every task belongs to a bot. A user adds one to a bot they chat with or
  * a workspace they're in; a bot's run adds one to its own list or to a
  * workspace it works in (its tool checks that). A workspace's task can
  * only go to a bot working there. Caps a list at `TaskMaxPerScope` open and

@@ -25,8 +25,8 @@ type Params = {
 
 /**
  * The task tools every run gets (`src/harness/tools/bot/tasks/`): the
- * to-do list (a bot's own, and in each workspace its tasks there and the
- * shared ones), so a chat reply, a task and a scheduled run all read it,
+ * to-do list (every task belongs to one bot: its own list and its tasks in
+ * each workspace; an admin's whole workspace), so a chat reply, a task and a scheduled run all read it,
  * move it along and file what they produced. The coordinator's create_task
  * may target any worker or workspace; its update_task may link any file it
  * can reach. A workspace admin's may give tasks there to the other members.

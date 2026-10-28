@@ -42,6 +42,7 @@ export default function WorkspaceDashboard() {
             <WorkspaceTasksGroup
                 workspace_id={workspace_id}
                 tasks={pageProps?.workspace_tasks || []}
+                bots={pageProps?.workspace_bots || []}
             />
             <WorkspaceActivityGroup
                 workspace_id={workspace_id}

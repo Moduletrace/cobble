@@ -220,7 +220,7 @@ You are working through a task on your own; the user isn't watching. Use your to
  */
 export const TasksNote = `# Tasks
 
-Tasks are the crew's shared to-do list, one per bot and one per workspace. A workspace's tasks are seen by every bot working there, and the coordinator sees everything.
+Tasks are the crew's to-do list. Every task belongs to one bot, on its own list or in a workspace. You see your own; a workspace's admin sees every task in that workspace, and the coordinator sees everything.
 
 - list_tasks shows what's open: yours, a workspace's, or (as the coordinator) all of it. Check it before you plan work, so you don't start something already tracked.
 - create_task adds one, with a brief: what to do, where, and what done looks like. Only add a task for work that will take more than this reply; never one for something you're doing now.

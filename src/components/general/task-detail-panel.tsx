@@ -231,7 +231,7 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                             <Span className="min-w-0 truncate">{task.bot_name || `Bot ${task.bot_id}`}</Span>
                         </>
                     ) : (
-                        <Span className="text-ink-secondary">Shared, nobody has taken it up yet</Span>
+                        <Span className="text-ink-secondary">No bot</Span>
                     )}
                 </TaskFactRow>
                 <TaskFactRow label="Where">

@@ -10,6 +10,7 @@ import fileIngest from "./file-ingest";
 import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import migrateBotTypes from "./functions/backend/db/bot-types/migrate-bot-types";
+import assignOwnerlessTasks from "./functions/backend/db/tasks/assign-ownerless-tasks";
 import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
 import dropStoredFileText from "./functions/backend/db/stored-text/drop-stored-file-text";
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
@@ -37,6 +38,9 @@ const port = process.env.PORT || 7227;
 await enableForeignKeys();
 await migrateBotTypes().catch((error) =>
     logError({ title: "Could not migrate bot types", error }).catch(() => {}),
+);
+await assignOwnerlessTasks().catch((error) =>
+    logError({ title: "Could not assign tasks without a bot", error }).catch(() => {}),
 );
 await clearImplicitSessionLinks().catch((error) =>
     logError({ title: "Could not clear implicit session links", error }).catch(() => {}),

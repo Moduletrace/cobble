@@ -10,7 +10,7 @@ type Params = {
     task_id: number | string;
     /**
      * Where it goes: a bot's own list (`bot_id` alone), or a workspace,
-     * with the bot that has it there (none: unassigned).
+     * with the bot that has it there (always one).
      */
     bot_id?: number | string | null;
     workspace_id?: number | string | null;

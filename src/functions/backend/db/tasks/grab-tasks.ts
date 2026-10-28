@@ -28,10 +28,6 @@ type Params = {
      */
     only_bot_id?: number | string | null;
     /**
-     * With `only_bot_id`: also the shared ones nobody has yet.
-     */
-    with_unassigned?: boolean;
-    /**
      * Only one workspace's tasks.
      */
     only_workspace_id?: number | string | null;
@@ -61,7 +57,6 @@ export default async function grabTasks({
     is_coordinator,
     admin_workspace_ids,
     only_bot_id,
-    with_unassigned,
     only_workspace_id,
     own_list,
     statuses,
@@ -82,7 +77,7 @@ export default async function grabTasks({
     }
 
     if (only_bot_id) {
-        where.push(with_unassigned ? `(t.bot_id = ? OR t.bot_id IS NULL)` : `t.bot_id = ?`);
+        where.push(`t.bot_id = ?`);
         values.push(Number(only_bot_id));
     }
 

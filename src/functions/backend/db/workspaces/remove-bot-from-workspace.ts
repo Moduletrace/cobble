@@ -1,6 +1,8 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserWorkspace from "./grab-user-workspace";
+import grabBotById from "../bots/grab-bot-by-id";
+import passOnBotTasks from "../tasks/pass-on-bot-tasks";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
@@ -31,12 +33,11 @@ export default async function removeBotFromWorkspace({
     });
 
     /**
-     * The tasks it had there stay in the workspace, shared again.
+     * The tasks it had there stay in the workspace, passed to its admin bot
+     * (else the coordinator), read before its admin type goes below.
      */
-    await BunSQLite.sql({
-        sql: `UPDATE tasks SET bot_id = NULL, updated_at = ? WHERE workspace_id = ? AND bot_id = ?`,
-        values: [Date.now(), workspace.id, bot_id],
-    });
+    const bot = await grabBotById({ bot_id });
+    await passOnBotTasks({ bot_id, workspace_id: workspace.id, bot_name: bot?.name });
 
     /**
      * Its types there (workspace admin) go with its place.

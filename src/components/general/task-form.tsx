@@ -19,6 +19,11 @@ type Props = {
     bot_id?: number | null;
     workspace_id?: number | null;
     /**
+     * Adding to a workspace without a `bot_id`: the bots there to pick who
+     * has it, since every task belongs to a bot.
+     */
+    bots?: { id?: number | string | null; name?: string | null }[];
+    /**
      * Edits this task; adds one when not given.
      */
     task?: TaskDetail | null;
@@ -34,6 +39,7 @@ type Props = {
 export default function TaskForm({
     bot_id,
     workspace_id,
+    bots = [],
     task,
     onSaved,
     onCancel,
@@ -46,6 +52,10 @@ export default function TaskForm({
     const [blocked_reason, setBlockedReason] = useState(
         task?.blocked_reason || "",
     );
+    const pick_bot = !task && !bot_id && Boolean(workspace_id);
+    const [picked_bot_id, setPickedBotId] = useState<number | undefined>(
+        bots[0]?.id ? Number(bots[0].id) : undefined,
+    );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -54,6 +64,11 @@ export default function TaskForm({
 
         if (!title.trim()) {
             setError("A task needs a title.");
+            return;
+        }
+
+        if (pick_bot && !picked_bot_id) {
+            setError("Pick the bot that has it.");
             return;
         }
 
@@ -67,7 +82,7 @@ export default function TaskForm({
             method: "POST",
             body: {
                 task_id: task?.id ? Number(task.id) : undefined,
-                bot_id: task ? undefined : bot_id || undefined,
+                bot_id: task ? undefined : bot_id || picked_bot_id || undefined,
                 workspace_id: task ? undefined : workspace_id || undefined,
                 title,
                 description,
@@ -100,6 +115,19 @@ export default function TaskForm({
                     maxLength={AppData.TaskTitleMaxLength}
                     disabled={loading}
                 />
+                {pick_bot ? (
+                    <Select
+                        title="Who has it"
+                        label="Who has it"
+                        showLabel
+                        options={bots.map((bot) => ({
+                            title: bot.name || `Bot ${bot.id}`,
+                            value: String(bot.id),
+                            default: Number(bot.id) == picked_bot_id,
+                        }))}
+                        changeHandler={(value) => setPickedBotId(Number(value) || undefined)}
+                    />
+                ) : null}
                 <CodeEditor
                     mode="markdown"
                     className="h-[500px]"

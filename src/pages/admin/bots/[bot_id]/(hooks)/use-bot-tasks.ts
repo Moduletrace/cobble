@@ -15,7 +15,7 @@ type Params = {
 
 /**
  * A conversation's tasks: a bot's own list, or in a workspace the ones it
- * has there plus the shared ones nobody has yet. Loaded on open and refreshed after every change,
+ * has there. Loaded on open and refreshed after every change,
  * never part of the page props.
  */
 export default function useBotTasks({ bot_id, workspace_id, enabled = true }: Params) {

@@ -6,8 +6,8 @@ import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bune
 
 /**
  * The user's tasks: a bot's own list (`?bot_id=`), a workspace's
- * (`?workspace_id=`), one bot's there with the unassigned ones
- * (`?workspace_id=&bot_id=`), or every task they reach. `?status=` narrows to one
+ * (`?workspace_id=`), one bot's there (`?workspace_id=&bot_id=`), or every
+ * task they reach. `?status=` narrows to one
  * status, `?open=1` to the open ones.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<TaskWithNames>> = async ({ req }) => {
@@ -33,7 +33,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskWithNames>> = 
             payload: await grabTasks({
                 user_id: user.id,
                 only_bot_id: bot_id,
-                with_unassigned: Boolean(bot_id && workspace_id),
                 only_workspace_id: workspace_id,
                 own_list: Boolean(bot_id && !workspace_id),
                 statuses: status ? [status] : undefined,

@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import deleteMedia from "@/src/functions/backend/db/media/delete-media";
 import purgeStorage, { grabStorageMediaIds } from "@/src/functions/backend/db/bot-files/purge-storage";
 import { grabTaskMediaIds } from "@/src/functions/backend/db/tasks/purge-task-media";
+import passOnBotTasks from "@/src/functions/backend/db/tasks/pass-on-bot-tasks";
 import AppError from "@/src/utils/app-error";
 import { clearEnvCache } from "../envs/grab-all-envs";
 import grabUserBot from "./grab-user-bot";
@@ -41,18 +42,17 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
     const task_media_ids = await grabTaskMediaIds({ bot_id: bot.id! }).catch(() => []);
 
     /**
+     * Its tasks in workspaces belong to the workspace: they go to each one's
+     * admin bot (else the coordinator) instead of cascading away with its
+     * own list.
+     */
+    await passOnBotTasks({ bot_id: bot.id, bot_name: bot.name });
+
+    /**
      * Explicitly, since foreign keys are off outside the server process.
      */
     await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE bot_id = ?`, values: [bot.id] });
 
-    /**
-     * Its tasks in workspaces belong to the workspace: they stay, shared
-     * again, instead of cascading away with its own list.
-     */
-    await BunSQLite.sql({
-        sql: `UPDATE tasks SET bot_id = NULL, updated_at = ? WHERE bot_id = ? AND workspace_id IS NOT NULL`,
-        values: [Date.now(), bot.id],
-    });
     await BunSQLite.sql({ sql: `DELETE FROM envs WHERE bot_id = ?`, values: [bot.id] });
     await BunSQLite.sql({ sql: `DELETE FROM secret_requests WHERE bot_id = ?`, values: [bot.id] });
     await BunSQLite.sql({ sql: `DELETE FROM bot_graphics WHERE bot_id = ?`, values: [bot.id] });

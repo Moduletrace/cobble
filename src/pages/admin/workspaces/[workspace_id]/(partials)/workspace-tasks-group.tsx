@@ -22,14 +22,19 @@ type Props = {
      * Its tasks, open first.
      */
     tasks: TaskWithNames[];
+    /**
+     * The bots working there, to pick who has a new task.
+     */
+    bots: { id?: number | string | null; name?: string | null }[];
 };
 
 /**
- * Every task in a workspace, whichever bot has it (or shared, nobody's
- * yet). Each bot there sees its own and the shared ones. Add and change one by hand here; the bots
+ * Every task in a workspace, whichever bot has it: every task belongs to
+ * one bot, which sees only its own (the workspace's admin bot sees all).
+ * Add and change one by hand here; the bots
  * keep it up to date themselves as they work.
  */
-export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
+export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props) {
     const { pageProps } = useContext(AppContext);
     const [items, setItems] = useState(tasks);
     const [busy, setBusy] = useState(false);
@@ -89,18 +94,19 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
         <SettingsGroup
             id="tasks"
             title="Tasks"
-            description="Every task in this workspace, whichever bot has it. A bot sees its own here and the shared ones nobody has taken up yet."
+            description="Every task in this workspace, whichever bot has it. Each bot sees only its own; the workspace's admin bot and the coordinator see them all."
         >
             <Stack className="w-full gap-2! items-stretch">
                 {can_manage ? (
                     <Row className="justify-end">
                         <Button
-                            title="Add a task"
+                            title={bots.length ? "Add a task" : "Add a bot to this workspace first"}
                             type="button"
                             variant="outlined"
                             color="gray"
                             size="small"
                             onClick={() => setAdding(true)}
+                            disabled={!bots.length}
                         >
                             Add task
                         </Button>
@@ -138,10 +144,11 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
                 open={adding}
                 setOpen={setAdding}
                 title="Add a task"
-                description="It's added shared: whichever bot here takes it up has it. Hand it over to give it to one."
+                description="Pick the bot that has it. Hand it over later to give it to another."
             >
                 <TaskForm
                     workspace_id={workspace_id}
+                    bots={bots}
                     onCancel={() => setAdding(false)}
                     onSaved={(task, msg) => {
                         replace({ task });

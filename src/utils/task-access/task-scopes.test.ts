@@ -21,7 +21,7 @@ beforeAll(() => {
     db.run(`CREATE TABLE tasks (id INTEGER PRIMARY KEY, bot_id INTEGER, workspace_id INTEGER, created_by_bot_id INTEGER)`);
     db.run(`INSERT INTO tasks VALUES
         (100, 1, NULL, NULL), (101, 2, NULL, NULL), (102, 3, NULL, NULL),
-        (110, NULL, 10, NULL), (111, NULL, 11, NULL),
+        (110, 3, 10, NULL), (111, 1, 11, NULL),
         (112, 3, 11, NULL), (113, 2, 11, NULL)`);
 });
 
@@ -54,13 +54,13 @@ describe("taskScopesSql", () => {
 });
 
 describe("botTaskScopesSql", () => {
-    test("a worker reaches its own list, its tasks in its workspaces and the shared ones there", () => {
-        expect(ids({ condition: botTaskScopesSql({ bot_id: 3, is_coordinator: false }) })).toEqual([102, 110, 111, 112]);
+    test("a worker reaches its own list and its tasks in its workspaces, never another bot's there", () => {
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 3, is_coordinator: false }) })).toEqual([102, 110, 112]);
     });
 
     test("another bot's task in a workspace stays that bot's", () => {
         db.run(`INSERT INTO workspace_bots VALUES (11, 2)`);
-        expect(ids({ condition: botTaskScopesSql({ bot_id: 2, is_coordinator: false }) })).toEqual([101, 111, 113]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 2, is_coordinator: false }) })).toEqual([101, 113]);
         db.run(`DELETE FROM workspace_bots WHERE bot_id = 2`);
     });
 
@@ -81,7 +81,7 @@ describe("botTaskScopesSql for a workspace admin", () => {
         expect(ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false, admin_workspace_ids: [11] }) })).toEqual([
             111, 112, 113,
         ]);
-        expect(ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false }) })).toEqual([111]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false }) })).toEqual([]);
         db.run(`DELETE FROM workspace_bots WHERE bot_id = 4`);
     });
 });

@@ -39,19 +39,18 @@ type Args = {
     description: string;
     bot_id?: number;
     workspace_id?: number;
-    shared?: boolean;
     status?: TaskStatus;
 };
 
-type Place = { bot_id?: number; workspace_id?: number };
+type Place = { bot_id: number; workspace_id?: number };
 
 /**
  * Worked out from the arguments and who is asking: where the task goes and
- * who has it, or why it can't. Outside a workspace a worker adds only to
- * its own list. In one the task stays in that workspace: its own by
- * default, a member's as the workspace's admin, or shared (nobody's yet).
- * The coordinator adds to any worker's own list or any workspace, for one
- * of its bots or shared.
+ * who has it, or why it can't. Every task belongs to a bot. Outside a
+ * workspace a worker adds only to its own list. In one the task stays in
+ * that workspace: its own by default, or a member's as the workspace's
+ * admin. The coordinator adds to any worker's own list or any workspace,
+ * for one of its bots or itself.
  */
 function resolvePlace({
     args,
@@ -69,22 +68,18 @@ function resolvePlace({
     const target_bot = args.bot_id ? Number(args.bot_id) : null;
     const target_workspace = args.workspace_id ? Number(args.workspace_id) : null;
 
-    if (args.shared && target_bot) {
-        return `A shared task is nobody's yet: leave bot_id out, or drop shared to give it to that bot.`;
-    }
-
     if (is_coordinator) {
         const place_workspace = target_workspace || (workspace_id ? Number(workspace_id) : null);
 
         if (place_workspace) {
-            return target_bot ? { workspace_id: place_workspace, bot_id: target_bot } : { workspace_id: place_workspace };
+            return { workspace_id: place_workspace, bot_id: target_bot || Number(bot_id) };
         }
 
         return { bot_id: target_bot || Number(bot_id) };
     }
 
     if (!workspace_id) {
-        if (target_workspace || args.shared) {
+        if (target_workspace) {
             return `You're not in a workspace here, so a task can only go on your own list (bot_id ${bot_id}).`;
         }
 
@@ -99,14 +94,12 @@ function resolvePlace({
         return `You can only add tasks in this workspace (#${workspace_id}).`;
     }
 
-    if (args.shared) return { workspace_id: Number(workspace_id) };
-
     const is_member = members.some((member) => member.id == target_bot);
 
     if (target_bot && target_bot != Number(bot_id) && !is_member) {
         return members.length
-            ? `You can only give a task here to yourself (#${bot_id}) or a member (${members.map((m) => m.id).join(", ")}), or leave it shared.`
-            : `You can only give a task here to yourself (#${bot_id}), or leave it shared.`;
+            ? `You can only give a task here to yourself (#${bot_id}) or a member (${members.map((m) => m.id).join(", ")}).`
+            : `You can only give a task here to yourself (#${bot_id}).`;
     }
 
     return { workspace_id: Number(workspace_id), bot_id: target_bot || Number(bot_id) };
@@ -114,8 +107,8 @@ function resolvePlace({
 
 /**
  * Lets a bot add a task to a list it works on: its own, or in a workspace
- * its own there (a member's as its admin) or a shared one. The coordinator
- * can add to any worker's list and any workspace.
+ * its own there (a member's as its admin). The coordinator can add to any
+ * worker's list and any workspace. Every task belongs to a bot.
  */
 export default function createTaskTool({
     user_id,
@@ -134,8 +127,8 @@ export default function createTaskTool({
     return {
         name: "create_task",
         description: is_coordinator
-            ? `Add a task: to a worker's own list (bot_id: ${crew || "no workers yet"}), to a workspace (workspace_id: ${places || "no workspaces yet"}) for one of its bots (with bot_id) or shared (without), or to your own list (leave both ids out${workspace_id ? "; here, leaving them out makes it a shared task in this workspace" : ""}). Write the description as a brief: what to do, where, and how you'll know it's done.`
-            : `Add a task: ${workspace_id ? `in this workspace, yours by default${team ? `, a member's as this workspace's admin (bot_id: ${team})` : ""}, or shared (shared: true) for whichever bot here takes it up` : `on your own list (bot_id ${bot_id}, the default)`}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
+            ? `Add a task: to a worker's own list (bot_id: ${crew || "no workers yet"}), to a workspace (workspace_id: ${places || "no workspaces yet"}) for one of its bots (with bot_id; without, it's yours there), or to your own list (leave both ids out${workspace_id ? "; here, leaving them out makes it yours in this workspace" : ""}). Every task belongs to one bot. Write the description as a brief: what to do, where, and how you'll know it's done.`
+            : `Add a task: ${workspace_id ? `in this workspace, yours by default${team ? `, or a member's as this workspace's admin (bot_id: ${team})` : ""}` : `on your own list (bot_id ${bot_id}, the default)`}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
         schema: z.object({
             title: z.string().trim().min(1).max(AppData.TaskTitleMaxLength).describe(`A short label`),
             description: z
@@ -144,7 +137,7 @@ export default function createTaskTool({
                 .describe(`The brief, in markdown: what to do, where, and what done looks like`),
             bot_id: z.number().int().optional().describe(
                 is_coordinator
-                    ? `Who has it: a worker's own list, or with workspace_id a bot working there. Leave out for your own list or a shared workspace task.`
+                    ? `Who has it: a worker's own list, or with workspace_id a bot working there. Leave out to have it yourself.`
                     : team
                       ? `Who has it here: you (${bot_id}, the default) or a member (${team}).`
                       : `Your own id (${bot_id}); leaving it out has the same effect.`,
@@ -158,10 +151,6 @@ export default function createTaskTool({
                         ? `The workspace it's in, when it isn't a bot's own list.`
                         : `This workspace (${workspace_id || "none"}); leaving it out has the same effect.`,
                 ),
-            shared: z
-                .boolean()
-                .optional()
-                .describe(`In a workspace: nobody's yet, for whichever bot there takes it up. Defaults to false.`),
             status: z.enum(TaskStatusValues).optional().describe(`Defaults to to do`),
         }),
         run: async ({ args }) => {
@@ -201,7 +190,7 @@ export default function createTaskTool({
             });
 
             const where = place.workspace_id
-                ? `in workspace ${place.workspace_id}, ${!place.bot_id ? "shared" : place.bot_id == Number(bot_id) ? "yours" : `bot ${place.bot_id}'s`}`
+                ? `in workspace ${place.workspace_id}, ${place.bot_id == Number(bot_id) ? "yours" : `bot ${place.bot_id}'s`}`
                 : place.bot_id == Number(bot_id)
                   ? "to your list"
                   : `to bot ${place.bot_id}'s list`;

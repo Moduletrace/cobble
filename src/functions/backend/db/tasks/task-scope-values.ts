@@ -6,17 +6,17 @@ type Params = {
 };
 
 /**
- * Where a task lives and who has it. A bot's own list is `bot_id` alone; a
- * workspace's task has `workspace_id`, plus `bot_id` when a bot there has
- * it (none: shared, not yet anyone's). Checked in the helpers rather than
- * the schema.
+ * Where a task lives and who has it. Every task belongs to a bot: a bot's
+ * own list is `bot_id` alone, a workspace's task has `workspace_id` plus
+ * the `bot_id` that has it there. Checked in the helpers rather than the
+ * schema.
  */
 export default function taskScopeValues({ bot_id, workspace_id }: Params) {
     const bot = bot_id ? Number(bot_id) : null;
     const workspace = workspace_id ? Number(workspace_id) : null;
 
-    if (!bot && !workspace) {
-        throw new AppError(`Say which bot or workspace the task is for.`);
+    if (!bot) {
+        throw new AppError(`Say which bot has the task.`);
     }
 
     return { bot_id: bot, workspace_id: workspace };

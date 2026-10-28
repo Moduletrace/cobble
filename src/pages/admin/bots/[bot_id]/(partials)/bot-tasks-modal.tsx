@@ -31,7 +31,7 @@ type Props = {
 
 /**
  * The tasks this conversation works on: a bot's own list, or in a workspace
- * the ones it has there plus the shared ones nobody has yet. Open it from the header menu; the list loads
+ * the ones it has there. Open it from the header menu; the list loads
  * then, so the page's props stay small. A crew manager adds, moves, edits
  * and deletes; a card opens the task in a modal of its own with everything
  * about it.
@@ -157,7 +157,7 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                 </Row>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {workspace?.id
-                        ? `What ${name} has in ${workspace.name || "this workspace"}, and the shared tasks there nobody has taken up yet. The workspace shows every bot's.`
+                        ? `What ${name} has in ${workspace.name || "this workspace"}. The workspace shows every bot's.`
                         : `What ${name} is working through, and what it's waiting on.`}
                 </Span>
             </Stack>
