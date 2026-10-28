@@ -21,7 +21,7 @@ const HeadingClassName = "my-0! text-[15px]! leading-6! tracking-normal! font-bo
  */
 export const MessageMarkdownComponents: Components = {
     p: ({ children }) => (
-        <P noMargin className="text-sm leading-5 text-ink">
+        <P noMargin className="w-full text-sm leading-5 text-ink">
             {children}
         </P>
     ),
