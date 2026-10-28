@@ -592,6 +592,18 @@ export const AppData = {
      */
     BotGraphicInlineMaxHeight: 640,
     /**
+     * Most questions one `ask_user` card holds.
+     */
+    BotQuestionMaxQuestions: 6,
+    /**
+     * Most options one question offers (its "Other" not counted).
+     */
+    BotQuestionMaxOptions: 8,
+    /**
+     * Longest answer a user may type into a question's "Other".
+     */
+    BotQuestionOtherMaxChars: 1000,
+    /**
      * Longest dictation the composer records before it stops on its own.
      */
     ComposerVoiceMaxMs: 5 * 60 * 1000,

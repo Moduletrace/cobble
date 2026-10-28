@@ -7,6 +7,7 @@ import hookProposalRef from "./hook-proposal-ref";
 import proposalRef from "./proposal-ref";
 import secretRef from "./secret-ref";
 import secretRequestRef from "./secret-request-ref";
+import botQuestionRef from "./bot-question-ref";
 import takeOverRef from "./take-over-ref";
 
 describe("linkComputerRefs", () => {
@@ -40,6 +41,13 @@ describe("linkComputerRefs", () => {
         expect(
             linkComputerRefs({ text: `${secretRef({ id: 12 })} and ${secretRequestRef({ id: 4 })}` }),
         ).toBe("[secret 12](#secret-ref-12) and [secret request 4](#secret-request-4)");
+    });
+
+    test("links questions a bot asked, also when quoted alone in code", () => {
+        expect(linkComputerRefs({ text: `Before I start: ${botQuestionRef({ id: 4 })}` })).toBe(
+            "Before I start: [questions 4](#question-4)",
+        );
+        expect(linkComputerRefs({ text: "See `[question:4]`" })).toBe("See [questions 4](#question-4)");
     });
 
     test("links take-over requests", () => {

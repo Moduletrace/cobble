@@ -55,6 +55,7 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
 
     await BunSQLite.sql({ sql: `DELETE FROM envs WHERE bot_id = ?`, values: [bot.id] });
     await BunSQLite.sql({ sql: `DELETE FROM secret_requests WHERE bot_id = ?`, values: [bot.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM bot_questions WHERE bot_id = ?`, values: [bot.id] });
     await BunSQLite.sql({ sql: `DELETE FROM bot_graphics WHERE bot_id = ?`, values: [bot.id] });
 
     const res = await BunSQLite.sql({ sql: `DELETE FROM bots WHERE id = ?`, values: [bot.id] });

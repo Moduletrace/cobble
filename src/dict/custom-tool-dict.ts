@@ -58,6 +58,7 @@ export type CustomToolScriptLanguage = (typeof CustomToolScriptLanguages)[number
  */
 export const ReservedToolNames = [
     "add_bot_to_workspace",
+    "ask_user",
     "ask_user_to_take_over",
     "assign_computer",
     "capture_secret",

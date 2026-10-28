@@ -35,6 +35,7 @@ import {
 } from "@/src/dict/bot-file-dict";
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms, SecretRequestStatuses } from "@/src/dict/env-dict";
+import { BotQuestionStatuses } from "@/src/dict/bot-question-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
 import {
     CustomToolKinds,
@@ -1648,6 +1649,63 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             indexes: [
                 {
                     indexName: "idx_secret_requests_session_id",
+                    indexTableFields: ["session_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_questions",
+            tableDescription: `Questions a bot asked a user in their conversation before acting (\`ask_user\`), each answered by picking one option (radios) or several (checkboxes), optionally with a typed "Other". The user answers them in the card, and the answers go to the bot as their chat message`,
+            fields: [
+                {
+                    fieldName: "title",
+                    fieldDescription: `A short heading for the card, in the bot's words`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "questions",
+                    fieldDescription: `JSON array of { question, kind (single | multiple), options, allow_other }`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "answers",
+                    fieldDescription: `JSON array, one per question, of { choices (option indexes), other }; null until answered`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: [...BotQuestionStatuses],
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "decided_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user they were asked of, who alone answers them. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that asked. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation they were asked in. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_questions_session_id",
                     indexTableFields: ["session_id"],
                 },
             ],

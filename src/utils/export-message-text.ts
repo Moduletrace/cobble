@@ -85,6 +85,7 @@ function wordRefs({
         .replace(/\[hook-proposal:(\d+)\](?!\()/g, "hook proposal $1")
         .replace(/\[secret:(\d+)\](?!\()/g, "(secret $1, hidden)")
         .replace(/\[secret-request:(\d+)\](?!\()/g, "(secret request $1)")
+        .replace(/\[question:(\d+)\](?!\()/g, "(questions $1)")
         .replace(/\[graphic:(\d+)\](?!\()/g, "(graphic $1)")
         .replace(/\[file:(\d+)\](?!\()/g, "file $1")
         .replace(/\[folder:[a-z]+:\d+:([^\]\n]+)\](?!\()/g, "`$1`")

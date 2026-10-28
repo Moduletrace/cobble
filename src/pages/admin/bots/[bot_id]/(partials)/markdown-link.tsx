@@ -13,8 +13,10 @@ import {
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
 import { parseFolderRefHref } from "@/src/utils/folder-ref";
+import { botQuestionRefId } from "@/src/utils/bot-question-ref";
 import { graphicRefId } from "@/src/utils/graphic-ref";
 import { chatroomRefId } from "@/src/utils/chatroom-ref";
+import BotQuestionRefChip from "./bot-question-ref-chip";
 import BotRefChip from "./bot-ref-chip";
 import ChatroomRefChip from "./chatroom-ref-chip";
 import ComputerRefChip from "./computer-ref-chip";
@@ -36,7 +38,8 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * folder it named a chip that opens it in the files browser, an MCP server,
  * tool, skill or hook it proposed a chip that opens the confirm card, a
  * secret it showed a masked chip, a secret it asked for a chip that opens
- * the card it's typed into, a graphic it made the graphic itself, a
+ * the card it's typed into, questions it asked a chip that opens the card
+ * they're answered in, a graphic it made the graphic itself, a
  * chatroom a chip that opens it;
  * anything else opens in a new tab.
  */
@@ -103,6 +106,10 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
 
         if (request_id) return <SecretRequestRefChip request_id={request_id} />;
     }
+
+    const question_id = botQuestionRefId({ href });
+
+    if (question_id) return <BotQuestionRefChip question_id={question_id} />;
 
     const chatroom_id = chatroomRefId({ href });
 

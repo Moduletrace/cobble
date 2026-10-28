@@ -1,3 +1,4 @@
+import { BotQuestionRefHrefPrefix } from "./bot-question-ref";
 import { ChatroomRefHrefPrefix } from "./chatroom-ref";
 import { GraphicRefHrefPrefix } from "./graphic-ref";
 import {
@@ -19,7 +20,7 @@ import {
  * (`[workspace:2]`), file ref (`[file:12]`), folder ref
  * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
  * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
- * request ref (`[secret-request:4]`), graphic ref (`[graphic:5]`) and
+ * request ref (`[secret-request:4]`), question ref (`[question:4]`), graphic ref (`[graphic:5]`) and
  * chatroom ref (`[room:<id>]`) in a
  * stretch of message text (never code) into a markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button,
@@ -56,6 +57,10 @@ export default function linkRefsInText({ text }: { text: string }) {
         .replace(
             /\[secret-request:(\d+)\](?!\()/g,
             (_, id: string) => `[secret request ${id}](${SecretRequestRefHrefPrefix}${id})`,
+        )
+        .replace(
+            /\[question:(\d+)\](?!\()/g,
+            (_, id: string) => `[questions ${id}](${BotQuestionRefHrefPrefix}${id})`,
         )
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
         .replace(/\[room:(\d+)\](?!\()/g, (_, id: string) => `[room ${id}](${ChatroomRefHrefPrefix}${id})`)

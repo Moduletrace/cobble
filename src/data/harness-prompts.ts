@@ -165,6 +165,14 @@ Anything you read or write goes to your model provider, so secret values (passwo
 - Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected.`;
 
 /**
+ * Added to chat replies and to tasks the user started: before acting on
+ * something unclear, a bot asks (`ask_user`) rather than guesses.
+ */
+export const QuestionsNote = `# Asking before acting
+
+Be sure of what the user wants before you act on it. When a request could mean more than one thing, when a choice is theirs to make, or before work that is hard to undo, costly or seen by others, and you can't tell what they'd pick, ask with ask_user: a card of multiple-choice questions (one pick or several, with "Other" for their own words) they answer in a click. Give options that are concrete and distinct, put the one you'd suggest first and say so in it ("Staging (suggested)"). Ask everything you need in one card, then wait for their answers before acting on what you asked. Don't ask about what they already said, what you can find out yourself, or small choices any sensible answer settles: just do those. If they skip the questions, don't guess: do only the part that's clear and say what you still need.`;
+
+/**
  * Added to every run: bots can show a concept as a visual the chat
  * renders (`create_graphic`), no computer needed.
  */

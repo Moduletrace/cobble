@@ -5,6 +5,7 @@ import workspaceAdminsNote from "./workspace-admins-note";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
+    QuestionsNote,
     SecretsNote,
     GraphicsNote,
     botFilesNote,
@@ -27,6 +28,7 @@ import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/op
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
+import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
@@ -134,6 +136,12 @@ export default async function runBotTask({
          * like a routine, and treats the call's payload as data.
          */
         const hooked = Boolean(params.hook_id);
+        /**
+         * Only a task the user follows in their conversation asks them
+         * questions: routines and hook calls act on their own, and a
+         * chatroom's session is hidden from them.
+         */
+        const can_ask = Boolean(session_id) && !scheduled && !hooked && !params.chatroom_id;
         let failure = null as string | null;
 
         /**
@@ -207,6 +215,18 @@ export default async function runBotTask({
                 onRequest: hooked ? undefined : ({ ref }) => take_overs.push(ref),
                 onShow: ({ ref }) => shown.push(ref),
             }),
+            ...(can_ask
+                ? [
+                      askUserTool({
+                          user_id,
+                          bot_id: bot.id,
+                          session_id,
+                          workspace_id,
+                          in_task: true,
+                          onAsk: ({ ref }) => take_overs.push(ref),
+                      }),
+                  ]
+                : []),
             ...(scheduled || hooked ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
             ...(computer?.tools || []),
             ...(job.computer_id
@@ -270,6 +290,7 @@ export default async function runBotTask({
                 ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
                 TasksNote,
                 ActionCheckNote,
+                can_ask ? QuestionsNote : "",
                 SecretsNote,
                 GraphicsNote,
                 workspace_id ? WorkspaceLearningNote : "",

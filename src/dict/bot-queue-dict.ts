@@ -110,6 +110,7 @@ export const JobStepToolLabels: Record<string, string> = {
     hand_over_schedule: "Handing a routine to the crew",
     propose_hook: "Proposing a hook",
     request_secret: "Asking for a secret",
+    ask_user: "Asking you",
     capture_secret: "Saving a secret",
     show_secret: "Showing a secret",
     pause_hook: "Pausing a hook",

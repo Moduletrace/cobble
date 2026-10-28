@@ -69,7 +69,7 @@ export const SecretRequestRefHrefPrefix = "#secret-request-";
 /**
  * The kinds of ref a message can carry, as written before the colon.
  */
-const RefKinds = "computer|take-over|bot|workspace|proposal|hook-proposal|secret|secret-request|graphic|room|file|folder";
+const RefKinds = "computer|take-over|bot|workspace|proposal|hook-proposal|secret|secret-request|question|graphic|room|file|folder";
 
 /**
  * A code span holding nothing but one ref (`` `[file:12]` ``): bots often

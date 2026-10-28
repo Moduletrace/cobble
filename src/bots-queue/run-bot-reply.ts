@@ -3,6 +3,7 @@ import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
+    QuestionsNote,
     AskCrewNote,
     SecretsNote,
     GraphicsNote,
@@ -53,6 +54,7 @@ import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-an
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
+import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import type { BotMessageWithAttachments } from "@/src/types";
 import type { HarnessMessage } from "@/src/harness/types";
 import type { BotJobContext, BotJobOutcome } from "./types";
@@ -324,6 +326,7 @@ export default async function runBotReply({
                 TasksNote,
                 TaskReminderNote,
                 ActionCheckNote,
+                QuestionsNote,
                 SecretsNote,
                 composeEnvsNote({ ...envs, has_computer: computers.length > 0 }),
                 GraphicsNote,
@@ -365,6 +368,13 @@ export default async function runBotReply({
                     computer_id: computers[0]?.id || null,
                     onRequest: ({ ref }) => proposals.push(ref),
                     onShow: ({ ref }) => shown.push(ref),
+                }),
+                askUserTool({
+                    user_id,
+                    bot_id: bot.id,
+                    session_id,
+                    workspace_id,
+                    onAsk: ({ ref }) => proposals.push(ref),
                 }),
                 ...(has_past_sessions
                     ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]

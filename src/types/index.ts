@@ -34,6 +34,7 @@ import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/f
 import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dict";
+import type { BotQuestionKind, BotQuestionStatus } from "../dict/bot-question-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
@@ -736,6 +737,45 @@ export type BotGraphicView = {
     workspace_id: number | null;
     session_id: number | null;
     updated_at: number;
+};
+
+/**
+ * One question a bot asks the user before acting (`ask_user`).
+ */
+export type BotQuestionItem = {
+    question: string;
+    kind: BotQuestionKind;
+    options: string[];
+    /**
+     * Whether the user may type an answer of their own ("Other").
+     */
+    allow_other: boolean;
+};
+
+/**
+ * The user's answer to one question: the options they picked (by index)
+ * and what they typed into "Other" (empty if nothing).
+ */
+export type BotQuestionAnswer = {
+    choices: number[];
+    other: string;
+};
+
+/**
+ * Questions a bot asked the user (`[question:ID]`), as their chip and card
+ * show them.
+ */
+export type BotQuestionView = {
+    id: number;
+    title: string;
+    questions: BotQuestionItem[];
+    /**
+     * One per question once answered, else null.
+     */
+    answers: BotQuestionAnswer[] | null;
+    status: BotQuestionStatus;
+    bot_id: number;
+    bot_name: string;
 };
 
 export type SecretRequestView = {

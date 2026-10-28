@@ -74,7 +74,7 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
     /**
      * These point at the user without a foreign key, so nothing cascades.
      */
-    for (const table of ["user_types", "user_passwords", "sso_login_codes", "secret_requests", "bot_graphics"]) {
+    for (const table of ["user_types", "user_passwords", "sso_login_codes", "secret_requests", "bot_questions", "bot_graphics"]) {
         await BunSQLite.sql({ sql: `DELETE FROM ${table} WHERE user_id = ?`, values: [user.id] });
     }
 

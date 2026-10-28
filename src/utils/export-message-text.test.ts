@@ -20,6 +20,10 @@ describe("exportMessageText", () => {
         );
     });
 
+    test("words questions by number", () => {
+        expect(exportMessageText({ text: "Pick: [question:4]", ...names, heading_offset: 0 })).toBe("Pick: (questions 4)");
+    });
+
     test("words graphics by number", () => {
         expect(exportMessageText({ text: "See [graphic:5]", ...names, heading_offset: 0 })).toBe("See (graphic 5)");
     });
