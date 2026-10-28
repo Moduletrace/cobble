@@ -80,6 +80,29 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
         replace({ task: res.singleRes });
     };
 
+    const remove = async ({ task }: { task: TaskWithNames }) => {
+        if (busy) return;
+        if (!window.confirm(`Delete "${task.title || `task ${task.id}`}"? Its notes and links go with it.`)) return;
+
+        set_busy(true);
+        set_status(undefined);
+
+        const res = await fetchApi<Record<string, unknown>, APIResponseObject>(
+            "/api/admin/tasks/delete-task",
+            { method: "POST", body: { task_id: Number(task.id) } },
+        );
+
+        set_busy(false);
+
+        if (!res.success) {
+            set_status(res.msg || "That didn't work.");
+            return;
+        }
+
+        setTasks((prev) => prev.filter((item) => item.id != task.id));
+        set_status("Task deleted.");
+    };
+
     const show = async ({ task }: { task: TaskWithNames }) => {
         set_status(undefined);
 
@@ -220,6 +243,7 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                             busy={busy}
                             onOpen={() => show({ task }).catch(() => {})}
                             onStatusChange={(next) => move({ task, next })}
+                            onDelete={() => remove({ task }).catch(() => {})}
                         />
                     ))
                 ) : (

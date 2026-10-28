@@ -62,6 +62,29 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
         replace({ task: res.singleRes });
     };
 
+    const remove = async ({ task }: { task: TaskWithNames }) => {
+        if (busy) return;
+        if (!window.confirm(`Delete "${task.title || `task ${task.id}`}"? Its notes and links go with it.`)) return;
+
+        setBusy(true);
+        setStatus(undefined);
+
+        const res = await fetchApi<Record<string, unknown>, APIResponseObject>(
+            "/api/admin/tasks/delete-task",
+            { method: "POST", body: { task_id: Number(task.id) } },
+        );
+
+        setBusy(false);
+
+        if (!res.success) {
+            setStatus({ error: true, msg: res.msg || "That didn't work." });
+            return;
+        }
+
+        setItems((prev) => prev.filter((item) => item.id != task.id));
+        setStatus({ success: true, msg: "Task deleted." });
+    };
+
     const show = async ({ task }: { task: TaskWithNames }) => {
         setStatus(undefined);
 
@@ -142,6 +165,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
                                     busy={busy}
                                     onOpen={() => show({ task }).catch(() => {})}
                                     onStatusChange={(next) => move({ task, next })}
+                                    onDelete={() => remove({ task }).catch(() => {})}
                                 />
                             ))}
                         </SettingsList>

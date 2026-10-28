@@ -12,6 +12,8 @@ import { TaskStatuses } from "@/src/dict/task-dict";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import relativeTime from "@/src/utils/relative-time";
 import taskPlaceLabel from "@/src/utils/task-place-label";
+import { Trash2 } from "lucide-react";
+import RowIconButton from "./row-icon-button";
 import TaskStatusChip from "./task-status-chip";
 
 type Props = {
@@ -24,6 +26,10 @@ type Props = {
      * Moves it to one status; only crew managers get the controls.
      */
     onStatusChange?: (status: string) => void;
+    /**
+     * Deletes it after asking; only crew managers get the button.
+     */
+    onDelete?: () => void;
     busy?: boolean;
 };
 
@@ -32,7 +38,7 @@ type Props = {
  * is and who has it, what it's blocked on, its latest note and how long ago it
  * moved.
  */
-export default function TaskListItem({ task, onOpen, onStatusChange, busy }: Props) {
+export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, busy }: Props) {
     const { pageProps } = useContext(AppContext);
     const can_manage = canManageCrew({ user_types: pageProps?.user_types });
     const done = task.status == "done" || task.status == "cancelled";
@@ -61,6 +67,14 @@ export default function TaskListItem({ task, onOpen, onStatusChange, busy }: Pro
                         <Span className="truncate">{task.title || `Task ${task.id}`}</Span>
                     </Button>
                     <TaskStatusChip status={task.status} />
+                    {can_manage && onDelete ? (
+                        <RowIconButton
+                            icon={Trash2}
+                            title={`Delete ${task.title || `task ${task.id}`}`}
+                            disabled={busy}
+                            onClick={onDelete}
+                        />
+                    ) : null}
                 </Row>
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <Span className="shrink-0 text-xs leading-4 text-ink-secondary truncate">
