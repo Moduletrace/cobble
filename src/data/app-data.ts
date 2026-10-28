@@ -61,6 +61,11 @@ export const AppData = {
      * reads it.
      */
     LastVisitedBotCookieName: `${SiteData["SiteSlug"]}_last_visited_bot_id`,
+    /**
+     * The workspace this browser was last in: the rail lists it first. Never
+     * where `/admin/bots` lands. `HttpOnly`: only the server reads it.
+     */
+    LastVisitedWorkspaceCookieName: `${SiteData["SiteSlug"]}_last_visited_workspace_id`,
     LastVisitedCookieMaxAgeSeconds: 365 * 24 * 60 * 60,
     AuthExpiryDays: 60,
     APICrudBasePath: "/api/admin/crud",

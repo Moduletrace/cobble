@@ -8,6 +8,7 @@ import isUnknownSettingsPath from "../utils/is-unknown-settings-path";
 import { SettingsDefaultPath } from "../dict/settings-pages-dict";
 import grabInstallName from "../functions/backend/db/app-settings/grab-install-name";
 import grabInstallIcon from "../functions/backend/db/app-settings/grab-install-icon";
+import readLastVisitedWorkspace from "../utils/read-last-visited-workspace";
 
 /**
  * Routing for a local install. There are no public pages:
@@ -84,6 +85,7 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
             user_types,
             install_name: await grabInstallName().catch(() => ""),
             install_icon: await grabInstallIcon().catch(() => null),
+            last_visited_workspace_id: readLastVisitedWorkspace({ req }),
         },
     };
 };

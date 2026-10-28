@@ -36,6 +36,10 @@ export const server: BunextPageServerFn = async ({ req }) => {
                     name: AppData["LastVisitedBotCookieName"],
                     httpOnly: true,
                 },
+                {
+                    name: AppData["LastVisitedWorkspaceCookieName"],
+                    httpOnly: true,
+                },
             ]);
             return new_res;
         },

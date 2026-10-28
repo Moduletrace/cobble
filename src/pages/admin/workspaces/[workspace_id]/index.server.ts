@@ -1,3 +1,4 @@
+import withLastVisitedWorkspaceCookies from "@/src/functions/server/with-last-visited-workspace-cookies";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabWorkspaceActivity from "@/src/functions/backend/db/workspaces/grab-workspace-activity";
@@ -53,6 +54,9 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspace_computers,
             workspace_activity,
             workspace_tasks,
+        },
+        res_transform(res) {
+            return withLastVisitedWorkspaceCookies({ req: params.req, res, workspace_id });
         },
     };
 };

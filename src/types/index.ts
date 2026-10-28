@@ -1999,6 +1999,11 @@ export type PagePropsType = {
      */
     install_icon?: PwaInstallIcon | null;
     /**
+     * The workspace this browser was last in (a cookie read in the root):
+     * the rail lists it first.
+     */
+    last_visited_workspace_id?: number | null;
+    /**
      * The release the server is running, for the General settings page.
      */
     running_version?: RunningVersion | null;

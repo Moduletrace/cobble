@@ -1,3 +1,4 @@
+import withLastVisitedWorkspaceCookies from "@/src/functions/server/with-last-visited-workspace-cookies";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabChatroomMessages from "@/src/functions/backend/db/chatrooms/grab-chatroom-messages";
 import grabUserChatroom from "@/src/functions/backend/db/chatrooms/grab-user-chatroom";
@@ -43,6 +44,9 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             ...rail,
             chatroom: { ...chatroom, unread: 0 },
             chatroom_messages: await grabChatroomMessages({ chatroom_id: chatroom.id }),
+        },
+        res_transform(res) {
+            return withLastVisitedWorkspaceCookies({ req: params.req, res, workspace_id: Number(rail.workspace.id) });
         },
     };
 };

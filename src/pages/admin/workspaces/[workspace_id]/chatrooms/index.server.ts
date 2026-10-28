@@ -1,3 +1,4 @@
+import withLastVisitedWorkspaceCookies from "@/src/functions/server/with-last-visited-workspace-cookies";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserChatrooms from "@/src/functions/backend/db/chatrooms/grab-user-chatrooms";
 import grabWorkspaceRailProps from "@/src/functions/backend/db/workspaces/grab-workspace-rail-props";
@@ -24,5 +25,10 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
 
     const chatrooms = await grabUserChatrooms({ user_id: user.id, workspace_id: Number(rail.workspace.id) });
 
-    return { props: { ...rail, chatrooms } };
+    return {
+        props: { ...rail, chatrooms },
+        res_transform(res) {
+            return withLastVisitedWorkspaceCookies({ req: params.req, res, workspace_id: Number(rail.workspace.id) });
+        },
+    };
 };
