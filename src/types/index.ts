@@ -1277,8 +1277,6 @@ export type PublicBotFile = {
     purpose: string;
     scope: string;
     owner_id: number;
-    ingested_at?: number;
-    ingest_error?: string;
     created_at: number;
     /**
      * Where the bytes are served (`/media/<media id>`, private).
@@ -2357,7 +2355,6 @@ export type ApiReqParams<
     search_term_user_type?: string | string[];
 
     text?: string;
-    return_media_text_content?: boolean;
     media?: BUN_SQLITE_COBBLE_MEDIA;
     backup_name?: string;
 };

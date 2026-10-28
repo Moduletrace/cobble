@@ -29,10 +29,9 @@ type Props = {
 
 /**
  * The files a conversation works with: a bot's own folder, or the
- * workspace's shared one. Each can be opened, read again so it can be
- * searched, or deleted (a crew manager only). The list loads when the
- * modal opens, and search goes through the same endpoint, so the page
- * props stay small.
+ * workspace's shared one. Each can be opened or deleted (a crew manager
+ * only). The list loads when the modal opens, and search (by name or path)
+ * goes through the same endpoint, so the page props stay small.
  */
 export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -105,7 +104,7 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
                 <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">{title}</H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {workspace?.id
-                        ? `Files every bot here can read and search. They're kept with the app, not on a computer.`
+                        ? `Files every bot here can find and read. They're kept with the app, not on a computer.`
                         : `What ${name} has saved: documents you sent, files it wrote and images it made. They're kept with the app, not on a computer.${can_manage ? " Deleting one removes it for good." : ""}`}
                 </Span>
                 {usage ? (
@@ -128,7 +127,7 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
 
             <Stack className="w-full mt-4 gap-2! items-stretch">
                 <Input
-                    placeholder="Search files"
+                    placeholder="Search by name or path"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     onKeyDown={(event) => {
@@ -146,14 +145,6 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
                             file={file}
                             can_manage={can_manage}
                             busy={busy_id == file.id}
-                            onIngest={() =>
-                                run({
-                                    url: `/api/admin/bots/ingest-file`,
-                                    payload: { file_id: file.id },
-                                    file_id: file.id,
-                                    done: `${file.name} will be read again shortly.`,
-                                })
-                            }
                             onDelete={() =>
                                 run({
                                     url: `/api/admin/bots/delete-file`,

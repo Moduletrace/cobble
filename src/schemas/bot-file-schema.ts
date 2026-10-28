@@ -8,14 +8,6 @@ export const DeleteBotFileRequestSchema = z.object({
 });
 
 /**
- * Read one file again so it can be searched.
- */
-export const IngestBotFileRequestSchema = z.object({
-    file_id: z.coerce.number().int().positive(),
-    read_media: z.boolean().optional(),
-});
-
-/**
  * The General settings' storage quota, in MB.
  */
 export const SaveStorageQuotaRequestSchema = z.object({

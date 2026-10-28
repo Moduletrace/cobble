@@ -44,7 +44,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
             is_media_primary,
             update_on_duplicate,
             reauth,
-            return_media_text_content,
             media,
             media_name,
         } = body;
@@ -100,7 +99,6 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async (
             media_type,
             is_primary: is_media_primary,
             update_on_duplicate,
-            extract_media_text_content: return_media_text_content,
             media,
             media_mime_type: ext,
             user: { id: target_user_id },

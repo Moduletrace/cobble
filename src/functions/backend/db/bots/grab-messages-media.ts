@@ -4,12 +4,6 @@ import mediaColumns from "@/src/functions/backend/db/media/media-columns";
 
 type Params = {
     message_ids: number[];
-    /**
-     * Also read `text_content`, the extracted text a reply hands a
-     * document to the model as. Off by default: it is the largest column
-     * in the table and nothing else here uses it.
-     */
-    with_text_content?: boolean;
 };
 
 export type MessageMediaRow = BUN_SQLITE_COBBLE_MEDIA & { message_id: number };
@@ -20,14 +14,13 @@ export type MessageMediaRow = BUN_SQLITE_COBBLE_MEDIA & { message_id: number };
  */
 export default async function grabMessagesMedia({
     message_ids,
-    with_text_content,
 }: Params) {
     const by_message = new Map<number, MessageMediaRow[]>();
     const ids = [...new Set(message_ids.filter(Boolean))];
 
     if (!ids.length) return by_message;
 
-    const columns = mediaColumns({ alias: "m", with_text_content });
+    const columns = mediaColumns({ alias: "m" });
 
     const rows =
         (

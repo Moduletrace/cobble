@@ -104,7 +104,7 @@ export default async function recordBotFile({
     if (existing?.id) {
         await BunSQLite.sql({
             sql: `UPDATE bot_files SET media_id = ?, name = ?, folder = ?, mime_type = ?, media_type = ?, size = ?,
-                purpose = ?, source = ?, ingested_at = NULL, ingest_error = NULL, updated_at = ? WHERE id = ?`,
+                purpose = ?, source = ?, updated_at = ? WHERE id = ?`,
             values: [
                 media_id,
                 resolved.name,
@@ -129,8 +129,6 @@ export default async function recordBotFile({
             size: bytes.byteLength,
             purpose,
             source,
-            ingested_at: undefined,
-            ingest_error: undefined,
             updated_at: now,
         };
     }

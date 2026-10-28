@@ -14,9 +14,9 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 /**
  * Starts the file ingestion worker: polls every `AppData.FileIngestPollMs`
  * for `file_ingest_queue` jobs and runs up to
- * `AppData.FileIngestConcurrency` at once (chunking and embedding a bot's
- * file). Gated in production to the `MAIN_SERVER` container, like cron and
- * the bots queue.
+ * `AppData.FileIngestConcurrency` at once (chunking and embedding a
+ * knowledgebase document). Gated in production to the `MAIN_SERVER`
+ * container, like cron and the bots queue.
  */
 export default async function fileIngest() {
     if (process.env.NODE_ENV == "production" && !process.env.MAIN_SERVER) {

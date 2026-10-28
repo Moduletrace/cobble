@@ -53,8 +53,6 @@ export default async function grabConversationFiles({
                 purpose: String(file.purpose || "writing"),
                 scope: String(file.scope || "bot"),
                 owner_id: Number(file.owner_id) || 0,
-                ingested_at: file.ingested_at ? Number(file.ingested_at) : undefined,
-                ingest_error: file.ingest_error || undefined,
                 created_at: Number(file.created_at) || 0,
                 url: media_url || "",
             };

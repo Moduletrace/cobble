@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
-import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
 import recordBotFile, { grabBotFileRow } from "@/src/functions/backend/db/bot-files/record-bot-file";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
@@ -49,7 +48,7 @@ type Args = {
  * Copies what a bot made on its computer into its own files: one file, or
  * a whole folder (taken as a gzipped tar and unpacked into one row per
  * file). The copies are kept with the app, stay after the computer is
- * rebuilt, and are searchable at once; the originals stay on the computer,
+ * rebuilt, and are readable at once; the originals stay on the computer,
  * where the message's folder ref points at the folder holding them.
  *
  * The bytes come back over the sandbox's streaming download endpoint
@@ -72,7 +71,7 @@ export default function importFileTool({
         name: "import_file",
         description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, relative to your folder there (${dirs.cwd}), e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
             own?.scope == "workspace" ? " The copies land in the workspace's shared files." : ""
-        } Imports are searchable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit.`,
+        } Imports are readable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit.`,
         schema: z.object({
             path: z
                 .string()
@@ -189,8 +188,6 @@ async function importOneFile({
         source: "tool",
         user_id: target.user_id,
     });
-
-    if (saved.id) await enqueueFileIngest({ file_id: saved.id });
 
     if (attach && saved.media_id) {
         onAttach?.({ media_id: Number(saved.media_id), name: saved.name || name });
@@ -426,8 +423,6 @@ async function unpackArchive({
             }).catch(() => null);
 
             if (!row?.id) continue;
-
-            await enqueueFileIngest({ file_id: row.id }).catch(() => {});
 
             saved.push({ id: Number(row.id), path: row.path || `${folder}/${relative}` });
         }

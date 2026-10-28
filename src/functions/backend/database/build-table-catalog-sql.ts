@@ -5,7 +5,7 @@
  * table name as an argument the way a table-valued function does.
  *
  * Left out: SQLite's own `sqlite_*` tables, and the shadow tables a
- * virtual table keeps its internals in (the `bot_file_vectors_*` tables
+ * virtual table keeps its internals in (the `knowledgebase_vectors_*` tables
  * behind the sqlite-vec index), which are storage, not rows anyone
  * browses.
  */

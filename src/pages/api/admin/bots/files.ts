@@ -132,8 +132,6 @@ function toPublicFile({ file }: { file: BotFileWithMediaLite }) {
         purpose: file.purpose || "writing",
         scope: file.scope || "bot",
         owner_id: Number(file.owner_id) || 0,
-        ingested_at: file.ingested_at ? Number(file.ingested_at) : undefined,
-        ingest_error: file.ingest_error || undefined,
         created_at: Number(file.created_at) || 0,
         url: media_url || "",
     };
@@ -149,8 +147,6 @@ type BotFileWithMediaLite = {
     purpose?: string;
     scope?: string;
     owner_id?: number | "";
-    ingested_at?: number | "";
-    ingest_error?: string;
     created_at?: number | "";
     media?: Record<string, unknown> | null;
 };

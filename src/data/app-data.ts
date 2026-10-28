@@ -661,8 +661,9 @@ export const AppData = {
      */
     BotFileImportMaxBytes: 20 * 1024 * 1024,
     /**
-     * Ingesting a bot file: how much text one chunk holds, how much of the
-     * previous chunk it repeats, and the largest file it reads at all.
+     * Ingesting a knowledgebase document: how much text one chunk holds,
+     * how much of the previous chunk it repeats, and the largest file it
+     * reads at all (also the largest attachment a reply reads).
      */
     ChunkTargetChars: 1200,
     ChunkOverlapChars: 200,
@@ -681,12 +682,19 @@ export const AppData = {
     EmbeddingBatchSize: 32,
     EmbeddingMaxInputChars: 8000,
     /**
-     * How many chunks a file search returns, and how many more it asks
-     * the vector index for before filtering to the run's scopes.
+     * How many chunks a knowledgebase search returns, and how many more it
+     * asks the vector index for before filtering to the run's ones.
      */
     RagTopChunks: 8,
     RagOverFetch: 4,
     RagMaxK: 60,
+    /**
+     * The database is vacuumed at boot once this share of its pages, and
+     * at least this many bytes, sit free (after a big delete, such as the
+     * bot file index being dropped).
+     */
+    DbVacuumMinFreeRatio: 0.2,
+    DbVacuumMinFreeBytes: 4 * 1024 * 1024,
     /**
      * Knowledgebases: the most one document holds (an upload, or text
      * written in), how much of a pasted text a form takes, how many

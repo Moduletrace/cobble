@@ -30,18 +30,16 @@ db.run(
 db.run(`INSERT INTO bot_message_media (id, message_id, media_id) VALUES (1, 10, 1)`);
 
 /**
- * The query `grabMessagesMedia` builds, with the text column included or
- * left out. It is the largest column in the table, so only the reply path
- * that hands a document to a model asks for it.
+ * The query `grabMessagesMedia` builds. The text column is never read: a
+ * reply reads an attachment's text from the file itself.
  */
-function read({ with_text_content }: { with_text_content: boolean }) {
+function read() {
     const columns = [
         "m.id",
         "m.title",
         "m.media_type",
         "m.media_write_path",
         "m.mime_type",
-        ...(with_text_content ? ["m.text_content"] : []),
     ].join(", ");
 
     return db
@@ -55,15 +53,11 @@ function read({ with_text_content }: { with_text_content: boolean }) {
 
 describe("grabMessagesMedia", () => {
     test("a plain read never drags the extracted text along", () => {
-        expect(read({ with_text_content: false })).not.toHaveProperty("text_content");
-    });
-
-    test("the reply path can ask for it", () => {
-        expect(read({ with_text_content: true }).text_content).toBe("Total: 12");
+        expect(read()).not.toHaveProperty("text_content");
     });
 
     test("the row's name and path are always there", () => {
-        expect(read({ with_text_content: false })).toMatchObject({
+        expect(read()).toMatchObject({
             title: "invoice.pdf",
             media_write_path: "media/1.pdf",
             message_id: 10,

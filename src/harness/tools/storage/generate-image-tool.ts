@@ -1,5 +1,4 @@
 import { z } from "zod";
-import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
 import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file";
 import generateImage from "@/src/harness/image/generate-image";
 import type { HarnessTool } from "../../types";
@@ -97,8 +96,6 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                     mime_type: image.media_type,
                     user_id: context.user_id,
                 });
-
-                await enqueueFileIngest({ file_id: file.id! });
 
                 if (args.attach && file.media_id) {
                     context.onAttach?.({ media_id: Number(file.media_id), name: file.name || "" });

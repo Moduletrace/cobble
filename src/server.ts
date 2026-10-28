@@ -11,6 +11,7 @@ import liveRelay from "./live-relay";
 import enableForeignKeys from "./functions/backend/db/enable-foreign-keys";
 import migrateBotTypes from "./functions/backend/db/bot-types/migrate-bot-types";
 import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
+import dropStoredFileText from "./functions/backend/db/stored-text/drop-stored-file-text";
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import handleGraphicsRequest from "./functions/server/graphics/handle-graphics-request";
@@ -39,6 +40,9 @@ await migrateBotTypes().catch((error) =>
 );
 await clearImplicitSessionLinks().catch((error) =>
     logError({ title: "Could not clear implicit session links", error }).catch(() => {}),
+);
+await dropStoredFileText().catch((error) =>
+    logError({ title: "Could not drop the stored file text", error }).catch(() => {}),
 );
 await syncKnowledgebaseFts().catch((error) =>
     logError({ title: "Could not sync the knowledgebase search index", error }).catch(() => {}),

@@ -4,7 +4,7 @@ type Params = {
     vector: number[];
     /**
      * Defaults to `AppData.EmbeddingDimensions`, the width of the fixed
-     * `bot_file_vectors` table.
+     * `knowledgebase_vectors` table.
      */
     dimensions?: number;
 };

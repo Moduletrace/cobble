@@ -54,22 +54,6 @@ export default async function purgeStorage({ scope, owner_id, media_ids }: Param
             }).catch(() => {});
         }
 
-        await BunSQLite.sql({
-            sql: `DELETE FROM bot_file_vectors WHERE scope = ? AND owner_id = ?`,
-            values: [scope, owner_id],
-        }).catch(() => {});
-
-        /**
-         * Deleted here rather than left to the cascade, since SQLite has
-         * foreign keys off per connection unless `enableForeignKeys` ran (a
-         * script or CLI process never does), and a chunk left behind fails
-         * the next schema sync.
-         */
-        await BunSQLite.sql({
-            sql: `DELETE FROM bot_file_chunks WHERE scope = ? AND owner_id = ?`,
-            values: [scope, owner_id],
-        }).catch(() => {});
-
         /**
          * Usually gone already, with the bot or workspace (the cascade).
          */

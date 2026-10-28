@@ -15,7 +15,7 @@ type Params = {
 };
 
 /**
- * Deletes a bot file: the catalog row (its chunks go with it), its bytes
+ * Deletes a bot file: the catalog row, its bytes
  * and its `media` row. Refuses anything outside the run's directories.
  */
 export default async function deleteBotFile({ scopes, file_id }: Params) {
@@ -32,22 +32,7 @@ export default async function deleteBotFile({ scopes, file_id }: Params) {
         rmSync(absolute, { force: true });
     }
 
-    await BunSQLite.sql({ sql: `DELETE FROM bot_file_vectors WHERE file_id = ?`, values: [file.id] });
-    /**
-     * Deleted here rather than left to the schema's cascade: SQLite has
-     * foreign keys off per connection unless `enableForeignKeys` ran, and
-     * a script or CLI process that deletes a file would otherwise leave
-     * its chunks behind, which then fail the next schema sync.
-     */
-    await BunSQLite.sql({ sql: `DELETE FROM bot_file_chunks WHERE file_id = ?`, values: [file.id] });
     await BunSQLite.sql({ sql: `DELETE FROM bot_files WHERE id = ?`, values: [file.id] });
-    /**
-     * Its pending ingestion would only find nothing left.
-     */
-    await BunSQLite.sql({
-        sql: `DELETE FROM file_ingest_queue WHERE file_id = ? AND status IN ('pending', 'processing')`,
-        values: [file.id],
-    }).catch(() => {});
 
     if (file.media_id) {
         const media = await BunSQLite.sql<{ media_write_path?: string; media_thumbnail_write_path?: string }>({

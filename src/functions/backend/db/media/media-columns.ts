@@ -5,9 +5,8 @@
  * `AppData.BotAttachmentTextStoreMaxChars` of extracted document text, and
  * every caller that only needs a file's name, type or path (`SELECT m.*`
  * did) pulled it into memory, into page props and into API responses.
- * Read it explicitly where it is really used:
- * `src/bots-queue/load-attachment-parts.ts` and
- * `src/functions/backend/db/bot-files/ingest-bot-file.ts`.
+ * Only knowledgebase documents keep it now; read it explicitly where it
+ * is really used.
  */
 export default function mediaColumns({
     alias = "m",
@@ -31,8 +30,7 @@ export default function mediaColumns({
     ];
 
     /**
-     * Only the two paths that really use it ask for it: the reply that
-     * hands a document to a model, and ingestion.
+     * Only a caller that really uses it asks for it.
      */
     if (with_text_content) columns.push("text_content");
 

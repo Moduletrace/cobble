@@ -50,9 +50,8 @@ export default function listFilesTool(context: StorageToolContext): HarnessTool<
 
             const lines = files.map((file) => {
                 const where = file.scope == "workspace" ? ` (workspace ${file.owner_id})` : "";
-                const ingested = file.ingested_at ? "" : " - not searchable yet";
 
-                return `- ${file.path} - ${formatBytes({ bytes: Number(file.size) || 0 })}${where}${ingested} ${fileRef({ file_id: file.id! })}`;
+                return `- ${file.path} - ${formatBytes({ bytes: Number(file.size) || 0 })}${where} ${fileRef({ file_id: file.id! })}`;
             });
 
             const more =

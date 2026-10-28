@@ -5,6 +5,7 @@ import grabMessagesMedia, {
 } from "@/src/functions/backend/db/bots/grab-messages-media";
 import type { HarnessContentPart } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
+import extractBotFileText from "@/src/functions/backend/db/bot-files/extract-bot-file-text";
 import describeAttachment from "./describe-attachment";
 
 type Params = {
@@ -27,10 +28,7 @@ export default async function loadAttachmentParts({ messages }: Params) {
         .slice(-AppData.BotReplyAttachmentMessages)
         .map((message) => Number(message.id));
 
-    const media = await grabMessagesMedia({
-        message_ids: recent,
-        with_text_content: true,
-    });
+    const media = await grabMessagesMedia({ message_ids: recent });
     const parts = new Map<number, HarnessContentPart[]>();
 
     for (const [message_id, files] of media) {
@@ -53,7 +51,17 @@ async function fileToParts({ file }: { file: MessageMediaRow }): Promise<Harness
     const label = describeAttachment({ name, id: file.id! });
 
     if (file.media_type == "document") {
-        const text = file.text_content?.trim();
+        /**
+         * Read from the file each time: no text is kept outside
+         * knowledgebases.
+         */
+        const text = (
+            await extractBotFileText({
+                write_path: file.media_write_path,
+                name: file.title,
+                mime_type: file.mime_type,
+            }).catch(() => null)
+        )?.trim();
 
         if (!text) {
             return [{ type: "text", text: `[Attached file ${label}: its text couldn't be read.]` }];

@@ -3,7 +3,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Button from "@moduletrace/twui/layout/Button";
-import { RefreshCw, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { MediaType, PublicBotFile } from "@/src/types";
 import relativeTime from "@/src/utils/relative-time";
 import AttachmentIcon from "./attachment-icon";
@@ -11,19 +11,18 @@ import AttachmentIcon from "./attachment-icon";
 type Props = {
     file: PublicBotFile;
     /**
-     * A crew manager may delete and re-ingest.
+     * A crew manager may delete it.
      */
     can_manage: boolean;
     busy?: boolean;
-    onIngest: () => void;
     onDelete: () => void;
 };
 
 /**
  * One file in the files modal: its type, path, size and age, and what can
- * be done with it. A file that isn't searchable says why.
+ * be done with it.
  */
-export default function FileRow({ file, can_manage, busy, onIngest, onDelete }: Props) {
+export default function FileRow({ file, can_manage, busy, onDelete }: Props) {
     return (
         <Row className="w-full gap-3! flex-nowrap items-start py-2 border-0 border-b border-solid border-hairline last:border-b-0">
             <Row className="mt-0.5 text-ink-secondary">
@@ -44,11 +43,6 @@ export default function FileRow({ file, can_manage, busy, onIngest, onDelete }: 
                         file.scope == "workspace" ? "Workspace" : "Bot files",
                         `${Math.max(1, Math.round(file.size / 1024))} KB`,
                         file.created_at ? relativeTime({ at: file.created_at }) : "",
-                        file.ingest_error
-                            ? file.ingest_error
-                            : file.ingested_at
-                              ? "searchable"
-                              : "not searchable yet",
                     ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -56,19 +50,6 @@ export default function FileRow({ file, can_manage, busy, onIngest, onDelete }: 
             </Stack>
             {can_manage ? (
                 <Row className="shrink-0 gap-0!">
-                    <Button
-                        title="Read it again so it can be searched"
-                        aria-label="Reingest"
-                        type="button"
-                        variant="ghost"
-                        color="gray"
-                        size="small"
-                        disabled={busy}
-                        onClick={onIngest}
-                        className="p-1.5!"
-                    >
-                        <RefreshCw size={14} aria-hidden />
-                    </Button>
                     <Button
                         title="Delete it"
                         aria-label="Delete"

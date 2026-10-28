@@ -14,7 +14,7 @@ type Props = {
 export default function FilesSearchInput({ value, loading, onChange, onSubmit }: Props) {
     return (
         <Input
-            placeholder="Search this folder"
+            placeholder="Search this folder by name"
             value={value}
             disabled={loading}
             onChange={(event) => onChange(event.target.value)}

@@ -1,7 +1,6 @@
 import mediaFilePath from "@/src/utils/media-file-path";
 import type { BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import { BotUploadFolder } from "@/src/dict/bot-file-dict";
-import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
 import { logError } from "@/src/functions/backend/logger";
 import recordBotFile from "./record-bot-file";
 
@@ -14,7 +13,7 @@ type Params = {
 
 /**
  * Copies the files the user attached to a message into the conversation's
- * folder (`uploads/<yyyy-mm>/<name>`), so they stay searchable after the
+ * folder (`uploads/<yyyy-mm>/<name>`), so they stay findable after the
  * message scrolls away and a later run can find them. Best effort: a
  * failure is logged, never shown, and the message still goes out.
  */
@@ -48,8 +47,8 @@ export default async function storeChatAttachments({
              * The text stays on the message's own `bot-attachment` row,
              * where a reply reads it. Copying it onto the file's row kept
              * the same text twice and left the copy behind when the
-             * upload was pruned; ingestion re-reads the bytes once
-             * through `extractBotFileText` instead.
+             * upload was pruned; a bot reads the bytes with `read_file`
+             * instead.
              */
             const saved = await recordBotFile({
                 bot_id,
@@ -63,8 +62,6 @@ export default async function storeChatAttachments({
                 mime_type: file.mime_type || undefined,
                 user_id,
             });
-
-            await enqueueFileIngest({ file_id: saved.id! });
         } catch (error) {
             await logError({
                 title: `A chat attachment couldn't be saved to the bot's files`,

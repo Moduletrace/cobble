@@ -3792,16 +3792,6 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     options: BotFileSources.map((s) => s.value),
                     defaultValue: "bot-write",
                 },
-                {
-                    fieldName: "ingested_at",
-                    fieldDescription: `When its text was chunked and embedded. Null: not ingested (yet)`,
-                    dataType: "INTEGER",
-                },
-                {
-                    fieldName: "ingest_error",
-                    fieldDescription: `Why the last ingestion failed, when it did`,
-                    dataType: "TEXT",
-                },
             ],
             uniqueConstraints: [
                 {
@@ -3822,56 +3812,6 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_files_media_id",
                     indexTableFields: ["media_id"],
-                },
-            ],
-        },
-        {
-            tableName: "bot_file_chunks",
-            tableDescription: `A piece of a bot file's text, the unit a search returns. Replaced whole when the file is ingested again`,
-            fields: [
-                {
-                    fieldName: "file_id",
-                    dataType: "INTEGER",
-                    foreignKey: {
-                        cascadeDelete: true,
-                        destinationTableName: "bot_files",
-                        destinationTableColumnName: "id",
-                        destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "bot_file_chunks_file_fk",
-                    },
-                },
-                {
-                    fieldName: "scope",
-                    dataType: "TEXT",
-                    options: BotFileScopes.map((s) => s.value),
-                },
-                {
-                    fieldName: "owner_id",
-                    fieldDescription: `The bot or workspace the file belongs to, so a search filters without a join`,
-                    dataType: "INTEGER",
-                },
-                {
-                    fieldName: "chunk_index",
-                    dataType: "INTEGER",
-                },
-                {
-                    fieldName: "text",
-                    dataType: "TEXT",
-                },
-                {
-                    fieldName: "token_estimate",
-                    fieldDescription: `A rough count (characters / 4), for trimming results`,
-                    dataType: "INTEGER",
-                },
-            ],
-            indexes: [
-                {
-                    indexName: "idx_bot_file_chunks_file_id",
-                    indexTableFields: ["file_id", "chunk_index"],
-                },
-                {
-                    indexName: "idx_bot_file_chunks_owner",
-                    indexTableFields: ["scope", "owner_id"],
                 },
             ],
         },
@@ -4024,43 +3964,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
-            tableName: "bot_file_vectors",
-            tableDescription: `sqlite-vec vectors of a file's chunks, at \`AppData.EmbeddingDimensions\` wide whatever the model returns. A vec0 table is only recreated with \`bunx bun-sqlite schema --vector\`, so the entrypoint never passes it`,
-            isVector: true,
-            vectorType: "vec0",
-            fields: [
-                {
-                    fieldName: "embedding",
-                    fieldDescription: `Normalized, padded or cut to \`AppData.EmbeddingDimensions\``,
-                    dataType: "BLOB",
-                    isVector: true,
-                    vectorSize: AppData.EmbeddingDimensions,
-                },
-                {
-                    fieldName: "chunk_id",
-                    dataType: "INTEGER",
-                    sideCar: true,
-                },
-                {
-                    fieldName: "file_id",
-                    dataType: "INTEGER",
-                    sideCar: true,
-                },
-                {
-                    fieldName: "scope",
-                    dataType: "TEXT",
-                    sideCar: true,
-                },
-                {
-                    fieldName: "owner_id",
-                    dataType: "INTEGER",
-                    sideCar: true,
-                },
-            ],
-        },
-        {
             tableName: "file_ingest_queue",
-            tableDescription: `Files (and knowledgebase documents) waiting to have their text chunked and embedded. A queue, so a restart never strands a file and an upload never waits on a model. A finished job is deleted: \`bot_files.ingested_at\` and \`ingest_error\` keep the outcome`,
+            tableDescription: `Knowledgebase documents waiting to have their text chunked and embedded (bot files are never indexed). A queue, so a restart never strands a document and an upload never waits on a model. A finished job is deleted: \`knowledgebase_documents.ingested_at\` and \`ingest_error\` keep the outcome`,
             isQueue: {
                 maxAttempts: 3,
                 lockTimeout: 10 * 60 * 1000,
@@ -4069,21 +3974,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             },
             fields: [
                 {
-                    fieldName: "file_id",
-                    fieldDescription: `The \`bot_files\` row to (re)ingest`,
-                    dataType: "INTEGER",
-                },
-                {
                     fieldName: "document_id",
-                    fieldDescription: `The \`knowledgebase_documents\` row to (re)ingest, instead of a file`,
+                    fieldDescription: `The \`knowledgebase_documents\` row to (re)ingest`,
                     dataType: "INTEGER",
                 },
             ],
             indexes: [
-                {
-                    indexName: "idx_file_ingest_queue_file_id",
-                    indexTableFields: ["file_id"],
-                },
                 {
                     indexName: "idx_file_ingest_queue_document_id",
                     indexTableFields: ["document_id"],

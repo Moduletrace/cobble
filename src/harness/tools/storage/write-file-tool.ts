@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import type { BotFilePurpose } from "@/src/dict/bot-file-dict";
-import enqueueFileIngest from "@/src/file-ingest/enqueue-file-ingest";
 import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file";
 import type { HarnessTool } from "../../types";
 import {
@@ -23,7 +22,7 @@ type Args = {
 /**
  * Writes a text file (markdown, CSV, JSON, code, plain text) into one of
  * the bot's directories, making folders as needed. The file stays for
- * later runs and becomes searchable.
+ * later runs.
  */
 export default function writeFileTool(context: StorageToolContext): HarnessTool<Args> {
     const own = context.scopes[0];
@@ -32,7 +31,7 @@ export default function writeFileTool(context: StorageToolContext): HarnessTool<
         name: "write_file",
         description: `Save a text file for later: markdown, CSV, JSON, code or plain text. Give it a path like "reports/q3.md"; folders are made as needed. Files belong to ${
             own?.scope == "workspace" ? "the workspace you're working in" : "you"
-        } and stay between runs: write a file before telling the user something is saved, and search_files to find one you wrote before. It is readable and searchable at once.${
+        } and stay between runs: write a file before telling the user something is saved, and list_files (by name or path) to find one you wrote before. It is readable at once.${
             context.scopes.length > 1
                 ? ` "scope" picks a directory: ${context.scopes.map((s) => `${s.scope}:${s.owner_id}`).join(", ")}.`
                 : ""
@@ -73,8 +72,6 @@ export default function writeFileTool(context: StorageToolContext): HarnessTool<
                 source: "bot-write",
                 user_id: context.user_id,
             });
-
-            await enqueueFileIngest({ file_id: file.id! });
 
             if (args.attach && file.media_id) {
                 context.onAttach?.({ media_id: Number(file.media_id), name: file.name || "" });
