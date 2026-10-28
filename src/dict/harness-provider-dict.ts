@@ -9,6 +9,9 @@
  *   capabilities are guessed from the names
  * - `local`: runs on the user's own hardware, so its models count as free
  * - `image_path`: image generation endpoint
+ * - `image_edit_path`: where images made from reference images go. OpenRouter
+ *   takes them on `image_path` (`input_references`); the others take a
+ *   multipart upload at `/images/edits`
  */
 export const HarnessProviderKinds = [
     {
@@ -20,6 +23,7 @@ export const HarnessProviderKinds = [
         catalog: "openrouter",
         local: false,
         image_path: "/images",
+        image_edit_path: "/images",
     },
     {
         title: "OpenAI",
@@ -30,6 +34,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "Anthropic",
@@ -40,6 +45,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "Google Gemini",
@@ -50,6 +56,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "DeepSeek",
@@ -60,6 +67,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "Groq",
@@ -70,6 +78,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "Mistral",
@@ -80,6 +89,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "xAI",
@@ -90,6 +100,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "Ollama",
@@ -100,6 +111,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: true,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
     {
         title: "Other (OpenAI-compatible)",
@@ -110,6 +122,7 @@ export const HarnessProviderKinds = [
         catalog: "openai-compatible",
         local: false,
         image_path: "/images/generations",
+        image_edit_path: "/images/edits",
     },
 ] as const;
 

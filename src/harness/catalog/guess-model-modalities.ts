@@ -11,7 +11,7 @@ type Guess = Pick<
 
 const Transcription = /whisper|transcri|(?:^|[-_/])(stt|asr)(?=$|[-_:.])|scribe/i;
 const Speech = /(?:^|[-_/])tts(?=$|[-_:.])|speech|voice/i;
-const ImageOut = /dall-e|gpt-image|imagen|flux|stable-diffusion|sdxl|image-gen/i;
+const ImageOut = /dall-e|gpt-image|imagen|flux|stable-diffusion|sdxl|image-gen|qwen-image|kontext|seedream|image-edit/i;
 const Embedding = /embed/i;
 /**
  * Chat families that read images.

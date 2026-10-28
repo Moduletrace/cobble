@@ -13,6 +13,7 @@ type Props = {
     model_id: number | null;
     provider_name?: string;
     automatic: boolean;
+    falls_back_title?: string;
     onChange: (model_id: number | null) => void;
 };
 
@@ -26,6 +27,7 @@ export default function HarnessModelSelect({
     model_id,
     provider_name,
     automatic,
+    falls_back_title,
     onChange,
 }: Props) {
     return (
@@ -35,7 +37,13 @@ export default function HarnessModelSelect({
             label="Model"
             showLabel
             placeholder="Search models"
-            options={harnessModelSelectOptions({ models, model_id, provider_name, automatic })}
+            options={harnessModelSelectOptions({
+                models,
+                model_id,
+                provider_name,
+                automatic,
+                falls_back_title,
+            })}
             defaultValues={[model_id ? String(model_id) : AutoModelValue]}
             changeHandler={(value) => {
                 const picked = Array.isArray(value) ? value[0] : value;

@@ -354,6 +354,12 @@ export const AppData = {
      */
     HarnessMaxAudioBytes: 25 * 1024 * 1024,
     /**
+     * Reference images one `generate_image` call passes on, and the
+     * largest each may be.
+     */
+    ImageReferenceMaxCount: 4,
+    ImageReferenceMaxBytes: 10 * 1024 * 1024,
+    /**
      * Connecting to an MCP server (a computer) gives up after this long.
      */
     McpConnectTimeoutMs: 15 * 1000,

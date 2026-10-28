@@ -1,4 +1,5 @@
 import Checkbox from "@moduletrace/twui/form/Checkbox";
+import { harnessFallbackTitle } from "@/src/dict/harness-dict";
 import { HarnessParameterHarnesses } from "@/src/dict/harness-parameter-dict";
 import type { HarnessFormValue, HarnessOverview } from "@/src/types";
 import SettingsGroup from "../../(partials)/settings-group";
@@ -40,11 +41,14 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
             harness.harness as (typeof HarnessParameterHarnesses)[number],
         );
     const on_bot_page = harness.default !== undefined;
+    const falls_back_title = harnessFallbackTitle({ harness: harness.harness });
     const default_name = harness.default?.enabled === false
         ? "turned off"
         : harness.default?.current
           ? `${harness.default.current.name} on ${harness.default.current.provider_name}`
-          : "not available";
+          : falls_back_title
+            ? `same as ${falls_back_title.toLowerCase()}`
+            : "not available";
 
     return (
         <SettingsGroup title={harness.title} description={harness.description}>
@@ -74,6 +78,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     model_id={value.model_id}
                     provider_name={provider?.name}
                     automatic={harness.automatic}
+                    falls_back_title={falls_back_title}
                     onChange={(model_id) => onChange({ ...value, model_id, voice: undefined })}
                 />
             )}
@@ -86,6 +91,14 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                 <Checkbox
                     title="Fall back to the automatic picks if this model fails"
                     label={`Fall back to the automatic picks${provider ? ` on ${provider.name}` : ""} if this model fails`}
+                    checked={value.fallback}
+                    changeHandler={(fallback) => onChange({ ...value, fallback })}
+                />
+            ) : null}
+            {!value.inherit && value.model_id && falls_back_title ? (
+                <Checkbox
+                    title={`Fall back to ${falls_back_title.toLowerCase()} if this model fails`}
+                    label={`Fall back to ${falls_back_title.toLowerCase()} if this model fails`}
                     checked={value.fallback}
                     changeHandler={(fallback) => onChange({ ...value, fallback })}
                 />

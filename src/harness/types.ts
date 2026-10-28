@@ -157,6 +157,7 @@ export type HarnessUsageKind =
     | "transcription"
     | "speech"
     | "image"
+    | "image_edit"
     | "embedding";
 
 export type HarnessChatParams = {

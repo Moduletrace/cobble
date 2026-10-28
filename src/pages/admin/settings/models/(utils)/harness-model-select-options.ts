@@ -18,26 +18,35 @@ type Params = {
      * available".
      */
     automatic: boolean;
+    /**
+     * The harness that does the work while none is picked (image
+     * generation, for image editing): the empty choice names it.
+     */
+    falls_back_title?: string;
 };
 
 /**
  * The model picker's options: automatic (the best free model, on the
  * picked provider if there is one), then every model that can do the job
  * (free ones first, as the server sorts them). A harness without
- * automatic picks starts with "Not available" instead.
+ * automatic picks starts with "Not available" instead, or with the
+ * harness it falls back to.
  */
 export default function harnessModelSelectOptions({
     models,
     model_id,
     provider_name,
     automatic,
+    falls_back_title,
 }: Params): TWUISelectOptionObject[] {
     const has_free = models.some((model) => model.free);
 
     return [
         {
             value: AutoModelValue,
-            title: !automatic
+            title: falls_back_title
+                ? `Same as ${falls_back_title.toLowerCase()} (pick a model to use its own)`
+                : !automatic
                 ? "Not available (pick a model to turn it on)"
                 : provider_name
                 ? has_free

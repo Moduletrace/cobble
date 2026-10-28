@@ -1,6 +1,9 @@
 import { z } from "zod";
 import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file";
+import { AppData } from "@/src/data/app-data";
 import generateImage from "@/src/harness/image/generate-image";
+import loadReferenceImages from "@/src/harness/image/load-reference-images";
+import parseFileRef from "@/src/utils/parse-file-ref";
 import type { HarnessTool } from "../../types";
 import {
     describeScope,
@@ -12,6 +15,8 @@ import {
 
 type Args = {
     prompt: string;
+    references?: (string | number)[];
+    reference_media_ids?: number[];
     path?: string;
     size?: string;
     attach?: boolean;
@@ -19,18 +24,30 @@ type Args = {
 };
 
 /**
- * Makes an image with the image generation harness and saves it in the
- * bot's files, so it can be sent, shown again later or used by another
- * run. The bytes stay in the app's storage, never on a computer.
+ * Makes an image with the image generation harness (image editing when it
+ * passes reference images: files the run reaches or the user's uploads)
+ * and saves it in the bot's files, so it can be sent, shown again later or
+ * used by another run. The bytes stay in the app's storage, never on a
+ * computer.
  */
 export default function generateImageTool(context: StorageToolContext): HarnessTool<Args> {
     const own = context.scopes[0];
 
     return {
         name: "generate_image",
-        description: `Make an image from a description and save it in your files. Describe what should be in it, in one clear prompt. The image is saved (so you can send it now and show it later) and can ride on this reply with "attach".`,
+        description: `Make an image from a description and save it in your files. Describe what should be in it, in one clear prompt. To work from existing images (a logo to rework, a style or palette to follow, a photo to change), pass them as "references" ([file:ID] refs from list_files) or "reference_media_ids" (images the user uploaded), up to ${AppData.ImageReferenceMaxCount}, and say in the prompt what to take from each. The image is saved (so you can send it now and show it later) and can ride on this reply with "attach".`,
         schema: z.object({
             prompt: z.string().min(3).max(4000),
+            references: z
+                .array(z.union([z.string().max(60), z.number().int().positive()]))
+                .max(AppData.ImageReferenceMaxCount)
+                .optional()
+                .describe(`Images in your files to work from, by [file:ID] ref, e.g. ["[file:12]"]`),
+            reference_media_ids: z
+                .array(z.number().int().positive())
+                .max(AppData.ImageReferenceMaxCount)
+                .optional()
+                .describe(`Images the user uploaded to work from, by media id`),
             path: z
                 .string()
                 .max(300)
@@ -55,8 +72,22 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                     .join(", ")}.`;
             }
 
+            const file_ids = (args.references || []).map((ref) => parseFileRef({ ref }));
+
+            if (file_ids.some((id) => !id)) {
+                return `Give each reference as its [file:ID] ref, e.g. "[file:12]". list_files lists them.`;
+            }
+
+            const references = await loadReferenceImages({
+                user_id: context.user_id,
+                scopes: context.scopes,
+                file_ids: file_ids as number[],
+                media_ids: args.reference_media_ids,
+            });
+
             const images = await generateImage({
                 prompt: args.prompt,
+                references,
                 size: args.size,
                 signal,
                 bot_id: context.bot_id,

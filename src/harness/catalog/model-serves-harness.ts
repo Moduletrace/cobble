@@ -17,6 +17,7 @@ type Params = {
  *   audio: free ones often drop it)
  * - speech: a text-to-speech model
  * - image: makes images
+ * - image_edit: makes images from reference images (takes and makes them)
  * - embedding: turns text into vectors (never a chat model)
  */
 export default function modelServesHarness({ model, harness }: Params) {
@@ -40,6 +41,9 @@ export default function modelServesHarness({ model, harness }: Params) {
 
         case "image":
             return output.has("image");
+
+        case "image_edit":
+            return input.has("image") && output.has("image");
 
         case "embedding":
             return output.has("embeddings");

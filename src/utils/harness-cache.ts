@@ -8,7 +8,7 @@ import type {
  * Bumped when a cached model payload changes shape, so an older cache is
  * fetched again instead of read.
  */
-const CacheVersion = 1;
+const CacheVersion = 2;
 
 type CacheEnvelope<T> = {
     v: number;

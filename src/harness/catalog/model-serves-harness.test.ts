@@ -72,4 +72,19 @@ describe("modelServesHarness", () => {
             }),
         ).toBe(true);
     });
+
+    test("image editing takes and makes images", () => {
+        expect(
+            modelServesHarness({
+                model: { ...chat, output_modalities: ["image"] },
+                harness: "image_edit",
+            }),
+        ).toBe(false);
+        expect(
+            modelServesHarness({
+                model: { ...chat, input_modalities: ["text", "image"], output_modalities: ["image"] },
+                harness: "image_edit",
+            }),
+        ).toBe(true);
+    });
 });

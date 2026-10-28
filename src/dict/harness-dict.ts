@@ -50,6 +50,14 @@ export const Harnesses = [
         install_wide: false,
     },
     {
+        title: "Image editing",
+        value: "image_edit",
+        automatic: false,
+        description: `Makes images from reference images a bot passes on: a logo to rework, a style to follow, a photo to change. Until a model is picked here (or while it's off), image generation takes them.`,
+        required: false,
+        install_wide: false,
+    },
+    {
         title: "Embeddings",
         value: "embedding",
         automatic: false,
@@ -66,6 +74,31 @@ export type HarnessKind = (typeof Harnesses)[number]["value"];
  */
 export function isInstallWideHarness({ harness }: { harness: HarnessKind }) {
     return Boolean(Harnesses.find((h) => h.value == harness)?.install_wide);
+}
+
+/**
+ * Harnesses that hand their work to another one instead of picking
+ * models automatically: image editing goes to image generation while it
+ * has no model (or is off), and after its model fails when fallback is on.
+ */
+export const HarnessFallbacks: Partial<Record<HarnessKind, HarnessKind>> = {
+    image_edit: "image",
+};
+
+/**
+ * The harness this one falls back to, if any.
+ */
+export function harnessFallsBackTo({ harness }: { harness: HarnessKind }) {
+    return HarnessFallbacks[harness];
+}
+
+/**
+ * The title of the harness this one falls back to, if any.
+ */
+export function harnessFallbackTitle({ harness }: { harness: HarnessKind }) {
+    const to = HarnessFallbacks[harness];
+
+    return to ? Harnesses.find((h) => h.value == to)?.title : undefined;
 }
 
 /**
