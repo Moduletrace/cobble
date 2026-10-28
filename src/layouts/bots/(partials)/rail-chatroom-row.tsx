@@ -2,7 +2,7 @@ import Link from "@moduletrace/twui/layout/Link";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { twMerge } from "tailwind-merge";
-import ChatroomStone from "@/src/components/general/chatroom-stone";
+import ChatroomStoneCluster from "@/src/components/general/chatroom-stone-cluster";
 import type { ChatroomSummary } from "@/src/types";
 import chatroomStatusLine from "@/src/utils/chatroom-status-line";
 
@@ -13,12 +13,11 @@ type Props = {
 };
 
 /**
- * A chatroom in the rail, the same 48px row as a bot: the asking bot's
- * stone, the request and where it stands. Unread is said in words.
+ * A chatroom in the rail, the same 48px row as a bot: its bots' stones
+ * in one avatar-sized cluster, the request and where it stands. Unread
+ * is said in words.
  */
 export default function RailChatroomRow({ chatroom, href, selected }: Props) {
-    const requester = chatroom.bots[0];
-
     return (
         <Link
             href={href}
@@ -32,7 +31,7 @@ export default function RailChatroomRow({ chatroom, href, selected }: Props) {
             )}
         >
             <Span className="mx-auto @rail:mx-0 inline-flex shrink-0">
-                {requester ? <ChatroomStone bot={requester} size={28} /> : null}
+                <ChatroomStoneCluster bots={chatroom.bots} />
             </Span>
             <Stack className="hidden @rail:flex grow min-w-0 gap-0!">
                 <Span className="text-sm font-bold leading-5 text-ink truncate w-full">
