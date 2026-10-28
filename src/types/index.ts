@@ -236,11 +236,20 @@ export type TaskFile = BUN_SQLITE_COBBLE_TASK_MEDIA & {
 };
 
 /**
- * A task with its notes and files: what the task modal and the workspace's
- * tasks group render.
+ * A note on a task, with the name of the bot that wrote it.
+ */
+export type TaskNote = BUN_SQLITE_COBBLE_TASK_NOTES & {
+    bot_name?: string | null;
+};
+
+/**
+ * A task with its notes and files and who added it: what the task modal
+ * renders.
  */
 export type TaskDetail = TaskWithNames & {
-    notes: BUN_SQLITE_COBBLE_TASK_NOTES[];
+    created_by_bot_name?: string | null;
+    created_by_user_name?: string | null;
+    notes: TaskNote[];
     files: TaskFile[];
 };
 

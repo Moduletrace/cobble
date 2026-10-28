@@ -6,7 +6,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Span from "@moduletrace/twui/layout/Span";
 import type { TaskDetail, TaskWithNames } from "@/src/types";
-import TaskDetailPanel from "@/src/components/general/task-detail-panel";
+import TaskDetailModal from "@/src/components/general/task-detail-modal";
 import TaskForm from "@/src/components/general/task-form";
 import TaskListItem from "@/src/components/general/task-list-item";
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
@@ -35,7 +35,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<{ error?: boolean; success?: boolean; msg: string }>();
     const [adding, setAdding] = useState(false);
-    const [open_task, setOpenTask] = useState<TaskDetail | null>(null);
+    const [open_task, setOpenTask] = useState<TaskWithNames | null>(null);
     const can_manage = canManageCrew({ user_types: pageProps?.user_types });
 
     const replace = ({ task }: { task: TaskWithNames }) =>
@@ -85,22 +85,6 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
         setStatus({ success: true, msg: "Task deleted." });
     };
 
-    const show = async ({ task }: { task: TaskWithNames }) => {
-        setStatus(undefined);
-
-        const res = await fetchApi<{}, APIResponseObject<TaskDetail>>(
-            `/api/admin/tasks/get-task?task_id=${task.id}`,
-            { method: "GET" },
-        ).catch(() => null);
-
-        if (!res?.success || !res.singleRes) {
-            setStatus({ error: true, msg: res?.msg || "Couldn't open the task." });
-            return;
-        }
-
-        setOpenTask(res.singleRes);
-    };
-
     return (
         <SettingsGroup
             id="tasks"
@@ -108,71 +92,48 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks }: Props) {
             description="Every task in this workspace, whichever bot has it. A bot sees its own here and the shared ones nobody has taken up yet."
         >
             <Stack className="w-full gap-2! items-stretch">
-                {open_task ? (
-                    <Stack className="w-full gap-3! items-stretch">
-                        <Row className="w-full gap-2! flex-nowrap items-center">
-                            <Span className="grow min-w-0 text-sm font-bold leading-5 text-ink truncate">
-                                {open_task.title || "Task"}
-                            </Span>
-                            <Button
-                                title="Back to the list"
-                                type="button"
-                                variant="ghost"
-                                color="gray"
-                                size="small"
-                                onClick={() => setOpenTask(null)}
-                                className="px-2! text-[12px]"
-                            >
-                                Back
-                            </Button>
-                        </Row>
-                        <TaskDetailPanel
-                            task={open_task}
-                            can_manage={can_manage}
-                            onChanged={(saved, msg) => {
-                                setOpenTask(saved);
-                                replace({ task: saved });
-                                setStatus(msg ? { success: true, msg } : undefined);
-                            }}
-                            onDeleted={() => {
-                                setItems((prev) => prev.filter((item) => item.id != open_task.id));
-                                setOpenTask(null);
-                                setStatus({ success: true, msg: "Task deleted." });
-                            }}
+                {can_manage ? (
+                    <Row className="justify-end">
+                        <Button
+                            title="Add a task"
+                            type="button"
+                            variant="outlined"
+                            color="gray"
+                            size="small"
+                            onClick={() => setAdding(true)}
+                        >
+                            Add task
+                        </Button>
+                    </Row>
+                ) : null}
+                <SettingsList is_empty={!items.length} empty="No tasks in this workspace yet.">
+                    {items.map((task) => (
+                        <TaskListItem
+                            key={task.id}
+                            task={task}
+                            busy={busy}
+                            onOpen={() => setOpenTask(task)}
+                            onStatusChange={(next) => move({ task, next })}
+                            onDelete={() => remove({ task }).catch(() => {})}
                         />
-                    </Stack>
-                ) : (
-                    <>
-                        {can_manage ? (
-                            <Row className="justify-end">
-                                <Button
-                                    title="Add a task"
-                                    type="button"
-                                    variant="outlined"
-                                    color="gray"
-                                    size="small"
-                                    onClick={() => setAdding(true)}
-                                >
-                                    Add task
-                                </Button>
-                            </Row>
-                        ) : null}
-                        <SettingsList is_empty={!items.length} empty="No tasks in this workspace yet.">
-                            {items.map((task) => (
-                                <TaskListItem
-                                    key={task.id}
-                                    task={task}
-                                    busy={busy}
-                                    onOpen={() => show({ task }).catch(() => {})}
-                                    onStatusChange={(next) => move({ task, next })}
-                                    onDelete={() => remove({ task }).catch(() => {})}
-                                />
-                            ))}
-                        </SettingsList>
-                    </>
-                )}
+                    ))}
+                </SettingsList>
                 <SettingsStatus status={status} />
             </Stack>
+            <TaskDetailModal
+                task={open_task}
+                can_manage={can_manage}
+                onClose={() => setOpenTask(null)}
+                onChanged={({ task, msg }) => {
+                    replace({ task });
+                    setStatus(msg ? { success: true, msg } : undefined);
+                }}
+                onDeleted={({ task_id }) => {
+                    setItems((prev) => prev.filter((item) => item.id != task_id));
+                    setOpenTask(null);
+                    setStatus({ success: true, msg: "Task deleted." });
+                }}
+            />
             <AddModalShell
                 open={adding}
                 setOpen={setAdding}

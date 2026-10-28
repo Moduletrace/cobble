@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import { twMerge } from "tailwind-merge";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
@@ -8,18 +9,19 @@ import { AppContext } from "@/src/pages/__root";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
-import { TaskStatuses } from "@/src/dict/task-dict";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import relativeTime from "@/src/utils/relative-time";
 import taskPlaceLabel from "@/src/utils/task-place-label";
 import { Trash2 } from "lucide-react";
 import RowIconButton from "./row-icon-button";
 import TaskStatusChip from "./task-status-chip";
+import TaskStatusMoves from "./task-status-moves";
 
 type Props = {
     task: TaskWithNames;
     /**
-     * Opens the task to read its notes and files, and to edit it.
+     * Opens the task in its modal: everything about it, and for a crew
+     * manager its edit, hand-over, files and delete. The title opens it.
      */
     onOpen?: () => void;
     /**
@@ -36,13 +38,12 @@ type Props = {
 /**
  * One task: whose it is (a bot's stone), its title and status, where it
  * is and who has it, what it's blocked on, its latest note and how long ago it
- * moved.
+ * moved. Its title opens it in a modal.
  */
 export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, busy }: Props) {
     const { pageProps } = useContext(AppContext);
     const can_manage = canManageCrew({ user_types: pageProps?.user_types });
     const done = task.status == "done" || task.status == "cancelled";
-    const moves = TaskStatuses.filter((it) => ["todo", "doing", "done"].includes(it.value));
 
     return (
         <Row className="w-full gap-3! flex-nowrap items-start px-3 py-3 border-0 border-b border-solid border-hairline last:border-b-0">
@@ -55,14 +56,15 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
             <Stack className="grow min-w-0 gap-0.5! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <Button
-                        title={task.title || "Open the task"}
+                        title={`Open ${task.title || `task ${task.id}`}`}
                         type="button"
                         variant="ghost"
                         color="text"
                         onClick={onOpen}
-                        className={`grow min-w-0 justify-start px-0! h-auto! py-0! text-sm! font-bold! leading-5! truncate text-left hover:bg-transparent! hover:underline ${
-                            done ? "text-ink-secondary! line-through" : "text-ink!"
-                        }`}
+                        className={twMerge(
+                            "grow min-w-0 justify-start px-0! h-auto! py-0! text-sm! font-bold! leading-5! truncate text-left hover:bg-transparent! hover:underline",
+                            done ? "text-ink-secondary! line-through" : "text-ink!",
+                        )}
                     >
                         <Span className="truncate">{task.title || `Task ${task.id}`}</Span>
                     </Button>
@@ -95,25 +97,7 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
                     <Span className="text-xs leading-4 text-ink-secondary line-clamp-2">{task.latest_note}</Span>
                 ) : null}
                 {can_manage && onStatusChange ? (
-                    <Row className="gap-1! flex-nowrap items-center pt-0.5">
-                        {moves
-                            .filter((it) => it.value != task.status)
-                            .map((it) => (
-                                <Button
-                                    key={it.value}
-                                    title={`Mark it ${it.title.toLowerCase()}`}
-                                    type="button"
-                                    variant="ghost"
-                                    color="gray"
-                                    size="small"
-                                    disabled={busy}
-                                    onClick={() => onStatusChange(it.value)}
-                                    className="px-1.5! text-[12px]"
-                                >
-                                    {it.title}
-                                </Button>
-                            ))}
-                    </Row>
+                    <TaskStatusMoves status={task.status} disabled={busy} onMove={onStatusChange} className="pt-0.5" />
                 ) : null}
             </Stack>
         </Row>

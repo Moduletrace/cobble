@@ -10,7 +10,7 @@ import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage, TaskDetail, TaskWithNames } from "@/src/types";
-import TaskDetailPanel from "@/src/components/general/task-detail-panel";
+import TaskDetailModal from "@/src/components/general/task-detail-modal";
 import TaskForm from "@/src/components/general/task-form";
 import TaskListItem from "@/src/components/general/task-list-item";
 
@@ -33,13 +33,14 @@ type Props = {
  * The tasks this conversation works on: a bot's own list, or in a workspace
  * the ones it has there plus the shared ones nobody has yet. Open it from the header menu; the list loads
  * then, so the page's props stay small. A crew manager adds, moves, edits
- * and deletes; a task opens to show its notes and files.
+ * and deletes; a card opens the task in a modal of its own with everything
+ * about it.
  */
 export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
     const [adding, set_adding] = useState(false);
-    const [open_task, set_open_task] = useState<TaskDetail | null>(null);
+    const [open_task, set_open_task] = useState<TaskWithNames | null>(null);
     const [busy, set_busy] = useState(false);
     const [status, set_status] = useState<string>();
     const can_manage = canManageCrew({ user_types: pageProps?.user_types });
@@ -103,26 +104,6 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
         set_status("Task deleted.");
     };
 
-    const show = async ({ task }: { task: TaskWithNames }) => {
-        set_status(undefined);
-
-        /**
-         * The list already has the task; the detail endpoint serves its
-         * notes and files.
-         */
-        const detail = await fetchApi<{}, APIResponseObject<TaskDetail>>(
-            `/api/admin/tasks/get-task?task_id=${task.id}`,
-            { method: "GET" },
-        ).catch(() => null);
-
-        if (!detail?.success || !detail.singleRes) {
-            set_status(detail?.msg || "Couldn't open the task.");
-            return;
-        }
-
-        set_open_task(detail.singleRes);
-    };
-
     return (
         <Modal
             target={
@@ -159,72 +140,30 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
             <Stack className="w-full gap-1! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <H2 className="grow text-lg! leading-6! tracking-normal! font-bold text-ink">
-                        {open_task ? open_task.title || "Task" : title}
+                        {title}
                     </H2>
-                    {open_task ? (
-                        <Button
-                            title="Back to the list"
-                            type="button"
-                            variant="ghost"
-                            color="gray"
-                            size="small"
-                            onClick={() => set_open_task(null)}
-                            className="px-2! text-[12px]"
-                        >
-                            Back
-                        </Button>
-                    ) : can_manage ? (
+                    {can_manage ? (
                         <Button
                             title="Add a task"
                             type="button"
                             variant="outlined"
                             color="gray"
                             size="small"
-                            onClick={() => {
-                                set_adding(true);
-                                set_open_task(null);
-                            }}
+                            onClick={() => set_adding(true)}
                         >
                             Add task
                         </Button>
                     ) : null}
                 </Row>
-                {!open_task ? (
-                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                        {workspace?.id
-                            ? `What ${name} has in ${workspace.name || "this workspace"}, and the shared tasks there nobody has taken up yet. The workspace shows every bot's.`
-                            : `What ${name} is working through, and what it's waiting on.`}
-                    </Span>
-                ) : null}
+                <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                    {workspace?.id
+                        ? `What ${name} has in ${workspace.name || "this workspace"}, and the shared tasks there nobody has taken up yet. The workspace shows every bot's.`
+                        : `What ${name} is working through, and what it's waiting on.`}
+                </Span>
             </Stack>
 
             <Stack className="w-full mt-4 gap-0! items-stretch overflow-y-auto max-h-[55vh]">
-                {open_task ? (
-                    <TaskDetailPanel
-                        task={open_task}
-                        can_manage={can_manage}
-                        onChanged={(saved, msg) => {
-                            set_status(msg);
-
-                            /**
-                             * Handed to another bot, it's that bot's now.
-                             */
-                            if (saved.bot_id && saved.bot_id != bot.id) {
-                                setTasks((prev) => prev.filter((item) => item.id != saved.id));
-                                set_open_task(null);
-                                return;
-                            }
-
-                            set_open_task(saved);
-                            replace({ task: saved });
-                        }}
-                        onDeleted={() => {
-                            setTasks((prev) => prev.filter((item) => item.id != open_task.id));
-                            set_open_task(null);
-                            set_status("Task deleted.");
-                        }}
-                    />
-                ) : adding ? (
+                {adding ? (
                     <TaskForm
                         bot_id={Number(bot.id)}
                         workspace_id={workspace?.id ? Number(workspace.id) : null}
@@ -241,7 +180,7 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                             key={task.id}
                             task={task}
                             busy={busy}
-                            onOpen={() => show({ task }).catch(() => {})}
+                            onOpen={() => set_open_task(task)}
                             onStatusChange={(next) => move({ task, next })}
                             onDelete={() => remove({ task }).catch(() => {})}
                         />
@@ -258,6 +197,31 @@ export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) 
                     {status}
                 </Span>
             ) : null}
+
+            <TaskDetailModal
+                task={open_task}
+                can_manage={can_manage}
+                onClose={() => set_open_task(null)}
+                onChanged={({ task: saved, msg }) => {
+                    set_status(msg);
+
+                    /**
+                     * Handed to another bot, it's that bot's now.
+                     */
+                    if (saved.bot_id && saved.bot_id != bot.id) {
+                        setTasks((prev) => prev.filter((item) => item.id != saved.id));
+                        set_open_task(null);
+                        return;
+                    }
+
+                    replace({ task: saved });
+                }}
+                onDeleted={({ task_id }) => {
+                    setTasks((prev) => prev.filter((item) => item.id != task_id));
+                    set_open_task(null);
+                    set_status("Task deleted.");
+                }}
+            />
         </Modal>
     );
 }

@@ -6,6 +6,7 @@ import Input from "@moduletrace/twui/form/Input";
 import Select from "@moduletrace/twui/form/Select";
 import Textarea from "@moduletrace/twui/form/Textarea";
 import Stack from "@moduletrace/twui/layout/Stack";
+import CodeEditor from "@/src/components/general/code-editor";
 import { AppData } from "@/src/data/app-data";
 import { TaskStatuses, type TaskStatus } from "@/src/dict/task-dict";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
@@ -26,15 +27,25 @@ type Props = {
 };
 
 /**
- * The one task form: a title, the brief, the status and, while it's
+ * The one task form: a title, the brief (in the code editor), the status and, while it's
  * blocked, what the user has to do. The workspace's tasks group and the
  * conversation's tasks modal both add and edit with it.
  */
-export default function TaskForm({ bot_id, workspace_id, task, onSaved, onCancel }: Props) {
+export default function TaskForm({
+    bot_id,
+    workspace_id,
+    task,
+    onSaved,
+    onCancel,
+}: Props) {
     const [title, setTitle] = useState(task?.title || "");
     const [description, setDescription] = useState(task?.description || "");
-    const [status, setStatus] = useState<TaskStatus>((task?.status as TaskStatus) || "todo");
-    const [blocked_reason, setBlockedReason] = useState(task?.blocked_reason || "");
+    const [status, setStatus] = useState<TaskStatus>(
+        (task?.status as TaskStatus) || "todo",
+    );
+    const [blocked_reason, setBlockedReason] = useState(
+        task?.blocked_reason || "",
+    );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -49,21 +60,22 @@ export default function TaskForm({ bot_id, workspace_id, task, onSaved, onCancel
         setLoading(true);
         setError(undefined);
 
-        const res = await fetchApi<Record<string, unknown>, APIResponseObject<TaskDetail>>(
-            "/api/admin/tasks/save-task",
-            {
-                method: "POST",
-                body: {
-                    task_id: task?.id ? Number(task.id) : undefined,
-                    bot_id: task ? undefined : bot_id || undefined,
-                    workspace_id: task ? undefined : workspace_id || undefined,
-                    title,
-                    description,
-                    status,
-                    blocked_reason: status == "blocked" ? blocked_reason || null : null,
-                },
+        const res = await fetchApi<
+            Record<string, unknown>,
+            APIResponseObject<TaskDetail>
+        >("/api/admin/tasks/save-task", {
+            method: "POST",
+            body: {
+                task_id: task?.id ? Number(task.id) : undefined,
+                bot_id: task ? undefined : bot_id || undefined,
+                workspace_id: task ? undefined : workspace_id || undefined,
+                title,
+                description,
+                status,
+                blocked_reason:
+                    status == "blocked" ? blocked_reason || null : null,
             },
-        );
+        });
 
         setLoading(false);
 
@@ -77,25 +89,28 @@ export default function TaskForm({ bot_id, workspace_id, task, onSaved, onCancel
 
     return (
         <Form onSubmit={submit} className="gap-3!">
-            <Stack className="gap-3! items-stretch">
+            <Stack className="gap-6! items-stretch">
                 <Input
+                    title="Title"
                     label="Title"
+                    showLabel
                     value={title}
                     changeHandler={setTitle}
                     placeholder="What needs doing?"
                     maxLength={AppData.TaskTitleMaxLength}
                     disabled={loading}
                 />
-                <Textarea
-                    label="Brief"
-                    value={description}
-                    changeHandler={setDescription}
+                <CodeEditor
+                    mode="markdown"
+                    className="h-[500px]"
+                    title="Brief"
                     placeholder="What to do, where, and how you'll know it's done."
-                    maxLength={AppData.TaskDescriptionMaxLength}
-                    rows={5}
-                    disabled={loading}
+                    content={description}
+                    info={`Up to ${AppData.TaskDescriptionMaxLength.toLocaleString()} characters.`}
+                    onChange={setDescription}
                 />
                 <Select
+                    title="Status"
                     label="Status"
                     showLabel
                     options={TaskStatuses.map((it) => ({
@@ -103,11 +118,15 @@ export default function TaskForm({ bot_id, workspace_id, task, onSaved, onCancel
                         value: it.value,
                         default: it.value == status,
                     }))}
-                    changeHandler={(value) => setStatus(String(value) as TaskStatus)}
+                    changeHandler={(value) =>
+                        setStatus(String(value) as TaskStatus)
+                    }
                 />
                 {status == "blocked" ? (
                     <Textarea
+                        title="Waiting on the user for"
                         label="Waiting on the user for"
+                        showLabel
                         value={blocked_reason}
                         changeHandler={setBlockedReason}
                         placeholder="What the user has to do before this can go on."

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
@@ -10,6 +10,14 @@ import TaskFileRow from "@/src/components/general/task-file-row";
 import HandOverForm from "@/src/components/general/hand-over-form";
 import TaskForm from "@/src/components/general/task-form";
 import TaskStatusChip from "@/src/components/general/task-status-chip";
+import TaskStatusMoves from "@/src/components/general/task-status-moves";
+import BotAvatar from "@/src/components/general/bot-avatar";
+import TaskFactRow from "@/src/components/general/task-fact-row";
+import TaskNoteRow from "@/src/components/general/task-note-row";
+import type { BotFace } from "@/src/dict/bot-dict";
+import { AppContext } from "@/src/pages/__root";
+import botStoneProps from "@/src/utils/bot-stone-props";
+import relativeTime from "@/src/utils/relative-time";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 
@@ -24,12 +32,14 @@ type Props = {
 };
 
 /**
- * One task opened: what it is, its notes oldest first, its files (each
- * opening its bytes), a box to add a note, and edit or delete. A crew
+ * One task opened: its status (a crew manager moves it along), who has it and where, who added it and
+ * when it last moved, what it is, its files (each opening its bytes), its
+ * notes oldest first, a box to add a note, and edit or delete. A crew
  * manager can file a new deliverable straight onto it, or hand an open
  * one to another bot, which starts on it.
  */
 export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted }: Props) {
+    const { pageProps } = useContext(AppContext);
     const [editing, setEditing] = useState(false);
     const [handing_over, setHandingOver] = useState(false);
     const [note, setNote] = useState("");
@@ -135,13 +145,21 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
         <Stack className="w-full gap-4! items-stretch">
             <Row className="w-full gap-2! flex-nowrap items-center">
                 <TaskStatusChip status={task.status} />
-                <Span className="grow min-w-0 text-[13px] leading-[18px] text-ink-secondary truncate">
-                    {task.workspace_id
-                        ? task.workspace_name || `Workspace ${task.workspace_id}`
-                        : task.bot_name || `Bot ${task.bot_id}`}
-                </Span>
                 {can_manage ? (
-                    <Row className="shrink-0 gap-1! flex-nowrap">
+                    <TaskStatusMoves
+                        status={task.status}
+                        disabled={busy}
+                        onMove={(next) =>
+                            run({
+                                path: "tasks/save-task",
+                                body: { task_id: Number(task.id), status: next },
+                                done: "Status changed.",
+                            })
+                        }
+                    />
+                ) : null}
+                {can_manage ? (
+                    <Row className="ml-auto shrink-0 gap-1! flex-nowrap">
                         {(OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
                             <Button
                                 title="Hand the task to another bot"
@@ -200,6 +218,59 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                 ) : null}
             </Row>
 
+            <Stack className="w-full gap-1.5! items-stretch">
+                <TaskFactRow label="Who has it">
+                    {task.bot_id ? (
+                        <>
+                            <BotAvatar
+                                image_media_id={task.bot_image_media_id}
+                                {...botStoneProps({ color: task.bot_color, stone: task.bot_stone, hue: task.bot_hue })}
+                                face={(task.bot_face || "idle") as BotFace}
+                                size={18}
+                            />
+                            <Span className="min-w-0 truncate">{task.bot_name || `Bot ${task.bot_id}`}</Span>
+                        </>
+                    ) : (
+                        <Span className="text-ink-secondary">Shared, nobody has taken it up yet</Span>
+                    )}
+                </TaskFactRow>
+                <TaskFactRow label="Where">
+                    <Span className="min-w-0 truncate">
+                        {task.workspace_id
+                            ? task.workspace_name || `Workspace ${task.workspace_id}`
+                            : `${task.bot_name || "The bot"}'s own list`}
+                    </Span>
+                </TaskFactRow>
+                <TaskFactRow label="Added">
+                    <Span className="min-w-0 truncate">
+                        {[
+                            task.created_by_bot_id
+                                ? `By ${task.created_by_bot_name || `bot ${task.created_by_bot_id}`}`
+                                : task.created_by_user_id
+                                  ? task.created_by_user_id == pageProps?.user?.id
+                                      ? "By you"
+                                      : `By ${task.created_by_user_name || "a user"}`
+                                  : task.origin == "bot"
+                                    ? "By a bot"
+                                    : "By hand",
+                            task.created_at ? relativeTime({ at: Number(task.created_at) }) : null,
+                        ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                    </Span>
+                </TaskFactRow>
+                {task.updated_at ? (
+                    <TaskFactRow label="Last moved">
+                        <Span>{relativeTime({ at: Number(task.updated_at) })}</Span>
+                    </TaskFactRow>
+                ) : null}
+                {task.completed_at ? (
+                    <TaskFactRow label="Finished">
+                        <Span>{relativeTime({ at: Number(task.completed_at) })}</Span>
+                    </TaskFactRow>
+                ) : null}
+            </Stack>
+
             {task.status == "blocked" && task.blocked_reason ? (
                 <Span className="text-[13px] leading-[18px] text-ink">{`Waiting on you: ${task.blocked_reason}`}</Span>
             ) : null}
@@ -209,7 +280,9 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
             ) : null}
 
             <Stack className="w-full gap-1! items-stretch">
-                <Span className="text-[12px] font-bold leading-4 text-ink-secondary">Files</Span>
+                <Span className="text-[12px] font-bold leading-4 text-ink-secondary">
+                    {task.files.length ? `Files (${task.files.length})` : "Files"}
+                </Span>
                 {deliverables.length || references.length ? (
                     <Stack className="w-full gap-0! items-stretch">
                         {[...deliverables, ...references].map((file) => (
@@ -253,18 +326,15 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
             </Stack>
 
             <Stack className="w-full gap-1! items-stretch">
-                <Span className="text-[12px] font-bold leading-4 text-ink-secondary">Notes</Span>
+                <Span className="text-[12px] font-bold leading-4 text-ink-secondary">
+                    {task.notes.length ? `Notes (${task.notes.length})` : "Notes"}
+                </Span>
                 {task.notes.length ? (
-                    task.notes.map((entry) => (
-                        <Row key={entry.id} className="w-full gap-2! flex-nowrap items-start">
-                            <Span className="shrink-0 text-[11px] leading-[18px] text-ink-secondary">
-                                {entry.author == "user" ? "You" : "Bot"}
-                            </Span>
-                            <Span className="grow min-w-0 whitespace-pre-wrap text-[13px] leading-[18px] text-ink">
-                                {entry.text}
-                            </Span>
-                        </Row>
-                    ))
+                    <Stack className="w-full gap-0! items-stretch">
+                        {task.notes.map((entry) => (
+                            <TaskNoteRow key={entry.id} note={entry} />
+                        ))}
+                    </Stack>
                 ) : (
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">No notes yet.</Span>
                 )}
