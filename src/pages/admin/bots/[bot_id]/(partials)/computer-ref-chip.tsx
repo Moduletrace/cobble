@@ -38,14 +38,15 @@ export default function ComputerRefChip({ computer_id }: Props) {
                 openComputer({ computer_id: computer.id || 0, mode: "browser" })
             }
             className={twMerge(
-                "inline-flex h-6 gap-1.5! flex-nowrap align-middle px-2! text-[13px] font-bold whitespace-nowrap text-ink dark:text-ink",
+                "inline-flex h-6 max-w-full gap-1.5! flex-nowrap align-middle px-2! text-[13px] font-bold whitespace-nowrap text-ink dark:text-ink",
+                "[&_.twui-button-content-wrapper]:min-w-0",
                 current
                     ? "bg-sunken hover:bg-sunken outline-0"
                     : "bg-transparent hover:bg-sunken",
             )}
         >
             <Monitor size={14} aria-hidden className="shrink-0" />
-            {name}
+            <Span className="min-w-0 truncate">{name}</Span>
             {current ? <Check size={14} aria-hidden className="shrink-0" /> : null}
         </Button>
     );

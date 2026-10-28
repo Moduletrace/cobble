@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import { twMerge } from "tailwind-merge";
 import Button from "@moduletrace/twui/layout/Button";
 import Span from "@moduletrace/twui/layout/Span";
 import { Hand } from "lucide-react";
@@ -34,10 +35,13 @@ export default function TakeOverChip({ computer_id, mode }: Props) {
             size="smaller"
             title={`Open ${name} (${mode_title}) and take over`}
             onClick={() => openComputer({ computer_id, mode, take_over: true })}
-            className="inline-flex h-6 gap-1.5! flex-nowrap align-middle px-2! text-[13px] font-bold text-ink whitespace-nowrap"
+            className={twMerge(
+                "inline-flex h-6 max-w-full gap-1.5! flex-nowrap align-middle px-2! text-[13px] font-bold text-ink whitespace-nowrap",
+                "[&_.twui-button-content-wrapper]:min-w-0",
+            )}
         >
             <Hand size={14} aria-hidden className="shrink-0" />
-            {`Take over ${name} · ${mode_title}`}
+            <Span className="min-w-0 truncate">{`Take over ${name} · ${mode_title}`}</Span>
         </Button>
     );
 }

@@ -22,7 +22,7 @@ type Props = {
  */
 function CrewMessageLine({ message }: Props) {
     return (
-        <Stack className="w-full gap-2.5! items-start break-words">
+        <Stack className="w-full gap-2.5! items-start wrap-anywhere [&>*]:max-w-full">
             <Markdown remarkPlugins={RemarkPlugins} components={MessageMarkdownComponents}>
                 {linkComputerRefs({ text: message.text || "" })}
             </Markdown>

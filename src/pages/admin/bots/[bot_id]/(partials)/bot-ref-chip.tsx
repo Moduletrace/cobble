@@ -35,7 +35,7 @@ export default function BotRefChip({ bot_id }: Props) {
                     : `/admin/bots/${bot.id}`
             }
             title={`Open ${bot.name}`}
-            className="inline-flex h-6 gap-1.5 items-center px-1.5 align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink whitespace-nowrap hover:opacity-80"
+            className="inline-flex h-6 max-w-full gap-1.5 items-center px-1.5 align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink whitespace-nowrap hover:opacity-80"
         >
             <BotAvatar
                 image_media_id={bot.image_media_id}
@@ -43,9 +43,10 @@ export default function BotRefChip({ bot_id }: Props) {
                 face={(bot.face || "idle") as BotFace}
                 label={bot.name || ""}
                 size={18}
+                className="shrink-0"
             />
-            {bot.name}
-            {workspace_id && bot.is_admin ? <AdminShield size={13} /> : null}
+            <Span className="min-w-0 truncate">{bot.name}</Span>
+            {workspace_id && bot.is_admin ? <AdminShield size={13} className="shrink-0" /> : null}
         </Link>
     );
 }

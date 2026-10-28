@@ -26,7 +26,7 @@ export default function MarkdownList({ children, ordered, start, className }: Pr
             start={start}
             items={items}
             className={twMerge(
-                `w-full gap-1! pl-5 my-0 text-sm leading-5 text-ink ${ordered ? "list-decimal" : "list-disc"}`,
+                `self-stretch gap-1! pl-5 my-0 text-sm leading-5 text-ink [&>li]:max-w-full ${ordered ? "list-decimal" : "list-disc"}`,
                 className,
             )}
         />

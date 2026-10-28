@@ -25,7 +25,7 @@ export default function UserBubble({ text }: { text: string }) {
             {...{ [QuotableAttribute]: "" }}
             className={twMerge(
                 "max-w-[80%] min-w-0 gap-2.5! items-stretch rounded-default-lg",
-                "bg-ink text-on-ink px-4 py-3 text-sm leading-5 break-words",
+                "bg-ink text-on-ink px-4 py-3 text-sm leading-5 wrap-anywhere",
                 "conversation-user-bubble",
             )}
         >

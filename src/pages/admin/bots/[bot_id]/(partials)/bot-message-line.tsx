@@ -65,7 +65,7 @@ function BotMessageLine({ message, bot_name, at }: Props) {
             ) : null}
             <Stack
                 {...{ [QuotableAttribute]: "" }}
-                className="w-full gap-2.5! items-start break-words"
+                className="w-full gap-2.5! items-start wrap-anywhere [&>*]:max-w-full"
             >
                 <Markdown
                     remarkPlugins={RemarkPlugins}

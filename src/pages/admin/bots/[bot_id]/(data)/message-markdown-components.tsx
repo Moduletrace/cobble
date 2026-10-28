@@ -42,7 +42,7 @@ export const MessageMarkdownComponents: Components = {
         </MarkdownList>
     ),
     code: ({ children }) => (
-        <Span className="font-mono text-[13px] px-1 py-px rounded-default-xs bg-sunken text-ink break-words">
+        <Span className="font-mono text-[13px] px-1 py-px rounded-default-xs bg-sunken text-ink wrap-anywhere">
             {children}
         </Span>
     ),
@@ -58,7 +58,7 @@ export const MessageMarkdownComponents: Components = {
     ),
     table: ({ children }) => (
         <Stack className="w-full max-w-full overflow-x-auto items-start">
-            <table className="text-[13px] leading-5 text-ink border-collapse">{children}</table>
+            <table className="text-[13px] leading-5 text-ink border-collapse wrap-break-word">{children}</table>
         </Stack>
     ),
     th: ({ children }) => (

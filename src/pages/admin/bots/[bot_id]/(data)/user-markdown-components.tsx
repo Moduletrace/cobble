@@ -39,7 +39,7 @@ export const UserMarkdownComponents: Components = {
         </MarkdownList>
     ),
     code: ({ children }) => (
-        <Span className="font-mono text-[13px] px-1 py-px rounded-default-xs bg-on-ink/15 text-on-ink break-words">
+        <Span className="font-mono text-[13px] px-1 py-px rounded-default-xs bg-on-ink/15 text-on-ink wrap-anywhere">
             {children}
         </Span>
     ),

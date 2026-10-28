@@ -121,7 +121,7 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-ink underline underline-offset-2 hover:opacity-80 break-words"
+            className="text-ink underline underline-offset-2 hover:opacity-80 wrap-anywhere"
         >
             {children}
         </Link>

@@ -24,10 +24,10 @@ export default function WorkspaceRefChip({ workspace_id }: Props) {
         <Link
             href={`/admin/workspaces/${workspace.id}`}
             title={`Open ${workspace.name}`}
-            className="inline-flex h-6 gap-1.5 items-center px-1.5 align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink whitespace-nowrap hover:opacity-80"
+            className="inline-flex h-6 max-w-full gap-1.5 items-center px-1.5 align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink whitespace-nowrap hover:opacity-80"
         >
             <WorkspaceAvatar image_media_id={workspace.image_media_id} size="xs" />
-            {workspace.name}
+            <Span className="min-w-0 truncate">{workspace.name}</Span>
         </Link>
     );
 }

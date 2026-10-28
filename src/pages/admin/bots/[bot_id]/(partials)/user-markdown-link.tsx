@@ -14,7 +14,7 @@ export default function UserMarkdownLink(props: ComponentProps<"a">) {
             href={props.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 dark:text-blue-600 underline underline-offset-2 hover:opacity-80 break-words"
+            className="text-blue-400 dark:text-blue-600 underline underline-offset-2 hover:opacity-80 wrap-anywhere"
         >
             {props.children}
         </Link>
