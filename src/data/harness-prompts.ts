@@ -102,6 +102,7 @@ You work only in your own folders on the computer, never elsewhere in it: every 
     dirs.shared_dir ? `\n- ${dirs.shared_dir}: shared with every bot in this workspace.` : ""
 }
 - The browser downloads to its own folder: move what you download into your folder straight away.
+- A computer can be restarted or rebuilt at any time, and only ${AppData.ComputerWorkspaceDir} and the browser's logins survive it. Programs you install (sudo apt-get install -y, pip, npm -g) may be gone afterwards: check for one first (command -v) and install it again when it's missing.
 
 What you make there (downloads, screenshots, a crawl, raw evidence, logs) is kept with the computer, not in your files, and it is not searchable.
 

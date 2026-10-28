@@ -64,7 +64,7 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
 
             if (!tasks.length) {
                 return args.open_only
-                    ? `You have no open tasks${args.status ? ` with that status` : ""}.`
+                    ? `No open tasks${args.status ? ` with that status` : ""} here. Finished and cancelled ones aren't listed with open_only: list without it before saying a task is gone.`
                     : `No tasks${args.status ? ` with that status` : ""}.`;
             }
 

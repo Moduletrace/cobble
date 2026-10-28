@@ -90,7 +90,9 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                     updated_by_bot_id: bot_id,
                 });
 
-                if (args.status) said.push(`status is now ${args.status}`);
+                if (args.status) {
+                    said.push(task.status == args.status ? `status was already ${args.status}` : `status is now ${args.status}`);
+                }
             }
 
             if (args.note?.trim()) {

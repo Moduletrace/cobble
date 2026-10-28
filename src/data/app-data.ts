@@ -355,6 +355,13 @@ export const AppData = {
      */
     McpToolTimeoutMs: 5 * 60 * 1000,
     /**
+     * A bash command on a computer is killed there after at most this long
+     * (`withCommandTimeout`), below `McpToolTimeoutMs`: the sandbox ignores
+     * its own `timeout` and runs every call in one shell session, so a
+     * command left running would hold up every later one on that computer.
+     */
+    ComputerCommandMaxSeconds: 270,
+    /**
      * MCP servers set up in Settings, under MCPs: a stdio server runs in
      * `DATA_DIR/<McpDataDir>/<id>` (its setup installs there, so it
      * survives updates), its setup command may take `McpSetupTimeoutMs`,

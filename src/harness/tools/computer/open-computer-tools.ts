@@ -12,6 +12,7 @@ import type { HarnessTool } from "../../types";
 import computerDirsShell from "./computer-dirs-shell";
 import captureSecretTool from "./capture-secret-tool";
 import runComputerCommand from "./run-computer-command";
+import withCommandTimeout from "./with-command-timeout";
 import withComputerDirs from "./with-computer-dirs";
 import withComputerEnv from "./with-computer-env";
 import writeComputerEnv from "./write-computer-env";
@@ -65,7 +66,8 @@ export type OpenComputer = {
  * shell, files, code and browser. Its envs (`grabComputerEnvs`) are written
  * to the computer and loaded by the shell and code tools; secret values are
  * redacted from everything the tools return. Every tool is kept in the
- * run's folders (`withComputerDirs`), which are created first. Screenshots
+ * run's folders (`withComputerDirs`), which are created first, and every
+ * bash command is stopped on the computer (`withCommandTimeout`). Screenshots
  * come back as readings from the media reading harness. Call `close` when the run ends.
  * Throws when the computer can't be reached, which the queue retries.
  */
@@ -125,7 +127,7 @@ export default async function openComputerTools({
         return {
             name: target.name,
             tools: [
-                ...tools.map((tool) => withComputerDirs({ tool: withComputerEnv({ tool, ...paths }), dirs })),
+                ...tools.map((tool) => withComputerDirs({ tool: withComputerEnv({ tool: withCommandTimeout({ tool }), ...paths }), dirs })),
                 ...(user_id && bot_id && onSecretRef
                     ? [
                           captureSecretTool({
