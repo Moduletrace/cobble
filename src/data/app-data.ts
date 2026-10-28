@@ -279,6 +279,13 @@ export const AppData = {
     BotHookEventsKeepDays: 30,
     BotHookEventsKeepDaysMax: 3650,
     /**
+     * Logs (Activity) are deleted after this many days by the daily
+     * `prune-logs` cron: the default, with the most an install may set
+     * (`logs_keep_days`, Settings > General).
+     */
+    LogsKeepDays: 90,
+    LogsKeepDaysMax: 3650,
+    /**
      * How many hook calls a list loads at once, and how much of each call's
      * payload and response a list shows (the whole of both opens on one).
      */

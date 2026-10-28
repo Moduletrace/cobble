@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppData } from "@/src/data/app-data";
 import { LogCategories } from "@/src/dict/log-categories";
 
 const LogCategoryValues = LogCategories.map((lc) => lc.value) as [
@@ -15,3 +16,11 @@ export const ClearLogsRequestSchema = z.object({
 });
 
 export type ClearLogsRequest = z.infer<typeof ClearLogsRequestSchema>;
+
+/**
+ * How many days logs are kept (Settings > General). Zero puts the code's
+ * default back.
+ */
+export const SaveLogRetentionRequestSchema = z.object({
+    keep_days: z.coerce.number().int().min(0).max(AppData.LogsKeepDaysMax),
+});

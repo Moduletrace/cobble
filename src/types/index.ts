@@ -1118,6 +1118,15 @@ export type HookCallRetentionOverview = {
 };
 
 /**
+ * How long logs are kept (Settings > General, `grab-logs-keep-days.ts`).
+ */
+export type LogRetentionOverview = {
+    keep_days: number;
+    default_days: number;
+    max: number;
+};
+
+/**
  * The install's skill limits (Settings > General, `grab-skill-limits.ts`).
  */
 export type SkillLimitsOverview = {
@@ -1911,6 +1920,11 @@ export type PagePropsType = {
      * General settings page).
      */
     hook_call_retention?: HookCallRetentionOverview | null;
+    /**
+     * How many days logs are kept, with the code's default (the General
+     * settings page).
+     */
+    log_retention?: LogRetentionOverview | null;
     /**
      * How long closed chatrooms are kept and how many one place keeps, with
      * the code's defaults (the General settings page).

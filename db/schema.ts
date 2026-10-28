@@ -3532,6 +3532,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     indexName: "idx_logs_user_id",
                     indexTableFields: ["user_id"],
                 },
+                {
+                    indexName: "idx_logs_created_at",
+                    indexTableFields: ["created_at"],
+                },
             ],
         },
         {

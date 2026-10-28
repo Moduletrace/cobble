@@ -24,3 +24,9 @@ export const LogCategories = [
         value: "error",
     },
 ] as const;
+
+/**
+ * The app setting (Settings > General) for how many days logs are kept,
+ * else `AppData.LogsKeepDays`.
+ */
+export const LogsKeepDaysSettingKey = "logs_keep_days";

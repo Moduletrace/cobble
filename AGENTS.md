@@ -60,7 +60,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 - **Passwords:** bcrypt in `user_passwords` (never in `users`; blocked from CRUD via `src/dict/private-tables.ts`).
 - **User types** (`src/dict/user-types-dict.ts`, the only definition): `super_admin` (user #1), `admin` (only the super admin grants it), `member` (default), `read_only` (non-GET CRUD blocked), `revoked`. A user needs at least one type to sign in.
 - **RBAC:** `src/utils/check-user-access.ts` plus the matrix engine in `src/utils/rbac/` (`userTypeAssignment` over `UserTypeAssignmentMatrix`/`UserTypeDeletionMatrix`).
-- **Audit:** `src/functions/backend/logger.ts` (`logEvent`/`logError` -> `logs`). Auth events, cron runs, every unexpected API error (`safeErrorMessage` -> `logUnexpectedError`, not for `AppError`), every failed or lost bot job. WebSocket connects are not logged.
+- **Audit:** `src/functions/backend/logger.ts` (`logEvent`/`logError` -> `logs`). Auth events, cron runs, every unexpected API error (`safeErrorMessage` -> `logUnexpectedError`, not for `AppError`), every failed or lost bot job. WebSocket connects are not logged. Kept for the app setting `logs_keep_days` (default `AppData.LogsKeepDays`), deleted by the daily `prune-logs`.
 
 ### WebSocket
 
@@ -68,7 +68,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 
 ### Cron
 
-`src/cron/index.ts` registers everything via `registerCronJob` (`src/cron/register-cron-job.ts`); one folder per task. In-process `Bun.cron`, UTC, never overlapping. Notable: `heartbeat`, `sync-harness-models` (hourly), `run-cron-jobs` (every minute, fires schedules), `sync-computers`, `sync-mcp-servers`, `clear-job-steps`, `prune-bots-queue`, `prune-chatrooms`.
+`src/cron/index.ts` registers everything via `registerCronJob` (`src/cron/register-cron-job.ts`); one folder per task. In-process `Bun.cron`, UTC, never overlapping. Notable: `heartbeat`, `sync-harness-models` (hourly), `run-cron-jobs` (every minute, fires schedules), `sync-computers`, `sync-mcp-servers`, `clear-job-steps`, `prune-bots-queue`, `prune-chatrooms`, `prune-logs`.
 
 ### Admin CRUD API
 
