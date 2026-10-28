@@ -161,18 +161,38 @@ export const PwaCornerMarkInset = 0.2;
 export const PwaCornerMarkScale = 0.22;
 
 /**
+ * The corner mark on the regular (rounded-square) icons, which aren't cut
+ * to a circle: larger and nearer the corner, clear of its rounding.
+ */
+export const PwaSquareCornerMarkInset = 0.16;
+export const PwaSquareCornerMarkScale = 0.3;
+
+/**
+ * The corner mark on a round favicon: larger, to stay readable at 32px,
+ * and still inside the circle.
+ */
+export const PwaFaviconCornerMarkInset = 0.15;
+export const PwaFaviconCornerMarkScale = 0.32;
+
+/**
  * Uploads must be at least this many pixels on their shorter side, and are
  * kept as a square of the source size.
  */
 export const PwaInstallIconMinSide = 512;
 export const PwaInstallIconSourceSide = 1024;
 
+/**
+ * Bump when `renderInstallIcons` draws differently: it's part of a set's
+ * version, so a re-saved icon gets a new URL past the `immutable` cache.
+ */
+export const PwaInstallIconRenderRevision = 4;
+
 export type PwaInstallIconFile = {
     name: string;
     size: number;
     /**
      * `plain` is the image without the mark (the settings preview);
-     * `favicon` never gets the mark (unreadable at 32px).
+     * `favicon` is cut to a circle, the mark kept inside it.
      */
     kind: "any" | "maskable" | "favicon" | "plain";
 };

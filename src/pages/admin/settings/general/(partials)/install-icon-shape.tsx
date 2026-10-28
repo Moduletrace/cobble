@@ -20,7 +20,8 @@ type Props = {
 /**
  * The app icon as a launcher would show it, laid out like the generated
  * files (`renderInstallIcons`): a stone at 52% (maskable) or 80% on paper,
- * or the image with the stone 20% in from the top-left at 22% of the side.
+ * or the image with the stone in the top-left: 20% in at 22% of the side
+ * (maskable, round), 16% in at 30% (rounded square).
  */
 export default function InstallIconShape({ shape, mode, stone, mark, image_src, className }: Props) {
     const stone_src = `/brand/icons/${stone}.svg`;
@@ -41,7 +42,12 @@ export default function InstallIconShape({ shape, mode, stone, mark, image_src, 
                             <Img
                                 src={stone_src}
                                 alt=""
-                                className="absolute left-[20%] top-[20%] size-[22%]"
+                                className={twMerge(
+                                    "absolute",
+                                    shape == "circle"
+                                        ? "left-[20%] top-[20%] size-[22%]"
+                                        : "left-[16%] top-[16%] size-[30%]",
+                                )}
                             />
                         ) : null}
                     </>

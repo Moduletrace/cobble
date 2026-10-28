@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+    PwaInstallIconRenderRevision,
     PwaInstallIconSettingKey,
     type PwaInstallIcon,
     type PwaInstallIconMode,
@@ -57,7 +58,7 @@ export default async function saveInstallIcon({ mode, stone, mark, image }: Para
     const version = is_stock
         ? null
         : createHash("sha256")
-              .update(JSON.stringify({ mode, stone, mark }))
+              .update(JSON.stringify({ mode, stone, mark, render: PwaInstallIconRenderRevision }))
               .update(source || "")
               .digest("hex")
               .slice(0, 12);
