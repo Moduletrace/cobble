@@ -1,5 +1,5 @@
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
-import { AdminHomePath } from "@/src/dict/admin-sections-dict";
+import { SettingsSetupPath } from "@/src/dict/settings-pages-dict";
 import type useFormInit from "@/src/hooks/use-form-init";
 import type { ApiReqParams, SignupFormObject } from "@/src/types";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
@@ -42,8 +42,12 @@ export default async function submitSignupForm({
         },
     );
 
+    /**
+     * The first (super admin) account opens on the guided setup, which
+     * can be skipped.
+     */
     if (res.success) {
-        window.location.pathname = AdminHomePath;
+        window.location.pathname = SettingsSetupPath;
     } else {
         setStatus({
             error: true,

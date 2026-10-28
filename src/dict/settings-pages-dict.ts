@@ -10,6 +10,7 @@ import {
     LockKeyhole,
     Monitor,
     Plug,
+    Rocket,
     Users,
     SlidersHorizontal,
     UserRound,
@@ -38,6 +39,8 @@ export type SettingsPage = {
 export const SettingsComputersPath = "/admin/settings/computers";
 export const SettingsBackupsPath = "/admin/settings/backups";
 export const SettingsDatabasePath = "/admin/settings/database";
+export const SettingsSetupPath = "/admin/settings/setup";
+export const SettingsModelsPath = "/admin/settings/models";
 
 /**
  * The `/admin/settings/*` sub pages, listed in the rail on every settings
@@ -48,6 +51,12 @@ export const SettingsPages: SettingsPage[] = [
         title: "General",
         url: "/admin/settings/general",
         Icon: SlidersHorizontal,
+    },
+    {
+        title: "Setup",
+        url: SettingsSetupPath,
+        Icon: Rocket,
+        super_admin_only: true,
     },
     { title: "Profile", url: "/admin/settings/profile", Icon: UserRound },
     {
@@ -71,7 +80,7 @@ export const SettingsPages: SettingsPage[] = [
     },
     {
         title: "Models",
-        url: "/admin/settings/models",
+        url: SettingsModelsPath,
         Icon: CpuAi,
         super_admin_only: true,
     },

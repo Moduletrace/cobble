@@ -1,4 +1,5 @@
-import { useMemo, type RefObject } from "react";
+import { useMemo, type ReactNode, type RefObject } from "react";
+import { twMerge } from "tailwind-merge";
 import isAwaitingReply from "../(utils)/is-awaiting-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type {
@@ -37,6 +38,11 @@ type Props = {
      * The conversation went on in another session: no reply is due here.
      */
     moved_on?: boolean;
+    /**
+     * Shown after the messages, or in the middle of an empty thread, e.g.
+     * that the bot has no model to answer with.
+     */
+    notice?: ReactNode;
     /**
      * Quotes text selected in a message in the composer.
      */
@@ -78,6 +84,7 @@ export default function MessageThread({
     receiving,
     has_task,
     moved_on,
+    notice,
     onQuote,
     older,
 }: Props) {
@@ -97,7 +104,10 @@ export default function MessageThread({
                     role="log"
                     aria-live="polite"
                     aria-label={`Conversation with ${bot.name}`}
-                    className="w-full max-w-container mx-auto gap-4! items-stretch px-3 md:px-6 pt-6 pb-6"
+                    className={twMerge(
+                        "w-full max-w-container mx-auto gap-4! items-stretch px-3 md:px-6 pt-6 pb-6",
+                        notice && !messages.length && "grow justify-center",
+                    )}
                 >
                     {older?.has_more ? (
                         <OlderMessagesLoader
@@ -121,6 +131,7 @@ export default function MessageThread({
                             group={group}
                         />
                     ))}
+                    {notice}
                     <BotThinkingRow
                         bot={bot}
                         progress={progress}

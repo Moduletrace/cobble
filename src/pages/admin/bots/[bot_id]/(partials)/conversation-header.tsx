@@ -8,7 +8,7 @@ import Dropdown from "@moduletrace/twui/elements/Dropdown";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import { CpuAi, EllipsisVertical, Monitor } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import type { BotWithLastMessage } from "@/src/types";
+import type { BotTextModel, BotWithLastMessage } from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
@@ -27,6 +27,12 @@ type Props = {
      */
     workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
     has_other_unread?: boolean;
+    /**
+     * The text model the bot runs on, kept by the conversation (which
+     * shows a notice while there's none).
+     */
+    model?: BotTextModel | null;
+    onModelChange: (model: BotTextModel | null) => void;
 };
 
 /**
@@ -40,10 +46,11 @@ export default function ConversationHeader({
     bot,
     workspace,
     has_other_unread,
+    model,
+    onModelChange,
 }: Props) {
     const { computers } = useContext(BotComputersContext);
     const { pageProps } = useContext(AppContext);
-    const [model, setModel] = useState(pageProps?.bot_text_model);
     /**
      * The menu's toggle shows its change at once; a push (here or from
      * another tab) brings the live bot's.
@@ -143,7 +150,7 @@ export default function ConversationHeader({
                                 (h) => h.harness == "text",
                             )?.current;
 
-                            setModel(
+                            onModelChange(
                                 current
                                     ? {
                                           name: current.name,

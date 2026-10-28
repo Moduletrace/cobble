@@ -39,6 +39,7 @@ import useConversationHistory from "../(hooks)/use-conversation-history";
 import mergeLoadedHistory from "../(utils)/merge-loaded-history";
 import LoadingLine from "@/src/components/general/loading-line";
 import SessionMovedBar from "../(partials)/session-moved-bar";
+import NoModelNotice from "../(partials)/no-model-notice";
 import syncSessionQuery from "../(utils)/sync-session-query";
 import announceShownSession from "@/src/functions/frontend/announce-shown-session";
 
@@ -85,6 +86,11 @@ export default function Conversation() {
      */
     const [moved_to_session_id, setMovedToSessionId] = useState<number | null>(null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
+    /**
+     * The text model the bot runs on here; none shows a notice in the
+     * thread. A save in the models modal updates it.
+     */
+    const [text_model, setTextModel] = useState(pageProps?.bot_text_model || null);
     const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(
         null,
     );
@@ -391,6 +397,8 @@ export default function Conversation() {
                                     bot={live_bot}
                                     workspace={workspace}
                                     has_other_unread={has_other_unread}
+                                    model={text_model}
+                                    onModelChange={setTextModel}
                                 />
                                 {history.loading ? (
                                     <LoadingLine label="Loading the conversation" />
@@ -409,6 +417,11 @@ export default function Conversation() {
                                     receiving={pending_messages.length > 0}
                                     has_task={Boolean(progress.task_id)}
                                     moved_on={Boolean(moved_to_session_id)}
+                                    notice={
+                                        !text_model && !history.loading ? (
+                                            <NoModelNotice bot_name={live_bot.name || "This bot"} />
+                                        ) : null
+                                    }
                                     older={older}
                                     onQuote={({ text }) =>
                                         composer.current?.insertQuote({ text })
