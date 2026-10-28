@@ -1,6 +1,6 @@
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "@/src/pages/__root";
 import type { BotFileScopesPayload } from "@/src/types";
 
@@ -12,22 +12,30 @@ type Params = {
      * the first page of files).
      */
     enabled?: boolean;
+    /**
+     * Only files whose name or path has this.
+     */
+    search?: string;
 };
 
 /**
  * A conversation's files: the page's own copy first, then the folder and
- * search the modal asks for. Saves and deletes refresh it.
+ * search the modal asks for (reloaded when the search changes; an answer
+ * that a newer request overtook is dropped). Saves and deletes refresh it.
  */
-export default function useBotFiles({ bot_id, workspace_id, enabled = true }: Params) {
+export default function useBotFiles({ bot_id, workspace_id, enabled = true, search }: Params) {
     const { pageProps } = useContext(AppContext);
     const [data, setData] = useState<BotFileScopesPayload | undefined>(
         pageProps?.bot_files || undefined,
     );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
+    const latest = useRef(0);
 
     const load = useCallback(
         async (params?: { folder?: string; search?: string }) => {
+            const request = ++latest.current;
+
             setLoading(true);
             setError(undefined);
 
@@ -44,6 +52,8 @@ export default function useBotFiles({ bot_id, workspace_id, enabled = true }: Pa
                 { method: "GET" },
             ).catch(() => null);
 
+            if (request != latest.current) return;
+
             setLoading(false);
 
             if (!res?.success || !res.singleRes) {
@@ -57,8 +67,8 @@ export default function useBotFiles({ bot_id, workspace_id, enabled = true }: Pa
     );
 
     useEffect(() => {
-        if (enabled) load().catch(() => {});
-    }, [enabled, load]);
+        if (enabled) load({ search }).catch(() => {});
+    }, [enabled, load, search]);
 
     return { data, loading, error, reload: load, setData };
 }

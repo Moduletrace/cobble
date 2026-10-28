@@ -689,6 +689,11 @@ export const AppData = {
     RagOverFetch: 4,
     RagMaxK: 60,
     /**
+     * How long a search box waits after the last keystroke before it
+     * searches.
+     */
+    SearchDebounceMs: 250,
+    /**
      * The database is vacuumed at boot once this share of its pages, and
      * at least this many bytes, sit free (after a big delete, such as the
      * bot file index being dropped).

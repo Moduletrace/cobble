@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import useDebouncedValue from "@/src/hooks/use-debounced-value";
 import { AppContext } from "@/src/pages/__root";
 import type { StorageSpecOption } from "@/src/types";
 import { parseStorageSpec, type StorageSpec } from "@/src/utils/storage-volumes";
@@ -20,7 +21,7 @@ export default function FilesPane() {
     );
     const [path, set_path] = useState(page_folder?.path || "");
     const [search, set_search] = useState("");
-    const [query, set_query] = useState("");
+    const query = useDebouncedValue({ value: search.trim() });
     const { folder, loading, error } = useStorageFolder({
         spec,
         path,
@@ -38,7 +39,6 @@ export default function FilesPane() {
         set_spec(next_spec);
         set_path(next_path);
         set_search("");
-        set_query("");
 
         const url = new URL(window.location.href);
 
@@ -63,7 +63,6 @@ export default function FilesPane() {
             loading={loading}
             error={error}
             onSearch={set_search}
-            onSubmitSearch={() => set_query(search)}
             onOpenFolder={(next_path: string) => navigate({ next_spec: spec, next_path })}
             onOpenVolume={(option: StorageSpecOption) =>
                 navigate({ next_spec: option.spec, next_path: "" })

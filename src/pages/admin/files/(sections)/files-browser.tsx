@@ -21,7 +21,6 @@ type Props = {
     loading?: boolean;
     error?: string;
     onSearch: (search: string) => void;
-    onSubmitSearch: () => void;
     onOpenFolder: (path: string) => void;
     onOpenVolume: (option: StorageSpecOption) => void;
 };
@@ -40,7 +39,6 @@ export default function FilesBrowser({
     loading,
     error,
     onSearch,
-    onSubmitSearch,
     onOpenFolder,
     onOpenVolume,
 }: Props) {
@@ -89,12 +87,7 @@ export default function FilesBrowser({
                         crumbs={folder?.breadcrumbs || []}
                         onOpenFolder={onOpenFolder}
                     />
-                    <FilesSearchInput
-                        value={search}
-                        loading={loading}
-                        onChange={onSearch}
-                        onSubmit={onSubmitSearch}
-                    />
+                    <FilesSearchInput value={search} onChange={onSearch} />
                     <Stack className="w-full mt-2 gap-0! items-stretch">
                         {folder?.entries.length ? (
                             folder.entries.map((entry) => (

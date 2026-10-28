@@ -12,6 +12,7 @@ import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotWithLastMessage } from "@/src/types";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
 import { AppContext } from "@/src/pages/__root";
+import useDebouncedValue from "@/src/hooks/use-debounced-value";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import useBotFiles from "../(hooks)/use-bot-files";
 import FileRow from "./file-row";
@@ -30,19 +31,22 @@ type Props = {
 /**
  * The files a conversation works with: a bot's own folder, or the
  * workspace's shared one. Each can be opened or deleted (a crew manager
- * only). The list loads when the modal opens, and search (by name or path)
- * goes through the same endpoint, so the page props stay small.
+ * only). The list loads when the modal opens, and search (by name or path,
+ * as the user types) goes through the same endpoint, so the page props
+ * stay small.
  */
 export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
+    const query = useDebouncedValue({ value: search.trim() });
     const [busy_id, setBusyId] = useState<number>();
     const [status, setStatus] = useState<string>();
     const { data, loading, error, reload } = useBotFiles({
         bot_id: Number(bot.id),
         workspace_id: workspace?.id ? Number(workspace.id) : null,
         enabled: open,
+        search: query,
     });
 
     const can_manage = canManageCrew({ user_types: pageProps?.user_types });
@@ -75,7 +79,7 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
         setBusyId(undefined);
         setStatus(res?.success ? done : res?.msg || `That didn't work.`);
 
-        if (res?.success) await reload({ search });
+        if (res?.success) await reload({ search: query });
     };
 
     const files = data?.files || [];
@@ -130,10 +134,7 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
                     placeholder="Search by name or path"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    onKeyDown={(event) => {
-                        if (event.key == "Enter") reload({ search }).catch(() => {});
-                    }}
-                    clearInputProps={{ onClick: () => reload({}).catch(() => {}) }}
+                    clearInputProps={{ onClick: () => setSearch("") }}
                 />
             </Stack>
 
@@ -159,7 +160,7 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
                     <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
                         {loading
                             ? "Loading files..."
-                            : error || (search ? `Nothing matches "${search}".` : "No files yet.")}
+                            : error || (query ? `Nothing matches "${query}".` : "No files yet.")}
                     </Span>
                 )}
             </Stack>

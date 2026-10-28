@@ -2,26 +2,20 @@ import Input from "@moduletrace/twui/form/Input";
 
 type Props = {
     value: string;
-    loading?: boolean;
     onChange: (search: string) => void;
-    onSubmit: (search: string) => void;
 };
 
 /**
- * Narrows the open folder by name or path. Enter runs the search; clearing
- * the field runs it again empty.
+ * Narrows the open folder by name or path as the user types (the pane
+ * debounces the search).
  */
-export default function FilesSearchInput({ value, loading, onChange, onSubmit }: Props) {
+export default function FilesSearchInput({ value, onChange }: Props) {
     return (
         <Input
             placeholder="Search this folder by name"
             value={value}
-            disabled={loading}
             onChange={(event) => onChange(event.target.value)}
-            onKeyDown={(event) => {
-                if (event.key == "Enter") onSubmit(event.currentTarget.value);
-            }}
-            clearInputProps={{ onClick: () => onSubmit("") }}
+            clearInputProps={{ onClick: () => onChange("") }}
             wrapperWrapperProps={{ className: "w-full mt-3" }}
         />
     );
