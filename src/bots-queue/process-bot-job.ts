@@ -235,9 +235,10 @@ export default async function processBotJob({
          * Once the first exchange is sent, the bot names the session and
          * previews it. After the reply is pushed, so it never waits on it;
          * a model that can't answer now leaves the session for the next
-         * reply to name.
+         * job to name. Tasks name too: a session the coordinator's
+         * delegation or a routine opened has no reply to name it.
          */
-        if (job.kind == "reply" && !in_room && completion.message?.session_id) {
+        if (!in_room && completion.message?.session_id) {
             /**
              * The message's session, not the job's as it was claimed: a
              * reply that moved the conversation on answered in the new one.

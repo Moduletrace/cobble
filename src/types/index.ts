@@ -275,6 +275,10 @@ export type WorkspaceWithActivity = BUN_SQLITE_COBBLE_WORKSPACES & {
  */
 export type WorkspaceActivityItem = BUN_SQLITE_COBBLE_BOT_SESSIONS & {
     message_count: number;
+    /**
+     * What the session opened with, shown while it has no title yet.
+     */
+    first_message_text?: string | null;
     last_message_text?: string | null;
     bot_name?: string | null;
     bot_image_media_id?: number | null;

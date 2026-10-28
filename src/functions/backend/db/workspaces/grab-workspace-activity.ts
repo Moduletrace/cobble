@@ -10,8 +10,8 @@ type Params = {
 
 /**
  * The user's latest conversations in a workspace, most recent first, each
- * with the bot it's with (its face as the user sees it), its message count and latest message. Empty
- * sessions are left out unless active.
+ * with the bot it's with (its face as the user sees it), its message count, first and latest message. Sessions
+ * with no messages yet are left out, active or not.
  */
 export default async function grabWorkspaceActivity({
     user_id,
@@ -28,11 +28,12 @@ export default async function grabWorkspaceActivity({
                 b.stone AS bot_stone,
                 ${face.sql},
                 (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = s.id) AS message_count,
-                (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text
+                (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text,
+                (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at ASC, m.id ASC LIMIT 1) AS first_message_text
             FROM bot_sessions s
             JOIN bots b ON b.id = s.bot_id
             WHERE s.workspace_id = ? AND s.user_id = ? AND s.chatroom_id IS NULL
-            AND (s.status = 'active' OR EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = s.id))
+            AND EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = s.id)
             AND (b.kind = 'coordinator' OR EXISTS (
                 SELECT 1 FROM workspace_bots wb WHERE wb.workspace_id = s.workspace_id AND wb.bot_id = s.bot_id
             ))

@@ -7,6 +7,7 @@ import generateText from "@/src/harness/text/generate-text";
 import { runWithHarnessUsageScope } from "@/src/harness/usage/harness-usage-scope";
 import parseSessionName from "./parse-session-name";
 import sessionNameTranscript from "./session-name-transcript";
+import sessionReadyToName from "./session-ready-to-name";
 
 type Params = {
     session_id: number | string;
@@ -16,7 +17,8 @@ type Params = {
 };
 
 /**
- * Names a session once its first exchange is in: the bot writes the title
+ * Names a session once its first exchange is in (or, with no user message,
+ * once the bot has written in it: work handed to it): the bot writes the title
  * the rail and sessions list show and a short summary of it, from the
  * session's first messages (however late the first reply came). The summary
  * says how many messages it covers (`summary_message_count`), so
@@ -51,12 +53,7 @@ export default async function nameBotSession({
         limit: AppData.BotSessionNameMessages,
     });
 
-    if (
-        !messages.some((message) => message.author == "user") ||
-        !messages.some((message) => message.author == "bot" && !message.carried_from_session_id)
-    ) {
-        return false;
-    }
+    if (!sessionReadyToName({ messages })) return false;
 
     const transcript = sessionNameTranscript({ messages });
 

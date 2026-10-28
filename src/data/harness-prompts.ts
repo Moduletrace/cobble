@@ -279,8 +279,8 @@ update_memory and update_instructions save to this workspace by default: what yo
 export const SessionNamePrompt = `Name and summarize this conversation from its first exchange. Answer with a JSON object only, no markdown fence and no other text:
 {"title": "...", "summary": "..."}
 
-- title: what the conversation is about, at most 60 characters, no quotes and no trailing period. Say what the user wanted, not that it is a conversation. When it opens with a summary of an earlier session, name what this one carries on with, not every topic the summary recaps.
-- summary: what the user wanted and what was done so far. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
+- title: what the conversation is about, at most 60 characters, no quotes and no trailing period. Say what the user wanted, not that it is a conversation. With no user message, it is work handed to you (by the coordinator, a schedule or a hook): name that work. When it opens with a summary of an earlier session, name what this one carries on with, not every topic the summary recaps.
+- summary: what the user (or whoever handed you the work) wanted and what was done so far. Keep names, numbers, paths and links exactly. Plain markdown bullets, no preamble.`;
 
 /**
  * Asks the text model to carry a conversation into a new session when the
