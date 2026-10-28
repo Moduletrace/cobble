@@ -28,7 +28,7 @@ import type { WebsocketRooms } from "../dict/websocket-rooms";
 import type { LucideIcon } from "lucide-react";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
 import type { MediaParadigms, MediaTypes } from "../dict/media-dict";
-import type { BunextPageModuleServerReturnURLObject } from "@moduletrace/bunext/types";
+import type { APIResponseObject, BunextPageModuleServerReturnURLObject } from "@moduletrace/bunext/types";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "./sql-joins";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
 import type { HarnessKind } from "../dict/harness-dict";
@@ -475,6 +475,15 @@ export type BotUpdatedData = {
      * crew shows or drops its shield without a reload.
      */
     admin_workspace_ids?: number[];
+};
+
+/**
+ * `api/admin/bots/session-messages`: the session's latest messages, and
+ * the bot as the session's user sees it now (face, status line, active
+ * task), so a conversation that missed pushes catches up on both.
+ */
+export type SessionMessagesResponse = APIResponseObject<BotMessageWithAttachments> & {
+    bot?: BotUpdatedData | null;
 };
 
 /**

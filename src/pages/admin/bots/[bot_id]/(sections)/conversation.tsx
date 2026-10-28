@@ -197,11 +197,13 @@ export default function Conversation() {
     const last_thread_message = thread_messages[thread_messages.length - 1];
     /**
      * A session moved on from gets no reply here: the bot answered in the
-     * new one.
+     * new one. The face is the live one, as the thinking row reads it: the
+     * page's is from when it rendered, so after an interim message the
+     * catch-up would stop while the row stays up.
      */
     const awaiting_reply =
         !moved_to_session_id &&
-        isAwaitingReply({ last_message: last_thread_message, face: bot?.face });
+        isAwaitingReply({ last_message: last_thread_message, face: live_bot?.face });
 
     const reply_progress = useReplyProgress({
         bot_id: bot?.id || 0,
