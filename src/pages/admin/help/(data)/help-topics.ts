@@ -163,7 +163,7 @@ If it's given and still misses:
         summary: "Bots use their computer's browser, but you want them in yours, with your logins.",
         body: `Add your browser in **Settings, Browsers**. It stays yours: bots only use it when they're working for you, never for anyone else.
 
-1. Beside your browser, run a browser MCP server. The page shows the commands for Playwright MCP, which open a separate browser profile: sign in there to what bots should reach.
+1. Beside your browser, run a browser MCP server. The page shows the commands for Playwright MCP, which open a separate browser profile: sign in there to what bots should reach. A browser installed as a Flatpak is started with \`flatpak run\`, and the page shows that command too.
 2. Add its URL under **New browser** and click **Test connection**.
 3. Choose where it applies: for all your bots on the same page, for one bot from the browser button under its composer or its settings, or for a workspace the same way. Choose it as the default there and bots go to it first, falling back to the computer's browser if it's off.
 

@@ -1,11 +1,14 @@
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import BrowserCommandBlock from "./browser-command-block";
 
 const Command = `chromium --remote-debugging-port=9222 --user-data-dir=$HOME/.cobble-browser
 
 npx @playwright/mcp --cdp-endpoint http://127.0.0.1:9222 \\
   --port 8931 --host 0.0.0.0 \\
   --allowed-hosts host.docker.internal:8931`;
+
+const FlatpakCommand = `flatpak run org.chromium.Chromium --remote-debugging-port=9222 --user-data-dir=$HOME/.cobble-browser`;
 
 /**
  * The way that's been tested: Playwright MCP attached to a running
@@ -22,9 +25,12 @@ export default function BrowserSetupHelp() {
                 http://host.docker.internal:8931/mcp. From another machine, use its private address, and name that
                 address in --allowed-hosts.
             </Span>
-            <Span className="rounded-default bg-sunken p-3 font-mono text-[12px] leading-[18px] text-ink whitespace-pre-wrap break-words">
-                {Command}
+            <BrowserCommandBlock command={Command} />
+            <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                Browser installed as a Flatpak? Start it with this instead, and run Playwright MCP on the host as above.
+                Other Flatpak browsers use their own app id. Close any window already using that profile first.
             </Span>
+            <BrowserCommandBlock command={FlatpakCommand} />
         </Stack>
     );
 }
