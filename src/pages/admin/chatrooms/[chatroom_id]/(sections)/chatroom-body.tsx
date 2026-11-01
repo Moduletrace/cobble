@@ -3,6 +3,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { AppContext } from "@/src/pages/__root";
 import SettingsShell from "@/src/pages/admin/settings/(partials)/settings-shell";
+import ChatroomRetryButton from "@/src/components/general/chatroom-retry-button";
 import { CrewBotsContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-bots-context";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import type { ChatroomSummary } from "@/src/types";
@@ -22,7 +23,8 @@ type Props = {
 
 /**
  * The open room, live: who is in it and their part, the thread and the
- * outcome, where each bot stands while it's open, with Stop for anyone who can do more than read.
+ * outcome, where each bot stands while it's open, with Stop for anyone who
+ * can do more than read, and Try again once it failed or was stopped.
  */
 export default function ChatroomBody({ chatroom, messages }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -36,7 +38,13 @@ export default function ChatroomBody({ chatroom, messages }: Props) {
             <SettingsShell
                 title={room.title || "Chatroom"}
                 description={`${chatroomStatusLine(room)}. A request between bots, through the coordinator. Read-only.`}
-                action={can_stop ? <ChatroomStopButton chatroom_id={Number(room.id)} /> : undefined}
+                action={
+                    can_stop ? (
+                        <ChatroomStopButton chatroom_id={Number(room.id)} />
+                    ) : (
+                        <ChatroomRetryButton chatroom={room} />
+                    )
+                }
                 no_trail={Boolean(room.workspace_id)}
             >
                 <Row className="w-full gap-x-6! gap-y-2! py-5 items-center">

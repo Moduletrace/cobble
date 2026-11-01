@@ -12,6 +12,7 @@ import useLiveBots from "@/src/hooks/use-live-bots";
 import useServerEvent from "@/src/hooks/use-server-event";
 import useLiveWorkspaces from "@/src/layouts/bots/(hooks)/use-live-workspaces";
 import { BotComputersContext } from "../(data)/bot-computers-context";
+import { ConversationChatroomsContext } from "../(data)/conversation-chatrooms-context";
 import { CrewBotsContext } from "../(data)/crew-bots-context";
 import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
@@ -22,8 +23,10 @@ import {
 } from "../(data)/stop-bot-context";
 import reactToBotMessage from "../(functions)/react-to-bot-message";
 import botBusyState from "../(utils)/bot-busy-state";
+import chatroomHoldsReply from "../(utils)/chatroom-holds-reply";
 import dropSentMessage from "../(utils)/drop-sent-message";
 import useBotComputers from "../(hooks)/use-bot-computers";
+import useConversationChatrooms from "../(hooks)/use-conversation-chatrooms";
 import useStopBot from "../(hooks)/use-stop-bot";
 import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
@@ -147,6 +150,11 @@ export default function Conversation() {
         workspace_id,
     });
 
+    const chatrooms = useConversationChatrooms({
+        bot_id: Number(bot?.id) || 0,
+        workspace_id,
+    });
+
     const speak = useSpeakMessage({
         enabled: Boolean(pageProps?.bot_voice?.speech),
     });
@@ -207,8 +215,10 @@ export default function Conversation() {
      * page's is from when it rendered, so after an interim message the
      * catch-up would stop while the row stays up.
      */
+    const no_reply_due = chatroomHoldsReply({ last_message: last_thread_message, chatrooms });
     const awaiting_reply =
         !moved_to_session_id &&
+        !no_reply_due &&
         isAwaitingReply({ last_message: last_thread_message, face: live_bot?.face });
 
     const reply_progress = useReplyProgress({
@@ -392,6 +402,7 @@ export default function Conversation() {
                         <BotMessageActionsContext.Provider
                             value={message_actions}
                         >
+                            <ConversationChatroomsContext.Provider value={chatrooms}>
                             <Stack className="grow min-w-0 h-full gap-0! items-stretch">
                                 <ConversationHeader
                                     bot={live_bot}
@@ -417,6 +428,7 @@ export default function Conversation() {
                                     receiving={pending_messages.length > 0}
                                     has_task={Boolean(progress.task_id)}
                                     moved_on={Boolean(moved_to_session_id)}
+                                    no_reply_due={no_reply_due}
                                     notice={
                                         !text_model && !history.loading ? (
                                             <NoModelNotice bot_name={live_bot.name || "This bot"} />
@@ -487,6 +499,7 @@ export default function Conversation() {
                                 />
                                 )}
                             </Stack>
+                            </ConversationChatroomsContext.Provider>
                         </BotMessageActionsContext.Provider>
                         <ComputerViewerModal bot={live_bot} />
                     </SpeakMessageContext.Provider>

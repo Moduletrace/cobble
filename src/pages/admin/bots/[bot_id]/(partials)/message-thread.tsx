@@ -10,6 +10,7 @@ import useMessageSelection from "../(hooks)/use-message-selection";
 import useThreadScroll from "../(hooks)/use-thread-scroll";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
+import ConversationChatroomStatus from "./conversation-chatroom-status";
 import MessageGroupBlock from "./message-group-block";
 import OlderMessagesLoader from "./older-messages-loader";
 import QuoteSelectionButton from "./quote-selection-button";
@@ -38,6 +39,11 @@ type Props = {
      * The conversation went on in another session: no reply is due here.
      */
     moved_on?: boolean;
+    /**
+     * No reply is due, for another reason: the last word is a chatroom's
+     * that doesn't wake the bot.
+     */
+    no_reply_due?: boolean;
     /**
      * Shown after the messages, or in the middle of an empty thread, e.g.
      * that the bot has no model to answer with.
@@ -68,7 +74,8 @@ type Props = {
  * Bottom-anchored: the stack sits 24px above the composer rule and grows
  * upward. Empty space belongs at the top. New messages announce politely.
  * While the bot works on a reply or a task, a status row sits under the
- * last one. Text selected in a message can be quoted in the composer.
+ * last one, and each request the bot has open with the crew shows where
+ * its bots stand until it's done. Text selected in a message can be quoted in the composer.
  * Older messages load as it scrolls to the top, and at the start of a
  * session that carries on from another, the earlier one can be opened
  * above it (shown only, never put in the bot's prompt); the reversed column keeps
@@ -84,6 +91,7 @@ export default function MessageThread({
     receiving,
     has_task,
     moved_on,
+    no_reply_due,
     notice,
     onQuote,
     older,
@@ -132,12 +140,14 @@ export default function MessageThread({
                         />
                     ))}
                     {notice}
+                    {moved_on ? null : <ConversationChatroomStatus />}
                     <BotThinkingRow
                         bot={bot}
                         progress={progress}
                         reply_progress={reply_progress}
                         awaiting_reply={
                             !moved_on &&
+                            !no_reply_due &&
                             isAwaitingReply({
                                 last_message: messages[messages.length - 1],
                                 face: bot.face,

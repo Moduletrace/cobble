@@ -1,3 +1,4 @@
+import ChatroomRetryButton from "@/src/components/general/chatroom-retry-button";
 import ChatroomStones from "@/src/components/general/chatroom-stones";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
 import type { ChatroomSummary } from "@/src/types";
@@ -15,7 +16,8 @@ type Props = {
 
 /**
  * A chatroom in the list: the bots in it, the request, where it stands,
- * the workspace it's in and when it last moved.
+ * the workspace it's in and when it last moved, and Try again once it
+ * failed or was stopped.
  */
 export default function ChatroomListRow({ chatroom, show_workspace }: Props) {
     const at = Number(chatroom.last_activity_at || chatroom.created_at || 0);
@@ -29,6 +31,8 @@ export default function ChatroomListRow({ chatroom, show_workspace }: Props) {
             subtitle={[chatroomStatusLine(chatroom), show_workspace && chatroom.workspace_name, at ? relativeTime({ at }) : ""]
                 .filter(Boolean)
                 .join(" · ")}
-        />
+        >
+            <ChatroomRetryButton chatroom={chatroom} />
+        </SettingsListRow>
     );
 }

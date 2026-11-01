@@ -8,8 +8,9 @@ import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bune
 
 /**
  * The user's latest chatrooms for the rail (open ones first) in one place:
- * a workspace's (`?workspace_id=`), else those asked from bots' own chats.
- * Loaded by the rail itself so no page carries them.
+ * a workspace's (`?workspace_id=`), else those asked from bots' own chats;
+ * with `?requester_bot_id=`, what that bot asked there, for its conversation.
+ * Loaded by the rail and the conversation themselves so no page carries them.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<ChatroomSummary>> = async ({ req, query }) => {
     try {
@@ -29,6 +30,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<ChatroomSummary>> 
                 user_id: user.id,
                 limit: AppData.ChatroomRailLimit + 1,
                 workspace_id: Number(query?.workspace_id) || null,
+                requester_bot_id: Number(query?.requester_bot_id) || null,
             }),
         };
     } catch (error: unknown) {

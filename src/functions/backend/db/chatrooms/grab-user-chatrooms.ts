@@ -14,24 +14,37 @@ type Params = {
      * bots' own chats. Left out, every room.
      */
     workspace_id?: number | null;
+    /**
+     * Only what this bot asked from its conversation, not from inside
+     * another room.
+     */
+    requester_bot_id?: number | null;
 };
 
 /**
  * The user's own chatrooms (all, or one place's): open ones first, then by
  * latest activity.
  */
-export default async function grabUserChatrooms({ user_id, limit = 200, workspace_id }: Params): Promise<ChatroomSummary[]> {
+export default async function grabUserChatrooms({
+    user_id,
+    limit = 200,
+    workspace_id,
+    requester_bot_id,
+}: Params): Promise<ChatroomSummary[]> {
     const scoped = workspace_id !== undefined;
 
     const rooms =
         (
             await BunSQLite.sql<BUN_SQLITE_COBBLE_CHATROOMS>({
-                sql: `SELECT * FROM chatrooms WHERE user_id = ?${scoped ? ` AND workspace_id IS ?` : ""}
+                sql: `SELECT * FROM chatrooms WHERE user_id = ?${scoped ? ` AND workspace_id IS ?` : ""}${
+                    requester_bot_id ? ` AND requester_bot_id = ? AND parent_chatroom_id IS NULL` : ""
+                }
                     ORDER BY (status = 'open') DESC, COALESCE(last_activity_at, created_at) DESC, id DESC
                     LIMIT ?`,
                 values: [
                     user_id,
                     ...(scoped ? [workspace_id ? Number(workspace_id) : null] : []),
+                    ...(requester_bot_id ? [requester_bot_id] : []),
                     Math.max(1, Math.floor(limit)),
                 ],
             })

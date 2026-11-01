@@ -28,6 +28,12 @@ export const ChatroomStatuses = [
 export type ChatroomStatus = (typeof ChatroomStatuses)[number]["value"];
 
 /**
+ * Rooms that ended without an answer because something went wrong or the
+ * user stopped them, which the user can try again. A refusal is an answer.
+ */
+export const ChatroomRetryableStatuses: ChatroomStatus[] = ["failed", "stopped"];
+
+/**
  * The title of the coordinator's turns in a room, on its jobs.
  */
 export const ChatroomTurnJobTitle = "Chatroom request";
