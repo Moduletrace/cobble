@@ -15,6 +15,7 @@ import deleteBotTool from "./delete-bot-tool";
 import deleteWorkspaceTool from "./delete-workspace-tool";
 import findBotTool from "./find-bot-tool";
 import findWorkspaceTool from "./find-workspace-tool";
+import listWorkspaceBotsTool from "./list-workspace-bots-tool";
 import grabCoordinatorExtensionTools from "./extensions/grab-coordinator-extension-tools";
 import grabBotTools from "./grab-bot-tools";
 import removeBotFromWorkspaceTool from "./remove-bot-from-workspace-tool";
@@ -87,7 +88,7 @@ type Params = {
  * grow the crew, delegate_task to every worker (the workspace's in a
  * workspace, where the task runs; from its own chat, in the worker's own
  * chat or in a workspace it names) and hand_over_schedule beside it, plus, in its own chat, find_bot and
- * find_workspace,
+ * find_workspace, list_workspace_bots,
  * add_bot_to_workspace and remove_bot_from_workspace, assign_computer,
  * update_bot, delete_bot and delete_workspace (which workspace, which
  * computers, and which name, role and core instructions each crew member
@@ -206,6 +207,7 @@ export default async function grabBotChatTools({
     tools.push(
         findBotTool(),
         findWorkspaceTool({ user_id }),
+        listWorkspaceBotsTool({ user_id }),
         ...(await grabCoordinatorExtensionTools({ user_id, bot_id, session_id, workspace_id, onPropose })),
     );
 

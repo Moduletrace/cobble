@@ -72,6 +72,7 @@ export const ReservedToolNames = [
     "list_extensions",
     "list_hooks",
     "list_schedules",
+    "list_workspace_bots",
     "load_skill",
     "pause_hook",
     "propose_custom_tool",

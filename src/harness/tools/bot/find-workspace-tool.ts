@@ -20,7 +20,7 @@ type Args = {
 export default function findWorkspaceTool({ user_id }: Params): HarnessTool<Args> {
     return {
         name: "find_workspace",
-        description: `Find a live workspace: by id, name, description, or words in its shared context. Returns each match's id, name and description. With no query it lists them, up to limit.`,
+        description: `Find a live workspace: by id, name, description, or words in its shared context. Returns each match's id, name and description. With no query it lists them, up to limit. list_workspace_bots shows who works in one.`,
         schema: z.object({
             query: z.string().trim().max(200).optional(),
             limit: z.number().int().min(1).max(50).optional(),
