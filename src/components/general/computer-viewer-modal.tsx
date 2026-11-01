@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { ComputerViewMode } from "@/src/dict/computer-dict";
+import ComputerRestartButton from "./computer-restart-button";
 import ComputerView from "./computer-view";
 
 type Props = {
@@ -32,7 +33,8 @@ type Props = {
 /**
  * A computer, large, in its browser, terminal or code editor, over the
  * page. `ComputerOpenButton` opens it from lists; chat's viewer adds a
- * note and the hand-back action after a take-over.
+ * note and the hand-back action after a take-over. A restart reconnects
+ * its frames.
  */
 export default function ComputerViewerModal({
     open,
@@ -43,6 +45,8 @@ export default function ComputerViewerModal({
     note,
     action,
 }: Props) {
+    const [restarts, setRestarts] = useState(0);
+
     if (!open) return null;
 
     return (
@@ -64,14 +68,21 @@ export default function ComputerViewerModal({
                         </Span>
                     ) : null}
                 </Stack>
-                {action ? (
-                    <Stack className="ml-auto shrink-0 gap-1! items-end">
-                        {action}
-                    </Stack>
-                ) : null}
+                <Row className="ml-auto shrink-0 gap-2! flex-nowrap items-start">
+                    {action ? (
+                        <Stack className="shrink-0 gap-1! items-end">
+                            {action}
+                        </Stack>
+                    ) : null}
+                    <ComputerRestartButton
+                        computer_id={computer_id}
+                        name={name}
+                        onRestarted={() => setRestarts((prev) => prev + 1)}
+                    />
+                </Row>
             </Row>
             <ComputerView
-                key={`${computer_id}-${default_mode}`}
+                key={`${computer_id}-${default_mode}-${restarts}`}
                 computer_id={computer_id}
                 name={name}
                 default_mode={default_mode}

@@ -118,6 +118,7 @@ Only you see the graphics a bot made for you.`,
         body: `A new computer downloads its image and starts up, which can take a few minutes the first time. It stays **Creating** until its health check passes (its sandbox and browser both answer).
 
 - **Still Creating after several minutes, or Failed:** open **Settings, Computers** and look at its state. A super admin can **Retry** it there; the error shows on the row.
+- **Running but stuck:** a super admin can open the computer and click **Restart**. Anything running on it stops; its files, browser logins and installed software stay.
 - **Unhealthy or stopped:** the computer's container is down or struggling. Give it more memory or CPUs from **Edit** (it restarts, its files are kept), or retry it.
 - **Everything fails at once:** the app needs Docker on the machine it runs on. Check that Docker is running.
 
