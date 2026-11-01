@@ -2,7 +2,7 @@ import type { BotWithLastMessage } from "@/src/types";
 
 type Params = {
     /**
-     * The worker bots, latest activity first.
+     * The worker bots, in the order the rail lists them.
      */
     workers: BotWithLastMessage[];
     /**
@@ -13,7 +13,7 @@ type Params = {
 };
 
 /**
- * Which workers the rail lists: the `limit` most recently active, plus any
+ * Which workers the rail lists: the first `limit`, plus any
  * older one that's open, unread or needs the user, so nothing that wants
  * attention hides behind "See all bots". The rest go to `hidden`, in the
  * same order.

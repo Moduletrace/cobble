@@ -20,7 +20,7 @@ type Params = {
  * (`chatBotsSql`) or in one workspace (`workspaceBotsSql`). The
  * coordinator is pinned first, then workers by latest activity. Each row
  * carries the user's own face (`botFaceSql`) and conversation there: its
- * unread flag, latest activity and latest message, and in a workspace
+ * unread flag, latest activity and latest message, their last visit, and in a workspace
  * whether it's that workspace's admin (`is_admin`).
  */
 export default async function grabBots({
@@ -38,6 +38,7 @@ export default async function grabBots({
     sql += `SELECT\n`;
     sql += `    b.*,\n`;
     sql += `    ${face.sql},\n`;
+    sql += `    (SELECT v.visited_at FROM bot_user_visits v WHERE v.bot_id = b.id AND v.user_id = ?) AS last_visited_at,\n`;
     sql += `    COALESCE(t.unread, 0) AS unread,\n`;
     sql += `    t.last_activity_at AS last_activity_at,\n`;
     sql += `    lm.text AS last_message_text,\n`;
@@ -61,7 +62,7 @@ export default async function grabBots({
 
     const res = await BunSQLite.sql<BotWithLastMessage>({
         sql,
-        values: [...face.values, scope, scope, user_id, scope, user_id, ...access.values],
+        values: [...face.values, user_id, scope, scope, user_id, scope, user_id, ...access.values],
     });
 
     return (res.payload || []).map((bot) => ({ ...bot, is_admin: Boolean(bot.is_admin) }));

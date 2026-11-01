@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import Span from "@moduletrace/twui/layout/Span";
 import { AppData } from "@/src/data/app-data";
+import orderByLastVisit from "@/src/utils/order-by-last-visit";
 import type { BotWithLastMessage } from "@/src/types";
 import pickRailBots from "../(utils)/pick-rail-bots";
 import AllBotsModal from "./all-bots-modal";
@@ -12,7 +13,8 @@ import RailSeeAllStone from "./rail-see-all-stone";
 type Props = {
     title: string;
     /**
-     * The worker bots, latest activity first.
+     * The worker bots, latest activity first: the order of those the user
+     * hasn't visited yet.
      */
     workers: BotWithLastMessage[];
     selected_id?: number;
@@ -29,12 +31,13 @@ type Props = {
 };
 
 /**
- * A section of bots in the rail: the latest `AppData.RailRecentBots` to be
- * active (and any that want attention), then "See all bots" for the rest,
+ * A section of bots in the rail: the latest `AppData.RailRecentBots` visited
+ * (and any that want attention), then "See all bots" for the rest,
  * which lists them all in a modal.
  */
-export default function RailBotsSection({ title, workers, selected_id, workspace_id, hrefFor, empty, action }: Props) {
+export default function RailBotsSection({ title, workers: listed, selected_id, workspace_id, hrefFor, empty, action }: Props) {
     const [open, setOpen] = useState(false);
+    const workers = orderByLastVisit({ items: listed });
     const { shown, hidden } = pickRailBots({ workers, selected_id, limit: AppData.RailRecentBots });
 
     return (

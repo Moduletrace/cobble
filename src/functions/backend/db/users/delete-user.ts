@@ -78,6 +78,9 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
         await BunSQLite.sql({ sql: `DELETE FROM ${table} WHERE user_id = ?`, values: [user.id] });
     }
 
+    await BunSQLite.sql({ sql: `DELETE FROM workspace_user_visits WHERE user_id = ?`, values: [user.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM bot_user_visits WHERE user_id = ?`, values: [user.id] });
+
     /**
      * Their personal secrets, explicitly: foreign keys are off outside the
      * server process.

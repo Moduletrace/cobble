@@ -2017,6 +2017,104 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "bot_user_visits",
+            tableDescription: `When each user last opened a conversation with a bot, in its own chat or a workspace, so their rail lists bots by it. Per user, since a bot belongs to the install`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_user_visit_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_user_visit_user_fk",
+                    },
+                },
+                {
+                    fieldName: "visited_at",
+                    fieldDescription: `Unix milliseconds of the user's last visit`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_visit_per_bot_user",
+                    constraintName: "A user has one last visit per bot",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_user_visits_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_user_visits",
+            tableDescription: `When each user last opened a workspace, so their rail lists workspaces by it. Per user, since a workspace belongs to the install`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_user_visit_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_user_visit_user_fk",
+                    },
+                },
+                {
+                    fieldName: "visited_at",
+                    fieldDescription: `Unix milliseconds of the user's last visit`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_visit_per_workspace_user",
+                    constraintName: "A user has one last visit per workspace",
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_user_visits_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
             tableName: "bot_user_memories",
             tableDescription: `What a bot remembers about one user (markdown). Only that user's runs see it, the way a workspace's memory stays in the workspace`,
             fields: [

@@ -41,6 +41,7 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
      * Explicitly, since foreign keys are off outside the server process.
      */
     await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE workspace_id = ?`, values: [workspace.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM workspace_user_visits WHERE workspace_id = ?`, values: [workspace.id] });
     await deleteChatrooms({ workspace_id: workspace.id! });
 
     const res = await BunSQLite.sql({

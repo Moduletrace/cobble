@@ -1,8 +1,7 @@
 import { useContext, useState } from "react";
 import Span from "@moduletrace/twui/layout/Span";
 import { AppData } from "@/src/data/app-data";
-import { AppContext } from "@/src/pages/__root";
-import orderRailWorkspaces from "@/src/utils/order-rail-workspaces";
+import orderByLastVisit from "@/src/utils/order-by-last-visit";
 import type { WorkspaceWithActivity } from "@/src/types";
 import { AddFlowContext } from "../(data)/add-flow-context";
 import AllWorkspacesModal from "./all-workspaces-modal";
@@ -18,17 +17,13 @@ type Props = {
 };
 
 /**
- * The user's workspaces, with a "+" to create one: the last visited one
- * first, then the rest up to `AppData.RailRecentWorkspaces`, then "See all
+ * The user's workspaces, with a "+" to create one: the latest visited
+ * first, then the rest, up to `AppData.RailRecentWorkspaces`, then "See all
  * workspaces" for the others, which lists them all in a modal.
  */
 export default function RailWorkspacesSection({ workspaces: listed, selected_id }: Props) {
     const { openForm } = useContext(AddFlowContext);
-    const { pageProps } = useContext(AppContext);
-    const workspaces = orderRailWorkspaces({
-        workspaces: listed,
-        first_id: pageProps?.last_visited_workspace_id,
-    });
+    const workspaces = orderByLastVisit({ items: listed });
     const [open, setOpen] = useState(false);
     const shown = workspaces.slice(0, AppData.RailRecentWorkspaces);
     const hidden = workspaces.slice(AppData.RailRecentWorkspaces);

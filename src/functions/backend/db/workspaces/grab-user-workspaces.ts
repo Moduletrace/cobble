@@ -20,11 +20,12 @@ export default async function grabUserWorkspaces({
     const res = await BunSQLite.sql<WorkspaceWithActivity>({
         sql: `SELECT w.*,
                 COALESCE((SELECT MAX(s.unread) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.chatroom_id IS NULL AND s.hook_id IS NULL), 0) AS unread,
-                (SELECT MAX(s.last_activity_at) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.chatroom_id IS NULL AND s.hook_id IS NULL) AS last_activity_at
+                (SELECT MAX(s.last_activity_at) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.chatroom_id IS NULL AND s.hook_id IS NULL) AS last_activity_at,
+                (SELECT v.visited_at FROM workspace_user_visits v WHERE v.workspace_id = w.id AND v.user_id = ?) AS last_visited_at
             FROM workspaces w
             WHERE w.archived = 0 AND ${access.sql}
             ORDER BY w.id ASC`,
-        values: [user_id, user_id, ...access.values],
+        values: [user_id, user_id, user_id, ...access.values],
     });
 
     return res.payload || [];

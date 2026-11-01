@@ -88,6 +88,10 @@ export type BotWithLastMessage = BotWithFace & {
     last_activity_at?: number | null;
     last_message_text?: string | null;
     last_message_at?: number | null;
+    /**
+     * When this user last opened a conversation with it (`bot_user_visits`).
+     */
+    last_visited_at?: number | null;
 };
 
 /**
@@ -260,6 +264,10 @@ export type BotSessionListItem = BUN_SQLITE_COBBLE_BOT_SESSIONS & {
 export type WorkspaceWithActivity = BUN_SQLITE_COBBLE_WORKSPACES & {
     unread: number;
     last_activity_at?: number | null;
+    /**
+     * When this user last opened it (`workspace_user_visits`).
+     */
+    last_visited_at?: number | null;
 };
 
 /**
@@ -1990,11 +1998,6 @@ export type PagePropsType = {
      * General, and the root's icon links).
      */
     install_icon?: PwaInstallIcon | null;
-    /**
-     * The workspace this browser was last in (a cookie read in the root):
-     * the rail lists it first.
-     */
-    last_visited_workspace_id?: number | null;
     /**
      * The release the server is running, for the General settings page.
      */

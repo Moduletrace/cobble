@@ -1,9 +1,9 @@
-import withLastVisitedWorkspaceCookies from "@/src/functions/server/with-last-visited-workspace-cookies";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabWorkspaceActivity from "@/src/functions/backend/db/workspaces/grab-workspace-activity";
 import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
 import grabWorkspaceComputers from "@/src/functions/backend/db/workspaces/grab-workspace-computers";
+import recordWorkspaceVisit from "@/src/functions/backend/db/workspaces/record-workspace-visit";
 import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import { AdminHomePath } from "@/src/dict/admin-sections-dict";
 import type { PagePropsType, PageQueryObject } from "@/src/types";
@@ -35,6 +35,8 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
 
     const workspace_id = Number(workspace.id);
 
+    await recordWorkspaceVisit({ user_id: user.id, workspace_id });
+
     const [workspace_bots, workspace_computers, workspace_activity, workspace_tasks] =
         await Promise.all([
             grabWorkspaceBots({ user_id: user.id, workspace_id }),
@@ -54,9 +56,6 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspace_computers,
             workspace_activity,
             workspace_tasks,
-        },
-        res_transform(res) {
-            return withLastVisitedWorkspaceCookies({ req: params.req, res, workspace_id });
         },
     };
 };
