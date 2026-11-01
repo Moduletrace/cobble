@@ -3,6 +3,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { AppContext } from "@/src/pages/__root";
+import { FilePlaceContext } from "../(data)/file-place-context";
 import type { BotFileScopesPayload, MediaType, PublicBotFile } from "@/src/types";
 import FilePreviewLink from "@/src/components/general/file-preview-link";
 import AttachmentIcon from "./attachment-icon";
@@ -61,8 +62,9 @@ export default function FileRefChip({ file_id }: Props) {
     const { pageProps } = useContext(AppContext);
     const known = pageProps?.bot_files?.files?.find((it) => it.id == file_id);
     const [fetched_file, setFetchedFile] = useState<PublicBotFile | null>(null);
-    const bot_id = Number(pageProps?.bot?.id) || 0;
-    const workspace_id = pageProps?.workspace?.id ? Number(pageProps.workspace.id) : null;
+    const place = useContext(FilePlaceContext);
+    const bot_id = place?.bot_id ?? (Number(pageProps?.bot?.id) || 0);
+    const workspace_id = place ? place.workspace_id : pageProps?.workspace?.id ? Number(pageProps.workspace.id) : null;
 
     useEffect(() => {
         if (known || !bot_id) return;

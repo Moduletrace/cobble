@@ -99,7 +99,9 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
      * iOS names a home-screen app from these tags, not the manifest.
      */
     const root_props = serverRes?.props as PagePropsType | undefined;
-    const app_name = installDisplayName({ install_name: root_props?.install_name });
+    const app_name = installDisplayName({
+        install_name: root_props?.install_name,
+    });
     /**
      * The install's own icon set, when it has one (Settings > General).
      */
@@ -112,10 +114,7 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
             <meta name="application-name" content={app_name} />
             <meta name="mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-capable" content="yes" />
-            <meta
-                name="apple-mobile-web-app-title"
-                content={app_name}
-            />
+            <meta name="apple-mobile-web-app-title" content={app_name} />
             <meta
                 name="apple-mobile-web-app-status-bar-style"
                 content="default"
@@ -146,7 +145,11 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
             <link
                 rel="apple-touch-icon"
                 sizes="180x180"
-                href={icon_base ? `${icon_base}/apple-touch-icon.png` : "/apple-touch-icon.png"}
+                href={
+                    icon_base
+                        ? `${icon_base}/apple-touch-icon.png`
+                        : "/apple-touch-icon.png"
+                }
             />
         </>
     );

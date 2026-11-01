@@ -221,6 +221,10 @@ export const BotSessionStatuses = [
         value: "active",
     },
     {
+        title: "Hook",
+        value: "hook",
+    },
+    {
         title: "Closed",
         value: "closed",
     },

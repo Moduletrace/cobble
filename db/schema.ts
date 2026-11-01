@@ -473,6 +473,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     },
                 },
                 {
+                    fieldName: "hook_id",
+                    fieldDescription: `The hook whose runs this session holds. Such sessions (status \`hook\`) never show in the bot's conversation, rails or session lists: their results are read in the hook's thread. Not a foreign key: a run can outlast its hook. Null: an ordinary session`,
+                    dataType: "INTEGER",
+                },
+                {
                     fieldName: "status",
                     fieldDescription: `One active session per conversation; \`chatroom\` for a bot's part of a chatroom`,
                     dataType: "TEXT",
@@ -1325,7 +1330,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "session_id",
-                    fieldDescription: `The session (of this user, bot and place) its runs and results land in, open or closed; null follows the conversation's active session. A bot's proposed hook gets the session it was proposed in. Not a foreign key: a missing one is replaced by a new session on the next call`,
+                    fieldDescription: `No longer used: runs land in the hook's own hidden session (\`bot_sessions.hook_id\`)`,
                     dataType: "INTEGER",
                 },
                 {

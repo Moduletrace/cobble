@@ -124,11 +124,6 @@ export type BotHookWithNames = Omit<BUN_SQLITE_COBBLE_BOT_HOOKS, "token_hash" | 
      * For browser notifications: the watched computer's name.
      */
     watch_computer_name?: string | null;
-    /**
-     * The title of the session its runs land in, when it has one of its
-     * own (`session_id`).
-     */
-    session_title?: string | null;
     bot_name?: string | null;
     bot_kind?: string | null;
     bot_hue?: string | null;
@@ -148,6 +143,10 @@ export type BotHookCall = BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & {
     hook_title?: string | null;
     bot_id?: number | null;
     workspace_id?: number | null;
+    /**
+     * The files its run sent with its answer.
+     */
+    attachments?: BotMessageAttachment[];
 };
 
 /**
@@ -180,13 +179,6 @@ export type BotHookWithToken = {
     token?: string;
     watch?: NotifyWatchSync;
 };
-
-/**
- * Which session a hook's runs land in: `current` follows the
- * conversation's active session, `new` starts one of its own beside it,
- * a number is one of the conversation's sessions.
- */
-export type HookSessionChoice = "current" | "new" | number;
 
 /**
  * Where a hook can run, for the picker: its bot's own chat
@@ -2261,6 +2253,11 @@ export const WebSocketEvents = [
      * `ChatroomSummary`)
      */
     "server:chatroom-updated",
+    /**
+     * A call to one of the user's hooks came in or changed (`data`:
+     * `{ hook_id }`)
+     */
+    "server:hook-call-updated",
     /**
      * A computer's container changed state, e.g. finished setting up
      * (`data`: `ComputerWithStatus`)

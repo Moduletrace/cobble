@@ -7,6 +7,7 @@ import pushBotUpdated from "./push-bot-updated";
 import pushToSessionUser from "./push-to-session-user";
 import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
 import pushChatroomMessage from "@/src/functions/backend/db/chatrooms/push-chatroom-message";
+import grabSessionHookId from "@/src/functions/backend/db/bot-hooks/grab-session-hook-id";
 
 type Params = {
     bot_id: number | string;
@@ -54,10 +55,15 @@ async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
      * and never as a notification: rooms are records.
      */
     const room_id = message ? await grabSessionChatroomId({ session_id: message.session_id }) : null;
+    /**
+     * A hook run's result is read in the hook's thread, which reloads from
+     * `server:hook-call-updated`: no conversation, no notification.
+     */
+    const hook_id = message && !room_id ? await grabSessionHookId({ session_id: message.session_id }) : null;
 
     if (message && room_id) {
         await pushChatroomMessage({ chatroom_id: room_id, message });
-    } else if (message) {
+    } else if (message && !hook_id) {
         await pushToSessionUser({
             session_id: message.session_id,
             data: { event: "server:bot-message", data: message },

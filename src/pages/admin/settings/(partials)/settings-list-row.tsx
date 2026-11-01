@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Button from "@moduletrace/twui/layout/Button";
 import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
@@ -11,6 +12,10 @@ type Props = {
      * Where the title links, for rows that open a page.
      */
     href?: string;
+    /**
+     * What clicking the title does, for rows that open a modal.
+     */
+    onOpen?: () => void;
     /**
      * A word beside the title, e.g. "Default" or "You".
      */
@@ -30,7 +35,7 @@ type Props = {
  * One row of a settings list: an avatar, a title and one line about it,
  * then what can be done with it.
  */
-export default function SettingsListRow({ avatar, title, href, badge, title_icon, subtitle, children }: Props) {
+export default function SettingsListRow({ avatar, title, href, onOpen, badge, title_icon, subtitle, children }: Props) {
     const title_content = (
         <Span className="block text-sm font-bold leading-5 text-ink truncate w-full">
             {title}
@@ -51,6 +56,17 @@ export default function SettingsListRow({ avatar, title, href, badge, title_icon
                     >
                         {title_content}
                     </Link>
+                ) : onOpen ? (
+                    <Button
+                        title={`Open ${title}`}
+                        type="button"
+                        variant="ghost"
+                        color="text"
+                        onClick={onOpen}
+                        className="block w-full min-w-0 h-auto! px-0! py-0! text-left hover:bg-transparent! hover:underline"
+                    >
+                        {title_content}
+                    </Button>
                 ) : (
                     title_content
                 )}

@@ -1,5 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabBotHookEvents from "@/src/functions/backend/db/bot-hooks/grab-bot-hook-events";
+import withHookCallAttachments from "@/src/functions/backend/db/bot-hooks/with-hook-call-attachments";
 import type { BotHookEventStatus } from "@/src/dict/bot-hook-dict";
 import { SearchHookCallsRequestSchema } from "@/src/schemas/bot-hook-schema";
 import type { BotHookCall } from "@/src/types";
@@ -36,13 +37,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotHookCall>> = as
 
         return {
             success: true,
-            payload: await grabBotHookEvents({
-                user_id: user.id,
-                hook_id,
-                query: q,
-                status: status as BotHookEventStatus | undefined,
-                before_id,
-                limit,
+            payload: await withHookCallAttachments({
+                calls: await grabBotHookEvents({
+                    user_id: user.id,
+                    hook_id,
+                    query: q,
+                    status: status as BotHookEventStatus | undefined,
+                    before_id,
+                    limit,
+                }),
             }),
         };
     } catch (error: unknown) {

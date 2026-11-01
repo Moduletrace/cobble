@@ -198,7 +198,7 @@ export default async function runBotReply({
     const has_past_sessions = Boolean(
         (
             await BunSQLite.sql({
-                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? AND chatroom_id IS NULL LIMIT 1`,
+                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? AND chatroom_id IS NULL AND hook_id IS NULL LIMIT 1`,
                 values: [user_id, bot.id!, workspace_id ? Number(workspace_id) : null, session_id],
             })
         ).payload?.[0],

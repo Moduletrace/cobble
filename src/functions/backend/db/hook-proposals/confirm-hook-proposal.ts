@@ -47,8 +47,6 @@ export default async function confirmHookProposal({ user_id, proposal_id }: Para
                 user_id,
                 bot_id: proposal.bot_id,
                 workspace_id: proposal.workspace_id,
-                session: proposal.session_id ? Number(proposal.session_id) : "current",
-                session_missing_starts_new: true,
                 title: data.title!,
                 instructions: data.instructions!,
                 computer_id: data.computer_id,

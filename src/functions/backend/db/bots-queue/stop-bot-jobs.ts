@@ -10,6 +10,7 @@ import openBotJobsSql from "./open-bot-jobs-sql";
 import stoppedJobReport, { pickReportedJobs } from "./stopped-job-report";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import closeChatroom from "../chatrooms/close-chatroom";
+import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 
 type Params = {
     bot_id: number | string;
@@ -129,6 +130,12 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
     const messages: BUN_SQLITE_COBBLE_BOT_MESSAGES[] = [];
 
     for (const [session_id, job] of pickReportedJobs({ jobs })) {
+        /**
+         * A hook's call says it was stopped in its thread
+         * (`recordHookCallResponse`).
+         */
+        if (await grabSessionHookId({ session_id })) continue;
+
         const message = await insertBotMessage({
             bot_id: Number(bot_id),
             session_id,

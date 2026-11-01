@@ -15,6 +15,7 @@ import withMessageUsage from "../usage/with-message-usage";
 import type { HarnessToolUse } from "@/src/harness/types";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
+import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 
 type Params = {
     job_id: number | string;
@@ -134,9 +135,12 @@ export default async function completeBotJob({
     const user_id = await grabJobUserId({ job });
 
     /**
-     * Work in a chatroom shows in the room, never on the bot's face.
+     * Work in a chatroom shows in the room and a hook's run in its thread,
+     * never on the bot's face.
      */
-    const in_room = Boolean(await grabSessionChatroomId({ session_id: job.session_id }));
+    const in_room =
+        Boolean(await grabSessionChatroomId({ session_id: job.session_id })) ||
+        Boolean(await grabSessionHookId({ session_id: job.session_id }));
 
     const bot = !user_id || in_room
         ? null

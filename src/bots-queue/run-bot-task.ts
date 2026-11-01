@@ -198,11 +198,15 @@ export default async function runBotTask({
             ...(computers.length
                 ? [
                       searchComputersTool({ bot_id: bot.id, user_id, computers, workspace_id, dirs }),
-                      askToTakeOverTool({
-                          computers: take_over_computers,
-                          in_task: true,
-                          onAsk: ({ ref }) => take_overs.push(ref),
-                      }),
+                      ...(hooked
+                          ? []
+                          : [
+                                askToTakeOverTool({
+                                    computers: take_over_computers,
+                                    in_task: true,
+                                    onAsk: ({ ref }) => take_overs.push(ref),
+                                }),
+                            ]),
                   ]
                 : []),
             ...grabBotSecretTools({
@@ -304,7 +308,7 @@ export default async function runBotTask({
                     : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
                 powers.is_coordinator || hooked ? "" : AskCrewNote,
                 computer
-                    ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything. When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over.`
+                    ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything.${hooked ? "" : " When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over."}`
                     : workspace_id
                       ? `You have no computer for this task: this workspace has none. If the task needs one, stop and say so in the report; the user can add a computer to the workspace.`
                       : `You have no computer for this task.`,

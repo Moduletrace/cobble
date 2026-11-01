@@ -29,7 +29,7 @@ export default async function reopenBotSession({
     /**
      * A bot's part of a chatroom is only ever read in the room.
      */
-    if (session.chatroom_id) {
+    if (session.chatroom_id || session.hook_id) {
         throw new AppError(`Session not found.`);
     }
 

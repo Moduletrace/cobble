@@ -8,6 +8,8 @@ import { BotHookEventStatuses } from "@/src/dict/bot-hook-dict";
 import useHookCall from "@/src/hooks/use-hook-call";
 import type { BotHookCall } from "@/src/types";
 import relativeTime from "@/src/utils/relative-time";
+import MessageAttachments from "@/src/pages/admin/bots/[bot_id]/(partials)/message-attachments";
+import HookCallAnswer from "./hook-call-answer";
 import HookCallText from "./hook-call-text";
 
 type Props = {
@@ -16,8 +18,9 @@ type Props = {
 
 /**
  * One call to a hook: what became of it and when, where it came from, why
- * it was refused, then what it sent and what its run answered. Previews
- * at first; Show all loads the whole call.
+ * it was refused, then what it sent and what its run answered (as the
+ * chat would show it, with its files). Previews at first; Show all loads
+ * the whole call.
  */
 export default function HookEventRow({ event }: Props) {
     const [open, set_open] = useState(false);
@@ -61,12 +64,9 @@ export default function HookEventRow({ event }: Props) {
             </Row>
             {shown.payload ? <HookCallText label="Sent" text={String(shown.payload)} full={open && Boolean(call)} /> : null}
             {shown.response ? (
-                <HookCallText
-                    label={event.status == "failed" ? "Run failed" : "Answered"}
-                    text={String(shown.response)}
-                    full={open && Boolean(call)}
-                />
+                <HookCallAnswer label={event.status == "failed" ? "Run failed" : "Answered"} text={String(shown.response)} />
             ) : null}
+            <MessageAttachments attachments={event.attachments} />
             {error ? <Span className="text-xs leading-4 text-ink-secondary">{error}</Span> : null}
         </Stack>
     );

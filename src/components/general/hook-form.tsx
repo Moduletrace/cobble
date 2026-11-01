@@ -16,7 +16,6 @@ import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
 import type {
     BotHookWithNames,
     BotHookWithToken,
-    HookSessionChoice,
     NotifyWatchSync,
 } from "@/src/types";
 
@@ -28,7 +27,7 @@ type Props = {
     bot_id: number;
     /**
      * Where a new hook runs at first (the conversation it's made from);
-     * the form can pick another place, and another session there.
+     * the form can pick another place.
      */
     workspace_id?: number | null;
     /**
@@ -52,7 +51,7 @@ type Props = {
 
 /**
  * A hook's name and brief, where it runs (the bot's own chat or one of
- * its workspaces, and which session there), what calls it (its URL, or a computer's browser
+ * its workspaces), what calls it (its URL, or a computer's browser
  * notifications, chosen once when it's made), and then either whether its
  * calls must be signed (the secret, the header it comes in and how it's
  * written) or which notifications it takes. Makes a hook or edits one; a
@@ -85,18 +84,10 @@ export default function HookForm({
     const [format, setFormat] = useState<BotHookSignatureFormat>(
         (hook?.signature_format as BotHookSignatureFormat) || "sha256=hex",
     );
-    const [place, setPlace] = useState<{
-        workspace_id: number | null;
-        session: HookSessionChoice;
-    }>({
+    const [place, setPlace] = useState<{ workspace_id: number | null }>({
         workspace_id: hook
             ? Number(hook.workspace_id) || null
             : workspace_id || null,
-        session: hook
-            ? hook.session_id
-                ? Number(hook.session_id)
-                : "current"
-            : "new",
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
@@ -130,7 +121,6 @@ export default function HookForm({
                       title,
                       instructions,
                       workspace_id: place.workspace_id,
-                      session: place.session,
                       ...signing,
                       ...(watching ? { watch_filter } : {}),
                   },
@@ -140,7 +130,6 @@ export default function HookForm({
                   body: {
                       bot_id,
                       workspace_id: place.workspace_id,
-                      session: place.session,
                       title,
                       instructions,
                       source,
@@ -194,15 +183,6 @@ export default function HookForm({
             <HookPlaceFields
                 bot_id={bot_id}
                 workspace_id={place.workspace_id}
-                session={place.session}
-                saved_session={
-                    hook?.session_id
-                        ? {
-                              id: Number(hook.session_id),
-                              title: hook.session_title,
-                          }
-                        : null
-                }
                 disabled={loading}
                 onChange={setPlace}
             />

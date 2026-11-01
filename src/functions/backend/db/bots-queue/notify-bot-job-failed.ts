@@ -10,6 +10,7 @@ import grabJobUserId from "./grab-job-user-id";
 import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
+import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -56,7 +57,9 @@ export default async function notifyBotJobFailed({
     });
 
     const user_id = await grabJobUserId({ job });
-    const in_room = Boolean(await grabSessionChatroomId({ session_id: job.session_id }));
+    const in_room =
+        Boolean(await grabSessionChatroomId({ session_id: job.session_id })) ||
+        Boolean(await grabSessionHookId({ session_id: job.session_id }));
 
     const bot = user_id && !in_room
         ? await setBotFace({

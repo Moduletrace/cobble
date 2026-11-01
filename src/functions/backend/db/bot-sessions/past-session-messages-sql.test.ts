@@ -32,6 +32,12 @@ db.run(`INSERT INTO bot_messages (id, session_id, author, text) VALUES
 db.run(`ALTER TABLE bot_sessions ADD COLUMN chatroom_id INTEGER`);
 db.run(`INSERT INTO bot_sessions (id, user_id, bot_id, workspace_id, title, chatroom_id) VALUES (6, 1, 10, NULL, 'A chatroom', 3)`);
 db.run(`INSERT INTO bot_messages (id, session_id, author, text) VALUES (9, 6, 'bot', 'Acme invoice asked in a chatroom')`);
+/**
+ * A hook's hidden session: read in its thread, never a past session.
+ */
+db.run(`ALTER TABLE bot_sessions ADD COLUMN hook_id INTEGER`);
+db.run(`INSERT INTO bot_sessions (id, user_id, bot_id, workspace_id, title, hook_id) VALUES (7, 1, 10, NULL, 'A hook', 4)`);
+db.run(`INSERT INTO bot_messages (id, session_id, author, text) VALUES (10, 7, 'bot', 'Acme invoice answered in a hook')`);
 
 function ids(params: Partial<SearchPastSessionsParams>) {
     const { sql, values } = searchPastSessionsSql({

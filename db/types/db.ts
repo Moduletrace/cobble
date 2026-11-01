@@ -353,9 +353,13 @@ export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
      */
     chatroom_id?: number | "";
     /** 
+     * The hook whose runs this session holds. Such sessions (status `hook`) never show in the bot's conversation, rails or session lists: their results are read in the hook's thread. Not a foreign key: a run can outlast its hook. Null: an ordinary session
+     */
+    hook_id?: number | "";
+    /** 
      * One active session per conversation; `chatroom` for a bot's part of a chatroom
      */
-    status?: "active" | "closed" | "chatroom" | "";
+    status?: "active" | "hook" | "closed" | "chatroom" | "";
     unread?: 0 | 1 | "";
     /** 
      * Unix timestamp of the latest message, for ordering
@@ -831,7 +835,7 @@ export type BUN_SQLITE_COBBLE_BOT_HOOKS = {
      */
     workspace_id?: number | "";
     /** 
-     * The session (of this user, bot and place) its runs and results land in, open or closed; null follows the conversation's active session. A bot's proposed hook gets the session it was proposed in. Not a foreign key: a missing one is replaced by a new session on the next call
+     * No longer used: runs land in the hook's own hidden session (`bot_sessions.hook_id`)
      */
     session_id?: number | "";
     title?: string;

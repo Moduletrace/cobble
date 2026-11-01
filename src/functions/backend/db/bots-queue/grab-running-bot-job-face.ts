@@ -26,7 +26,7 @@ export default async function grabRunningBotJobFace({
             sql: `SELECT q.kind, w.name AS workspace_name FROM bots_queue q
                 LEFT JOIN workspaces w ON w.id = q.workspace_id
                 WHERE q.bot_id = ? AND q.status = 'processing'
-                AND q.session_id IN (SELECT id FROM bot_sessions WHERE user_id = ?)
+                AND q.session_id IN (SELECT id FROM bot_sessions WHERE user_id = ? AND hook_id IS NULL)
                 ORDER BY q.id`,
             values: [bot_id, user_id],
         })

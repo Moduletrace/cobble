@@ -12,7 +12,7 @@ import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import insertBotHookEvent from "./insert-bot-hook-event";
 import mergeHookCallSql from "./merge-hook-call-sql";
-import resolveHookSession from "./resolve-hook-session";
+import ensureHookSession from "./ensure-hook-session";
 import seenHookCallSql from "./seen-hook-call-sql";
 import grabUserConversation from "../bot-sessions/grab-user-conversation";
 import enqueueBotJob from "../bots-queue/enqueue-bot-job";
@@ -49,8 +49,7 @@ export type FireBotHookResult = {
 
 /**
  * Takes one call to a hook: records it, then gives it to its bot as a task
- * in the hook's session (`resolveHookSession`: its own, or the owner's
- * active one there). A call while the hook's last run is
+ * in the hook's own hidden session (`ensureHookSession`). A call while the hook's last run is
  * still waiting (queued, never tried) joins that run's brief instead, up
  * to `AppData.BotHookMaxEventsPerRun` calls, so a burst makes one run and
  * none is lost; once a run has started, the next call queues a new one.
@@ -131,7 +130,7 @@ export default async function fireBotHook({
             return { status: "merged", event_id, job_id: merged_into };
         }
 
-        const session_id = await resolveHookSession({
+        const session_id = await ensureHookSession({
             hook,
             bot_id: conversation.bot.id,
             workspace_id: conversation.workspace_id,

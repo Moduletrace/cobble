@@ -4,6 +4,7 @@ import { logError } from "@/src/functions/backend/logger";
 import grabConnectedUserIds from "@/src/websocket/(functions)/grab-connected-user-ids";
 import relayChangedBots from "./relay-changed-bots";
 import relayChangedChatrooms from "./relay-changed-chatrooms";
+import relayChangedHookCalls from "./relay-changed-hook-calls";
 import relayChangedSessions from "./relay-changed-sessions";
 import relayChangedWorkspaces from "./relay-changed-workspaces";
 import relayCreatedBots from "./relay-created-bots";
@@ -78,6 +79,7 @@ export default async function liveRelay() {
             await relayChangedBots({ since: bots_since, users });
             await relayChangedWorkspaces({ since: bots_since, users });
             await relayChangedChatrooms({ since: bots_since, users });
+            await relayChangedHookCalls({ since: bots_since, users });
             cursor.bots_at = now;
 
             await relayChangedSessions({

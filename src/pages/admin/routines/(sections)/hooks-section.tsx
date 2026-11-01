@@ -8,6 +8,7 @@ import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-statu
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import HookCalls from "@/src/components/general/hook-calls";
+import HookDetailModal from "@/src/components/general/hook-detail-modal";
 import HookForm from "@/src/components/general/hook-form";
 import HookRow from "@/src/components/general/hook-row";
 import HookUrlNotice from "@/src/components/general/hook-url-notice";
@@ -22,9 +23,9 @@ type View =
     | { kind: "calls"; hook: BotHookWithNames };
 
 /**
- * Every hook the user gave their bots: pause or resume one, edit it, see
- * its calls, give it a new URL, delete it. Hooks are made in a
- * conversation's Hooks modal, where their results land.
+ * Every hook the user gave their bots: open one to read its thread, pause
+ * or resume it, edit it, see its calls, give it a new URL, delete it. Hooks
+ * are made in a conversation's Hooks modal.
  */
 export default function HooksSection() {
     const { pageProps } = useContext(AppContext);
@@ -32,6 +33,7 @@ export default function HooksSection() {
         items: pageProps?.bot_hooks || [],
     });
     const [view, setView] = useState<View>();
+    const [opened, setOpened] = useState<BotHookWithNames>();
 
     const replace = ({ hook }: { hook: BotHookWithNames }) =>
         setItems((prev) => prev.map((item) => (item.id == hook.id ? hook : item)));
@@ -88,7 +90,7 @@ export default function HooksSection() {
     return (
         <SettingsGroup
             title="Your hooks"
-            description="Ways for the outside to give a bot work: a secret URL a service (a webhook, a script) calls, or a computer's browser notifications. Make one from a conversation's menu, under Hooks. Each call is a task, and its result lands in that conversation."
+            description="Ways for the outside to give a bot work: a secret URL a service (a webhook, a script) calls, or a computer's browser notifications. Make one from a conversation's menu, under Hooks. Each call is a task; click a hook to read its results, which never show in a chat."
         >
             <SettingsList is_empty={!items.length} empty="No hooks yet.">
                 {items.map((hook) => (
@@ -96,6 +98,7 @@ export default function HooksSection() {
                         key={hook.id}
                         hook={hook}
                         busy={busy}
+                        onOpen={() => setOpened(hook)}
                         onToggle={() => toggle({ hook }).catch(() => {})}
                         onEdit={() => setView({ kind: "edit", hook })}
                         onCalls={() => setView({ kind: "calls", hook })}
@@ -133,9 +136,21 @@ export default function HooksSection() {
                         onDone={() => setView(undefined)}
                     />
                 ) : view?.kind == "calls" ? (
-                    <HookCalls hook_id={Number(view.hook.id)} />
+                    <HookCalls
+                        hook_id={Number(view.hook.id)}
+                        bot_id={Number(view.hook.bot_id)}
+                        workspace_id={Number(view.hook.workspace_id) || null}
+                    />
                 ) : null}
             </AddModalShell>
+            <HookDetailModal
+                hook={opened}
+                onClose={() => setOpened(undefined)}
+                onEdit={({ hook }) => {
+                    setOpened(undefined);
+                    setView({ kind: "edit", hook });
+                }}
+            />
         </SettingsGroup>
     );
 }

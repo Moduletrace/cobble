@@ -9,6 +9,10 @@ import BotAvatar from "./bot-avatar";
 type Props = {
     hook: BotHookWithNames;
     busy?: boolean;
+    /**
+     * Opens the hook: what it is and its thread of calls.
+     */
+    onOpen: () => void;
     onToggle: () => void;
     onEdit: () => void;
     onCalls: () => void;
@@ -22,12 +26,12 @@ type Props = {
 };
 
 /**
- * One hook: its bot's avatar, its name (Paused when it is), what calls
- * it, how often it ran and when it was last called, then Pause or Resume,
+ * One hook: its bot's avatar, its name (Paused when it is), which opens
+ * it, what calls it, how often it ran and when it was last called, then Pause or Resume,
  * Edit, Calls, New URL (not for notification hooks: their URL is never
  * shown) and Delete.
  */
-export default function HookRow({ hook, busy, onToggle, onEdit, onCalls, onRotate, onDelete, compact }: Props) {
+export default function HookRow({ hook, busy, onOpen, onToggle, onEdit, onCalls, onRotate, onDelete, compact }: Props) {
     const title = hook.title || `Hook ${hook.id}`;
 
     return (
@@ -40,6 +44,7 @@ export default function HookRow({ hook, busy, onToggle, onEdit, onCalls, onRotat
                 />
             }
             title={title}
+            onOpen={onOpen}
             badge={hook.enabled ? undefined : "Paused"}
             subtitle={hookSubtitle({ hook, show_bot: !compact, show_workspace: !compact })}
         >

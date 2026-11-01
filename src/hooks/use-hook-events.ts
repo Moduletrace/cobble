@@ -2,6 +2,7 @@ import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { useEffect, useState } from "react";
 import { AppData } from "@/src/data/app-data";
+import useServerEvent from "@/src/hooks/use-server-event";
 import type { BotHookEventStatus } from "@/src/dict/bot-hook-dict";
 import type { BotHookCall } from "@/src/types";
 
@@ -26,7 +27,8 @@ function callsUrl({ hook_id, query, status, before_id }: Params & { before_id?: 
 
 /**
  * One hook's calls, newest first, loaded when the view showing them opens
- * and again when the search or status changes, a page at a time.
+ * and again when the search or status changes, a page at a time. A new
+ * or changed call (`server:hook-call-updated`) refreshes the newest page.
  */
 export default function useHookEvents({ hook_id, query = "", status = "" }: Params) {
     const [events, setEvents] = useState<BotHookCall[]>([]);
@@ -70,6 +72,24 @@ export default function useHookEvents({ hook_id, query = "", status = "" }: Para
             live = false;
         };
     }, [hook_id, query, status]);
+
+    useServerEvent({
+        event: "server:hook-call-updated",
+        onData: (data: { hook_id: number }) => {
+            if (data.hook_id != hook_id) return;
+
+            fetchApi<{}, APIResponseObject<BotHookCall>>(callsUrl({ hook_id, query, status }), { method: "GET" })
+                .catch(() => null)
+                .then((res) => {
+                    if (!res?.success) return;
+
+                    const page = res.payload || [];
+                    const ids = new Set(page.map((event) => event.id));
+
+                    setEvents((current) => [...page, ...current.filter((event) => !ids.has(event.id))]);
+                });
+        },
+    });
 
     const loadOlder = async () => {
         const last = events[events.length - 1];

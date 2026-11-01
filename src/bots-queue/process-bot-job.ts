@@ -11,6 +11,7 @@ import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
 import recordBotHookFailure from "@/src/functions/backend/db/bot-hooks/record-bot-hook-failure";
+import grabSessionHookId from "@/src/functions/backend/db/bot-hooks/grab-session-hook-id";
 import recordCronJobFailure from "@/src/functions/backend/db/cron-jobs/record-cron-job-failure";
 import scheduledRunRetryAt from "@/src/utils/scheduled-run-retry-at";
 import {
@@ -87,10 +88,12 @@ export default async function processBotJob({
     const user_id = await grabJobUserId({ job }).catch(() => null);
 
     /**
-     * Work in a chatroom shows in the room: no face changes, and its
-     * session is never named.
+     * Work in a chatroom shows in the room and a hook's run in its thread:
+     * no face changes, and the session is never named.
      */
-    const in_room = Boolean(await grabSessionChatroomId({ session_id: job.session_id }).catch(() => null));
+    const in_room =
+        Boolean(await grabSessionChatroomId({ session_id: job.session_id }).catch(() => null)) ||
+        Boolean(await grabSessionHookId({ session_id: job.session_id }).catch(() => null));
 
     const controller = new AbortController();
     /**

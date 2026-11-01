@@ -9,6 +9,7 @@ import { Plus, Webhook } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type { BotHookWithNames, BotHookWithToken, BotWithLastMessage } from "@/src/types";
 import HookCalls from "@/src/components/general/hook-calls";
+import HookDetailModal from "@/src/components/general/hook-detail-modal";
 import HookForm from "@/src/components/general/hook-form";
 import HookRow from "@/src/components/general/hook-row";
 import HookUrlNotice from "@/src/components/general/hook-url-notice";
@@ -39,8 +40,8 @@ type Props = {
 
 /**
  * The user's hooks in this conversation: secret URLs an outside service
- * (a webhook, a script) calls to give the bot a task, whose result lands
- * here. Open it from the header menu; the list loads then, so the page's
+ * (a webhook, a script) calls to give the bot a task, whose result stays
+ * in the hook's own thread (click a hook), never in the chat. Open it from the header menu; the list loads then, so the page's
  * props stay small. The user makes, pauses, edits, re-keys and deletes
  * their own; bots propose new hooks and changes from the chat
  * (`propose_hook`), which the user confirms there.
@@ -49,6 +50,7 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, set_open] = useState(false);
     const [view, set_view] = useState<View>();
+    const [opened, set_opened] = useState<BotHookWithNames>();
     const [busy, set_busy] = useState(false);
     const [status, set_status] = useState<Status>();
     const { hooks, setHooks, loading, error } = useBotHooks({
@@ -163,12 +165,12 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
 
     const intro =
         view?.kind == "create" || view?.kind == "edit"
-            ? `Every call to the hook's URL gives ${name} this brief as a task, with what the caller sent, and the result lands here.`
+            ? `Every call to the hook's URL gives ${name} this brief as a task, with what the caller sent. The result stays in the hook's own thread.`
             : view?.kind == "url"
               ? `The hook's URL is its key.`
               : view?.kind == "calls"
                 ? `The latest calls and what became of each.`
-                : `Ways for the outside to give ${name} work${workspace?.id ? ` in ${place}` : ""}: a URL a service (a webhook, a script) calls, or the browser notifications on one of its computers. Each call is a task, and its result lands here.`;
+                : `Ways for the outside to give ${name} work${workspace?.id ? ` in ${place}` : ""}: a URL a service (a webhook, a script) calls, or the browser notifications on one of its computers. Each call is a task; click a hook to read its results, which never show in the chat.`;
 
     return (
         <Modal
@@ -238,7 +240,11 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
                 ) : view?.kind == "url" ? (
                     <HookUrlNotice token={view.token} signed={Boolean(view.hook.has_signing_secret)} onDone={back} />
                 ) : view?.kind == "calls" ? (
-                    <HookCalls hook_id={Number(view.hook.id)} />
+                    <HookCalls
+                        hook_id={Number(view.hook.id)}
+                        bot_id={Number(view.hook.bot_id)}
+                        workspace_id={Number(view.hook.workspace_id) || null}
+                    />
                 ) : (
                     <SettingsList is_empty={!hooks.length} empty={loading ? "Loading hooks..." : error || "No hooks here yet."}>
                         {hooks.map((hook) => (
@@ -247,6 +253,7 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
                                 hook={hook}
                                 compact
                                 busy={busy}
+                                onOpen={() => set_opened(hook)}
                                 onToggle={() => toggle({ hook }).catch(() => {})}
                                 onEdit={() => set_view({ kind: "edit", hook })}
                                 onCalls={() => set_view({ kind: "calls", hook })}
@@ -261,6 +268,15 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
             <Stack className="mt-3 gap-1! items-stretch">
                 <SettingsStatus status={status} />
             </Stack>
+
+            <HookDetailModal
+                hook={opened}
+                onClose={() => set_opened(undefined)}
+                onEdit={({ hook }) => {
+                    set_opened(undefined);
+                    set_view({ kind: "edit", hook });
+                }}
+            />
         </Modal>
     );
 }

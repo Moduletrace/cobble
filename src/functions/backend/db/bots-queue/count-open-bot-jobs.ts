@@ -14,7 +14,7 @@ type Params = {
 export default async function countOpenBotJobs({ bot_id, user_id }: Params) {
     const res = await BunSQLite.sql<{ open: number }>({
         sql: `SELECT COUNT(*) AS open FROM bots_queue WHERE bot_id = ? AND status IN ('pending', 'processing')
-            AND session_id IN (SELECT id FROM bot_sessions WHERE user_id = ?)`,
+            AND session_id IN (SELECT id FROM bot_sessions WHERE user_id = ? AND hook_id IS NULL)`,
         values: [bot_id, user_id],
     });
 
