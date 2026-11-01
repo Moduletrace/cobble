@@ -2,8 +2,8 @@ import type { TableType } from "@/src/types";
 
 /**
  * Tables holding secrets (password hashes, pending login codes, model
- * provider keys, envs, MCP servers' headers and env, hooks' token hashes
- * and signing secrets). They are never reachable through the admin CRUD API, not
+ * provider keys, envs, MCP servers' headers and env, browsers' headers,
+ * hooks' token hashes and signing secrets). They are never reachable through the admin CRUD API, not
  * even by super admins.
  */
 export const PrivateTables: TableType[] = [
@@ -12,5 +12,6 @@ export const PrivateTables: TableType[] = [
     "harness_providers",
     "envs",
     "mcp_servers",
+    "browsers",
     "bot_hooks",
 ];

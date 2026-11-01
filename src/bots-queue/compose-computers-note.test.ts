@@ -27,4 +27,10 @@ describe("composeComputersNote", () => {
     test("says so when the bot has no computer", () => {
         expect(composeComputersNote({ computers: [] })).toContain("You have no computer");
     });
+
+    test("doesn't deny browsing when the user's browser reaches the run", () => {
+        expect(composeComputersNote({ computers: [] })).toContain("open files or browse");
+        expect(composeComputersNote({ computers: [], has_browser: true })).not.toContain("browse");
+        expect(composeComputersNote({ computers: [], in_workspace: true, has_browser: true })).not.toContain("browse");
+    });
 });

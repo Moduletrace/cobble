@@ -726,6 +726,7 @@ run_container() {
         --restart unless-stopped \
         --init \
         --network "$NETWORK" \
+        --add-host host.docker.internal:host-gateway \
         -p "$BIND:$PORT:$PORT" \
         --cpus "$CPUS" \
         --memory "${MEMORY_MB}m" \

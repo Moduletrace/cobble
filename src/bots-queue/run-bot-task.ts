@@ -23,6 +23,7 @@ import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
+import openBotBrowsers, { type OpenBotBrowsers } from "@/src/harness/tools/browsers/open-bot-browsers";
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
@@ -37,6 +38,7 @@ import searchComputersTool from "@/src/harness/tools/computer/search-computers-t
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
+import composeBrowsersNote from "./compose-browsers-note";
 import computerRef from "@/src/utils/computer-ref";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import composeJobBrief from "./compose-job-brief";
@@ -102,6 +104,7 @@ export default async function runBotTask({
         : null;
 
     let extensions: OpenBotExtensions | undefined;
+    let browsers: OpenBotBrowsers | undefined;
     let skills: OpenBotSkills | undefined;
 
     try {
@@ -272,15 +275,26 @@ export default async function runBotTask({
             signal,
         });
 
+        const browser_run_kind = hooked || params.chatroom_id ? "unattended" : scheduled ? "routine" : "attended";
+
+        browsers = await openBotBrowsers({
+            user_id,
+            bot_id: bot.id,
+            workspace_id,
+            run_kind: browser_run_kind,
+            taken: [...tools, ...extensions.tools].map((tool) => tool.name),
+            signal,
+        });
+
         skills = openBotSkills({
             skills: extensions.skills,
             shown_chars: await grabSkillBodyShownChars(),
-            taken: [...tools, ...extensions.tools].map((tool) => tool.name),
+            taken: [...tools, ...extensions.tools, ...browsers.tools].map((tool) => tool.name),
         });
 
         const knowledge = openBotKnowledgebases({
             knowledgebases: extensions.knowledgebases,
-            taken: [...tools, ...extensions.tools, ...skills.tools].map((tool) => tool.name),
+            taken: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools].map((tool) => tool.name),
         });
 
         const result = await runTextLoop({
@@ -320,6 +334,11 @@ export default async function runBotTask({
                           .map((env) => `- ${env.key}${env.description ? `: ${env.description}` : ""}`)
                           .join("\n")}`
                     : "",
+                composeBrowsersNote({
+                    browsers: browsers.browsers,
+                    has_computer_browser: Boolean(computer),
+                    run_kind: browser_run_kind,
+                }),
                 skills.note,
                 knowledge.note,
                 extensions.note,
@@ -336,7 +355,7 @@ export default async function runBotTask({
                     }),
                 },
             ],
-            tools: [...tools, ...extensions.tools, ...skills.tools, ...knowledge.tools],
+            tools: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools, ...knowledge.tools],
             max_steps: await grabHarnessMaxToolSteps(),
             bot_id: bot.id,
             workspace_id,
@@ -362,6 +381,7 @@ export default async function runBotTask({
         };
     } finally {
         await extensions?.close();
+        await browsers?.close();
         await computer?.close();
     }
 }

@@ -15,6 +15,11 @@ type Params = {
      * is where tasks run.
      */
     in_workspace?: boolean;
+    /**
+     * The user's own browser reaches this run: the bot can still browse
+     * without a computer.
+     */
+    has_browser?: boolean;
 };
 
 /**
@@ -22,11 +27,11 @@ type Params = {
  * one it's on, and how it reaches them (markdown). Without it a bot asked
  * "can you see the computer?" says it can't.
  */
-export default function composeComputersNote({ computers, is_coordinator, in_workspace }: Params) {
+export default function composeComputersNote({ computers, is_coordinator, in_workspace, has_browser }: Params) {
     if (!computers.length) {
         return in_workspace
-            ? `# Your computers\n\nThis workspace has no computer, so you can't run commands, open files or browse here. If the user asks for that, say so: they can add a computer to the workspace and set it as its default.`
-            : `# Your computers\n\nYou have no computer, so you can't run commands, open files or browse. If the user asks for that, say so.`;
+            ? `# Your computers\n\nThis workspace has no computer, so you can't run commands${has_browser ? " or open files" : ", open files or browse"} here. If the user asks for that, say so: they can add a computer to the workspace and set it as its default.`
+            : `# Your computers\n\nYou have no computer, so you can't run commands${has_browser ? " or open files" : ", open files or browse"}. If the user asks for that, say so.`;
     }
 
     const listed = computers

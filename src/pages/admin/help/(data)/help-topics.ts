@@ -156,4 +156,16 @@ If it's given and still misses:
 - Bots search by meaning only with an embedding model, picked once for the whole install in **Settings, Models** under Embeddings. Without one they match words, which misses questions worded differently from the document. Picking or changing the model reads every document again on its own; a document shows **needs re-indexing** until it's done.
 - If a document still says it needs re-indexing, use the refresh icon on its knowledgebase's row to read them all again.`,
     },
+    {
+        id: "connect-browser",
+        title: "Letting a bot use your own browser",
+        summary: "Bots use their computer's browser, but you want them in yours, with your logins.",
+        body: `Add your browser in **Settings, Browsers**. It stays yours: bots only use it when they're working for you, never for anyone else.
+
+1. Beside your browser, run a browser MCP server. The page shows the commands for Playwright MCP, which open a separate browser profile: sign in there to what bots should reach.
+2. Add its URL under **New browser** and click **Test connection**.
+3. Choose where it applies: for all your bots on the same page, for one bot from the browser button under its composer or its settings, or for a workspace the same way. Choose it as the default there and bots go to it first, falling back to the computer's browser if it's off.
+
+Be careful: a bot in your browser acts as you, and anyone who can reach that port can too. Keep the port on your machine or a private network. Routines only use a browser you've allowed them; hook calls and chatrooms never do.`,
+    },
 ];

@@ -10,6 +10,11 @@ type Params = {
      */
     url: string;
     headers?: Record<string, string>;
+    /**
+     * Refuses redirects, for a URL a user supplied and `assertBrowserUrl`
+     * checked: a redirect would lead past that check.
+     */
+    no_redirects?: boolean;
     signal?: AbortSignal;
 };
 
@@ -20,10 +25,12 @@ type Params = {
 export default async function connectMcpServer({
     url,
     headers,
+    no_redirects,
     signal,
 }: Params): Promise<Client> {
     const endpoint = new URL(url);
-    const request_init = headers ? { headers } : undefined;
+    const request_init: RequestInit | undefined =
+        headers || no_redirects ? { headers, redirect: no_redirects ? "error" : undefined } : undefined;
     const options = { signal, timeout: AppData.McpConnectTimeoutMs };
 
     try {

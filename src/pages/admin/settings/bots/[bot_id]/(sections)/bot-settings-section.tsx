@@ -4,6 +4,7 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import type { BotWithLastMessage } from "@/src/types";
 import BotHarnessForm from "../../../(partials)/bot-harness-form";
 import ScopedEnvsGroup from "../../../(partials)/envs/scoped-envs-group";
+import BrowserDefaultGroup from "../../../(partials)/browser-default-group";
 import ExtensionsGroup from "../../../(partials)/extensions-group";
 import SettingsSectionHeading from "../../../(partials)/settings-section-heading";
 import SettingsShell from "../../../(partials)/settings-shell";
@@ -84,6 +85,7 @@ export default function BotSettingsSection() {
                 description="The documents it searches before it answers, everywhere it works. A workspace's own come on top while it works there."
                 initial={pageProps?.bot_extensions}
             />
+            <BrowserDefaultGroup id={`browsers-bot-${bot.id}`} bot_id={bot.id} />
             <ScopedEnvsGroup initial={pageProps?.bot_envs} />
             {is_coordinator ? null : <BotDeleteGroup bot={bot} />}
         </SettingsShell>

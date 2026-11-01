@@ -1,4 +1,5 @@
 import {
+    JobStepBrowserToolInfix,
     JobStepToolLabels,
     JobStepToolPrefixLabels,
     type BotJobUpdateKind,
@@ -55,6 +56,8 @@ function firstLine({ text }: { text: string | null }) {
 }
 
 function toolLabel({ name }: { name: string }) {
+    if (name.includes(JobStepBrowserToolInfix)) return JobStepToolPrefixLabels.browser_ as string;
+
     const prefix = Object.keys(JobStepToolPrefixLabels).find((p) => name.startsWith(p));
 
     return JobStepToolLabels[name] || (prefix && JobStepToolPrefixLabels[prefix]) || `Using ${readableToolName({ name })}`;

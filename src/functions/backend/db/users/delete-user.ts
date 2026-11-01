@@ -22,7 +22,7 @@ type Params = {
 
 /**
  * Deletes a user with everything that's theirs (their conversations,
- * routines, access, what bots remember about them, personal secrets, user
+ * routines, browsers, access, what bots remember about them, personal secrets, user
  * types, password, media and its files). Bots, workspaces and computers belong to the
  * install and stay, pictures they uploaded for them too. Their audit log
  * entries stay as well. The super admin can't be deleted, and nobody
@@ -74,7 +74,7 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
     /**
      * These point at the user without a foreign key, so nothing cascades.
      */
-    for (const table of ["user_types", "user_passwords", "sso_login_codes", "secret_requests", "bot_questions", "bot_graphics"]) {
+    for (const table of ["user_types", "user_passwords", "sso_login_codes", "secret_requests", "bot_questions", "bot_graphics", "browser_access", "browsers"]) {
         await BunSQLite.sql({ sql: `DELETE FROM ${table} WHERE user_id = ?`, values: [user.id] });
     }
 

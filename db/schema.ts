@@ -2899,6 +2899,125 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "browsers",
+            tableDescription: `A user's own running browser, reached over a browser MCP server they run beside it (Settings, under Browsers). It only ever serves its owner's runs, since it holds their logins. Private: headers may hold a token`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The owner, and the only user whose runs get it. Not a foreign key: deleting a user deletes these explicitly`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "name",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `Prefixes its tools' names (<slug>__<tool>). Unique per user`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "description",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "url",
+                    fieldDescription: `The browser MCP server's HTTP endpoint. Never a template, and checked by assertBrowserUrl`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "headers",
+                    fieldDescription: `Encrypted JSON of request headers, e.g. a token its proxy wants. Never a template`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "excluded_tools",
+                    fieldDescription: `Tool names (the server's own) bots don't get`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "tools_cache",
+                    fieldDescription: `The server's tools as last listed ([{name, description, input_schema}]). Runs build their tools from it and connect on the first call`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "allow_routines",
+                    fieldDescription: `1 lets its owner's routines use it. Hook calls and chatroom runs never do`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: McpServerStatuses.map((s) => s.value),
+                    defaultValue: "untested",
+                },
+                {
+                    fieldName: "last_error",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "last_synced_at",
+                    fieldDescription: `Unix ms of the last connection or tool listing`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_browser_slug_per_user",
+                    constraintName: "A user's browsers have different slugs",
+                    constraintTableFields: [{ value: "user_id" }, { value: "slug" }],
+                },
+            ],
+        },
+        {
+            tableName: "browser_access",
+            tableDescription: `One user's choice of where their browsers apply: a row makes a browser available in a scope, and at most one row per user and scope is that scope's default. Adding a browser gives it to no bot until a row says so`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Whose choice it is. Not a foreign key: deleting a user deletes these explicitly`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "browser_id",
+                    fieldDescription: `Null means the computer's browser, which is only ever stored as a default, to win over a wider scope's`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot it applies to; with workspace_id null too, all of the user's bots. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace it applies to. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "is_default",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_browser_access_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
             tableName: "custom_tools",
             tableDescription: `Tools bots can call (Settings, under Tools): an HTTP request, a script on a computer, or a prompt. Per bot (bot_custom_tools), per workspace (workspace_custom_tools) or every bot (all_bots)`,
             fields: [

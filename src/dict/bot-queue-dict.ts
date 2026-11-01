@@ -135,3 +135,8 @@ export const JobStepToolLabels: Record<string, string> = {
 export const JobStepToolPrefixLabels: Record<string, string> = {
     browser_: "Using the browser",
 };
+
+/**
+ * In the name of a tool from a user's own browser (`<slug>__browser_...`).
+ */
+export const JobStepBrowserToolInfix = "__browser_";

@@ -1,0 +1,30 @@
+import Span from "@moduletrace/twui/layout/Span";
+import Stack from "@moduletrace/twui/layout/Stack";
+
+const Command = `chromium --remote-debugging-port=9222 --user-data-dir=$HOME/.cobble-browser
+
+npx @playwright/mcp --cdp-endpoint http://127.0.0.1:9222 \\
+  --port 8931 --host 0.0.0.0 \\
+  --allowed-hosts host.docker.internal:8931`;
+
+/**
+ * The way that's been tested: Playwright MCP attached to a running
+ * browser. `--allowed-hosts` must name exactly the host and port in the
+ * URL, or the server refuses every connection.
+ */
+export default function BrowserSetupHelp() {
+    return (
+        <Stack className="w-full gap-2! items-stretch">
+            <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                On the machine with the browser, start it with remote debugging, then Playwright MCP beside it. Chrome
+                refuses remote debugging on your everyday profile, so this opens a profile of its own: sign in there to
+                what bots should reach. On the same machine as this app the URL is
+                http://host.docker.internal:8931/mcp. From another machine, use its private address, and name that
+                address in --allowed-hosts.
+            </Span>
+            <Span className="rounded-default bg-sunken p-3 font-mono text-[12px] leading-[18px] text-ink whitespace-pre-wrap break-words">
+                {Command}
+            </Span>
+        </Stack>
+    );
+}

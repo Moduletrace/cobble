@@ -840,6 +840,35 @@ export type KnownEnvStatus = KnownEnv & {
 /**
  * One tool an MCP server offers, as last listed (`mcp_servers.tools_cache`).
  */
+/**
+ * A `browsers` row as the app reads it. Its headers never leave the server.
+ */
+export type BrowserRecord = {
+    id: number;
+    user_id: number;
+    name: string;
+    slug: string;
+    description: string;
+    url: string;
+    has_headers: boolean;
+    excluded_tools: string[];
+    tools: McpToolInfo[];
+    enabled: boolean;
+    allow_routines: boolean;
+    status: McpServerStatus;
+    last_error: string;
+    last_synced_at: number | null;
+};
+
+/**
+ * One scope's browser picks, for `BrowserDefaultPicker`.
+ */
+export type BrowserAccessPayload = {
+    browsers: Pick<BrowserRecord, "id" | "name" | "enabled" | "status">[];
+    available_ids: number[];
+    default_browser: number | string;
+};
+
 export type McpToolInfo = {
     name: string;
     description: string;
@@ -1933,6 +1962,7 @@ export type PagePropsType = {
      * The viewer's own personal secrets (the Secrets settings page).
      */
     personal_secrets?: PersonalSecret[] | null;
+    browsers?: BrowserRecord[] | null;
     /**
      * What bots keep on disk: the per-folder quota and its usage (the
      * General settings page).

@@ -30,11 +30,14 @@ import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
+import openBotBrowsers from "@/src/harness/tools/browsers/open-bot-browsers";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
+import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabKnowledgebaseContext from "@/src/harness/tools/knowledgebases/grab-knowledgebase-context";
 import botMessagesToHarness from "./bot-messages-to-harness";
+import composeBrowsersNote from "./compose-browsers-note";
 import composeComputersNote from "./compose-computers-note";
 import composeEnvsNote from "./compose-envs-note";
 import grabReachableEnvs from "@/src/functions/backend/db/envs/grab-reachable-envs";
@@ -275,12 +278,26 @@ export default async function runBotReply({
     });
 
     /**
+     * The user's own browsers, so a bot can browse from the chat with no
+     * computer. A room's turn is a reply too, and nobody follows that.
+     */
+    const browser_run_kind = (await isHiddenSession({ session_id })) ? "unattended" : "attended";
+    const browsers = await openBotBrowsers({
+        user_id,
+        bot_id: bot.id,
+        workspace_id,
+        run_kind: browser_run_kind,
+        taken: [...tools, ...extensions.tools].map((tool) => tool.name),
+        signal,
+    });
+
+    /**
      * The run's skills: one `load_skill` tool and the lines that name them.
      */
     const skills = openBotSkills({
         skills: extensions.skills,
         shown_chars: await grabSkillBodyShownChars(),
-        taken: [...tools, ...extensions.tools].map((tool) => tool.name),
+        taken: [...tools, ...extensions.tools, ...browsers.tools].map((tool) => tool.name),
     });
 
     /**
@@ -290,7 +307,7 @@ export default async function runBotReply({
      */
     const knowledge = openBotKnowledgebases({
         knowledgebases: extensions.knowledgebases,
-        taken: [...tools, ...extensions.tools, ...skills.tools].map((tool) => tool.name),
+        taken: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools].map((tool) => tool.name),
     });
     const knowledge_context = await grabKnowledgebaseContext({
         knowledgebases: extensions.knowledgebases,
@@ -335,6 +352,12 @@ export default async function runBotReply({
                     computers,
                     is_coordinator: powers.is_coordinator,
                     in_workspace: Boolean(workspace_id),
+                    has_browser: browsers.browsers.length > 0,
+                }),
+                composeBrowsersNote({
+                    browsers: browsers.browsers,
+                    has_computer_browser: computers.length > 0,
+                    run_kind: browser_run_kind,
                 }),
                 crew_note,
                 powers.is_coordinator ? "" : AskCrewNote,
@@ -389,6 +412,7 @@ export default async function runBotReply({
                     onGraphic: ({ ref }) => shown.push(ref),
                 }),
                 ...extensions.tools,
+                ...browsers.tools,
                 ...skills.tools,
                 ...knowledge.tools,
             ],
@@ -415,6 +439,7 @@ export default async function runBotReply({
         };
     } finally {
         await extensions.close();
+        await browsers.close();
     }
 }
 

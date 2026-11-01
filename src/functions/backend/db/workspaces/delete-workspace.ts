@@ -42,6 +42,7 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
      */
     await BunSQLite.sql({ sql: `DELETE FROM bot_types WHERE workspace_id = ?`, values: [workspace.id] });
     await BunSQLite.sql({ sql: `DELETE FROM workspace_user_visits WHERE workspace_id = ?`, values: [workspace.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM browser_access WHERE workspace_id = ?`, values: [workspace.id] });
     await deleteChatrooms({ workspace_id: workspace.id! });
 
     const res = await BunSQLite.sql({

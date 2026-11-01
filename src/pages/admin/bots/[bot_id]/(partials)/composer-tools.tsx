@@ -5,6 +5,7 @@ import useExtensions from "@/src/hooks/use-extensions";
 import type { BotExtensionsPayload, BotWithLastMessage } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import { composerKnowledgebasesCopy, composerToolsCopy } from "../(data)/composer-extensions-copy";
+import ComposerBrowserButton from "./composer-browser-button";
 import ComposerComputerButton from "./composer-computer-button";
 import ComposerToolsModal from "./composer-tools-modal";
 import { Dot } from "lucide-react";
@@ -19,7 +20,8 @@ type Props = {
  * Under the composer: one button counting the MCP servers, tools and
  * skills the bot can use here, one beside it counting the knowledgebases it
  * searches (each opens in a modal, so ten of them don't fill the
- * composer), then the computer it's on, opening it in the viewer.
+ * composer), then the user's browsers here and the computer it's on,
+ * opening it in the viewer.
  */
 export default function ComposerTools({ bot, workspace_id, initial }: Props) {
     const bot_name = bot.name || "this bot";
@@ -43,8 +45,6 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
 
     const has_tools = Boolean(tools.attached.length || (extensions.can_manage && tools.addable.length));
     const has_knowledge = Boolean(knowledge.attached.length || (extensions.can_manage && knowledge.addable.length));
-
-    if (!has_tools && !has_knowledge && !computers.length) return null;
 
     return (
         <Row className="w-full max-w-container mx-auto gap-1.5! items-center px-3 md:px-6 pb-3 -mt-3">
@@ -79,6 +79,8 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
                     <Dot size={20} />
                 </Span>
             ) : null}
+
+            <ComposerBrowserButton bot_id={bot.id || 0} bot_name={bot_name} workspace_id={workspace_id} />
 
             <ComposerComputerButton />
 

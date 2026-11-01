@@ -3,6 +3,7 @@ import EmptyContent from "@moduletrace/twui/elements/EmptyContent";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import ScopedEnvsGroup from "../../../(partials)/envs/scoped-envs-group";
+import BrowserDefaultGroup from "../../../(partials)/browser-default-group";
 import ExtensionsGroup from "../../../(partials)/extensions-group";
 import SettingsSectionHeading from "../../../(partials)/settings-section-heading";
 import SettingsShell from "../../../(partials)/settings-shell";
@@ -77,6 +78,7 @@ export default function WorkspaceOverview() {
                 description="Every bot working here searches these before it answers, the coordinator too, on top of its own, only while it works here."
                 initial={pageProps?.workspace_extensions}
             />
+            <BrowserDefaultGroup id={`browsers-workspace-${workspace_id}`} workspace_id={workspace_id} />
             <ScopedEnvsGroup initial={pageProps?.workspace_envs} />
             {harnesses?.length ? (
                 <>
