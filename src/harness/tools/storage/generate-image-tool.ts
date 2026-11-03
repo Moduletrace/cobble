@@ -35,7 +35,7 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
 
     return {
         name: "generate_image",
-        description: `Make an image from a description and save it in your files. Describe what should be in it, in one clear prompt. To work from existing images (a logo to rework, a style or palette to follow, a photo to change), pass them as "references" ([file:ID] refs from list_files) or "reference_media_ids" (images the user uploaded), up to ${AppData.ImageReferenceMaxCount}, and say in the prompt what to take from each. The image is saved (so you can send it now and show it later) and can ride on this reply with "attach".`,
+        description: `Make an image from a description and save it in your files. Describe what should be in it, in one clear prompt. To work from existing images (a logo to rework, a style or palette to follow, a photo to change), pass them as "references" ([file:ID] refs from list_files) or "reference_media_ids" (images the user uploaded), up to ${AppData.ImageReferenceMaxCount}, and say in the prompt what to take from each. The image is saved (so you can send it now and show it later) and can ride on this reply with "attach". To only crop, resize, rotate or adjust an image you have, use transform_image instead: it needs no model and keeps the picture exactly as it is.`,
         schema: z.object({
             prompt: z.string().min(3).max(4000),
             references: z

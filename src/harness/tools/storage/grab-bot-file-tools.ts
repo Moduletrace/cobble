@@ -2,6 +2,7 @@ import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
+import transformImageTool from "./transform-image-tool";
 import generateImageTool from "./generate-image-tool";
 import grabStorageTools from "./grab-storage-tools";
 import makePdfTool from "./make-pdf-tool";
@@ -28,7 +29,7 @@ type Params = {
  * The tools a bot uses to keep and search files (`src/harness/tools/
  * storage/`): listing, reading, writing, moving, deleting and searching
  * its own directory and, in a workspace or as the coordinator, the shared
- * ones, plus making images and PDFs into them. Every run gets them, so a
+ * ones, plus making images and PDFs into them and editing images. Every run gets them, so a
  * chat reply, a task and a scheduled run all work with the same files.
  */
 export default async function grabBotFileTools({
@@ -48,5 +49,10 @@ export default async function grabBotFileTools({
         onAttach,
     });
 
-    return [...grabStorageTools(context), generateImageTool(context), makePdfTool(context)];
+    return [
+        ...grabStorageTools(context),
+        generateImageTool(context),
+        transformImageTool(context),
+        makePdfTool(context),
+    ];
 }

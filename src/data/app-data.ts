@@ -368,6 +368,16 @@ export const AppData = {
     ImageReferenceMaxCount: 4,
     ImageReferenceMaxBytes: 10 * 1024 * 1024,
     /**
+     * `transform_image`: the largest source file and source (in pixels) it
+     * opens, the longest side a result may have, the steps one call takes,
+     * and the longest side of the preview the bot looks at afterwards.
+     */
+    ImageTransformMaxBytes: 25 * 1024 * 1024,
+    ImageTransformMaxInputPixels: 100_000_000,
+    ImageTransformMaxDimension: 8192,
+    ImageTransformMaxOperations: 12,
+    ImageTransformPreviewMaxSide: 1024,
+    /**
      * Connecting to an MCP server (a computer) gives up after this long.
      */
     McpConnectTimeoutMs: 15 * 1000,

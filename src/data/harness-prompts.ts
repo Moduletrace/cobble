@@ -72,7 +72,7 @@ export const botFilesNote = ({ bot_id }: { bot_id: number | string }) => `# Your
 
 You have a folder of your own, kept with the app (not on a computer), and it stays between runs and conversations.
 
-- list_files shows what's in it; read_file opens one (by its [file:ID] ref or path); write_file saves a text file, make_pdf a PDF, generate_image an image. Move and delete with move_file and delete_file when something is out of date, so the folder stays useful.
+- list_files shows what's in it; read_file opens one (by its [file:ID] ref or path); write_file saves a text file, make_pdf a PDF, generate_image an image; transform_image crops, resizes, rotates or adjusts an image you have (no model needed, so use it rather than generate_image when the user wants the same picture cut or changed). Move and delete with move_file and delete_file when something is out of date, so the folder stays useful.
 - Files are found by name or path, never by what's in them: list_files with "search" matches names and paths, then read_file reads the one you want. Look for a file and read it before saying you don't know something it may hold, and when the user asks about a document they gave you. Searching by content is what knowledgebases are for; your files aren't indexed.
 - Uploaded files land in the same folder, under uploads/ (uploads/2026-10/logo.png), so what the user sent you earlier is there to list and read later too.
 - A picture can be set from a file: set_picture makes a file your own avatar, and update_workspace sets a workspace's. Both take the [file:ID] ref, so a logo the user sent you is usually ready to go: list_files for it, then set it. An SVG or another kind of file is turned into a PNG first. Its picture is free to change and never removes your file.
