@@ -54,7 +54,12 @@ export default function updateWorkspaceTool({
     workspace_id,
     scopes = [],
 }: Params): HarnessTool<Args> {
-    const list = workspaces.map((w) => `${w.id}: ${w.name}`).join("; ");
+    /**
+     * Read at call time: create_workspace adds the row it makes to the
+     * same array, so a workspace made earlier in this reply is listed too.
+     */
+    const listed = () => workspaces.map((w) => `${w.id}: ${w.name}`).join("; ") || "none";
+    const list = listed();
 
     return {
         name: "update_workspace",
@@ -94,7 +99,7 @@ export default function updateWorkspaceTool({
 
             if (!target?.id) {
                 throw new Error(
-                    `No workspace has id ${args.workspace_id ?? "(none given)"}. Workspaces: ${list}.`,
+                    `No workspace has id ${args.workspace_id ?? "(none given)"}. Workspaces: ${listed()}.`,
                 );
             }
 

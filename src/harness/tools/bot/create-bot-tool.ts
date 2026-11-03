@@ -59,7 +59,9 @@ export default function createBotTool({
 
             if (args.workspace_id && !target?.id) {
                 throw new Error(
-                    `No workspace has id ${args.workspace_id}. Workspaces: ${list || "none"}.`,
+                    `No workspace has id ${args.workspace_id}. Workspaces: ${
+                        workspaces.map((w) => `${w.id}: ${w.name}`).join("; ") || "none"
+                    }.`,
                 );
             }
 

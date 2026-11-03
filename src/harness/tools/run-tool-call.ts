@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import TaskTimeoutError from "@/src/utils/task-timeout-error";
 import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
+import unknownToolArgs from "./unknown-tool-args";
 import type { HarnessTool, HarnessToolCall, HarnessToolImage } from "../types";
 
 type Params = {
@@ -58,6 +59,12 @@ async function runTool({ call, tools, signal }: Params) {
 
     if (!raw || typeof raw != "object" || Array.isArray(raw)) {
         return `Error: The arguments for ${call.name} must be a JSON object.`;
+    }
+
+    const { unknown, known } = unknownToolArgs({ schema: tool.schema, args: raw as Record<string, unknown> });
+
+    if (unknown.length) {
+        return `Error: ${call.name} doesn't take ${unknown.join(", ")}. Its arguments are: ${known.join(", ") || "none"}. Nothing was done; call it again with those names.`;
     }
 
     const parsed = tool.schema?.safeParse(raw);

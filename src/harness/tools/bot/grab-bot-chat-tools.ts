@@ -163,11 +163,15 @@ export default async function grabBotChatTools({
 
     const workspaces = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
 
-    tools.push(createWorkspaceTool({ user_id, workspaces }));
-
-    if (workspaces.length) {
-        tools.push(updateWorkspaceTool({ user_id, workspaces, workspace_id, scopes }));
-    }
+    /**
+     * Offered even with no workspace yet: create_workspace adds the one it
+     * makes to `workspaces`, and the same reply then sets its picture or
+     * puts bots in it.
+     */
+    tools.push(
+        createWorkspaceTool({ user_id, workspaces }),
+        updateWorkspaceTool({ user_id, workspaces, workspace_id, scopes }),
+    );
 
     tools.push(createBotTool({ user_id, workspaces, workspace_id }));
 
@@ -211,9 +215,7 @@ export default async function grabBotChatTools({
         ...(await grabCoordinatorExtensionTools({ user_id, bot_id, session_id, workspace_id, onPropose })),
     );
 
-    if (workspaces.length) {
-        tools.push(deleteWorkspaceTool({ user_id, workspaces }));
-    }
+    tools.push(deleteWorkspaceTool({ user_id, workspaces }));
 
     if (!workers.length) return tools;
 
@@ -256,15 +258,13 @@ export default async function grabBotChatTools({
         tools.push(assignComputerTool({ user_id, workers, computers, access }));
     }
 
-    if (workspaces.length) {
-        tools.push(
-            addBotToWorkspaceTool({ user_id, workers, workspaces }),
-            removeBotFromWorkspaceTool({ user_id, workers, workspaces }),
-        );
+    tools.push(
+        addBotToWorkspaceTool({ user_id, workers, workspaces }),
+        removeBotFromWorkspaceTool({ user_id, workers, workspaces }),
+    );
 
-        if (powers.can("set_bot_types")) {
-            tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces }));
-        }
+    if (powers.can("set_bot_types")) {
+        tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces }));
     }
 
     return tools;
