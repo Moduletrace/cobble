@@ -47,6 +47,10 @@ export const SaveHarnessSettingsRequestSchema = z.object({
                 enabled: z.boolean(),
                 voice: z.string().trim().max(200).optional(),
                 /**
+                 * Text only: the model looks at images itself when it can.
+                 */
+                sees_images: z.boolean().optional(),
+                /**
                  * Generation settings (temperature, reasoning effort, ...).
                  * Only the ones in `HarnessParameters` are kept.
                  */

@@ -3,7 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import TaskTimeoutError from "@/src/utils/task-timeout-error";
 import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
-import type { HarnessTool, HarnessToolCall } from "../types";
+import type { HarnessTool, HarnessToolCall, HarnessToolImage } from "../types";
 
 type Params = {
     call: HarnessToolCall;
@@ -11,12 +11,37 @@ type Params = {
     signal: AbortSignal;
 };
 
+export type ToolCallResult = {
+    /**
+     * The tool message's content.
+     */
+    text: string;
+    /**
+     * Images the tool returned (at most `AppData.HarnessToolMaxImages`),
+     * marked `from_tool`, for the turn after the tool results.
+     */
+    images: HarnessToolImage[];
+};
+
 /**
- * Runs one tool call and returns the text the model gets back. Unknown
- * tools, bad arguments and tool failures come back as `Error: ...` so the
- * model can correct itself; only cancellation is thrown.
+ * Runs one tool call and returns what the model gets back. Unknown tools,
+ * bad arguments and tool failures come back as `Error: ...` so the model
+ * can correct itself; only cancellation is thrown.
  */
-export default async function runToolCall({ call, tools, signal }: Params) {
+export default async function runToolCall({ call, tools, signal }: Params): Promise<ToolCallResult> {
+    const text = await runTool({ call, tools, signal });
+
+    if (typeof text == "string") return { text, images: [] };
+
+    return {
+        text: truncate({ text: text.text }),
+        images: text.images
+            .slice(0, AppData.HarnessToolMaxImages)
+            .map((image) => ({ ...image, from_tool: true })),
+    };
+}
+
+async function runTool({ call, tools, signal }: Params) {
     const tool = tools.find((t) => t.name == call.name);
 
     if (!tool) {
@@ -42,7 +67,7 @@ export default async function runToolCall({ call, tools, signal }: Params) {
     }
 
     try {
-        const text = await withTimeout({
+        const output = await withTimeout({
             timeout_ms: AppData.HarnessToolTimeoutMs,
             signal,
             message: `${call.name} took too long and was stopped.`,
@@ -53,7 +78,7 @@ export default async function runToolCall({ call, tools, signal }: Params) {
                 }),
         });
 
-        return truncate({ text });
+        return typeof output == "string" ? truncate({ text: output }) : output;
     } catch (error: unknown) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });

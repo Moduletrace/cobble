@@ -48,7 +48,7 @@ describe("openBotSkills", () => {
 
     test("the tool returns the body of the slug it's given", async () => {
         const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "1. Pull rankings" })], shown_chars });
-        const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
+        const output = (await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) })) as string;
 
         expect(output).toBe("1. Pull rankings");
     });
@@ -66,7 +66,7 @@ describe("openBotSkills", () => {
             skills: [skill({ slug: "seo", body: "x".repeat(shown_chars + 500) })],
             shown_chars,
         });
-        const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
+        const output = (await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) })) as string;
 
         expect(output).toContain("Cut at");
         expect(output.length).toBeLessThan(shown_chars + 200);
@@ -74,14 +74,14 @@ describe("openBotSkills", () => {
 
     test("the cut follows the install's limit", async () => {
         const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "x".repeat(1500) })], shown_chars: 1000 });
-        const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
+        const output = (await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) })) as string;
 
         expect(output).toContain("Cut at 1000 characters");
     });
 
     test("an empty body says it is empty rather than returning nothing", async () => {
         const opened = openBotSkills({ skills: [skill({ slug: "seo", body: "" })], shown_chars });
-        const output = await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) });
+        const output = (await opened.tools[0]!.run!({ args: { slug: "seo" }, signal: AbortSignal.timeout(1000) })) as string;
 
         expect(output).toContain("is empty");
     });

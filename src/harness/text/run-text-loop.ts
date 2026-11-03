@@ -8,13 +8,16 @@ import type {
     HarnessMessage,
     HarnessTool,
     HarnessToolCall,
+    HarnessToolImage,
     HarnessToolUse,
     HarnessUsage,
 } from "../types";
 import describeToolUses from "./describe-tool-uses";
+import dropOldToolImages from "./drop-old-tool-images";
 import fitTranscriptToContext from "./fit-transcript-to-context";
 import generateText from "./generate-text";
 import pushUserTurn from "./push-user-turn";
+import toolImagesTurn from "./tool-images-turn";
 
 export type TextLoopStep = {
     index: number;
@@ -110,7 +113,7 @@ Don't repeat tool calls you have already made.`;
 /**
  * The text harness at work: the model answers or calls tools, tool results
  * go back to it, and so on until it answers without calling a tool. Tools
- * run one at a time, in order. Stays on one model unless it fails. After
+ * run one at a time, in order; images they return follow their results. Stays on one model unless it fails. After
  * `max_steps` turns the model is asked to wrap up without tools.
  */
 export default async function runTextLoop({
@@ -213,11 +216,30 @@ export default async function runTextLoop({
             };
         }
 
+        const shown: { tool_name: string; images: HarnessToolImage[] }[] = [];
+
         for (const call of tool_calls) {
-            const content = await runToolCall({ call, tools, signal });
+            const { text: content, images } = await runToolCall({ call, tools, signal });
 
             tool_uses.push({ name: call.name, ok: !content.startsWith("Error:") });
             transcript.push({ role: "tool", tool_call_id: call.id, content });
+
+            if (images.length) shown.push({ tool_name: call.name, images });
+        }
+
+        /**
+         * Screenshots and other tool images follow the results in a user
+         * turn. A model that sees gets them as they are when the text
+         * setting allows it (`textSeesImages`); otherwise `generateText`
+         * has them read first.
+         */
+        if (shown.length) {
+            pushUserTurn({ transcript, content: toolImagesTurn({ shown }) });
+            dropOldToolImages({
+                transcript,
+                keep: AppData.HarnessToolImagesKept,
+                cache: media_cache,
+            });
         }
 
         await takeIncoming({ note: IncomingMessagesNote });

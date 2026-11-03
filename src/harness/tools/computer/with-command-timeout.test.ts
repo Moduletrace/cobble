@@ -12,7 +12,7 @@ const echoTool = (name: string): HarnessTool => ({
 
 const signal = new AbortController().signal;
 const call = async (args: Record<string, unknown>) =>
-    JSON.parse(await withCommandTimeout({ tool: echoTool("sandbox_execute_bash") }).run({ args, signal }));
+    JSON.parse((await withCommandTimeout({ tool: echoTool("sandbox_execute_bash") }).run({ args, signal })) as string);
 const max = AppData.ComputerCommandMaxSeconds;
 
 describe("withCommandTimeout", () => {

@@ -55,7 +55,7 @@ export default async function testCustomTool({ custom_tool_id, draft, args, comp
 
     try {
         const output = await harness_tool.run({ args, signal: AbortSignal.timeout(AppData.CustomToolMaxTimeoutMs) });
-        return { output, ok: true };
+        return { output: typeof output == "string" ? output : output.text, ok: true };
     } catch (error: unknown) {
         return { output: `Error: ${error instanceof Error ? error.message : String(error)}`, ok: false };
     }

@@ -62,7 +62,7 @@ export const handler: BunextAPIRouteHandler<
 
         for (const setting of settings) {
             const existing = await grabHarnessSetting({ harness: setting.harness, bot_id: bot.id });
-            const { voice, ...options } = existing.source == "bot" ? existing.options : {};
+            const { voice, sees_images, ...options } = existing.source == "bot" ? existing.options : {};
 
             await saveBotHarnessSetting({
                 bot_id: bot.id,
@@ -76,6 +76,7 @@ export const handler: BunextAPIRouteHandler<
                     options: {
                         ...options,
                         ...(setting.voice ? { voice: setting.voice } : {}),
+                        ...(setting.harness == "text" && setting.sees_images ? { sees_images: true } : {}),
                     },
                     params: setting.params || {},
                 }),

@@ -22,6 +22,7 @@ describe("prepareMessagesForModel", () => {
         const fitted = await prepareMessagesForModel({
             messages,
             model: { input_modalities: ["text", "image", "audio"] },
+            sees_images: true,
             cache: new Map(),
             signal,
             read_image: async () => {
@@ -86,6 +87,77 @@ describe("prepareMessagesForModel", () => {
                 },
                 { type: "audio" },
             ],
+        });
+    });
+
+    test("reads a tool image with its focus and redacts the reading", async () => {
+        const asked: (string | undefined)[] = [];
+        const fitted = await prepareMessagesForModel({
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "image",
+                            url: "data:image/png;base64,BBBB",
+                            focus: "the buttons",
+                            redact: (text) => text.replaceAll("hunter2", "[secret]"),
+                            from_tool: true,
+                        },
+                    ],
+                },
+            ],
+            model: { input_modalities: ["text"] },
+            cache: new Map(),
+            signal,
+            read_image: async ({ focus }) => {
+                asked.push(focus);
+                return "A login form filled with hunter2.";
+            },
+        });
+
+        expect(asked).toEqual(["the buttons"]);
+        expect(fitted[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: A login form filled with [secret].]" }],
+        });
+    });
+
+    test("gives a tool image as it is to a model that sees", async () => {
+        const image = {
+            type: "image" as const,
+            url: "data:image/png;base64,BBBB",
+            focus: "the buttons",
+            from_tool: true,
+        };
+        const fitted = await prepareMessagesForModel({
+            messages: [{ role: "user", content: [image] }],
+            model: { input_modalities: ["text", "image"] },
+            sees_images: true,
+            cache: new Map(),
+            signal,
+            read_image: async () => {
+                throw new Error("should not read");
+            },
+        });
+
+        expect(fitted[0]).toEqual({ role: "user", content: [image] });
+    });
+
+    test("reads images for a model that sees when the setting is off", async () => {
+        const fitted = await prepareMessagesForModel({
+            messages: [
+                { role: "user", content: [{ type: "image", url: "data:image/png;base64,CCCC" }] },
+            ],
+            model: { input_modalities: ["text", "image"] },
+            cache: new Map(),
+            signal,
+            read_image: async () => "A cat.",
+        });
+
+        expect(fitted[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: A cat.]" }],
         });
     });
 });

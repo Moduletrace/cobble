@@ -7,7 +7,6 @@ import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import grabMcpTools from "../../mcp/grab-mcp-tools";
-import readImage from "../../media/read-image";
 import type { HarnessTool } from "../../types";
 import computerDirsShell from "./computer-dirs-shell";
 import captureSecretTool from "./capture-secret-tool";
@@ -114,14 +113,7 @@ export default async function openComputerTools({
             client,
             exclude: ComputerMcpExcludedTools,
             redact,
-            describeImage: ({ data, mime_type }) =>
-                readImage({
-                    url: `data:${mime_type};base64,${data}`,
-                    focus: "This is a screenshot of a computer screen. Describe the page layout, text, buttons and form fields, and any errors or popups.",
-                    signal,
-                    bot_id,
-                    workspace_id,
-                }),
+            image_focus: "This is a screenshot of a computer screen. Describe the page layout, text, buttons and form fields, and any errors or popups.",
         });
 
         return {

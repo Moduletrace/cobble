@@ -1,7 +1,7 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { AppData } from "@/src/data/app-data";
 import type { HarnessTool } from "../types";
-import mcpResultToText, { type McpImage } from "./mcp-result-to-text";
+import mcpResultToText from "./mcp-result-to-text";
 
 type Params = {
     /**
@@ -16,20 +16,26 @@ type Params = {
      * The connected client, or how to get it on the first call.
      */
     client: Client | (() => Promise<Client>);
-    describeImage?: (image: McpImage) => Promise<string>;
+    /**
+     * What a reading of an image this tool returns should look for, for a
+     * model that can't see it.
+     */
+    image_focus?: string;
     redact?: (text: string) => string;
 };
 
 /**
  * One MCP server tool as a harness tool. Arguments go to the server as the
  * model wrote them (the server checks them against its own schema);
- * results come back as text via `mcpResultToText`, redacted.
+ * results come back via `mcpResultToText`, the text redacted and images
+ * (screenshots) handed back for the run to show the model, or have read
+ * (and the reading redacted) for one that can't see.
  */
 export default function mcpHarnessTool({
     name,
     tool,
     client,
-    describeImage,
+    image_focus,
     redact = (text) => text,
 }: Params): HarnessTool {
     return {
@@ -40,16 +46,24 @@ export default function mcpHarnessTool({
             try {
                 const connected = typeof client == "function" ? await client() : client;
 
-                return redact(
-                    await mcpResultToText({
-                        result: await connected.callTool({ name: tool.name, arguments: args }, undefined, {
-                            signal,
-                            timeout: AppData.McpToolTimeoutMs,
-                            resetTimeoutOnProgress: true,
-                        }),
-                        describeImage,
+                const { text, images } = mcpResultToText({
+                    result: await connected.callTool({ name: tool.name, arguments: args }, undefined, {
+                        signal,
+                        timeout: AppData.McpToolTimeoutMs,
+                        resetTimeoutOnProgress: true,
                     }),
-                );
+                });
+
+                if (!images.length) return redact(text);
+
+                return {
+                    text: redact(text),
+                    images: images.map(({ data, mime_type }) => ({
+                        url: `data:${mime_type};base64,${data}`,
+                        focus: image_focus,
+                        redact,
+                    })),
+                };
             } catch (error: unknown) {
                 if (error instanceof Error) error.message = redact(error.message);
                 throw error;

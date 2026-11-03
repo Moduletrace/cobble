@@ -1,6 +1,7 @@
 import { MediaReadNote } from "@/src/data/harness-prompts";
 import transcribeAudio from "../audio/transcribe-audio";
 import HarnessError from "../harness-error";
+import imageReadingKey from "../media/image-reading-key";
 import readImage from "../media/read-image";
 import type {
     HarnessContentPart,
@@ -11,6 +12,12 @@ import type {
 type Params = {
     messages: HarnessMessage[];
     model: Pick<HarnessModelInfo, "input_modalities">;
+    /**
+     * The text setting lets the model look at images itself
+     * (`textSeesImages`). Off: every image is read for it, even when the
+     * model takes images.
+     */
+    sees_images?: boolean;
     /**
      * Readings by media key, kept across candidates and steps so nothing is
      * read twice.
@@ -30,14 +37,18 @@ type Params = {
 };
 
 /**
- * Fits messages to a model's inputs: images it can't see are read by the
- * media reading harness and audio it can't hear is transcribed, each
- * replaced with a `[bracketed]` reading. A part that can't be read says so
- * instead of failing the call.
+ * Fits messages to a model's inputs: images it can't see (attached or
+ * returned by tools) are read by the media reading harness and audio it
+ * can't hear is transcribed, each replaced with a `[bracketed]` reading.
+ * When the text setting turns on the model's own media reading, a model
+ * that takes images gets them as they are, and the media reading harness
+ * is only the fallback. A part that can't be read says so instead
+ * of failing the call.
  */
 export default async function prepareMessagesForModel({
     messages,
     model,
+    sees_images = false,
     cache,
     signal,
     bot_id,
@@ -45,7 +56,7 @@ export default async function prepareMessagesForModel({
     read_image = readImage,
     transcribe = transcribeAudio,
 }: Params): Promise<HarnessMessage[]> {
-    const sees = model.input_modalities.includes("image");
+    const sees = sees_images && model.input_modalities.includes("image");
     const hears = model.input_modalities.includes("audio");
     let replaced = false;
 
@@ -57,11 +68,21 @@ export default async function prepareMessagesForModel({
             return {
                 type: "text",
                 text: await readOnce({
-                    key: `image:${Bun.hash(part.url)}`,
+                    key: imageReadingKey({ url: part.url, focus: part.focus }),
                     label: `Image${part.name ? ` "${part.name}"` : ""}`,
                     cache,
                     signal,
-                    read: () => read_image({ url: part.url, signal, bot_id, workspace_id }),
+                    read: async () => {
+                        const reading = await read_image({
+                            url: part.url,
+                            focus: part.focus,
+                            signal,
+                            bot_id,
+                            workspace_id,
+                        });
+
+                        return part.redact ? part.redact(reading) : reading;
+                    },
                 }),
             };
         }

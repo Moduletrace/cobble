@@ -8,8 +8,43 @@ import type { HarnessProviderKind } from "@/src/dict/harness-provider-dict";
  */
 export type HarnessContentPart =
     | { type: "text"; text: string }
-    | { type: "image"; url: string; name?: string }
+    | ({ type: "image"; name?: string } & HarnessToolImage)
     | { type: "audio"; data: string; format: string; name?: string };
+
+/**
+ * An image a tool returned (a screenshot), or one attached by the user. A
+ * text model that sees images gets it as is; for one that doesn't, the
+ * media reading harness reads it (`prepareMessagesForModel`). Only `url`
+ * is sent to a provider.
+ */
+export type HarnessToolImage = {
+    /**
+     * An https or `data:` URL.
+     */
+    url: string;
+    /**
+     * What a reading should look for (e.g. a screenshot's buttons and
+     * errors), added to the standard reading prompt.
+     */
+    focus?: string;
+    /**
+     * Applied to a reading before the model gets it, as the tool's text
+     * is (secret values). Pixels a seeing model gets can't be redacted.
+     */
+    redact?: (text: string) => string;
+    /**
+     * Came from a tool: only the newest few stay in a run's transcript
+     * (`AppData.HarnessToolImagesKept`).
+     */
+    from_tool?: boolean;
+};
+
+/**
+ * What a tool hands back: text, or text plus images. The images reach the
+ * model in a user turn after the tool results, since tool messages carry
+ * text only.
+ */
+export type HarnessToolOutput = string | { text: string; images: HarnessToolImage[] };
 
 export type HarnessToolCall = {
     id: string;
@@ -54,7 +89,8 @@ export type HarnessToolDefinition = {
 /**
  * A tool the text harness can call. Tools are built per run with whatever
  * they act on (bot, user, computer) already bound, so `run` only gets the
- * arguments. Return text for the model; throw to report a failure to it.
+ * arguments. Return text for the model (plus any images, see
+ * `HarnessToolOutput`); throw to report a failure to it.
  *
  * Own tools describe their arguments with a zod `schema`, checked before
  * `run`. Tools described elsewhere (an MCP server) pass its JSON schema as
@@ -65,7 +101,7 @@ export type HarnessTool<Args = any> = {
     description: string;
     schema?: z.ZodType<Args>;
     parameters?: Record<string, unknown>;
-    run: (params: { args: Args; signal: AbortSignal }) => Promise<string>;
+    run: (params: { args: Args; signal: AbortSignal }) => Promise<HarnessToolOutput>;
 };
 
 /**

@@ -612,6 +612,11 @@ export type HarnessFormValue = {
     enabled: boolean;
     voice?: string;
     /**
+     * Text only: the model looks at images itself when it takes them,
+     * instead of the media reading harness (`textSeesImages`).
+     */
+    sees_images?: boolean;
+    /**
      * Generation settings (temperature, reasoning effort, ...), only the
      * ones the picked model takes.
      */

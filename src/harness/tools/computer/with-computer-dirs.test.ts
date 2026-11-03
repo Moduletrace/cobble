@@ -15,7 +15,7 @@ const dirs = computerRunDirs({ bot_id: 3, user_id: 7, workspace_id: 2 });
 const cwd = "/home/gem/workspace/bots/3/users/7";
 const signal = new AbortController().signal;
 const call = async (name: string, args: Record<string, unknown>) =>
-    JSON.parse(await withComputerDirs({ tool: echoTool(name), dirs }).run({ args, signal }));
+    JSON.parse((await withComputerDirs({ tool: echoTool(name), dirs }).run({ args, signal })) as string);
 
 describe("withComputerDirs", () => {
     test("bash runs in the user's folder with it as HOME", async () => {

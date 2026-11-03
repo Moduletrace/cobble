@@ -16,14 +16,14 @@ const signal = new AbortController().signal;
 describe("withComputerEnv", () => {
     test("sources the env file before bash commands", async () => {
         const tool = withComputerEnv({ tool: echoTool("sandbox_execute_bash"), ...paths });
-        const sent = JSON.parse(await tool.run({ args: { cmd: "echo $TOKEN" }, signal }));
+        const sent = JSON.parse((await tool.run({ args: { cmd: "echo $TOKEN" }, signal })) as string);
 
         expect(sent.cmd).toBe("[ -f /home/gem/.cobble/env ] && . /home/gem/.cobble/env; echo $TOKEN");
     });
 
     test("loads the json file before python code", async () => {
         const tool = withComputerEnv({ tool: echoTool("sandbox_execute_code"), ...paths });
-        const sent = JSON.parse(await tool.run({ args: { code: "print(1)", language: "python" }, signal }));
+        const sent = JSON.parse((await tool.run({ args: { code: "print(1)", language: "python" }, signal })) as string);
 
         expect(sent.code).toStartWith("import json as _cobble_json");
         expect(sent.code).toEndWith("\nprint(1)");

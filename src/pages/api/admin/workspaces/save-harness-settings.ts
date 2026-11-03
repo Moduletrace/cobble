@@ -60,7 +60,7 @@ export const handler: BunextAPIRouteHandler<
                 harness: setting.harness,
                 workspace_id: workspace.id,
             });
-            const { voice, ...options } = existing.source == "workspace" ? existing.options : {};
+            const { voice, sees_images, ...options } = existing.source == "workspace" ? existing.options : {};
 
             await saveWorkspaceHarnessSetting({
                 workspace_id: Number(workspace.id),
@@ -74,6 +74,7 @@ export const handler: BunextAPIRouteHandler<
                     options: {
                         ...options,
                         ...(setting.voice ? { voice: setting.voice } : {}),
+                        ...(setting.harness == "text" && setting.sees_images ? { sees_images: true } : {}),
                     },
                     params: setting.params || {},
                 }),

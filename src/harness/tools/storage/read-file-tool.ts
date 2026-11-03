@@ -13,6 +13,8 @@ type Args = {
     scope?: string;
 };
 
+const ModelImageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+
 const TextExtensions = [
     "txt",
     "md",
@@ -36,7 +38,7 @@ const TextExtensions = [
 export default function readFileTool(context: StorageToolContext): HarnessTool<Args> {
     return {
         name: "read_file",
-        description: `Read a file you saved, by its ref id or its path. Text comes back in a window of about ${Math.round(AppData.BotFileReadMaxChars / 1000)}k characters; use "offset" for the next part. Images and audio are read for you, and PDFs and Word documents are turned into text.`,
+        description: `Read a file you saved, by its ref id or its path. Text comes back in a window of about ${Math.round(AppData.BotFileReadMaxChars / 1000)}k characters; use "offset" for the next part. Images come back for you to look at, audio is transcribed, and PDFs and Word documents are turned into text.`,
         schema: z.object({
             file_id: z.number().int().positive().optional(),
             path: z.string().max(AppData.BotFilePathMaxChars).optional(),
@@ -79,6 +81,22 @@ export default function readFileTool(context: StorageToolContext): HarnessTool<A
             }
 
             const bytes = new Uint8Array(await Bun.file(absolute).arrayBuffer());
+            const media_type = (file.mime_type || "").toLowerCase().split(";")[0]!.trim();
+
+            /**
+             * Images in a format every provider takes go to the run as they
+             * are: a text model that sees looks at them itself, one that
+             * doesn't gets them read. Others (SVG, HEIC) are read here, so
+             * a format the model refuses can't fail the whole turn.
+             */
+            if (ModelImageTypes.includes(media_type)) {
+                return {
+                    text: `${file.path} ${fileRef({ file_id: file.id })}\n\n[Image: shown after the tool results]`,
+                    images: [
+                        { url: `data:${media_type};base64,${Buffer.from(bytes).toString("base64")}` },
+                    ],
+                };
+            }
 
             const text = await readMedia({
                 data: bytes,

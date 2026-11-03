@@ -350,6 +350,14 @@ export const AppData = {
      */
     HarnessToolResultMaxChars: 20000,
     /**
+     * Images one tool call may hand back (the rest are dropped), and how
+     * many of the newest tool images stay in a run's transcript: every
+     * step resends them, so older screenshots give way to their reading
+     * (when one was made) or a note.
+     */
+    HarnessToolMaxImages: 4,
+    HarnessToolImagesKept: 3,
+    /**
      * Upload cap for audio sent to transcription.
      */
     HarnessMaxAudioBytes: 25 * 1024 * 1024,

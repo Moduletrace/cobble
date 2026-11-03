@@ -11,7 +11,6 @@ import mcpToolName from "@/src/utils/mcp-tool-name";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import mcpHarnessTool from "../../mcp/mcp-harness-tool";
-import readImage from "../../media/read-image";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -121,14 +120,7 @@ export default async function openBotBrowsers({
                     tool: { ...tool, description: `${browser.name}: ${tool.description}` },
                     client,
                     redact,
-                    describeImage: ({ data, mime_type }) =>
-                        readImage({
-                            url: `data:${mime_type};base64,${data}`,
-                            focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
-                            signal,
-                            bot_id,
-                            workspace_id,
-                        }),
+                    image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
                 }),
             );
         }

@@ -43,6 +43,17 @@ describe("changedHarnessSettings", () => {
         ).toEqual([{ harness: "text", model_id: null, provider_id: 2, fallback: true, enabled: true }]);
     });
 
+    test("lists the text model's own media reading turned on", () => {
+        expect(
+            changedHarnessSettings({
+                form: { ...saved, text: { ...saved.text, sees_images: true } },
+                saved,
+            }),
+        ).toEqual([
+            { harness: "text", model_id: null, provider_id: null, fallback: true, enabled: true, sees_images: true },
+        ]);
+    });
+
     test("treats an empty voice as no voice", () => {
         expect(
             changedHarnessSettings({

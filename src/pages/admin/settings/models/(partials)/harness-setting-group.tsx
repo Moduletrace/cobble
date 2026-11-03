@@ -103,6 +103,15 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     changeHandler={(fallback) => onChange({ ...value, fallback })}
                 />
             ) : null}
+            {!value.inherit && harness.harness == "text" ? (
+                <Checkbox
+                    title="Use the model's own media reading"
+                    label="Use the model's own media reading"
+                    info="It looks at images and screenshots itself when it takes image input. Otherwise the media reading model reads them."
+                    checked={Boolean(value.sees_images)}
+                    changeHandler={(sees_images) => onChange({ ...value, sees_images })}
+                />
+            ) : null}
             {shows_params && params_model ? (
                 <HarnessParameterModal
                     id={id}

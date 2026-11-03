@@ -23,12 +23,26 @@ const failing: HarnessTool = {
 };
 
 const signal = new AbortController().signal;
-const call = (name: string, args: string) =>
+const shot: HarnessTool = {
+    name: "shot",
+    description: "Takes screenshots.",
+    schema: z.object({}),
+    run: async () => ({
+        text: "x".repeat(AppData.HarnessToolResultMaxChars + 5),
+        images: Array.from({ length: AppData.HarnessToolMaxImages + 2 }, (_, index) => ({
+            url: `data:image/png;base64,${index}`,
+            focus: "the page",
+        })),
+    }),
+};
+
+const run = (name: string, args: string) =>
     runToolCall({
         call: { id: "1", name, arguments: args },
-        tools: [echo, failing],
+        tools: [echo, failing, shot],
         signal,
     });
+const call = async (name: string, args: string) => (await run(name, args)).text;
 
 describe("runToolCall", () => {
     test("runs the tool with validated arguments", async () => {
@@ -49,6 +63,19 @@ describe("runToolCall", () => {
         const result = await call("echo", JSON.stringify({ text: long }));
 
         expect(result).toEndWith("[Cut: 5 more characters.]");
+    });
+
+    test("passes images on, capped and marked as a tool's", async () => {
+        const result = await run("shot", "{}");
+
+        expect(result.text).toEndWith("[Cut: 5 more characters.]");
+        expect(result.images).toHaveLength(AppData.HarnessToolMaxImages);
+        expect(result.images[0]).toEqual({
+            url: "data:image/png;base64,0",
+            focus: "the page",
+            from_tool: true,
+        });
+        expect((await run("echo", `{"text":"hi"}`)).images).toEqual([]);
     });
 
     test("throws when cancelled", async () => {

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
+import { AppData } from "@/src/data/app-data";
+import { DroppedToolImageNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
@@ -53,6 +55,61 @@ function scripted(turns: Partial<GenerateTextResult>[]) {
 const resolveCandidates = async () => [candidate];
 
 describe("runTextLoop", () => {
+    test("shows tool images after the results and keeps only the newest", async () => {
+        let shots = 0;
+        const screenshot: HarnessTool = {
+            name: "screenshot",
+            description: "Takes a screenshot.",
+            schema: z.object({}),
+            run: async () => {
+                shots++;
+                return {
+                    text: "[Image 1: shown after the tool results]",
+                    images: [{ url: `data:image/png;base64,${shots}`, focus: "the screen" }],
+                };
+            },
+        };
+        const rounds = AppData.HarnessToolImagesKept + 1;
+        const { generate, seen } = scripted(
+            Array.from({ length: rounds }, (_, index) => ({
+                text: null,
+                tool_calls: [{ id: `c${index}`, name: "screenshot", arguments: "{}" }],
+            })),
+        );
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Check the site." }],
+            tools: [screenshot],
+            generate,
+            resolveCandidates,
+        });
+
+        const first = seen[1]!.messages;
+        expect(first.slice(-2)).toEqual([
+            { role: "tool", tool_call_id: "c0", content: "[Image 1: shown after the tool results]" },
+            {
+                role: "user",
+                content: [
+                    { type: "text", text: ToolImagesNote },
+                    { type: "text", text: "From screenshot:" },
+                    { type: "image", url: "data:image/png;base64,1", focus: "the screen", from_tool: true },
+                ],
+            },
+        ]);
+
+        const last = seen[rounds]!.messages;
+        const parts = last.flatMap((message) =>
+            message.role == "user" && typeof message.content != "string" ? message.content : [],
+        );
+        const images = parts.filter((part) => part.type == "image");
+
+        expect(images.map((part) => part.type == "image" && part.url)).toEqual(
+            Array.from({ length: AppData.HarnessToolImagesKept }, (_, index) => `data:image/png;base64,${index + 2}`),
+        );
+        expect(parts).toContainEqual({ type: "text", text: DroppedToolImageNote });
+    });
+
     test("runs tools and feeds their results back until the model answers", async () => {
         memory.length = 0;
         const { generate, seen } = scripted([

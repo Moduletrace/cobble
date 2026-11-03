@@ -5,7 +5,6 @@ import mcpToolName from "@/src/utils/mcp-tool-name";
 import redactSecrets from "@/src/utils/redact-secrets";
 import mcpHarnessTool from "../../mcp/mcp-harness-tool";
 import openMcpServer from "../../mcp/open-mcp-server";
-import readImage from "../../media/read-image";
 import type { HarnessTool } from "../../types";
 import buildCustomTool from "../custom/build-custom-tool";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
@@ -114,8 +113,6 @@ export default async function openBotExtensions({
                     tool: { ...tool, description: `${server.name}: ${tool.description}` },
                     client: open.client,
                     redact,
-                    describeImage: ({ data, mime_type }) =>
-                        readImage({ url: `data:${mime_type};base64,${data}`, signal, bot_id, workspace_id }),
                 }),
             );
         }

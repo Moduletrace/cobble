@@ -10,6 +10,8 @@ import type {
 } from "../types";
 import buildUsageCall from "../usage/build-usage-call";
 import recordHarnessUsage from "../usage/record-harness-usage";
+import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
+import textSeesImages from "@/src/utils/text-sees-images";
 import grabChatParams from "./grab-chat-params";
 import flattenSentParams from "../usage/flatten-sent-params";
 import prepareMessagesForModel from "./prepare-messages-for-model";
@@ -64,7 +66,8 @@ type ChatAnswer = Omit<HarnessChatResult, "text"> & {
 
 /**
  * One model turn on the text harness, falling back across its models.
- * Media the model can't take is read by the helper harnesses first.
+ * Media the model can't take (or images, unless the text setting lets it
+ * read them itself) is read by the helper harnesses first.
  * Reasoning tags are stripped from the answer.
  */
 export default async function generateText({
@@ -85,6 +88,9 @@ export default async function generateText({
     const saved_params = params
         ? undefined
         : await grabChatParams({ harness: "text", bot_id, workspace_id });
+    const sees_images = textSeesImages({
+        options: (await grabHarnessSetting({ harness: "text", bot_id, workspace_id })).options,
+    });
 
     const { result, candidate } = await withCandidates<ChatAnswer>({
         harness: "text",
@@ -113,6 +119,7 @@ export default async function generateText({
                 messages: await prepareMessagesForModel({
                     messages,
                     model: candidate.model,
+                    sees_images,
                     cache: media_cache,
                     signal,
                     bot_id,

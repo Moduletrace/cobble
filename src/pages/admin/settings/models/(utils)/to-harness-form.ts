@@ -1,4 +1,5 @@
 import { harnessParametersFromOptions } from "@/src/dict/harness-parameter-dict";
+import textSeesImages from "@/src/utils/text-sees-images";
 import type {
     HarnessOverview,
     HarnessSettingsFormObject,
@@ -27,6 +28,7 @@ export default function toHarnessForm({
                     typeof harness.options.voice == "string"
                         ? harness.options.voice
                         : undefined,
+                sees_images: textSeesImages({ options: harness.options }),
                 params: harnessParametersFromOptions({
                     options: harness.options,
                 }),

@@ -19,28 +19,28 @@ type Params = {
          */
         toolResult?: unknown;
     };
-    /**
-     * Turns an image (a screenshot) into text for the model. Without it,
-     * images are noted but not described.
-     */
-    describeImage?: (image: McpImage) => Promise<string>;
 };
 
 /**
- * An MCP tool result as text for the model: text as is, images described,
- * resources by their text or link. Tool messages carry text only, so an
- * image reaches the model as its reading. A result flagged as an error is
- * thrown, so the model gets it as `Error: ...`.
+ * An MCP tool result for the model: text as is, resources by their text or
+ * link, and images (screenshots) handed back beside the text, each marked
+ * where it was. Tool messages carry text only, so the run shows the images
+ * after the results, read first for a model that can't see. A result
+ * flagged as an error is thrown, so the model gets it as `Error: ...`.
  */
-export default async function mcpResultToText({
-    result,
-    describeImage,
-}: Params): Promise<string> {
+export default function mcpResultToText({ result }: Params): { text: string; images: McpImage[] } {
     const parts = Array.isArray(result.content) ? result.content : [];
     const texts: string[] = [];
+    const images: McpImage[] = [];
 
     for (const part of parts) {
-        texts.push(await partToText({ part, describeImage }));
+        if (part?.type == "image" && typeof part.data == "string" && part.data) {
+            images.push({ data: part.data, mime_type: part.mimeType || "image/png" });
+            texts.push(`[Image ${images.length}: shown after the tool results]`);
+            continue;
+        }
+
+        texts.push(partToText({ part }));
     }
 
     const structured = result.structuredContent ?? result.toolResult;
@@ -55,34 +55,16 @@ export default async function mcpResultToText({
         throw new Error(text);
     }
 
-    return text;
+    return { text, images };
 }
 
-async function partToText({
-    part,
-    describeImage,
-}: {
-    part: any;
-    describeImage?: Params["describeImage"];
-}): Promise<string> {
+function partToText({ part }: { part: any }): string {
     switch (part?.type) {
         case "text":
             return String(part.text ?? "");
 
-        case "image": {
-            if (!describeImage || typeof part.data != "string") {
-                return `[Image (${part.mimeType || "unknown type"})]`;
-            }
-
-            try {
-                return `[Image: ${await describeImage({
-                    data: part.data,
-                    mime_type: part.mimeType || "image/png",
-                })}]`;
-            } catch (error: unknown) {
-                return `[Image: couldn't be read. ${error instanceof Error ? error.message : String(error)}]`;
-            }
-        }
+        case "image":
+            return `[Image (${part.mimeType || "unknown type"}), empty]`;
 
         case "audio":
             return `[Audio (${part.mimeType || "unknown type"})]`;

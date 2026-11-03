@@ -2,7 +2,6 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { HarnessTool } from "../types";
 import listMcpTools from "./list-mcp-tools";
 import mcpHarnessTool from "./mcp-harness-tool";
-import type { McpImage } from "./mcp-result-to-text";
 
 type Params = {
     client: Client;
@@ -10,7 +9,10 @@ type Params = {
      * Tool names to leave out.
      */
     exclude?: readonly string[];
-    describeImage?: (image: McpImage) => Promise<string>;
+    /**
+     * What a reading of a returned image should look for.
+     */
+    image_focus?: string;
     /**
      * Applied to every result (and error) before the model sees it, e.g.
      * to hide secret values.
@@ -24,10 +26,10 @@ type Params = {
 export default async function grabMcpTools({
     client,
     exclude = [],
-    describeImage,
+    image_focus,
     redact,
 }: Params): Promise<HarnessTool[]> {
     return (await listMcpTools({ client }))
         .filter((tool) => !exclude.includes(tool.name))
-        .map((tool) => mcpHarnessTool({ tool, client, describeImage, redact }));
+        .map((tool) => mcpHarnessTool({ tool, client, image_focus, redact }));
 }
