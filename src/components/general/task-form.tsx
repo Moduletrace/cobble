@@ -12,6 +12,11 @@ import { TaskStatuses, type TaskStatus } from "@/src/dict/task-dict";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
 import type { TaskDetail } from "@/src/types";
 
+/**
+ * The picker's value for a workspace-wide task, which no bot has.
+ */
+const WorkspaceWideValue = "workspace";
+
 type Props = {
     /**
      * The list it's added to: a bot's own, or a workspace's.
@@ -19,8 +24,9 @@ type Props = {
     bot_id?: number | null;
     workspace_id?: number | null;
     /**
-     * Adding to a workspace without a `bot_id`: the bots there to pick who
-     * has it, since every task belongs to a bot.
+     * Adding to a workspace: the bots there to pick who has it (`bot_id`,
+     * when given, first), plus the workspace-wide choice every bot there
+     * works on. A task goes to a bot unless that's picked.
      */
     bots?: { id?: number | string | null; name?: string | null }[];
     /**
@@ -52,10 +58,13 @@ export default function TaskForm({
     const [blocked_reason, setBlockedReason] = useState(
         task?.blocked_reason || "",
     );
-    const pick_bot = !task && !bot_id && Boolean(workspace_id);
-    const [picked_bot_id, setPickedBotId] = useState<number | undefined>(
-        bots[0]?.id ? Number(bots[0].id) : undefined,
+    const pick_bot = !task && Boolean(workspace_id);
+    const default_bot_id = bot_id || (bots[0]?.id ? Number(bots[0].id) : undefined);
+    const [picked, setPicked] = useState<string>(
+        default_bot_id ? String(default_bot_id) : WorkspaceWideValue,
     );
+    const workspace_wide = pick_bot && picked == WorkspaceWideValue;
+    const picked_bot_id = pick_bot && !workspace_wide ? Number(picked) || undefined : bot_id || undefined;
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -67,7 +76,7 @@ export default function TaskForm({
             return;
         }
 
-        if (pick_bot && !picked_bot_id) {
+        if (pick_bot && !workspace_wide && !picked_bot_id) {
             setError("Pick the bot that has it.");
             return;
         }
@@ -82,8 +91,9 @@ export default function TaskForm({
             method: "POST",
             body: {
                 task_id: task?.id ? Number(task.id) : undefined,
-                bot_id: task ? undefined : bot_id || picked_bot_id || undefined,
+                bot_id: task || workspace_wide ? undefined : picked_bot_id,
                 workspace_id: task ? undefined : workspace_id || undefined,
+                workspace_wide: task ? undefined : workspace_wide || undefined,
                 title,
                 description,
                 status,
@@ -120,12 +130,19 @@ export default function TaskForm({
                         title="Who has it"
                         label="Who has it"
                         showLabel
-                        options={bots.map((bot) => ({
-                            title: bot.name || `Bot ${bot.id}`,
-                            value: String(bot.id),
-                            default: Number(bot.id) == picked_bot_id,
-                        }))}
-                        changeHandler={(value) => setPickedBotId(Number(value) || undefined)}
+                        options={[
+                            ...bots.map((bot) => ({
+                                title: bot.name || `Bot ${bot.id}`,
+                                value: String(bot.id),
+                                default: String(bot.id) == picked,
+                            })),
+                            {
+                                title: "Every bot here (workspace-wide)",
+                                value: WorkspaceWideValue,
+                                default: workspace_wide,
+                            },
+                        ]}
+                        changeHandler={(value) => setPicked(String(value))}
                     />
                 ) : null}
                 <CodeEditor

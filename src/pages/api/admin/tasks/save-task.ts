@@ -11,8 +11,8 @@ import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**
- * Adds a task to a bot's list (`bot_id`) or a bot's in a workspace (with
- * `workspace_id`), or changes one (`task_id`). Returns the task with its
+ * Adds a task to a bot's list (`bot_id`), a bot's in a workspace (with
+ * `workspace_id`) or a workspace-wide one (`workspace_id`, `workspace_wide`), or changes one (`task_id`). Returns the task with its
  * notes and files.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = async ({ req, body }) => {
@@ -55,7 +55,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
             };
         }
 
-        const { bot_id, workspace_id, title, description, status } = parseWithSchema({
+        const { bot_id, workspace_id, workspace_wide, title, description, status } = parseWithSchema({
             schema: CreateTaskRequestSchema,
             data,
         });
@@ -66,6 +66,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
                 user_id: user.id,
                 bot_id,
                 workspace_id,
+                workspace_wide,
                 title,
                 description,
                 status: status as never,

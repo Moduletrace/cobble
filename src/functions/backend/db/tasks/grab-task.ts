@@ -1,10 +1,11 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import type { TaskDetail, TaskNote } from "@/src/types";
+import type { TaskDetail } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import botFaceSql from "@/src/utils/bot-face-sql";
 import taskScopesSql from "@/src/utils/task-access/task-scopes-sql";
 import grabCrewRole from "../access/grab-crew-role";
 import grabTaskMedia from "./grab-task-media";
+import grabTaskNotes from "./grab-task-notes";
 
 type Params = {
     /**
@@ -45,15 +46,7 @@ export default async function grabTask({ user_id, task_id }: Params): Promise<Ta
         throw new AppError(`Task not found.`);
     }
 
-    const [notes_res, files] = await Promise.all([
-        BunSQLite.sql<TaskNote>({
-            sql: `SELECT n.*, nb.name AS bot_name FROM task_notes n
-                LEFT JOIN bots nb ON nb.id = n.bot_id
-                WHERE n.task_id = ? ORDER BY n.id ASC`,
-            values: [Number(task_id)],
-        }),
-        grabTaskMedia({ task_id }),
-    ]);
+    const [notes, files] = await Promise.all([grabTaskNotes({ task_id }), grabTaskMedia({ task_id })]);
 
-    return { ...row, notes: notes_res.payload || [], files };
+    return { ...row, notes, files };
 }

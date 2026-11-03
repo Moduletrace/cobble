@@ -512,7 +512,7 @@ export type BUN_SQLITE_COBBLE_TASKS = {
      */
     updated_at?: number | "";
     /** 
-     * The bot that has the task: its own list's, or with `workspace_id` its task in that workspace; null for a workspace's shared task nobody has yet
+     * The bot that has the task: its own list's, or with `workspace_id` its task in that workspace; null for a workspace-wide task, which every bot in that workspace works on and logs (`task_notes.bot_id`)
      */
     bot_id?: number | "";
     /** 

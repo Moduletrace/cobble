@@ -35,8 +35,9 @@ type Props = {
  * One task opened: its status (a crew manager moves it along), who has it and where, who added it and
  * when it last moved, what it is, its files (each opening its bytes), its
  * notes oldest first, a box to add a note, and edit or delete. A crew
- * manager can file a new deliverable straight onto it, or hand an open
- * one to another bot, which starts on it.
+ * manager can file a new deliverable straight onto it, hand an open one to
+ * another bot, which starts on it, or make a bot's open workspace task
+ * workspace-wide.
  */
 export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -174,6 +175,33 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                                 Hand over
                             </Button>
                         ) : null}
+                        {task.workspace_id && task.bot_id && (OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
+                            <Button
+                                title="Make it workspace-wide: every bot in the workspace works on it"
+                                type="button"
+                                variant="ghost"
+                                color="gray"
+                                size="small"
+                                disabled={busy}
+                                onClick={() => {
+                                    if (
+                                        !window.confirm(
+                                            `Make "${task.title}" workspace-wide? It stops being ${task.bot_name || "this bot"}'s, and every bot in ${task.workspace_name || "the workspace"} works on it.`,
+                                        )
+                                    )
+                                        return;
+
+                                    run({
+                                        path: "tasks/make-workspace-wide",
+                                        body: { task_id: Number(task.id) },
+                                        done: "It's workspace-wide now.",
+                                    }).catch(() => {});
+                                }}
+                                className="px-2! text-[12px]"
+                            >
+                                Make workspace-wide
+                            </Button>
+                        ) : null}
                         <Button
                             title="Edit the task"
                             type="button"
@@ -231,7 +259,9 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                             <Span className="min-w-0 truncate">{task.bot_name || `Bot ${task.bot_id}`}</Span>
                         </>
                     ) : (
-                        <Span className="text-ink-secondary">No bot</Span>
+                        <Span className="text-ink-secondary">
+                            {task.workspace_id ? "Every bot in the workspace (workspace-wide)" : "No bot"}
+                        </Span>
                     )}
                 </TaskFactRow>
                 <TaskFactRow label="Where">

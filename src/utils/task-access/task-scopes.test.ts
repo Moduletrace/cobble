@@ -85,3 +85,15 @@ describe("botTaskScopesSql for a workspace admin", () => {
         db.run(`DELETE FROM workspace_bots WHERE bot_id = 4`);
     });
 });
+
+describe("workspace-wide tasks", () => {
+    test("every bot working there reaches one, no bot elsewhere does, and users see it with the workspace", () => {
+        db.run(`INSERT INTO tasks VALUES (114, NULL, 11, NULL)`);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 3, is_coordinator: false }) })).toEqual([102, 110, 112, 114]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 2, is_coordinator: false }) })).toEqual([101]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 1, is_coordinator: true }) })).toContain(114);
+        expect(ids({ condition: taskScopesSql({ role: "member", user_id: 7 }) })).toEqual([101, 111, 112, 113, 114]);
+        expect(ids({ condition: taskScopesSql({ role: "member", user_id: 9 }) })).toEqual([102]);
+        db.run(`DELETE FROM tasks WHERE id = 114`);
+    });
+});

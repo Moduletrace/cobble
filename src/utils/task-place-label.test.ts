@@ -12,7 +12,7 @@ describe("taskPlaceLabel", () => {
         );
     });
 
-    test("says shared for a workspace task nobody has yet", () => {
-        expect(taskPlaceLabel({ task: { workspace_id: 5, workspace_name: "Launch" } })).toBe("Shared in Launch");
+    test("says every bot for a workspace-wide task", () => {
+        expect(taskPlaceLabel({ task: { workspace_id: 5, workspace_name: "Launch" } })).toBe("Every bot in Launch");
     });
 });

@@ -20,6 +20,11 @@ type Params = {
     description?: string;
     status?: TaskStatus;
     /**
+     * In a workspace, nobody's: every bot working there sees it and works on
+     * it (`taskScopeValues`). Only when asked for.
+     */
+    workspace_wide?: boolean;
+    /**
      * The bot creating it with its tool; none for a user's manual add.
      */
     created_by_bot_id?: number | string | null;
@@ -27,7 +32,7 @@ type Params = {
 
 /**
  * Adds a task to a bot's own list or a workspace's, there for one of its
- * bots (`bot_id` too): every task belongs to a bot. A user adds one to a bot they chat with or
+ * bots (`bot_id` too), or workspace-wide when asked (`workspace_wide`). A user adds one to a bot they chat with or
  * a workspace they're in; a bot's run adds one to its own list or to a
  * workspace it works in (its tool checks that). A workspace's task can
  * only go to a bot working there. Caps a list at `TaskMaxPerScope` open and
@@ -40,9 +45,10 @@ export default async function createTask({
     title,
     description,
     status,
+    workspace_wide,
     created_by_bot_id,
 }: Params): Promise<TaskDetail> {
-    const scope = taskScopeValues({ bot_id, workspace_id });
+    const scope = taskScopeValues({ bot_id, workspace_id, workspace_wide });
     const role = await grabCrewRole({ user_id });
 
     if (!created_by_bot_id && role == "member") {

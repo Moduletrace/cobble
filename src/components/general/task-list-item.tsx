@@ -12,7 +12,8 @@ import botStoneProps from "@/src/utils/bot-stone-props";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import relativeTime from "@/src/utils/relative-time";
 import taskPlaceLabel from "@/src/utils/task-place-label";
-import { Trash2 } from "lucide-react";
+import Center from "@moduletrace/twui/layout/Center";
+import { Trash2, Users } from "lucide-react";
 import RowIconButton from "./row-icon-button";
 import TaskStatusChip from "./task-status-chip";
 import TaskStatusMoves from "./task-status-moves";
@@ -36,7 +37,8 @@ type Props = {
 };
 
 /**
- * One task: whose it is (a bot's stone), its title and status, where it
+ * One task: whose it is (a bot's stone, or a crew mark when it's
+ * workspace-wide), its title and status, where it
  * is and who has it, what it's blocked on, its latest note and how long ago it
  * moved. Its title opens it in a modal.
  */
@@ -47,12 +49,18 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
 
     return (
         <Row className="w-full gap-3! flex-nowrap items-start px-3 py-3 border-0 border-b border-solid border-hairline last:border-b-0">
-            <BotAvatar
-                image_media_id={task.bot_image_media_id}
-                {...botStoneProps({ color: task.bot_color, stone: task.bot_stone, hue: task.bot_hue })}
-                face={(task.bot_face || "idle") as BotFace}
-                size={28}
-            />
+            {task.bot_id ? (
+                <BotAvatar
+                    image_media_id={task.bot_image_media_id}
+                    {...botStoneProps({ color: task.bot_color, stone: task.bot_stone, hue: task.bot_hue })}
+                    face={(task.bot_face || "idle") as BotFace}
+                    size={28}
+                />
+            ) : (
+                <Center title="Workspace-wide: every bot here works on it" className="size-7 shrink-0 text-ink-secondary">
+                    <Users size={18} />
+                </Center>
+            )}
             <Stack className="grow min-w-0 gap-0.5! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <Button
@@ -94,7 +102,9 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
                     ) : null}
                 </Row>
                 {task.latest_note ? (
-                    <Span className="text-xs leading-4 text-ink-secondary line-clamp-2">{task.latest_note}</Span>
+                    <Span className="text-xs leading-4 text-ink-secondary line-clamp-2">
+                        {task.latest_note_by ? `${task.latest_note_by}: ${task.latest_note}` : task.latest_note}
+                    </Span>
                 ) : null}
                 {can_manage && onStatusChange ? (
                     <TaskStatusMoves status={task.status} disabled={busy} onMove={onStatusChange} className="pt-0.5" />

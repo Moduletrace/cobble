@@ -5,9 +5,9 @@ import grabTaskHeir from "./grab-task-heir";
 
 type Params = {
     /**
-     * The bot leaving; none for tasks that have no bot at all.
+     * The bot leaving. Workspace-wide tasks (no bot) are nobody's and stay.
      */
-    bot_id?: number | string | null;
+    bot_id: number | string;
     /**
      * Only its tasks in this workspace; none for every workspace.
      */
@@ -19,13 +19,13 @@ type Params = {
 };
 
 /**
- * Gives a leaving bot's workspace tasks (or ones with no bot) to the
- * workspace's admin bot, else the coordinator, with a note on each. Its own
- * list is left alone. Returns how many moved.
+ * Gives a leaving bot's workspace tasks to the workspace's admin bot, else
+ * the coordinator, with a note on each. Its own list is left alone, and so
+ * are the workspace-wide ones. Returns how many moved.
  */
 export default async function passOnBotTasks({ bot_id, workspace_id, bot_name }: Params) {
-    const where = [`workspace_id IS NOT NULL`, bot_id ? `bot_id = ?` : `bot_id IS NULL`];
-    const values: number[] = bot_id ? [Number(bot_id)] : [];
+    const where = [`workspace_id IS NOT NULL`, `bot_id = ?`];
+    const values: number[] = [Number(bot_id)];
 
     if (workspace_id) {
         where.push(`workspace_id = ?`);

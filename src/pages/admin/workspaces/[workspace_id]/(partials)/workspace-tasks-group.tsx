@@ -29,8 +29,9 @@ type Props = {
 };
 
 /**
- * Every task in a workspace, whichever bot has it: every task belongs to
- * one bot, which sees only its own (the workspace's admin bot sees all).
+ * Every task in a workspace, whichever bot has it: a task belongs to one
+ * bot, which sees only its own, unless it's workspace-wide (every bot there
+ * sees it; the workspace's admin bot sees all).
  * Add and change one by hand here; the bots
  * keep it up to date themselves as they work.
  */
@@ -94,19 +95,18 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
         <SettingsGroup
             id="tasks"
             title="Tasks"
-            description="Every task in this workspace, whichever bot has it. Each bot sees only its own; the workspace's admin bot and the coordinator see them all."
+            description="Every task in this workspace, whichever bot has it. Each bot sees its own and the workspace-wide ones, which every bot here works on and logs; the workspace's admin bot and the coordinator see them all."
         >
             <Stack className="w-full gap-2! items-stretch">
                 {can_manage ? (
                     <Row className="justify-end">
                         <Button
-                            title={bots.length ? "Add a task" : "Add a bot to this workspace first"}
+                            title="Add a task"
                             type="button"
                             variant="outlined"
                             color="gray"
                             size="small"
                             onClick={() => setAdding(true)}
-                            disabled={!bots.length}
                         >
                             Add task
                         </Button>
@@ -144,7 +144,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
                 open={adding}
                 setOpen={setAdding}
                 title="Add a task"
-                description="Pick the bot that has it. Hand it over later to give it to another."
+                description="Pick the bot that has it, or make it workspace-wide: every bot here sees it, works on it and logs what it did. Hand it over later to give it to one bot."
             >
                 <TaskForm
                     workspace_id={workspace_id}

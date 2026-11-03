@@ -791,11 +791,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "tasks",
-            tableDescription: `The crew's to-do list: work that is tracked until it's done. A bot's own list (\`bot_id\` alone), or a workspace's tasks (\`workspace_id\`, with \`bot_id\` naming the bot there that has it, or null while it's shared). A bot reaches its own list and, in each workspace it works in, its tasks there and the shared ones; a workspace admin every task in its workspace; the coordinator every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
+            tableDescription: `The crew's to-do list: work that is tracked until it's done. A bot's own list (\`bot_id\` alone), or a workspace's tasks (\`workspace_id\`, with \`bot_id\` naming the bot there that has it, or null for a workspace-wide task every bot there works on, made only when asked for). A bot reaches its own list and, in each workspace it works in, its tasks there and the workspace-wide ones; a workspace admin every task in its workspace; the coordinator every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
             fields: [
                 {
                     fieldName: "bot_id",
-                    fieldDescription: `The bot that has the task: its own list's, or with \`workspace_id\` its task in that workspace; null for a workspace's shared task nobody has yet`,
+                    fieldDescription: `The bot that has the task: its own list's, or with \`workspace_id\` its task in that workspace; null for a workspace-wide task, which every bot in that workspace works on and logs (\`task_notes.bot_id\`)`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,

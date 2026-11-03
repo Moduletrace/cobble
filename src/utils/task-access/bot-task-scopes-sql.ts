@@ -19,10 +19,11 @@ type Params = {
 };
 
 /**
- * The tasks a bot's run reaches. Every task belongs to one bot: a worker
- * reaches its own list and the tasks it has in the workspaces it still
- * works in, never another bot's. A workspace admin also reaches every task
- * in that workspace; the coordinator every task in the install.
+ * The tasks a bot's run reaches. A task belongs to one bot by default: a
+ * worker reaches its own list and the tasks it has in the workspaces it
+ * still works in, never another bot's, plus every workspace-wide task (no
+ * bot) in those workspaces. A workspace admin also reaches every task in
+ * that workspace; the coordinator every task in the install.
  */
 export default function botTaskScopesSql({
     bot_id,
@@ -41,7 +42,7 @@ export default function botTaskScopesSql({
         sql: `(
             (${alias}.bot_id = ? AND ${alias}.workspace_id IS NULL)
             OR (${alias}.workspace_id IS NOT NULL
-                AND ${alias}.bot_id = ?
+                AND (${alias}.bot_id = ? OR ${alias}.bot_id IS NULL)
                 AND ${alias}.workspace_id IN (SELECT workspace_id FROM workspace_bots WHERE bot_id = ?))
             ${admin_sql}
         )`,

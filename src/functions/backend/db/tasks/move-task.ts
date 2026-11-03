@@ -10,10 +10,11 @@ type Params = {
     task_id: number | string;
     /**
      * Where it goes: a bot's own list (`bot_id` alone), or a workspace,
-     * with the bot that has it there (always one).
+     * with the bot that has it there, or nobody (`workspace_wide`).
      */
     bot_id?: number | string | null;
     workspace_id?: number | string | null;
+    workspace_wide?: boolean;
 };
 
 /**
@@ -22,9 +23,9 @@ type Params = {
  * that title, so a hand-over never leaves two of the same. The caller checked who is
  * asking reaches both. Returns the row as it is now.
  */
-export default async function moveTask({ task_id, bot_id, workspace_id }: Params): Promise<BUN_SQLITE_COBBLE_TASKS> {
+export default async function moveTask({ task_id, bot_id, workspace_id, workspace_wide }: Params): Promise<BUN_SQLITE_COBBLE_TASKS> {
     const task = await grabTaskRow({ task_id });
-    const place = taskScopeValues({ bot_id, workspace_id });
+    const place = taskScopeValues({ bot_id, workspace_id, workspace_wide });
 
     if (Number(task.bot_id || 0) == Number(place.bot_id || 0) && Number(task.workspace_id || 0) == Number(place.workspace_id || 0)) {
         return task;

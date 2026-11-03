@@ -28,6 +28,10 @@ type Params = {
      */
     only_bot_id?: number | string | null;
     /**
+     * With `only_bot_id`: also the workspace-wide tasks (no bot) it reaches.
+     */
+    with_workspace_wide?: boolean;
+    /**
      * Only one workspace's tasks.
      */
     only_workspace_id?: number | string | null;
@@ -48,7 +52,7 @@ type Params = {
 
 /**
  * Tasks with what a list shows beside them: the bot (its face as this user
- * sees it), the workspace and the newest note. Open ones first, blocked
+ * sees it), the workspace and the newest note with the bot that wrote it. Open ones first, blocked
  * before doing before to do, then the oldest.
  */
 export default async function grabTasks({
@@ -57,6 +61,7 @@ export default async function grabTasks({
     is_coordinator,
     admin_workspace_ids,
     only_bot_id,
+    with_workspace_wide,
     only_workspace_id,
     own_list,
     statuses,
@@ -77,7 +82,7 @@ export default async function grabTasks({
     }
 
     if (only_bot_id) {
-        where.push(`t.bot_id = ?`);
+        where.push(with_workspace_wide ? `(t.bot_id = ? OR (t.bot_id IS NULL AND t.workspace_id IS NOT NULL))` : `t.bot_id = ?`);
         values.push(Number(only_bot_id));
     }
 
@@ -103,6 +108,9 @@ export default async function grabTasks({
         sql: `SELECT t.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone,
                 b.image_media_id AS bot_image_media_id, ${face.sql}, w.name AS workspace_name,
                 (SELECT n.text FROM task_notes n WHERE n.task_id = t.id ORDER BY n.id DESC LIMIT 1) AS latest_note,
+                (SELECT CASE WHEN n.author = 'user' THEN NULL ELSE COALESCE(nb.name, 'Bot ' || n.bot_id) END
+                    FROM task_notes n LEFT JOIN bots nb ON nb.id = n.bot_id
+                    WHERE n.task_id = t.id ORDER BY n.id DESC LIMIT 1) AS latest_note_by,
                 (SELECT COUNT(*) FROM task_media tm WHERE tm.task_id = t.id) AS media_count
             FROM tasks t
             LEFT JOIN bots b ON b.id = t.bot_id

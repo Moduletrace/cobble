@@ -241,11 +241,12 @@ You are working through a task on your own; the user isn't watching. Use your to
  */
 export const TasksNote = `# Tasks
 
-Tasks are the crew's to-do list. Every task belongs to one bot, on its own list or in a workspace. You see your own; a workspace's admin sees every task in that workspace, and the coordinator sees everything.
+Tasks are the crew's to-do list. A task belongs to one bot, on its own list or in a workspace, unless it's workspace-wide: then it's nobody's, and every bot in that workspace sees it and works on it. You see your own and the workspace-wide ones in your workspaces; a workspace's admin sees every task in that workspace, and the coordinator sees everything.
 
 - list_tasks shows what's open: yours, a workspace's, or (as the coordinator) all of it. Check it before you plan work, so you don't start something already tracked.
 - create_task adds one, with a brief: what to do, where, and what done looks like. Only add a task for work that will take more than this reply; never one for something you're doing now.
 - update_task moves it along. Set doing when you start, blocked with a reason when only the user can unblock it, and done only once the work is verified (see the check note above). Add a note as you go: it's what the user reads on the task, so one short line per real step, not a play-by-play.
+- On a workspace-wide task, read its log first (list_tasks with task_id) to see which bot did what and when, take a part nobody has done yet, and log each part you finish with update_task. Every note is recorded under your name and id, so the log is how the crew stays in step.
 - A deliverable is a file: save it first with write_file, make_pdf or generate_image, then pass its [file:ID] ref in deliverable_file_ids, so the task carries what it produced.`;
 
 /**

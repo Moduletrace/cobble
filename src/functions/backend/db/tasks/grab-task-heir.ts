@@ -12,7 +12,7 @@ type Params = {
 
 /**
  * Who takes over a workspace task whose bot is gone: the workspace's admin
- * bot, else the coordinator. Every task belongs to a bot, so none is left
+ * bot, else the coordinator. A bot's task stays a bot's, so none is left
  * without one.
  */
 export default async function grabTaskHeir({ workspace_id, except_bot_id }: Params) {

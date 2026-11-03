@@ -211,6 +211,10 @@ export type TaskWithNames = BUN_SQLITE_COBBLE_TASKS & {
      */
     latest_note?: string | null;
     /**
+     * The bot that wrote it; null when the user did.
+     */
+    latest_note_by?: string | null;
+    /**
      * How many files it carries.
      */
     media_count?: number | null;

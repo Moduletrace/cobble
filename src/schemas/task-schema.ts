@@ -6,13 +6,15 @@ const status_values = TaskStatuses.map((status) => status.value) as [string, ...
 const media_kind_values = TaskMediaKinds.map((kind) => kind.value) as [string, ...string[]];
 
 /**
- * Where it goes: a bot's own list (`bot_id`) or a bot's task in a
- * workspace (both). Every task has a bot: the helper refuses one without
- * (`taskScopeValues`).
+ * Where it goes: a bot's own list (`bot_id`), a bot's task in a workspace
+ * (both), or a workspace-wide one (`workspace_id` with `workspace_wide`).
+ * The helper refuses a task with no bot unless it's asked to be
+ * workspace-wide (`taskScopeValues`).
  */
 const scope = {
     bot_id: z.number().int().positive().optional(),
     workspace_id: z.number().int().positive().optional(),
+    workspace_wide: z.boolean().optional(),
 };
 
 export const CreateTaskRequestSchema = z.object({

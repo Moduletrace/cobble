@@ -1,6 +1,7 @@
 /**
- * A task's status. Tasks are the crew's to-do list, every task one bot's
- * (on its own list or in a workspace), and every move through this list is a step in the
+ * A task's status. Tasks are the crew's to-do list, a task one bot's (on
+ * its own list or in a workspace) unless it's workspace-wide (every bot
+ * there works on it), and every move through this list is a step in the
  * work: `blocked` is what a bot (or the user) sets when only the user can
  * unblock it, and `done` is only ever set once the work was verified.
  */
