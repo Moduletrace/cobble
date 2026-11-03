@@ -8,7 +8,10 @@ import SettingsShell from "@/src/pages/admin/settings/(partials)/settings-shell"
 export default function NoBotsSection() {
     return (
         <SettingsShell title="Bots" description="The bots you chat with.">
-            <EmptyContent title="No bots for you yet. Ask an admin to assign you a bot or add you to a workspace." />
+            <EmptyContent
+                title="No bots for you yet. Ask an admin to assign you a bot or add you to a workspace."
+                className="my-10"
+            />
         </SettingsShell>
     );
 }
