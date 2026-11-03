@@ -157,7 +157,7 @@ export default function BotSessionsModal({
                 ))}
                 {sessions.loading ? (
                     <LoadingBlock className="w-full h-[300px]" />
-                ) : sessions.sessions.length ? (
+                ) : !sessions.sessions.length ? (
                     <Span className="px-3 py-6 text-[13px] leading-[18px] text-ink-secondary">
                         {sessions.query.trim()
                             ? `No session matches "${sessions.query.trim()}".`
