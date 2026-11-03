@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import orderByLastVisit from "./order-by-last-visit";
 
-type Item = { id: number; last_visited_at?: number | null };
+type Item = { id: number; last_visited_at?: number | null; created_at?: number | null };
 
 function ids(items: Item[]) {
     return orderByLastVisit({ items }).map((item) => item.id);
@@ -33,5 +33,17 @@ describe("orderByLastVisit", () => {
         orderByLastVisit({ items });
 
         expect(items.map((item) => item.id)).toEqual([1, 2]);
+    });
+
+    test("a new unvisited item leads when ranked by creation", () => {
+        const items = [
+            { id: 1, created_at: 10, last_visited_at: 500 },
+            { id: 2, created_at: 20 },
+            { id: 3, created_at: 900 },
+            { id: 4, created_at: 30, last_visited_at: 400 },
+        ];
+
+        expect(orderByLastVisit({ items, unvisited_by_created: true }).map((item) => item.id)).toEqual([3, 1, 4, 2]);
+        expect(orderByLastVisit({ items }).map((item) => item.id)).toEqual([1, 4, 2, 3]);
     });
 });

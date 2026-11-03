@@ -23,7 +23,7 @@ type Props = {
  */
 export default function RailWorkspacesSection({ workspaces: listed, selected_id }: Props) {
     const { openForm } = useContext(AddFlowContext);
-    const workspaces = orderByLastVisit({ items: listed });
+    const workspaces = orderByLastVisit({ items: listed, unvisited_by_created: true });
     const [open, setOpen] = useState(false);
     const shown = workspaces.slice(0, AppData.RailRecentWorkspaces);
     const hidden = workspaces.slice(AppData.RailRecentWorkspaces);
