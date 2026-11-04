@@ -37,6 +37,11 @@ type Props = {
      * stone (the default), so the stone is decorative.
      */
     label?: string;
+    /**
+     * Leave the eyes still. Every face moves by default (`BotStoneFace`);
+     * the logo and other static marks pass this.
+     */
+    still?: boolean;
     className?: string;
 };
 
@@ -52,6 +57,7 @@ export default function BotStone({
     face = "idle",
     size = 32,
     label,
+    still,
     className,
 }: Props) {
     const is_coordinator = !color;
@@ -65,6 +71,14 @@ export default function BotStone({
     const paper_face = is_coordinator || botColorNeedsPaperFace({ color: color! });
     const eye_fill = paper_face ? "fill-paper" : "fill-dark";
     const eye_stroke = paper_face ? "stroke-paper" : "stroke-dark";
+    /**
+     * The same bot always blinks at the same pace; different bots rarely
+     * share one.
+     */
+    const motion_seed = [...`${color || ""}${stone || hue || ""}`].reduce(
+        (sum, char) => sum + char.charCodeAt(0),
+        0,
+    );
 
     return (
         <svg
@@ -85,6 +99,8 @@ export default function BotStone({
                 face={face}
                 fill_class={eye_fill}
                 stroke_class={eye_stroke}
+                still={still}
+                motion_seed={motion_seed}
             />
         </svg>
     );

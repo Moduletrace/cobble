@@ -197,6 +197,92 @@
             transform: translateX(300%);
         }
     }
+
+    /* Bot faces (`BotStoneFace`): only the eyes move, never the stone.
+       Idle blinks, at three paces so a rail of bots never blinks in step. */
+    --animate-stone-blink-a: stone-blink 5.3s ease-in-out infinite;
+    --animate-stone-blink-b: stone-blink 6.7s ease-in-out infinite;
+    --animate-stone-blink-c: stone-blink 8.1s ease-in-out infinite;
+    /* Working: the eyes glance left and right over the work. */
+    --animate-stone-glance: stone-glance 3.4s ease-in-out infinite;
+    /* Done: one small hop when the face turns happy. */
+    --animate-stone-hop: stone-hop 0.6s ease-out 1;
+    /* Asleep: the closed eye breathes slowly. */
+    --animate-stone-breathe: stone-breathe 4.8s ease-in-out infinite;
+    /* Needs you: a double nudge, then a pause. */
+    --animate-stone-nudge: stone-nudge 2.6s ease-in-out infinite;
+
+    @keyframes stone-blink {
+        0%,
+        93%,
+        100% {
+            transform: scaleY(1);
+        }
+        96% {
+            transform: scaleY(0.1);
+        }
+    }
+
+    @keyframes stone-glance {
+        0%,
+        12%,
+        100% {
+            transform: translateX(0);
+        }
+        30%,
+        45% {
+            transform: translateX(-4px);
+        }
+        65%,
+        80% {
+            transform: translateX(4px);
+        }
+    }
+
+    @keyframes stone-hop {
+        0% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-6px);
+        }
+        70% {
+            transform: translateY(1px);
+        }
+        100% {
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes stone-breathe {
+        0%,
+        100% {
+            transform: scale(1, 1);
+        }
+        50% {
+            transform: scale(1.12, 1.45);
+        }
+    }
+
+    @keyframes stone-nudge {
+        0%,
+        68%,
+        100% {
+            transform: translateY(0);
+        }
+        75% {
+            transform: translateY(-4px);
+        }
+        82% {
+            transform: translateY(0);
+        }
+        88% {
+            transform: translateY(-2px);
+        }
+        94% {
+            transform: translateY(0);
+        }
+    }
 }
 
 body {

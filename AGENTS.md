@@ -105,7 +105,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 - **Voice:** mic -> `api/admin/bots/transcribe.ts`; play -> `GET speak-message` streamed into `<audio>`. Nothing recorded is stored. Both disabled with a note when the harness has no model.
 - **Pictures:** `image_media_id` (private media, `bot-image`/`workspace-image`), via `set-profile-image.ts`, the `set_picture` tool or `update_workspace`. Bytes are **copied**, never moved; only picture-paradigm rows are deleted on replace. Format kept by `imageOutputFormat`.
 - **Colour:** only `src/utils/bot-color.ts` resolves/validates colours and stones (`resolveBotColor`, `resolveBotStone`, `botColorNeedsPaperFace`); new bots get `pick-free-color.ts`.
-- **Avatars:** `BotStone` draws the stone inline with the colour as SVG `fill` and the face as eyes. Coordinator: ink body, paper eyes. **Never put a stone in a circle/badge or add outline/shadow.** The wordmark is vector (`Wordmark`), never live text.
+- **Avatars:** `BotStone` draws the stone inline with the colour as SVG `fill` and the face as eyes. Coordinator: ink body, paper eyes. Each face moves only its eyes (`BotStoneFace`, keyframes `stone-*` in `main.css`: idle blinks at a per-bot pace, working glances, done hops once, asleep breathes, needs-you nudges; off under reduced motion; `still` for the logo). **Never put a stone in a circle/badge or add outline/shadow.** The wordmark is vector (`Wordmark`), never live text.
 - **Copy helpers:** `src/utils/crew-status.ts`, `src/utils/relative-time.ts` (relative timestamps only).
 
 ### Prompt and memory

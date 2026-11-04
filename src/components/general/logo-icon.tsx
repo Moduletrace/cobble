@@ -18,6 +18,7 @@ export default function LogoIcon({ icon_size = 40, img_props }: Props) {
             stone={BotHues[0].value}
             size={icon_size}
             label="Logo Icon"
+            still
             className={img_props?.className}
         />
     );
