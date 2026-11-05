@@ -1,5 +1,5 @@
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
-import { shellQuote } from "./download-computer-file";
+import shellQuote from "@/src/utils/shell-quote";
 
 /**
  * The shell that puts a command in the run's folder on the computer:

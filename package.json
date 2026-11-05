@@ -17,6 +17,7 @@
         "typecheck": "tsc --noEmit",
         "test": "bun test",
         "check:bundle": "bun src/scripts/check-bundle-size.ts",
+        "build:computer": "bun src/scripts/build-computer-image.ts",
         "publish:github": "bash scripts/publish-github.sh",
         "publish:gitea": "bash scripts/publish-gitea.sh",
         "mirror:gitea": "bash scripts/mirror-gitea.sh"
@@ -43,8 +44,8 @@
         "@floating-ui/dom": "1.8.0",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@moduletrace/bun-sqlite": "^1.3.0",
-        "@moduletrace/bunext": "^1.3.3",
-        "@moduletrace/twui": "^0.1.7",
+        "@moduletrace/bunext": "^1.3.5",
+        "@moduletrace/twui": "^0.1.9",
         "@tiptap/extension-bubble-menu": "3.32.0",
         "@tiptap/extension-mention": "3.32.0",
         "@tiptap/extension-placeholder": "3.32.0",

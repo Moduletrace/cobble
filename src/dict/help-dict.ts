@@ -4,7 +4,8 @@
 export const HelpPath = "/admin/help";
 
 /**
- * Signing in to Google and other strict sites with Cookie-Editor.
+ * Signing in to Google and other strict sites, with cookies brought over
+ * from the user's own browser when the site still refuses.
  */
 export const HelpSignInTopicId = "sign-in-with-cookies";
 

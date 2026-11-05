@@ -23,15 +23,18 @@ type Params = {
 
 type Args = {
     computer_id?: number;
-    mode: ComputerViewMode;
+    mode?: ComputerViewMode;
 };
 
-const Modes = ComputerViewModes.map((m) => m.value) as [ComputerViewMode, ...ComputerViewMode[]];
+/**
+ * The views the user is sure to be able to open (not the crew-only shell).
+ */
+const Modes = ComputerViewModes.filter((m) => !m.crew_only).map((m) => m.value) as [ComputerViewMode, ...ComputerViewMode[]];
 
 /**
  * Lets a bot ask the user to take over one of its computers, for what
  * only they can do there (a login, a captcha, a code). Their message
- * gets a button that opens the computer in that mode, and the bot shows
+ * gets a button that opens the computer (its browser's live view), and the bot shows
  * needs-you until they hand it back in chat.
  */
 export default function askToTakeOverTool({ computers, in_task, onAsk }: Params): HarnessTool<Args> {
@@ -41,10 +44,10 @@ export default function askToTakeOverTool({ computers, in_task, onAsk }: Params)
 
     return {
         name: "ask_user_to_take_over",
-        description: `Ask the user to take over one of your computers when only they can do something on it: log in, solve a captcha, enter a code, approve a prompt, or show you something. They get a button that opens it in the mode you pick: browser (the web browser), terminal (a shell), code (the code editor) or desktop (the whole screen, with the browser's toolbar and extensions). When a site refuses to sign in on the computer (Google often does: "This browser or app may not be secure"), pick desktop and point the user to the guide at ${HelpPath}#${HelpSignInTopicId}: they bring their session over with the Cookie-Editor extension. Computers: ${listed}. Defaults to ${computers[0]?.id}.`,
+        description: `Ask the user to take over one of your computers when only they can do something on it: log in, solve a captcha, enter a code, approve a prompt, or show you something. They get a button that opens the computer's browser live, the tab you're on in front, where they can click, type and paste. Leave the page they need open. When a site still refuses to sign in on the computer, point the user to the guide at ${HelpPath}#${HelpSignInTopicId}: they bring their session over from their own browser with the view's Import cookies. Computers: ${listed}. Defaults to ${computers[0]?.id}.`,
         schema: z.object({
             computer_id: z.number().int().optional(),
-            mode: z.enum(Modes),
+            mode: z.enum(Modes).optional(),
         }),
         run: async ({ args }) => {
             const computer =
@@ -54,7 +57,7 @@ export default function askToTakeOverTool({ computers, in_task, onAsk }: Params)
                 throw new Error(`You have no computer with id ${args.computer_id}. Computers: ${listed}.`);
             }
 
-            const ref = takeOverRef({ id: computer.id, mode: args.mode });
+            const ref = takeOverRef({ id: computer.id, mode: args.mode || Modes[0] });
 
             onAsk({ ref });
 

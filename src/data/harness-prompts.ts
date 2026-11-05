@@ -108,7 +108,7 @@ export const ComputerFilesNote = ({
     can_import?: boolean;
 }) => `# Files on the computer
 
-You work only in your own folders on the computer, never elsewhere in it: every shell, code and file tool starts in ${dirs.cwd} (also ~), and a path outside your folders is refused.
+You work only in your own folders on the computer, never elsewhere in it: every shell and file tool starts in ${dirs.cwd} (also ~), and a path outside your folders is refused.
 
 - ${dirs.cwd}: this user's work. Everything for them goes here.
 - ${dirs.bot_dir}: only what is the same for every user you work for (other users' folders in it are not yours).${

@@ -2377,6 +2377,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `Memory limit of the container in MB, set when the computer is created`,
                     dataType: "INTEGER",
                 },
+                {
+                    fieldName: "browser_settings",
+                    fieldDescription: `JSON: its browser's timezone, languages, screen, sandbox and extra Chrome and Playwright MCP flags (ComputerBrowserSettingsSchema), passed to its container as env; empty uses the defaults`,
+                    dataType: "TEXT",
+                },
             ],
             indexes: [
                 {

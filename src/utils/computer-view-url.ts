@@ -11,11 +11,11 @@ type Params = {
 
 /**
  * The app address of one of a computer's modes, e.g.
- * `/computers/3/terminal`, with `{prefix}` in its path filled in.
+ * `/computers/3/desktop/`. A mode the computer no longer has opens the
+ * first one.
  */
 export default function computerViewUrl({ computer_id, mode }: Params) {
-    const base = `${ComputerProxyPrefix}/${computer_id}/`;
-    const path = ComputerViewModes.find((m) => m.value == mode)?.path || "";
+    const { path } = ComputerViewModes.find((m) => m.value == mode) || ComputerViewModes[0];
 
-    return `${base}${path.replace("{prefix}", base.replace(/^\//, ""))}`;
+    return `${ComputerProxyPrefix}/${computer_id}/${path}`;
 }

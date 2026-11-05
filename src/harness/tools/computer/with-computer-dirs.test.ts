@@ -18,47 +18,38 @@ const call = async (name: string, args: Record<string, unknown>) =>
     JSON.parse((await withComputerDirs({ tool: echoTool(name), dirs }).run({ args, signal })) as string);
 
 describe("withComputerDirs", () => {
-    test("bash runs in the user's folder with it as HOME", async () => {
-        const sent = await call("sandbox_execute_bash", { cmd: "ls" });
-
-        expect(sent.cwd).toBe(cwd);
-        expect(sent.cmd).toBe(`export HOME="${cwd}"; ls`);
-    });
-
-    test("bash keeps a cwd inside the run's folders and refuses one outside", async () => {
-        expect((await call("sandbox_execute_bash", { cmd: "ls", cwd: "seo" })).cwd).toBe(`${cwd}/seo`);
-        await expect(call("sandbox_execute_bash", { cmd: "ls", cwd: "/etc" })).rejects.toThrow();
-    });
-
-    test("code starts in the user's folder", async () => {
-        const python = await call("sandbox_execute_code", { code: "print(1)", language: "python" });
-        const js = await call("sandbox_execute_code", { code: "1", language: "javascript" });
-
-        expect(python.code).toContain(`_cobble_os.chdir("${cwd}")`);
-        expect(python.code).toEndWith("\nprint(1)");
-        expect(js.code).toContain(`process.chdir("${cwd}")`);
-    });
-
-    test("file tools resolve paths and refuse outside ones and sudo", async () => {
-        expect((await call("sandbox_file_operations", { action: "read", path: "a.txt" })).path).toBe(`${cwd}/a.txt`);
-        expect((await call("sandbox_str_replace_editor", { command: "view", path: "/home/gem/workspace/workspaces/2/x" })).path).toBe(
-            "/home/gem/workspace/workspaces/2/x",
-        );
-        await expect(call("sandbox_file_operations", { action: "read", path: "/home/gem/.bashrc" })).rejects.toThrow();
-        await expect(call("sandbox_file_operations", { action: "list", path: "a", sudo: true })).rejects.toThrow();
-        await expect(call("sandbox_str_replace_editor", { command: "view", path: "../../../4/x" })).rejects.toThrow();
+    test("uploads resolve paths and refuse outside ones", async () => {
+        expect((await call("browser_file_upload", { paths: ["a.pdf", "/home/gem/workspace/workspaces/2/b.png"] })).paths).toEqual([
+            `${cwd}/a.pdf`,
+            "/home/gem/workspace/workspaces/2/b.png",
+        ]);
+        await expect(call("browser_file_upload", { paths: ["/home/gem/.bashrc"] })).rejects.toThrow();
+        await expect(call("browser_file_upload", { paths: ["../../../4/x"] })).rejects.toThrow();
     });
 
     test("file URLs must be in the run's folders, web ones pass", async () => {
         expect((await call("browser_navigate", { url: "https://example.com" })).url).toBe("https://example.com");
         expect((await call("browser_navigate", { url: `file://${cwd}/a.html` })).url).toBe(`file://${cwd}/a.html`);
         await expect(call("browser_navigate", { url: "file:///etc/passwd" })).rejects.toThrow();
-        await expect(call("sandbox_convert_to_markdown", { uri: "file:///home/gem/.config/x" })).rejects.toThrow();
+        await expect(call("browser_tabs", { action: "new", url: "file:///home/gem/.config/x" })).rejects.toThrow();
     });
 
-    test("leaves other tools alone", () => {
-        const tool = echoTool("browser_click");
-        expect(withComputerDirs({ tool, dirs })).toBe(tool);
+    test("drops read their paths from the run's folders too", async () => {
+        expect((await call("browser_drop", { paths: ["a.png"] })).paths).toEqual([`${cwd}/a.png`]);
+        await expect(call("browser_drop", { paths: ["/etc/hosts"] })).rejects.toThrow();
+    });
+
+    test("a file saved by name lands in the run's folders", async () => {
+        expect((await call("browser_take_screenshot", { filename: "shot.png" })).filename).toBe(`${cwd}/shot.png`);
+        expect((await call("browser_snapshot", { filename: "/home/gem/workspace/workspaces/2/page.md" })).filename).toBe(
+            "/home/gem/workspace/workspaces/2/page.md",
+        );
+        await expect(call("browser_console_messages", { filename: "/home/gem/workspace/bots/4/log.txt" })).rejects.toThrow();
+    });
+
+    test("passes other arguments through", async () => {
+        expect(await call("browser_click", { ref: "e4", element: "Sign in" })).toEqual({ ref: "e4", element: "Sign in" });
+        expect(await call("browser_take_screenshot", { filename: " " })).toEqual({ filename: " " });
     });
 });
 

@@ -3,7 +3,9 @@ import type {
     BUN_SQLITE_COBBLE_COMPUTERS,
     BunSQLiteTables,
 } from "@/db/types/db";
+import type { ComputerBrowserSettings } from "@/src/schemas/computer-schema";
 import AppError from "@/src/utils/app-error";
+import parseComputerBrowserSettings from "@/src/utils/parse-computer-browser-settings";
 import _ from "lodash";
 import grabEnv from "../envs/grab-env";
 import grabUserComputers from "./grab-user-computers";
@@ -16,12 +18,18 @@ type Params = {
     /**
      * Only the fields given are changed.
      */
-    data: Pick<BUN_SQLITE_COBBLE_COMPUTERS, "name" | "description" | "cpus" | "memory_mb">;
+    data: Pick<BUN_SQLITE_COBBLE_COMPUTERS, "name" | "description" | "cpus" | "memory_mb"> & {
+        /**
+         * The whole of its browser's settings (already checked by
+         * `ComputerBrowserSettingsSchema`), replacing what's stored.
+         */
+        browser_settings?: ComputerBrowserSettings;
+    };
 };
 
 /**
  * Updates one of the user's computers. When its container's settings
- * change (`cpus`, `memory_mb`), the container is stopped, removed and
+ * change (`cpus`, `memory_mb`, `browser_settings`), the container is stopped, removed and
  * run again with them in the background (`provisionComputer`); its home
  * directory is bind-mounted, so its files stay. A name or description
  * alone leaves the container running. The main computer of a server that
@@ -34,9 +42,13 @@ export default async function updateComputer({ user_id, computer_id, data }: Par
         throw new AppError(`Computer not found.`);
     }
 
+    const browser_settings = data.browser_settings ? JSON.stringify(data.browser_settings) : undefined;
+    const stored_browser_settings = JSON.stringify(parseComputerBrowserSettings({ text: computer.browser_settings }));
+
     const recreate =
         (data.cpus !== undefined && Number(data.cpus) != Number(computer.cpus)) ||
-        (data.memory_mb !== undefined && Number(data.memory_mb) != Number(computer.memory_mb));
+        (data.memory_mb !== undefined && Number(data.memory_mb) != Number(computer.memory_mb)) ||
+        (browser_settings !== undefined && browser_settings != stored_browser_settings);
 
     if (recreate && (await grabUserComputers({ computer_id: computer.id }))[0]?.status == "creating") {
         throw new AppError(`${computer.name || "The computer"} is still being set up. Try again once it's ready.`);
@@ -58,6 +70,7 @@ export default async function updateComputer({ user_id, computer_id, data }: Par
                 description: data.description,
                 cpus: data.cpus,
                 memory_mb: data.memory_mb,
+                browser_settings,
             },
             _.isUndefined,
         ),

@@ -31,8 +31,7 @@ type Props = {
 };
 
 /**
- * A computer, large, in its browser, terminal or code editor, over the
- * page. `ComputerOpenButton` opens it from lists; chat's viewer adds a
+ * A computer, large, its browser live, over the page. `ComputerOpenButton` opens it from lists; chat's viewer adds a
  * note and the hand-back action after a take-over. A restart reconnects
  * its frames.
  */

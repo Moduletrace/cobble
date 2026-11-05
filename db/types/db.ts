@@ -1466,6 +1466,10 @@ export type BUN_SQLITE_COBBLE_COMPUTERS = {
      * Memory limit of the container in MB, set when the computer is created
      */
     memory_mb?: number | "";
+    /** 
+     * JSON: its browser's timezone, languages, screen, sandbox and extra Chrome and Playwright MCP flags (ComputerBrowserSettingsSchema), passed to its container as env; empty uses the defaults
+     */
+    browser_settings?: string;
 }
 
 export type BUN_SQLITE_COBBLE_BOT_COMPUTERS = {

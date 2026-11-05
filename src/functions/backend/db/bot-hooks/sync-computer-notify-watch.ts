@@ -1,6 +1,9 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
+import { AppData } from "@/src/data/app-data";
 import { NotifyWatchScript, NotifyWatchVersion } from "@/src/data/notify-watch-script";
 import { BotHookPath } from "@/src/dict/bot-hook-dict";
+import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
+import writeComputerFile from "@/src/functions/backend/computers/write-computer-file";
 import grabComputerAppUrl from "@/src/functions/backend/docker/grab-computer-app-url";
 import type { NotifyWatchSync } from "@/src/types";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
@@ -8,7 +11,6 @@ import { decrypt } from "@/src/utils/crypt";
 import notifyWatchEnsureCommand from "@/src/utils/notify-watch-ensure-command";
 import grabComputerMcpUrl from "../computers/grab-computer-mcp-url";
 import isComputerBusy from "../computers/is-computer-busy";
-import callComputerApi from "./call-computer-api";
 
 type Params = {
     computer_id: number | string;
@@ -47,15 +49,14 @@ export default async function syncComputerNotifyWatch({ computer_id }: Params): 
             return { ok: false, watching: false, hooks: hooks.length, error: computerNotReadyMessage(address) };
         }
 
-        const base_url = address.base_url;
-        const context = await callComputerApi({ base_url, path: `/v1/sandbox` });
-        const dir = `${String(context.home_dir || "/home/gem").replace(/\/+$/, "")}/.cobble`;
+        const computer = address;
+        const dir = `${AppData.ComputerHomeDir}/.cobble`;
 
         if (!hooks.length) {
-            await callComputerApi({
-                base_url,
-                path: `/v1/shell/exec`,
-                body: { command: `[ -f ${dir}/notify-hooks ] && : > ${dir}/notify-hooks; true` },
+            await runComputerCommand({
+                computer,
+                command: `[ -f ${dir}/notify-hooks ] && : > ${dir}/notify-hooks; true`,
+                timeout_ms: AppData.McpConnectTimeoutMs,
             });
 
             return { ok: true, watching: false, hooks: 0 };
@@ -78,34 +79,18 @@ export default async function syncComputerNotifyWatch({ computer_id }: Params): 
                 .map(async (hook) => `${app_url}${BotHookPath}/${await decrypt(hook.watch_token!)}`),
         );
 
-        await callComputerApi({
-            base_url,
-            path: `/v1/shell/exec`,
-            body: { command: `mkdir -p ${dir} && chmod 700 ${dir} && touch ${dir}/notify-hooks && chmod 600 ${dir}/notify-hooks` },
-        });
-
-        await callComputerApi({
-            base_url,
-            path: `/v1/file/write`,
-            body: { file: `${dir}/notify-watch.py`, content: NotifyWatchScript },
-        });
-
-        await callComputerApi({
-            base_url,
-            path: `/v1/file/write`,
-            body: { file: `${dir}/notify-hooks`, content: `${urls.join("\n")}\n` },
-        });
+        await writeComputerFile({ computer, path: `${dir}/notify-watch.py`, content: NotifyWatchScript, mode: 0o600 });
+        await writeComputerFile({ computer, path: `${dir}/notify-hooks`, content: `${urls.join("\n")}\n`, mode: 0o600 });
 
         const busy = await isComputerBusy({ computer_id });
 
-        const res = await callComputerApi({
-            base_url,
-            path: `/v1/shell/exec`,
-            body: { command: notifyWatchEnsureCommand({ version: NotifyWatchVersion, restart_browser: !busy }) },
+        const res = await runComputerCommand({
+            computer,
+            command: notifyWatchEnsureCommand({ version: NotifyWatchVersion, restart_browser: !busy }),
             timeout_ms: 30_000,
         });
 
-        const output = String(res?.data?.output ?? "").trim();
+        const output = res.output.trim();
         const result = JSON.parse(output.split("\n").filter(Boolean).pop() || "{}");
 
         return {

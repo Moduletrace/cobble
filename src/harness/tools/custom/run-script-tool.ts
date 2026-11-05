@@ -6,9 +6,9 @@ import type { CustomToolScriptConfig } from "@/src/types";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import redactSecrets from "@/src/utils/redact-secrets";
+import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
+import writeComputerEnv from "@/src/functions/backend/computers/write-computer-env";
 import computerDirsShell from "../computer/computer-dirs-shell";
-import runComputerCommand from "../computer/run-computer-command";
-import writeComputerEnv from "../computer/write-computer-env";
 
 type Params = {
     config: CustomToolScriptConfig;
@@ -36,7 +36,7 @@ type Params = {
 };
 
 /**
- * Runs the tool's code on a computer over the sandbox's REST API, with the
+ * Runs the tool's code on a computer over its agent's shell API, with the
  * computer's envs set (`writeComputerEnv`) and the arguments as JSON in
  * `COBBLE_ARGS` and on stdin. Code and arguments travel base64-encoded,
  * so nothing in them needs quoting. It runs in the run's own folder
@@ -59,7 +59,7 @@ export default async function runScriptTool({
     if (!target.ready) throw new Error(computerNotReadyMessage(target));
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
-    const { shell_path } = await writeComputerEnv({ base_url: target.base_url, envs, signal });
+    const { shell_path } = await writeComputerEnv({ computer: target, envs, signal });
     const language =
         CustomToolScriptLanguages.find((l) => l.value == config.language) || CustomToolScriptLanguages[0];
 
@@ -67,11 +67,7 @@ export default async function runScriptTool({
     const input = Buffer.from(JSON.stringify(args)).toString("base64");
 
     const result = await runComputerCommand({
-        base_url: target.base_url,
-        /**
-         * In a subshell: `exit` in the sandbox's own shell would end its
-         * session.
-         */
+        computer: target,
         command: `(${[
             `f=$(mktemp --suffix=.${language.extension})`,
             `echo ${code} | base64 -d > "$f"`,

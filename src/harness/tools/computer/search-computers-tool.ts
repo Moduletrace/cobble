@@ -8,8 +8,8 @@ import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import redactSecrets from "@/src/utils/redact-secrets";
 import type { HarnessTool } from "../../types";
+import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
 import computerDirsShell from "./computer-dirs-shell";
-import runComputerCommand from "./run-computer-command";
 
 type Params = {
     /**
@@ -73,7 +73,7 @@ export default function searchComputersTool({
 
                         const [result, envs] = await Promise.all([
                             runComputerCommand({
-                                base_url: target.base_url,
+                                computer: target,
                                 command: `${computerDirsShell({ dirs })}${args.command}`,
                                 timeout_ms: AppData.ComputerSearchTimeoutMs,
                                 signal,

@@ -5,7 +5,7 @@ type Socket = ServerWebSocket<WebSocketSession>;
 
 /**
  * Bridges a user's websocket on `/computers/<id>/...` to the same path on
- * the computer (a terminal shell, the browser's CDP, the code editor).
+ * the computer (the screen's VNC line, the shell's terminal).
  * Messages sent before the computer's side opens are held, and either
  * side closing closes the other.
  */

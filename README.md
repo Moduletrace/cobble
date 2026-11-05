@@ -29,9 +29,8 @@ A crew of small AI worker bots you host yourself (alpha).
 Cobble is a self-hosted crew of small AI worker bots. You get a coordinator
 and a set of workers, each with its own job, models, memory and workspace.
 They talk to you in one chat, share workspaces, run routines on a schedule,
-and drive their own computers: Docker sandboxes with a browser, a terminal,
-a code editor and a desktop that a bot can use and hand back to you when it
-needs help.
+and drive their own computers: lean Docker sandboxes with a real Chrome and
+a shell, which a bot can use and hand back to you when it needs help.
 
 It is an install, not a SaaS. One SQLite database, one Docker container, and
 your data on your own machine.
@@ -61,7 +60,7 @@ your data on your own machine.
 | Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard                              |
 | Memory     | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works                                                            |
 | Routines   | Cron schedules per bot, written in chat, that queue a task on its own                                                                                      |
-| Computers  | Docker sandboxes with browser, terminal, code editor and desktop, opened from the chat and handed back to you mid-task                                     |
+| Computers  | Docker sandboxes with a real headful Chrome and a shell, shown live in the chat and handed back to you mid-task                                            |
 | Files      | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply                                                      |
 | Models     | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness                       |
 | Voice      | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice                                                |
@@ -91,7 +90,7 @@ The app serves plain HTTP on the port it prints, usually
 `http://<your-ip>:7227`. Put a reverse proxy or tunnel in front of it for
 HTTPS (see [HTTPS](#https)), then open the proxy's address and create the
 super admin account. The first signup also creates the coordinator and the
-main computer, which pulls the sandbox image in the background. Give it a
+main computer, which pulls the computer image in the background. Give it a
 few minutes.
 
 Then open **Settings > Models**, add an OpenRouter key (or another provider)
@@ -188,7 +187,7 @@ You ── chat ── Coordinator ── delegates ── Workers
                    │   cron schedules         │
                    └── Computers ─────────────┘
                        docker sandboxes:
-                       browser, terminal, code, desktop
+                       real Chrome, shell
 ```
 
 - **Coordinator** is yours alone. It plans, delegates to workers, and keeps
@@ -198,9 +197,10 @@ You ── chat ── Coordinator ── delegates ── Workers
 - **Workspaces** group bots around a subject. Models, instructions, memory
   and the default computer resolve per workspace before per bot.
 - **Routines** are cron schedules that queue a task without you asking.
-- **Computers** are per-install Docker containers. Bots use them through the
-  sandbox's tools, and you can open the same machine in the browser and take
-  over.
+- **Computers** are per-install Docker containers of Cobble's own image
+  (`computer/`: Debian 13, Google Chrome on a virtual screen, Playwright MCP
+  and a shell). Bots drive the browser and the shell, and you can watch the
+  same browser live in the chat and take over.
 
 Each conversation is split into sessions, so a long-running bot does not grow
 one endless thread: the bot names a session, summarizes it, and carries the

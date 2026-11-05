@@ -1,3 +1,5 @@
+import { AppData } from "@/src/data/app-data";
+
 /**
  * Chrome preferences a computer's browser profile starts with, written
  * only when the profile has none (`prepareComputerBrowserDir`) so whatever
@@ -43,9 +45,9 @@ export const ComputerBrowserPreferences = {
         accept_languages: "en-US,en",
     },
     download: {
-        default_directory: "/home/gem/Downloads",
+        default_directory: AppData.ComputerBrowserDownloadsDir,
         prompt_for_download: false,
         directory_upgrade: true,
     },
-    savefile: { default_directory: "/home/gem/Downloads" },
+    savefile: { default_directory: AppData.ComputerBrowserDownloadsDir },
 };

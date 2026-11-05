@@ -11,6 +11,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      rebuild_computer:
+        description: Rebuild the computer image even if its version is already published (picks up a newer Chrome).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -94,3 +99,59 @@ jobs:
           sbom: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # The computers' image (computer/), versioned by its tag in
+  # AppData.ComputerImage rather than the app's version: a release builds it
+  # only when that tag isn't published yet (or when a dispatch asks), so
+  # computers already running it are never changed under them.
+  computer-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read the computer image's tag
+        id: computer
+        env:
+          REBUILD: ${{ github.event.inputs.rebuild_computer }}
+        run: |
+          set -euo pipefail
+          image="$(sed -n -E 's/^[[:space:]]*ComputerImage: "([^"]+)",?$/\1/p' src/data/app-data.ts | head -n1)"
+          case "$image" in
+            ghcr.io/moduletrace/cobble-computer:*) ;;
+            *) echo "AppData.ComputerImage isn't a ghcr.io/moduletrace/cobble-computer tag: '$image'" >&2; exit 1 ;;
+          esac
+          build=true
+          if [ "$REBUILD" != "true" ] && docker manifest inspect "$image" > /dev/null 2>&1; then
+            build=false
+          fi
+          {
+            echo "image=$image"
+            echo "build=$build"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the computer image
+        if: steps.computer.outputs.build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./computer
+          file: ./computer/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.computer.outputs.image }}
+            ghcr.io/moduletrace/cobble-computer:latest
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=computer
+          cache-to: type=gha,mode=max,scope=computer

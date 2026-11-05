@@ -16,3 +16,5 @@ coverage
 logs
 *.log
 assets
+# The computer image builds on its own (computer/Dockerfile).
+computer

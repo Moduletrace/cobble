@@ -5,14 +5,15 @@ import type { ComputerWithStatus } from "@/src/types";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import SettingsShell from "../../../(partials)/settings-shell";
 import ComputerBotsGroup from "../(partials)/computer-bots-group";
+import ComputerBrowserGroup from "../(partials)/computer-browser-group";
 import ComputerDangerGroup from "../(partials)/computer-danger-group";
 import ComputerDetailsGroup from "../(partials)/computer-details-group";
 import ComputerOverviewGroup from "../(partials)/computer-overview-group";
 import ComputerWorkspacesGroup from "../(partials)/computer-workspaces-group";
 
 /**
- * One computer's settings: its state and resources, direct bot access,
- * linked workspaces, and retrying or deleting it. Super admins edit and
+ * One computer's settings: its state and resources, its browser, direct
+ * bot access, linked workspaces, and rebuilding, retrying or deleting it. Super admins edit and
  * manage the danger zone; admins see the rest.
  */
 export default function ComputerSettingsSection() {
@@ -52,6 +53,9 @@ export default function ComputerSettingsSection() {
                     computer={computer}
                     onUpdated={update}
                 />
+            ) : null}
+            {is_super_admin ? (
+                <ComputerBrowserGroup computer={computer} onUpdated={update} />
             ) : null}
             <ComputerBotsGroup
                 computer={computer}

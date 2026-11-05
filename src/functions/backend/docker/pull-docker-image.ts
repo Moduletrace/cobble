@@ -2,19 +2,24 @@ import dockerRequest from "./docker-request";
 
 type Params = {
     /**
-     * e.g. `ghcr.io/agent-infra/sandbox:latest`.
+     * e.g. `ghcr.io/moduletrace/cobble-computer:1.0.0`.
      */
     image: string;
+    /**
+     * Pull even when docker has it, for a newer build under the same tag;
+     * the image docker has is kept when the pull fails.
+     */
+    force?: boolean;
 };
 
 /**
- * Pulls an image unless docker already has it. Waits for the whole pull,
- * which can take minutes for a large image.
+ * Pulls an image unless docker already has it (or `force`). Waits for the
+ * whole pull, which can take minutes for a large image.
  */
-export default async function pullDockerImage({ image }: Params) {
+export default async function pullDockerImage({ image, force }: Params) {
     const present = await dockerRequest({ path: `/images/${encodeURIComponent(image)}/json` });
 
-    if (present.ok) return;
+    if (present.ok && !force) return;
 
     const slash = image.lastIndexOf("/");
     const colon = image.lastIndexOf(":");
@@ -45,7 +50,7 @@ export default async function pullDockerImage({ image }: Params) {
         })
         .find((line) => line?.error);
 
-    if (!res.ok || failed) {
+    if ((!res.ok || failed) && !present.ok) {
         throw new Error(`Couldn't pull ${image}: ${failed?.error || res.message}`);
     }
 }

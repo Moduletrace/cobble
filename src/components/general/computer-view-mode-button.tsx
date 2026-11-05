@@ -7,7 +7,7 @@ type Props = {
 };
 
 /**
- * One mode in a computer view's toolbar (Browser, Terminal, Code).
+ * One mode in a computer view's toolbar (`ComputerViewModes`).
  */
 export default function ComputerViewModeButton({ title, active, onPick }: Props) {
     return (

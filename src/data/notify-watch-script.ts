@@ -6,7 +6,7 @@ export const NotifyWatchVersion = "1";
 
 /**
  * The browser-notification watcher the app runs on a computer
- * (`syncComputerNotifyWatch`), as `gem`, with the sandbox's own Python
+ * (`syncComputerNotifyWatch`), as `gem`, with the computer's own Python
  * and GLib. It owns `org.freedesktop.Notifications` on the session bus,
  * so Chrome sends its notifications to it instead of its silent built-in
  * message center (Chrome looks for the service only when it starts), and

@@ -1,18 +1,16 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
+import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
+import downloadComputerFile from "@/src/functions/backend/computers/download-computer-file";
+import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
 import saveUserSecret from "@/src/functions/backend/db/envs/save-user-secret";
 import { resolveComputerPath, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import secretRef from "@/src/utils/secret-ref";
 import type { HarnessTool } from "../../types";
 import computerDirsShell from "./computer-dirs-shell";
-import downloadComputerFile from "./download-computer-file";
-import runComputerCommand from "./run-computer-command";
 
 type Params = {
-    /**
-     * The sandbox's REST address (no `/mcp`).
-     */
-    base_url: string;
+    computer: ComputerApi;
     /**
      * The computer's env file, sourced before a command.
      */
@@ -41,13 +39,13 @@ type Args = {
 /**
  * Saves a secret that's on the computer (a generated password, a token a
  * CLI printed, a key file) as the user's personal secret for this bot,
- * without the bot ever reading it: the file comes over the sandbox's
- * download endpoint, a command's output over its REST shell, and neither
+ * without the bot ever reading it: the file comes over the computer's
+ * download endpoint, a command's output over its shell API, and neither
  * is returned. The bot gets a `[secret:ID]` ref to show the user, and the
  * value is redacted from everything it reads afterwards.
  */
 export default function captureSecretTool({
-    base_url,
+    computer,
     shell_path,
     dirs,
     user_id,
@@ -65,7 +63,7 @@ export default function captureSecretTool({
             command: z.string().trim().min(1).max(4000).optional().describe("For from command"),
         }),
         run: async ({ args, signal }) => {
-            const value = await readValue({ args, base_url, shell_path, dirs, signal });
+            const value = await readValue({ args, computer, shell_path, dirs, signal });
 
             if (value.text === undefined) return value.error;
 
@@ -87,13 +85,13 @@ export default function captureSecretTool({
 
 async function readValue({
     args,
-    base_url,
+    computer,
     shell_path,
     dirs,
     signal,
 }: {
     args: Args;
-    base_url: string;
+    computer: ComputerApi;
     shell_path: string;
     dirs: ComputerRunDirs;
     signal?: AbortSignal;
@@ -104,7 +102,7 @@ async function readValue({
         if (!args.path) return { error: `Give the file's path.` };
 
         const download = await downloadComputerFile({
-            base_url,
+            computer,
             path: resolveComputerPath({ path: args.path, dirs }),
             max_bytes: AppData.CapturedSecretMaxChars * 4,
             signal,
@@ -126,7 +124,7 @@ async function readValue({
         if (!args.command) return { error: `Give the command.` };
 
         const result = await runComputerCommand({
-            base_url,
+            computer,
             command: `(${computerDirsShell({ dirs })}[ -f ${shell_path} ] && . ${shell_path}; ${args.command}) 2>/dev/null`,
             timeout_ms: AppData.CaptureSecretTimeoutMs,
             signal,

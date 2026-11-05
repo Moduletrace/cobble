@@ -14,8 +14,10 @@ import {
 import folderRef from "@/src/utils/folder-ref";
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
-import downloadComputerFile, { shellQuote } from "./download-computer-file";
-import runComputerCommand from "./run-computer-command";
+import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
+import downloadComputerFile, { type ComputerDownload } from "@/src/functions/backend/computers/download-computer-file";
+import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
+import shellQuote from "@/src/utils/shell-quote";
 import walkRegularFiles from "@/src/utils/walk-regular-files";
 
 type Params = {
@@ -51,9 +53,9 @@ type Args = {
  * rebuilt, and are readable at once; the originals stay on the computer,
  * where the message's folder ref points at the folder holding them.
  *
- * The bytes come back over the sandbox's streaming download endpoint
+ * The bytes come back over the computer's streaming download endpoint
  * (`downloadComputerFile`), never through its shell, whose output is
- * capped: a `base64` round trip through `/v1/shell/exec` silently cut every
+ * capped: a `base64` round trip through the old sandbox's shell silently cut every
  * import at 30,047 characters.
  */
 export default function importFileTool({
@@ -104,7 +106,7 @@ export default function importFileTool({
 
             if (!target.ready) return computerNotReadyMessage(target);
 
-            const kind = await sourceKind({ base_url: target.base_url, source, signal });
+            const kind = await sourceKind({ computer: target, source, signal });
 
             if (kind == "missing") {
                 return `Nothing at ${onComputer({ source })} on this computer. Check it with search_computers or the computer's own tools before importing.`;
@@ -112,7 +114,7 @@ export default function importFileTool({
 
             if (kind == "folder") {
                 return importFolder({
-                    base_url: target.base_url,
+                    computer: target,
                     source,
                     name: (args.name || source.split("/").pop() || "import").trim(),
                     scope: own,
@@ -124,7 +126,7 @@ export default function importFileTool({
             }
 
             return importOneFile({
-                base_url: target.base_url,
+                computer: target,
                 source,
                 name: (args.name || source.split("/").pop() || "import").trim(),
                 scope: own,
@@ -140,7 +142,7 @@ export default function importFileTool({
 }
 
 type ImportTarget = {
-    base_url: string;
+    computer: ComputerApi;
     source: string;
     name: string;
     scope: StorageScope;
@@ -164,7 +166,7 @@ async function importOneFile({
     signal?: AbortSignal;
 }) {
     const download = await downloadComputerFile({
-        base_url: target.base_url,
+        computer: target.computer,
         path: onComputer({ source: target.source }),
         max_bytes: AppData.BotFileImportMaxBytes,
         signal,
@@ -219,7 +221,7 @@ async function importFolder({
     ...target
 }: ImportTarget & { signal?: AbortSignal }) {
     const archive = await readFolderArchive({
-        base_url: target.base_url,
+        computer: target.computer,
         source: target.source,
         signal,
     });
@@ -265,16 +267,16 @@ function sourceFolder({ path: source }: { path: string }) {
  * Whether the path is a file, a folder, or not there at all.
  */
 async function sourceKind({
-    base_url,
+    computer,
     source,
     signal,
 }: {
-    base_url: string;
+    computer: ComputerApi;
     source: string;
     signal?: AbortSignal;
 }): Promise<"file" | "folder" | "missing"> {
     const result = await runComputerCommand({
-        base_url,
+        computer,
         command: `d=${shellQuote({ text: onComputer({ source }) })}; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
         timeout_ms: AppData.ComputerSearchTimeoutMs,
         signal,
@@ -328,17 +330,17 @@ function formatSize({ bytes }: { bytes: number }) {
  * of any size under the limit arrives whole.
  */
 async function readFolderArchive({
-    base_url,
+    computer,
     source,
     signal,
 }: {
-    base_url: string;
+    computer: ComputerApi;
     source: string;
     signal?: AbortSignal;
-}): Promise<import("./download-computer-file").ComputerDownload> {
+}): Promise<ComputerDownload> {
     const limit = AppData.BotFileImportMaxBytes;
     const result = await runComputerCommand({
-        base_url,
+        computer,
         command: [
             `d=${shellQuote({ text: onComputer({ source }) })}`,
             `t=$(mktemp /tmp/cobble-import-XXXXXX.tgz)`,
@@ -364,10 +366,10 @@ async function readFolderArchive({
     }
 
     try {
-        return await downloadComputerFile({ base_url, path: archive_path, max_bytes: limit, signal });
+        return await downloadComputerFile({ computer, path: archive_path, max_bytes: limit, signal });
     } finally {
         runComputerCommand({
-            base_url,
+            computer,
             command: `rm -f ${shellQuote({ text: archive_path })}`,
             timeout_ms: 30_000,
         }).catch(() => undefined);

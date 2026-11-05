@@ -3,10 +3,10 @@ import parseComputerProxyPath from "./parse-computer-proxy-path";
 
 describe("parseComputerProxyPath", () => {
     test("splits the computer id from the path on it", () => {
-        expect(parseComputerProxyPath({ pathname: "/computers/3/v1/shell/ws" })).toEqual({
+        expect(parseComputerProxyPath({ pathname: "/computers/3/desktop/websockify" })).toEqual({
             computer_id: 3,
             prefix: "/computers/3",
-            rest: "v1/shell/ws",
+            rest: "desktop/websockify",
         });
     });
 

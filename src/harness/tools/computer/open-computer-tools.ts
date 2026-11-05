@@ -1,5 +1,7 @@
 import { AppData } from "@/src/data/app-data";
 import { ComputerMcpExcludedTools } from "@/src/dict/computer-dict";
+import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
+import writeComputerEnv from "@/src/functions/backend/computers/write-computer-env";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
@@ -8,13 +10,15 @@ import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import grabMcpTools from "../../mcp/grab-mcp-tools";
 import type { HarnessTool } from "../../types";
-import computerDirsShell from "./computer-dirs-shell";
 import captureSecretTool from "./capture-secret-tool";
-import runComputerCommand from "./run-computer-command";
-import withCommandTimeout from "./with-command-timeout";
+import computerBashTool from "./computer-bash-tool";
+import computerDirsShell from "./computer-dirs-shell";
+import computerEditFileTool from "./computer-edit-file-tool";
+import computerReadFileTool from "./computer-read-file-tool";
+import type { ComputerToolContext } from "./computer-tool-context";
+import computerWriteFileTool from "./computer-write-file-tool";
+import withBrowserOutputs from "./with-browser-outputs";
 import withComputerDirs from "./with-computer-dirs";
-import withComputerEnv from "./with-computer-env";
-import writeComputerEnv from "./write-computer-env";
 
 type Params = {
     computer_id: number | string;
@@ -61,14 +65,15 @@ export type OpenComputer = {
 };
 
 /**
- * Connects to a computer (its AIO sandbox, over MCP) and returns its tools:
- * shell, files, code and browser. Its envs (`grabComputerEnvs`) are written
- * to the computer and loaded by the shell and code tools; secret values are
- * redacted from everything the tools return. Every tool is kept in the
- * run's folders (`withComputerDirs`), which are created first, and every
- * bash command is stopped on the computer (`withCommandTimeout`). Screenshots
- * come back as readings from the media reading harness. Call `close` when the run ends.
- * Throws when the computer can't be reached, which the queue retries.
+ * Connects to a computer and returns its tools: its shell and files (the
+ * app's own `computer_*` tools, over the computer's agent) and its browser
+ * (Playwright MCP on the computer, attached to its real Chrome). Its envs
+ * (`grabComputerEnvs`) are written to the computer and loaded by the
+ * shell; secret values are redacted from everything the tools return.
+ * Every tool is kept in the run's folders (`withComputerDirs`, and the
+ * shell and file tools themselves), which are created first. Screenshots
+ * come back as images for the run. Call `close` when the run ends. Throws
+ * when the computer can't be reached, which the queue retries.
  */
 export default async function openComputerTools({
     computer_id,
@@ -90,10 +95,10 @@ export default async function openComputerTools({
     }
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
-    const paths = await writeComputerEnv({ base_url: target.base_url, envs, signal });
+    const paths = await writeComputerEnv({ computer: target, envs, signal });
 
     await runComputerCommand({
-        base_url: target.base_url,
+        computer: target,
         command: `${computerDirsShell({ dirs })}true`,
         timeout_ms: AppData.McpConnectTimeoutMs,
         signal,
@@ -106,24 +111,29 @@ export default async function openComputerTools({
     const secrets: { key: string; value: string }[] = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
 
-    const client = await connectMcpServer({ url: target.url, signal });
+    const client = await connectMcpServer({ url: target.url, headers: { authorization: `Bearer ${target.token}` }, signal });
+    const context: ComputerToolContext = { computer: target, dirs, shell_path: paths.shell_path, redact };
 
     try {
-        const tools = await grabMcpTools({
+        const browser_tools = await grabMcpTools({
             client,
             exclude: ComputerMcpExcludedTools,
             redact,
-            image_focus: "This is a screenshot of a computer screen. Describe the page layout, text, buttons and form fields, and any errors or popups.",
+            image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
         });
 
         return {
             name: target.name,
             tools: [
-                ...tools.map((tool) => withComputerDirs({ tool: withComputerEnv({ tool: withCommandTimeout({ tool }), ...paths }), dirs })),
+                computerBashTool(context),
+                computerReadFileTool(context),
+                computerWriteFileTool(context),
+                computerEditFileTool(context),
+                ...browser_tools.map((tool) => withBrowserOutputs({ tool: withComputerDirs({ tool, dirs }), computer: target, dirs })),
                 ...(user_id && bot_id && onSecretRef
                     ? [
                           captureSecretTool({
-                              base_url: target.base_url,
+                              computer: target,
                               shell_path: paths.shell_path,
                               dirs,
                               user_id,

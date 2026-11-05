@@ -16,7 +16,8 @@ import type {
 
 /**
  * Updates a computer of the session user (super admins only: each one is
- * a container on this host). New resources (`cpus`, `memory_mb`) recreate
+ * a container on this host). New resources (`cpus`, `memory_mb`) or
+ * browser settings (`browser_settings`) recreate
  * its container in the background, its files kept; its state arrives as
  * `server:computer-updated`. Returns the computer.
  */

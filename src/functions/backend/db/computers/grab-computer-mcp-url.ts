@@ -5,6 +5,7 @@ import type {
 } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import { ComputerMcpPath, type ContainerStatus } from "@/src/dict/computer-dict";
+import computerToken from "@/src/utils/computer-token";
 import grabEnv from "../envs/grab-env";
 import pickReachableAddress from "./pick-reachable-address";
 import refreshComputerContainer from "./refresh-computer-container";
@@ -17,7 +18,7 @@ type ComputerRow = Pick<BUN_SQLITE_COBBLE_COMPUTERS, "name" | "kind"> &
     Pick<BUN_SQLITE_COBBLE_CONTAINERS, "id" | "docker_id" | "status" | "hostname" | "ip_address" | "port">;
 
 export type ComputerAddress =
-    | { ready: true; url: string; base_url: string; name: string }
+    | { ready: true; url: string; base_url: string; token: string; name: string }
     | { ready: false; status: ContainerStatus; name: string };
 
 /**
@@ -26,7 +27,8 @@ export type ComputerAddress =
  * e.g. `http://localhost:8170`), else its docker hostname and port, or
  * its IP address on the network when the hostname can't be reached (a
  * dev server outside docker, `pickReachableAddress`). `base_url` is the
- * same address without `/mcp`, for the sandbox's REST API. Only a
+ * same address without `/mcp`, for the agent's API, and `token` what the
+ * agent asks of every request (`computerToken`). Only a
  * computer whose health check passed (`running`) is reached; any other
  * state is read again from docker first, since it may have come back
  * since the last sync, and returned as `ready: false`. Null when the
@@ -52,7 +54,7 @@ export default async function grabComputerMcpUrl({ computer_id }: Params): Promi
 
     if (main_override) {
         const base_url = main_override.replace(/\/+$/, "");
-        return { ready: true, url: `${base_url}${ComputerMcpPath}`, base_url, name };
+        return { ready: true, url: `${base_url}${ComputerMcpPath}`, base_url, token: computerToken({ computer_id }), name };
     }
 
     let status = (row.status || "unknown") as ContainerStatus;
@@ -76,5 +78,5 @@ export default async function grabComputerMcpUrl({ computer_id }: Params): Promi
         ],
     });
 
-    return { ready: true, url: `${base_url}${ComputerMcpPath}`, base_url, name };
+    return { ready: true, url: `${base_url}${ComputerMcpPath}`, base_url, token: computerToken({ computer_id }), name };
 }

@@ -6,11 +6,11 @@ const big = "x".repeat(30000);
 
 const run = (): HarnessMessage[] => [
     { role: "user", content: "Do the thing." },
-    { role: "assistant", content: null, tool_calls: [{ id: "1", name: "sandbox_execute_bash", arguments: "{}" }] },
+    { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
     { role: "tool", tool_call_id: "1", content: big },
-    { role: "assistant", content: null, tool_calls: [{ id: "2", name: "sandbox_execute_bash", arguments: "{}" }] },
+    { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
     { role: "tool", tool_call_id: "2", content: big },
-    { role: "assistant", content: null, tool_calls: [{ id: "3", name: "sandbox_execute_bash", arguments: "{}" }] },
+    { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
     { role: "tool", tool_call_id: "3", content: "recent" },
 ];
 

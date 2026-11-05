@@ -12,8 +12,8 @@ describe("describeJobStep", () => {
                 text: null,
                 candidate,
                 tool_calls: [
-                    { id: "a", name: "sandbox_execute_bash", arguments: '{"command":"cat secret"}' },
-                    { id: "b", name: "sandbox_execute_bash", arguments: "{}" },
+                    { id: "a", name: "computer_bash", arguments: '{"command":"cat secret"}' },
+                    { id: "b", name: "computer_bash", arguments: "{}" },
                     { id: "c", name: "update_memory", arguments: "{}" },
                 ],
             }),
@@ -23,7 +23,7 @@ describe("describeJobStep", () => {
             metadata: {
                 step: 2,
                 model: "deepseek/deepseek-chat:free",
-                tools: ["sandbox_execute_bash", "update_memory"],
+                tools: ["computer_bash", "update_memory"],
             },
         });
     });

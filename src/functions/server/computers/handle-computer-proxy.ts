@@ -11,9 +11,10 @@ type Params = {
 };
 
 /**
- * Serves a computer's own apps (browser, terminal, code) to its owner
+ * Serves a computer's own pages (its screen and shell) to its owner
  * under `/computers/<id>/`, so the chat can show them in a frame without
- * the sandbox being reachable from the user's browser. Plain requests are
+ * the computer being reachable from the user's browser. Requests carry
+ * the computer's token, which never reaches the user. Plain requests are
  * fetched and streamed back; websockets are bridged
  * (`computerProxySocket`).
  */
@@ -22,8 +23,10 @@ export default async function handleComputerProxy({ req, server }: Params) {
 
     if (resolved.error) return resolved.error;
 
-    const { session, url, prefix, base_url, target } = resolved;
+    const { session, url, prefix, base_url, token, target } = resolved;
     const headers = computerProxyRequestHeaders({ headers: req.headers, url, prefix });
+
+    headers.set("authorization", `Bearer ${token}`);
 
     if (req.headers.get("upgrade")?.toLowerCase() == "websocket") {
         if (!isSameOriginUpgrade({ req })) return new Response("Forbidden", { status: 403 });

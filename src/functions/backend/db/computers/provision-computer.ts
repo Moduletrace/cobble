@@ -6,6 +6,8 @@ import createComputerContainer from "@/src/functions/backend/docker/create-compu
 import { logError } from "@/src/functions/backend/logger";
 import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import prepareComputerDataDir from "./prepare-computer-data-dir";
+import computerBrowserEnv from "@/src/utils/computer-browser-env";
+import parseComputerBrowserSettings from "@/src/utils/parse-computer-browser-settings";
 import pushComputerUpdate from "./push-computer-update";
 import syncComputerBrowserPolicy from "./sync-computer-browser-policy";
 
@@ -15,25 +17,31 @@ type Params = {
      * A brand new computer: start from an empty workspace.
      */
     fresh?: boolean;
+    /**
+     * Pull the image again first (a rebuild), for a newer build under the
+     * same tag.
+     */
+    pull?: boolean;
 };
 
 /**
  * Sets up a computer's container: prepares its workspace and browser profile directories, pulls the
- * sandbox image and starts the container with the computer's resources
- * (`cpus`, `memory_mb`, else the `AppData` defaults), then records it (`containers`:
+ * computer image and starts the container with the computer's resources
+ * (`cpus`, `memory_mb`, else the `AppData` defaults) and its browser
+ * settings (`browser_settings`, `computerBrowserEnv`), then records it (`containers`:
  * docker id, state, and its IP address on the network). A failure is
  * recorded as `failed` with its reason, which the computer lists show. The
  * owner's tabs hear about it either way. Its browser gets its policy
  * (`syncComputerBrowserPolicy`). The metadata's `layout` says the
- * container mounts only the workspace and the browser profile (`syncComputers` recreates one that
- * doesn't). Never throws.
+ * container runs the current image and mounts (`syncComputers` recreates
+ * one that doesn't). Never throws.
  */
-export default async function provisionComputer({ computer_id, fresh }: Params) {
+export default async function provisionComputer({ computer_id, fresh, pull }: Params) {
     const row = (
         await BunSQLite.sql<
-            BUN_SQLITE_COBBLE_CONTAINERS & Pick<BUN_SQLITE_COBBLE_COMPUTERS, "cpus" | "memory_mb">
+            BUN_SQLITE_COBBLE_CONTAINERS & Pick<BUN_SQLITE_COBBLE_COMPUTERS, "cpus" | "memory_mb" | "browser_settings">
         >({
-            sql: `SELECT co.*, c.cpus, c.memory_mb FROM containers co JOIN computers c ON c.container_id = co.id WHERE c.id = ? LIMIT 1`,
+            sql: `SELECT co.*, c.cpus, c.memory_mb, c.browser_settings FROM containers co JOIN computers c ON c.container_id = co.id WHERE c.id = ? LIMIT 1`,
             values: [computer_id],
         })
     ).payload?.[0];
@@ -57,6 +65,11 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
             browser_dir,
             cpus: Number(row.cpus) || AppData.ComputerDefaultCpus,
             memory_mb: Number(row.memory_mb) || AppData.ComputerDefaultMemoryMb,
+            browser_env: computerBrowserEnv({
+                settings: parseComputerBrowserSettings({ text: row.browser_settings }),
+                fallback_timezone: process.env.TZ,
+            }),
+            pull,
         });
 
         const { error: _error, mcp_url: _mcp_url, ...kept } = metadata;
@@ -66,7 +79,7 @@ export default async function provisionComputer({ computer_id, fresh }: Params) 
                 port = ?, status = ?, metadata = ?, last_seen_at = ?, updated_at = ? WHERE id = ?`,
             values: [
                 created.docker_id,
-                AppData.ComputerImage,
+                created.image,
                 created.network,
                 row.name,
                 created.ip_address,

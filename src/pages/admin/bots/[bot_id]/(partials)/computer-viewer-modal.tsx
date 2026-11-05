@@ -14,7 +14,7 @@ type Props = {
 
 /**
  * The computer the user opened (from the computers modal, or a take-over
- * the bot asked for), large, in its browser, terminal or code editor.
+ * the bot asked for), large, its browser live.
  * After a take-over the user hands it back from here, which tells the
  * bot in chat so it carries on.
  */

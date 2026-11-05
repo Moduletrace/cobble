@@ -20,8 +20,7 @@ const Dropped = ["host", "connection", "keep-alive", "upgrade", "content-length"
 /**
  * The headers a request is sent to a computer with: the user's own,
  * without the app's session cookies, plus the forwarded host, protocol
- * and prefix, which the sandbox builds its links (and its browser's CDP
- * address) from.
+ * and prefix, which the computer may build its links from.
  */
 export default function computerProxyRequestHeaders({ headers, url, prefix }: Params) {
     const out = new Headers(headers);

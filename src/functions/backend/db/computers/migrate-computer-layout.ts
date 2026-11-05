@@ -14,8 +14,9 @@ type Params = {
 
 /**
  * Recreates a computer whose container was set up with an older layout
- * (its whole home mounted, or its browser profile left in the container),
- * so it mounts only its workspace and keeps its browser profile.
+ * (`AppData.ComputerWorkspaceLayout`: an older image, its whole home
+ * mounted, or its browser profile left in the container), so it runs the
+ * current image with only its workspace and browser profile mounted.
  * `provisionComputer` moves an old home aside (`prepareComputerDataDir`)
  * and records the layout, so this runs once per computer. Waits for a
  * later sync while a job works on it. Returns whether it did.
@@ -29,9 +30,9 @@ export default async function migrateComputerLayout({ computer_id, metadata }: P
     await provisionComputer({ computer_id });
 
     await logEvent({
-        title: `Computer #${computer_id} now keeps its browser profile`,
+        title: `Computer #${computer_id} moved to the current computer image`,
         category: "system",
-        plain_text: `Recreated computer #${computer_id} so only ${AppData.ComputerWorkspaceDir} and its browser profile (${AppData.ComputerBrowserProfileDir}) are kept; an old home, if any, was moved aside and kept on disk.`,
+        plain_text: `Recreated computer #${computer_id} on the current image (layout ${AppData.ComputerWorkspaceLayout}); ${AppData.ComputerWorkspaceDir} and its browser profile (${AppData.ComputerBrowserProfileDir}) were kept, and an old home, if any, was moved aside and kept on disk.`,
         metadata: { computer_id },
     });
 

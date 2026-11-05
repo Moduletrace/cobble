@@ -100,4 +100,8 @@ export const ReservedToolNames = [
     "update_workspace",
 ] as const;
 
-export const ReservedToolPrefixes = ["sandbox_", "browser_"] as const;
+/**
+ * Name prefixes of a computer's own tools (`computer_*` shell and files,
+ * `browser_*` from Playwright MCP); `sandbox_` was the AIO sandbox's.
+ */
+export const ReservedToolPrefixes = ["computer_", "browser_", "sandbox_"] as const;

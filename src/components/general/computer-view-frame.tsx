@@ -1,3 +1,4 @@
+import { twMerge } from "tailwind-merge";
 import { ComputerViewModes, type ComputerViewMode } from "@/src/dict/computer-dict";
 import computerViewUrl from "@/src/utils/computer-view-url";
 
@@ -23,7 +24,7 @@ export default function ComputerViewFrame({ computer_id, name, mode, active }: P
             src={computerViewUrl({ computer_id, mode })}
             title={`${name}: ${title}`}
             allow="clipboard-read; clipboard-write; fullscreen"
-            className={`absolute inset-0 w-full h-full border-0 bg-sunken ${active ? "" : "hidden"}`}
+            className={twMerge("absolute inset-0 w-full h-full border-0 bg-sunken", !active && "hidden")}
         />
     );
 }

@@ -86,19 +86,25 @@ export const AppData = {
      */
     DockerNetworkName: SiteData["SiteSlug"],
     /**
-     * Port the AIO sandbox listens on inside its container.
+     * Port a computer's agent listens on inside its container: its shell
+     * and file API, Playwright MCP (`/mcp`), its screen (`/desktop/`) and
+     * its shell (`/terminal/`).
      */
     ComputerPort: 8080,
     /**
-     * Every computer the app creates runs this image, named
-     * `<ComputerContainerPrefix>-<computer id>` on `DockerNetworkName`.
+     * Every computer the app creates runs this image (built from
+     * `computer/`), unless the `COMPUTER_IMAGE` app setting names another,
+     * named `<ComputerContainerPrefix>-<computer id>` on `DockerNetworkName`.
+     * Its tag is the image's version: bump it with any change under
+     * `computer/` (the release workflow builds that tag), and bump
+     * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/agent-infra/sandbox:latest",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.0.0",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
      * container) is kept, at `DATA_DIR/<ComputerDataDir>/<id>`, owned by
-     * the sandbox's user, plus its browser profile
+     * the computer's user, plus its browser profile
      * (`ComputerBrowserDataDir`). Both stay when the computer is deleted.
      * The rest of its home (`ComputerHomeDir`: dotfiles, the env files)
      * lives in the container and goes with it. Every bot works in
@@ -113,18 +119,33 @@ export const AppData = {
      * A computer's browser profile (cookies, logins, site permissions) is
      * kept at `DATA_DIR/<ComputerBrowserDataDir>/<id>`, outside its
      * workspace, and mounted at `ComputerBrowserProfileDir`, which Chrome
-     * is pointed at with `--user-data-dir`. The image's own profile
-     * (`~/.config/browser`) can't be kept: every boot resets its
-     * preferences to session-only cookies.
+     * is pointed at with `--user-data-dir`.
      */
     ComputerBrowserDataDir: "computer-browsers",
     ComputerBrowserProfileDir: "/home/gem/.cobble-browser",
     /**
-     * The managed policy file a computer's Chrome reads (the image's
-     * Chrome looks in `/etc/chromium/policies/managed`), written into the
-     * container by `syncComputerBrowserPolicy`.
+     * The managed policy file a computer's browser reads (Chrome's folder;
+     * the image links Chromium's to it), written into the container by
+     * `syncComputerBrowserPolicy`.
      */
-    ComputerBrowserPolicyFile: "/etc/chromium/policies/managed/cobble.json",
+    ComputerBrowserPolicyFile: "/etc/opt/chrome/policies/managed/cobble.json",
+    /**
+     * Where a computer's Playwright MCP writes what a browser tool saves
+     * without a name (snapshots, console logs), outside every run's
+     * folders: `withBrowserOutputs` turns those links into the tool that
+     * reads them.
+     */
+    ComputerBrowserOutputDir: "/home/gem/.cobble/playwright",
+    /**
+     * Chrome saves downloads here itself (the seed prefs), since Playwright
+     * attached over CDP leaves them to the browser. After each browser tool
+     * call `withBrowserOutputs` moves finished ones into the run's
+     * `ComputerDownloadsFolder`, so whichever run's call comes next on that
+     * computer gets them (a download the user starts in the live view
+     * included).
+     */
+    ComputerBrowserDownloadsDir: "/home/gem/Downloads",
+    ComputerDownloadsFolder: "downloads",
     /**
      * Written at the root of a computer's workspace once it uses that
      * layout, so an older computer's whole home is told apart and moved
@@ -137,11 +158,12 @@ export const AppData = {
      */
     ComputerOldHomeSuffix: "-home-",
     /**
-     * Recorded in a container's `metadata.layout` once it mounts only the
-     * workspace and the browser profile. A container with another value
-     * is recreated (`migrateComputerLayout`).
+     * Recorded in a container's `metadata.layout`: the image and mounts it
+     * was created with. A container with another value is recreated
+     * (`migrateComputerLayout`), keeping its workspace and browser profile.
+     * `cobble-computer` moved every computer off the AIO sandbox.
      */
-    ComputerWorkspaceLayout: "workspace-browser",
+    ComputerWorkspaceLayout: "cobble-computer",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
     /**
@@ -154,8 +176,8 @@ export const AppData = {
     ComputerMaxCpus: 64,
     ComputerMinMemoryMb: 512,
     /**
-     * Docker's health check on every computer container: the sandbox's API
-     * on `ComputerPort` and its browser answer. A new computer stays
+     * Docker's health check on every computer container: its agent's
+     * `/health`, which passes once the browser and its tools answer. A new computer stays
      * `creating` until it passes, for at most `ComputerHealthyTimeoutMs`,
      * checked every `ComputerHealthPollMs`.
      */
@@ -386,12 +408,23 @@ export const AppData = {
      */
     McpToolTimeoutMs: 5 * 60 * 1000,
     /**
-     * A bash command on a computer is killed there after at most this long
-     * (`withCommandTimeout`), below `McpToolTimeoutMs`: the sandbox ignores
-     * its own `timeout` and runs every call in one shell session, so a
-     * command left running would hold up every later one on that computer.
+     * A bash command on a computer (`computer_bash`) is killed there, with
+     * everything it started, after at most this long, below
+     * `HarnessToolTimeoutMs`.
      */
     ComputerCommandMaxSeconds: 270,
+    /**
+     * What a computer's command hands the bot back (its start and end), and
+     * what `computer_read_file` reads: lines at a time, each line cut
+     * past `ComputerReadFileMaxLineChars`, files up to
+     * `ComputerReadFileMaxBytes`. `computer_write_file` and
+     * `computer_edit_file` take files up to `ComputerWriteFileMaxChars`.
+     */
+    ComputerCommandMaxOutputChars: 40_000,
+    ComputerReadFileMaxLines: 2000,
+    ComputerReadFileMaxLineChars: 2000,
+    ComputerReadFileMaxBytes: 10 * 1024 * 1024,
+    ComputerWriteFileMaxChars: 5 * 1024 * 1024,
     /**
      * MCP servers set up in Settings, under MCPs: a stdio server runs in
      * `DATA_DIR/<McpDataDir>/<id>` (its setup installs there, so it

@@ -97,11 +97,10 @@ export const BotComputerBusyStatusLine = "Waiting for its computer";
  * tool name. Tools not listed read "Using <name>".
  */
 export const JobStepToolLabels: Record<string, string> = {
-    sandbox_execute_bash: "Running a command",
-    sandbox_execute_code: "Running code",
-    sandbox_read_file: "Reading a file",
-    sandbox_write_file: "Writing a file",
-    sandbox_file_operations: "Working with files",
+    computer_bash: "Running a command",
+    computer_read_file: "Reading a file",
+    computer_write_file: "Writing a file",
+    computer_edit_file: "Editing a file",
     search_computers: "Searching the computers",
     import_file: "Copying a file from the computer",
     ask_user_to_take_over: "Asking you to take over",

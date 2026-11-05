@@ -15,17 +15,19 @@ type Props = {
 type Status = { error?: boolean; success?: boolean; msg?: string };
 
 /**
- * Setting a failed computer up again, or deleting a sandbox. Its files
- * stay on disk either way.
+ * Rebuilding a computer from its image (a newer one if there is), setting
+ * a failed one up again, or deleting a sandbox. Its files stay on disk
+ * either way.
  */
 export default function ComputerDangerGroup({
     computer,
     onUpdated,
 }: Props) {
-    const [busy, setBusy] = useState<"retry" | "delete">();
+    const [busy, setBusy] = useState<"retry" | "rebuild" | "delete">();
     const [status, setStatus] = useState<Status>();
     const name = computer.name || "this computer";
     const can_retry = computer.status == "failed";
+    const can_rebuild = computer.status != "failed" && computer.status != "creating";
     const can_delete = computer.kind != "main";
 
     const retry = async () => {
@@ -46,6 +48,33 @@ export default function ComputerDangerGroup({
 
         if (res.singleRes) onUpdated(res.singleRes);
         setStatus({ success: true, msg: res.msg || "Setting it up again." });
+    };
+
+    const rebuild = async () => {
+        if (
+            !window.confirm(
+                `Rebuild ${name}? It's made again from its image, a newer one if there is: anything installed outside its workspace goes, and whatever runs on it stops, bots' work included. Its files and browser logins stay.`,
+            )
+        )
+            return;
+
+        setBusy("rebuild");
+        setStatus(undefined);
+
+        const res = await postAdminApi<ComputerWithStatus>({
+            path: "computers/rebuild-computer",
+            body: { computer_id: computer.id },
+        });
+
+        setBusy(undefined);
+
+        if (!res.success) {
+            setStatus({ error: true, msg: res.msg || "Couldn't rebuild it." });
+            return;
+        }
+
+        if (res.singleRes) onUpdated(res.singleRes);
+        setStatus({ success: true, msg: res.msg || "Rebuilding it." });
     };
 
     const remove = async () => {
@@ -77,9 +106,9 @@ export default function ComputerDangerGroup({
         <SettingsGroup
             id="danger"
             title="Danger zone"
-            description="Set a failed computer up again, or delete a sandbox. Its files stay on disk."
+            description="Rebuild it from its image, set a failed one up again, or delete a sandbox. Its files stay on disk."
         >
-            {can_retry || can_delete ? (
+            {can_retry || can_rebuild || can_delete ? (
                 <Row className="w-full gap-2! flex-wrap items-center">
                     {can_retry ? (
                         <Button
@@ -93,6 +122,20 @@ export default function ComputerDangerGroup({
                             onClick={retry}
                         >
                             Retry setup
+                        </Button>
+                    ) : null}
+                    {can_rebuild ? (
+                        <Button
+                            title={`Rebuild ${name} from its image`}
+                            type="button"
+                            variant="outlined"
+                            color="gray"
+                            size="small"
+                            loading={busy == "rebuild"}
+                            disabled={Boolean(busy)}
+                            onClick={rebuild}
+                        >
+                            Rebuild computer
                         </Button>
                     ) : null}
                     {can_delete ? (

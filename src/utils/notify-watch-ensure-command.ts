@@ -15,9 +15,11 @@ type Params = {
 /**
  * The shell command that keeps a computer's notification watcher running
  * (`~/.cobble/notify-watch.py`, already written): starts the session bus
- * when the sandbox didn't, starts the watcher when it isn't running (or
- * runs an older version), then restarts Chrome if it started before the
- * watcher. Its sandbox supervisor brings Chrome straight back. Prints one
+ * when it isn't there, starts the watcher when it isn't running (or runs
+ * an older version), then restarts Chrome if it started before the
+ * watcher. The computer's agent brings Chrome straight back. Where the
+ * browser runs (its pid, its bus) is read from what the agent writes in
+ * `/run/cobble`. Prints one
  * line of JSON: `{ ok, watching, started, browser: "ok" | "restarted" |
  * "needs_restart" | "missing", error? }`.
  */
@@ -51,7 +53,7 @@ try:
         os.chmod(os.path.join(d, "notify-hooks"), 0o600)
     env = dict(os.environ)
     try:
-        with open("/var/run/gem/browser-supervisor.json") as f:
+        with open("/run/cobble/browser.json") as f:
             browser_env = (json.load(f).get("browser") or {}).get("env") or {}
         for key in ("DBUS_SESSION_BUS_ADDRESS", "XDG_RUNTIME_DIR"):
             if browser_env.get(key):
@@ -82,7 +84,7 @@ try:
     out["watching"] = bool(state.get("pid") and alive(state["pid"]))
     if not out["watching"]:
         out["error"] = "The notification watcher didn't start (another notification service may be running)."
-    browser_pid_file = "/var/run/gem/browser.pid"
+    browser_pid_file = "/run/cobble/browser.pid"
     if out["watching"] and os.path.exists(browser_pid_file):
         browser_started = os.stat(browser_pid_file).st_mtime
         if browser_started >= int(state.get("started_at") or 0):

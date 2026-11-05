@@ -7,7 +7,7 @@ type Params = {
  * websocket handshake isn't bound by CORS, and the session cookies are
  * `SameSite=Lax`, so a page on the same site but another origin (another
  * port on the same machine, a sandbox's exposed port) would otherwise
- * reach `/ws` or a computer's terminal with the user's session.
+ * reach `/ws` or a computer's live view with the user's session.
  *
  * The browser's `Origin` must name the host the request was made to: the
  * `Host` header, or the proxy's `X-Forwarded-Host` when a proxy rewrote

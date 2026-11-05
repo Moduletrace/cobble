@@ -42,11 +42,11 @@ The proxy should reach the app at \`http://<this machine>:7227\` (or the port gi
         id: HelpSignInTopicId,
         title: "Google won't let me sign in on a computer",
         summary: `"This browser or app may not be secure", "Couldn't sign you in", or a sign-in that loops. Google and some other sites do this.`,
-        body: `Your bots drive the browser on their computers, and Google (like some banks and social sites) refuses sign-ins from browsers it can tell are automated. Typing the password yourself doesn't help: the browser itself is turned away.
+        body: `A computer's browser is a real Google Chrome, so most sites, Google included, let you sign in on it like on your own: open the computer (the computer icon in the bot's chat header, or **Take over** when the bot asked), go to the site and sign in. Your password goes straight into the computer's browser, never to the bot.
 
-The way around it is to sign in on your own browser, where Google trusts you, and carry that session over to the computer with the **Cookie-Editor** extension.
+When a site still refuses (it can tell the computer is in a data center, or it wants a device it has seen before), sign in on your own browser instead and carry that session over to the computer.
 
-**Before you start:** the cookies you copy *are* your signed-in session. Anyone who has them is signed in as you, without a password. Never paste them into a chat with a bot, don't keep them in a file, and clear them when you're done (step 9).
+**Before you start:** the cookies you copy *are* your signed-in session. Anyone who has them is signed in as you, without a password. Never paste them into a chat with a bot and don't keep them in a file.
 
 ### On your own browser
 
@@ -56,23 +56,19 @@ The way around it is to sign in on your own browser, where Google trusts you, an
 
 ### On the bot's computer
 
-4. Open the computer: in the bot's chat, click the computer icon in the header and open the computer, or click **Take over** if the bot asked you to. Switch to **Desktop**. This is the only view that shows the browser's toolbar, where extensions live.
-5. The first time only: in the computer's Chrome, open the [Cookie-Editor page](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm), click **Add to Chrome**, then **Add extension**. Pin it from the puzzle piece so it's always one click away. It stays installed: the computer keeps its browser profile, even when it restarts or is rebuilt.
-6. In the computer's Chrome, go to the same site (for Google, [myaccount.google.com](https://myaccount.google.com)). It's fine that it shows the sign-in page.
-7. Put the cookies on the computer's clipboard. Desktop has a small handle on the left edge: open it, click the **Clipboard** icon, and paste into the box (Ctrl+V, or Cmd+V on a Mac). What's in that box is the computer's clipboard.
-8. Click **Cookie-Editor** in the computer's toolbar, then **Import**. Click into the box, paste (Ctrl+V), and click **Import**. Reload the page (F5): you're signed in.
-9. Clean up: open the **Clipboard** panel again and clear it.
+4. Open the computer, and in its browser go to the same site (for Google, [myaccount.google.com](https://myaccount.google.com)). It's fine that it shows the sign-in page.
+5. In the computer's browser, click the extensions icon (the puzzle piece), then **Cookie-Editor** (it's already installed there). Click **Import**, paste into the box (Ctrl+V, or Cmd+V on a Mac; the first time, your browser asks to let the app read the clipboard; that needs the app on HTTPS, otherwise paste into the clipboard box in the screen's side panel first) and click **Import**.
+6. Reload the page: you're signed in.
 
 Then tell the bot you're signed in, or click **Hand back** if it asked you to take over, and it carries on.
 
-The computer keeps the session, like everything else in its browser (extensions, site permissions): restarting the computer or changing its resources doesn't sign it out. Only the site itself ending the session does.
+The computer keeps the session, like everything else in its browser (site permissions, settings): restarting or rebuilding the computer, or changing its resources or browser settings, doesn't sign it out. Only the site itself ending the session does.
 
 ### If it doesn't work
 
-- **The paste in step 7 or 8 is empty.** Use the computer's code editor instead: switch to **Code**, create a file such as \`workspace/cookies.json\`, and paste into it (that paste always works). In the computer's Chrome, open \`file:///home/gem/workspace/cookies.json\`, press Ctrl+A then Ctrl+C, and import as in step 8. **Delete the file afterwards.**
 - **You're signed in, then signed out again soon after.** Google sometimes ends a session it sees used from a new place. Sign out and back in on your own browser, export again, and import straight away. Using the same account and keeping the bot's work regular helps the session last.
-- **Cookie-Editor's icon doesn't show.** You're in the **Browser** view, which shows pages only. Switch to **Desktop**.
-- **Another site still says no.** Make sure you exported while on that site (Cookie-Editor exports the cookies of the site you're on), and that you opened the same site on the computer before importing.`,
+- **Another site still says no.** Make sure you exported while on that site (Cookie-Editor exports the cookies of the site you're on), and that you opened the same site on the computer before importing.
+- **The site wants a setting changed** (notifications, location, pop-ups). Type \`chrome://settings/content\` in the view's address bar: the browser's own settings open there.`,
     },
     {
         id: "take-over",
@@ -80,8 +76,8 @@ The computer keeps the session, like everything else in its browser (extensions,
         summary: "A message with a Take over button, and the bot shows it needs you.",
         body: `Some things only you can do on a computer: sign in, solve a captcha, type a code sent to your phone, approve a prompt. The bot stops there and asks you to take over.
 
-1. Click **Take over** in its message. The computer opens in the view the bot picked (browser, terminal, code or desktop).
-2. Do what it asked. You're using the same computer the bot works on.
+1. Click **Take over** in its message. The computer's screen opens live, showing its Chrome.
+2. Do what it asked: click, type and paste as in any browser. You're on the computer's screen, using the same Chrome the bot works in, with its tabs, menu and extensions.
 3. Click **Hand back to** the bot. It gets a message that you're done and carries on.
 
 A task that hit the wall stops and reports instead of waiting, so after you hand back the bot picks the work up again from the chat.`,
@@ -115,7 +111,7 @@ Only you see the graphics a bot made for you.`,
         id: "computer-not-ready",
         title: "A computer is stuck on Creating, or isn't ready",
         summary: "Tasks fail with \"isn't ready\", or the computer never leaves Creating.",
-        body: `A new computer downloads its image and starts up, which can take a few minutes the first time. It stays **Creating** until its health check passes (its sandbox and browser both answer).
+        body: `A new computer downloads its image and starts up, which can take a few minutes the first time. It stays **Creating** until its health check passes (its browser and the bots' browser tools both answer).
 
 - **Still Creating after several minutes, or Failed:** open **Settings, Computers** and look at its state. A super admin can **Retry** it there; the error shows on the row.
 - **Running but stuck:** a super admin can open the computer and click **Restart**. Anything running on it stops; its files, browser logins and installed software stay.
