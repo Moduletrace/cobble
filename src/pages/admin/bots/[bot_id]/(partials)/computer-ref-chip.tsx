@@ -35,7 +35,7 @@ export default function ComputerRefChip({ computer_id }: Props) {
             size="smaller"
             title={`Open ${name}`}
             onClick={() =>
-                openComputer({ computer_id: computer.id || 0, mode: "browser" })
+                openComputer({ computer_id: computer.id || 0 })
             }
             className={twMerge(
                 "inline-flex h-6 max-w-full gap-1.5! flex-nowrap align-middle px-2! text-[13px] font-bold whitespace-nowrap text-ink dark:text-ink",

@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
@@ -6,10 +6,13 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { ExternalLink } from "lucide-react";
 import type { ComputerViewMode } from "@/src/dict/computer-dict";
+import readComputerViewMode from "@/src/functions/frontend/read-computer-view-mode";
+import rememberComputerViewMode from "@/src/functions/frontend/remember-computer-view-mode";
 import { AppContext } from "@/src/pages/__root";
 import computerViewModesFor from "@/src/utils/computer-view-modes-for";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import computerViewUrl from "@/src/utils/computer-view-url";
+import pickComputerViewMode from "@/src/utils/pick-computer-view-mode";
 import ComputerViewFrame from "./computer-view-frame";
 import ComputerViewModeButton from "./computer-view-mode-button";
 
@@ -20,7 +23,8 @@ type Props = {
      */
     name: string;
     /**
-     * The mode it opens in.
+     * The mode it opens in (a take-over names one); without it, the mode
+     * the computer was last viewed in on this device.
      */
     default_mode?: ComputerViewMode;
     className?: string;
@@ -30,20 +34,23 @@ type Props = {
  * A computer the user can work on: its screen (Chrome as it is), and its
  * shell for crew managers (`computerViewModesFor`), served through the app
  * (`/computers/<id>/`). The mode tabs show once there's more than one
- * mode; a mode stays open once visited, so switching back keeps its state.
+ * mode. Only the mode on show is loaded: switching closes the other (its
+ * screen or shell connection goes with it, and an unwatched browser can
+ * park). The mode on show is remembered per computer on this device and
+ * opens next time.
  */
 export default function ComputerView({ computer_id, name, default_mode, className }: Props) {
     const { user_types } = useContext(AppContext);
     const modes = computerViewModesFor({ can_manage_crew: canManageCrew({ user_types: user_types || [] }) });
-    const [mode, setMode] = useState<ComputerViewMode>(
-        modes.find((m) => m.value == default_mode)?.value || modes[0]!.value,
+    const [mode, setMode] = useState<ComputerViewMode>(() =>
+        pickComputerViewMode({ modes, requested: default_mode, remembered: readComputerViewMode({ computer_id }) }),
     );
-    const [visited, setVisited] = useState<ComputerViewMode[]>([mode]);
 
-    const pick = ({ value }: { value: ComputerViewMode }) => {
-        setMode(value);
-        setVisited((prev) => (prev.includes(value) ? prev : [...prev, value]));
-    };
+    useEffect(() => {
+        rememberComputerViewMode({ computer_id, mode });
+    }, [computer_id, mode]);
+
+    const pick = ({ value }: { value: ComputerViewMode }) => setMode(value);
 
     return (
         <Stack className={twMerge("w-full min-h-0 gap-0! items-stretch", className)}>
@@ -74,15 +81,7 @@ export default function ComputerView({ computer_id, name, default_mode, classNam
                 </Link>
             </Row>
             <Stack className="relative grow min-h-0 gap-0! items-stretch bg-sunken">
-                {visited.map((value) => (
-                    <ComputerViewFrame
-                        key={value}
-                        computer_id={computer_id}
-                        name={name}
-                        mode={value}
-                        active={value == mode}
-                    />
-                ))}
+                <ComputerViewFrame key={mode} computer_id={computer_id} name={name} mode={mode} />
             </Stack>
         </Stack>
     );

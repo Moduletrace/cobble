@@ -35,7 +35,7 @@ type MakeComputersProps = {
  */
 function makeComputers({ computers }: MakeComputersProps) {
     const switches: number[] = [];
-    const opened: { computer_id: number; mode: string }[] = [];
+    const opened: { computer_id: number; mode?: string }[] = [];
 
     const value: BotComputers = {
         computers,
@@ -52,7 +52,7 @@ function makeComputers({ computers }: MakeComputersProps) {
 }
 
 describe("ComputerRefChip", () => {
-    test("opens the viewer in its browser and switches nothing", async () => {
+    test("opens the viewer where it was last viewed and switches nothing", async () => {
         const { html, value } = render({
             computer_id: 2,
             computers: [main, sandbox],

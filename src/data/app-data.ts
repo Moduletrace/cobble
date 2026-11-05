@@ -44,6 +44,12 @@ export const AppData = {
      */
     LegacyHarnessOverviewStorageKey: `${SiteData["SiteSlug"]}_harness_overview`,
     HarnessOverviewCacheMs: 10 * 60 * 1000,
+    /**
+     * The mode (`ComputerViewModes`) each computer was last viewed in on
+     * this device, in `localStorage` (`rememberComputerViewMode`): the
+     * next open starts there.
+     */
+    ComputerViewModeStorageKey: `${SiteData["SiteSlug"]}_computer_view_modes`,
     ServerHealthMessage: "Server Running Well",
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,

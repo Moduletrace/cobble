@@ -122,7 +122,7 @@ export default function BotComputersModal({
                         }}
                         onOpen={() => {
                             setOpen(false);
-                            openComputer({ computer_id: computer.id || 0, mode: "browser" });
+                            openComputer({ computer_id: computer.id || 0 });
                         }}
                     />
                 ))}

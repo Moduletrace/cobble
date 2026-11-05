@@ -26,7 +26,7 @@ export default function ComposerComputerButton() {
             color="gray"
             size="small"
             onClick={() =>
-                openComputer({ computer_id: computer.id || 0, mode: "browser" })
+                openComputer({ computer_id: computer.id || 0 })
             }
             className="shrink-0 px-1.5! py-0.5! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink"
         >

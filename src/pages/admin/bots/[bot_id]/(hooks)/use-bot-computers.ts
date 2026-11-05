@@ -6,12 +6,13 @@ import type { ComputerViewMode } from "@/src/dict/computer-dict";
 import setBotComputer from "../(functions)/set-bot-computer";
 
 /**
- * The computer open in the viewer, in which mode, and whether the bot
- * asked the user to take it over (the viewer then offers to hand it back).
+ * The computer open in the viewer, in which mode (a take-over names one;
+ * otherwise it opens where it was last viewed), and whether the bot asked
+ * the user to take it over (the viewer then offers to hand it back).
  */
 export type ComputerViewing = {
     computer_id: number;
-    mode: ComputerViewMode;
+    mode?: ComputerViewMode;
     take_over?: boolean;
 };
 
