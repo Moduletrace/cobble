@@ -1,5 +1,6 @@
 import { AgentConfig } from "./config";
 import createAgentServer from "./create-agent-server";
+import createBrowserParking from "./create-browser-parking";
 import log from "./log";
 import prepareRunDirs from "./prepare-run-dirs";
 import startServices from "./start-services";
@@ -30,11 +31,13 @@ async function main() {
     process.on("SIGTERM", stop);
     process.on("SIGINT", stop);
 
-    createAgentServer().listen(AgentConfig.Port, "0.0.0.0", () => {
+    const parking = createBrowserParking({ cdp_port: AgentConfig.CdpPort, park_after_ms: AgentConfig.BrowserParkAfterMs });
+
+    createAgentServer({ parking }).listen(AgentConfig.Port, "0.0.0.0", () => {
         log({ name: "agent", message: `listening on ${AgentConfig.Port}${AgentConfig.Token ? "" : " (no token set: open to anyone who reaches it)"}` });
     });
 
-    services = await startServices();
+    services = await startServices({ parking });
 }
 
 main().catch((error) => {

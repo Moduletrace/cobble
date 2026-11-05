@@ -17,7 +17,18 @@ app ──http:8080──► agent ─┬─ /api/exec, /api/files/*  shell and 
   brand, Widevine, full codecs); Debian's Chromium on arm64, where Google
   ships no Linux build. It runs headful on Xvnc with a normal profile and no
   automation flags: the app attaches over CDP, it never launches it, so
-  `navigator.webdriver` is false. WebGL runs on Mesa's software renderer.
+  `navigator.webdriver` is false. WebGL runs on Mesa's software renderer;
+  pages are composited in software (`--disable-gpu-compositing`, half the
+  CPU of compositing through Mesa).
+- **Parking:** with no GPU and no window manager, the tab in front is always
+  on show, so its animations are drawn at full rate whether or not anyone
+  watches (one animated site can take a core or two). After
+  `COBBLE_BROWSER_PARK_AFTER_SECONDS` without a `/mcp` call or a screen view,
+  the agent puts a blank tab in front of every site on show (over DevTools,
+  as a person switching tabs would: the site keeps its connections, Chrome
+  just stops drawing it). The next `/mcp` call or screen view brings them
+  back before it goes through. Tabs are never discarded (managed policy), so
+  a parked one never reloads.
 - **Agent** (`agent/`): the container's main process (under tini). It keeps
   Xvnc, the session bus, Chrome, Playwright MCP and ttyd running (each restarted
   when it exits), stops them in order on `docker stop` so Chrome saves its
@@ -66,6 +77,7 @@ when that's set (the app sets it per computer).
 | `COBBLE_BROWSER_SCALE` | `1.25` | how large Chrome draws pages (its device scale factor, 1 to 3): larger text in screenshots |
 | `COBBLE_BROWSER_LANG`, `COBBLE_BROWSER_ACCEPT_LANG` | `en-US`, `en-US,en` | keep them, and `TZ`, matched to where the traffic comes from |
 | `COBBLE_BROWSER_SANDBOX` | `true` | Chrome's sandbox; it's turned off by itself when the host blocks user namespaces |
+| `COBBLE_BROWSER_PARK_AFTER_SECONDS` | `180` | idle this long, the sites on show are parked behind a blank tab; `0` never parks |
 | `COBBLE_BROWSER_ARGS` | | more Chrome flags, space separated (ones that would open DevTools or move the profile are dropped) |
 | `COBBLE_MCP_ARGS` | | more Playwright MCP flags, e.g. `--caps vision` (where it listens and which browser it drives can't be changed) |
 | `TZ` | `UTC` | the browser's timezone |
@@ -85,7 +97,7 @@ tag; the release workflow builds a tag once (a dispatch with
 bun run build:computer          # builds AppData.ComputerImage for this machine
 docker run -d --name cobble-computer-dev --shm-size 2g \
   --security-opt seccomp=unconfined -p 8170:8080 \
-  ghcr.io/moduletrace/cobble-computer:1.0.0
+  ghcr.io/moduletrace/cobble-computer:1.1.0
 ```
 
 A computer run by hand like that has no token, so anyone who reaches its port

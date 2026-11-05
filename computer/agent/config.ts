@@ -1,6 +1,7 @@
 import { BrowserBlockedArgs, McpBlockedArgs } from "./blocked-args";
 import safeExtraArgs from "./safe-extra-args";
 import browserScale from "./browser-scale";
+import parkAfterMs from "./park-after-ms";
 import screenSize from "./screen-size";
 
 const env = process.env;
@@ -51,6 +52,12 @@ export const AgentConfig = {
      * More Chrome flags, space separated.
      */
     BrowserExtraArgs: safeExtraArgs({ text: env.COBBLE_BROWSER_ARGS, blocked: BrowserBlockedArgs }),
+    /**
+     * Without a browser tool call or a screen view for this long, the
+     * sites on show are sent behind a blank tab so their animations stop
+     * costing CPU (`createBrowserParking`); 0 never does.
+     */
+    BrowserParkAfterMs: parkAfterMs({ text: env.COBBLE_BROWSER_PARK_AFTER_SECONDS }),
     /**
      * Chrome's DevTools port, on loopback only: Playwright MCP reaches it
      * from inside the container.

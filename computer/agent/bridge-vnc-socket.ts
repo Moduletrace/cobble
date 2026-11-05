@@ -110,6 +110,11 @@ export default function bridgeVncSocket({ req, socket, head, port }: Params) {
 
     socket.on("error", close);
     socket.on("close", close);
+    // The HTTP server keeps upgraded sockets half open: a viewer that went
+    // away without a close frame (a dropped network, a killed tab) only
+    // ends its side, and would otherwise hold the bridge and Xvnc's
+    // connection (and keep the browser from parking) for good.
+    socket.on("end", close);
     upstream.on("close", () => {
         if (!closed) close();
     });

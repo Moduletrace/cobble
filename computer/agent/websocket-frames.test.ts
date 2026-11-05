@@ -6,20 +6,12 @@ import readWebsocketFrames, { type WebsocketFrame } from "./read-websocket-frame
  * A client frame as a browser sends it: masked.
  */
 function clientFrame({ opcode, payload }: { opcode: number; payload: Buffer }) {
-    const server = encodeWebsocketFrame({ opcode, payload });
-    const header_length = server.length - payload.length;
-    const mask = Buffer.from([1, 2, 3, 4]);
-    const masked = Buffer.from(payload.map((byte, index) => byte ^ mask[index & 3]!));
-    const header = Buffer.from(server.subarray(0, header_length));
-
-    header[1]! |= 0x80;
-
-    return Buffer.concat([header, mask, masked]);
+    return encodeWebsocketFrame({ opcode, payload, mask: Buffer.from([1, 2, 3, 4]) });
 }
 
-function collect() {
+function collect({ from }: { from?: "client" | "server" } = {}) {
     const frames: WebsocketFrame[] = [];
-    const feed = readWebsocketFrames({ onFrame: (frame) => frames.push(frame), max_payload: 1 << 20 });
+    const feed = readWebsocketFrames({ onFrame: (frame) => frames.push(frame), max_payload: 1 << 20, from });
 
     return { frames, feed };
 }
@@ -54,5 +46,20 @@ describe("websocket frames", () => {
 
         expect(() => feed(encodeWebsocketFrame({ opcode: 2, payload: Buffer.from("x") }))).toThrow("unmasked");
         expect(() => collect().feed(clientFrame({ opcode: 2, payload: Buffer.alloc((1 << 20) + 1) }))).toThrow("too large");
+    });
+
+    test("masks a client's frame as RFC 6455 says", () => {
+        const frame = clientFrame({ opcode: 1, payload: Buffer.from("abcd") });
+
+        expect([...frame]).toEqual([0x81, 0x84, 1, 2, 3, 4, 0x61 ^ 1, 0x62 ^ 2, 0x63 ^ 3, 0x64 ^ 4]);
+    });
+
+    test("reads a server's unmasked frames, and refuses masked ones from it", () => {
+        const { frames, feed } = collect({ from: "server" });
+
+        for (const size of [3, 300, 70_000]) feed(encodeWebsocketFrame({ opcode: 1, payload: Buffer.alloc(size, 7) }));
+
+        expect(frames.map((frame) => frame.payload.length)).toEqual([3, 300, 70_000]);
+        expect(() => collect({ from: "server" }).feed(clientFrame({ opcode: 1, payload: Buffer.from("x") }))).toThrow("masked");
     });
 });

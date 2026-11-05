@@ -23,4 +23,10 @@ describe("browserArgs", () => {
         );
         expect(browserArgs({ ...base, screen: { width: 1366, height: 768 }, scale: 1.25 })).toContain("--window-size=1092,614");
     });
+
+    test("keeps WebGL but composites in software", () => {
+        const args = browserArgs({ ...base, screen: { width: 1920, height: 1080 }, scale: 1 });
+
+        expect(args).toEqual(expect.arrayContaining(["--ignore-gpu-blocklist", "--disable-gpu-compositing"]));
+    });
 });

@@ -10,6 +10,7 @@ import isPortAnswering from "./is-port-answering";
 import log from "./log";
 import bridgeLoopbackSocket from "./bridge-loopback-socket";
 import bridgeVncSocket from "./bridge-vnc-socket";
+import type { BrowserParking } from "./create-browser-parking";
 import proxyLoopback from "./proxy-loopback";
 import sendJson from "./send-json";
 import serveStaticFile from "./serve-static-file";
@@ -25,11 +26,12 @@ import serveStaticFile from "./serve-static-file";
  *   (noVNC over Xvnc), Chrome's whole window.
  * - `/terminal/` and its websocket: a shell in the browser (ttyd).
  *
- * Everything but the health check needs the computer's token.
+ * Everything but the health check needs the computer's token. Browser
+ * tool calls and screen views wake a parked browser first (`parking`).
  */
-export default function createAgentServer() {
+export default function createAgentServer({ parking }: { parking: BrowserParking }) {
     const server = createServer((req, res) => {
-        route({ req, res }).catch((error) => {
+        route({ req, res, parking }).catch((error) => {
             log({ name: "agent", message: `${req.method} ${req.url} failed: ${error?.message || error}` });
 
             if (!res.headersSent) sendJson({ res, status: 500, body: { error: String(error?.message || error) } });
@@ -43,6 +45,9 @@ export default function createAgentServer() {
         const authorized = isAuthorized({ headers: req.headers, token: AgentConfig.Token });
 
         if (authorized && pathname == "/desktop/websockify") {
+            const watching = parking.watch();
+
+            socket.once("close", watching.done);
             bridgeVncSocket({ req, socket, head, port: AgentConfig.VncPort });
             return;
         }
@@ -65,7 +70,7 @@ export default function createAgentServer() {
     return server;
 }
 
-async function route({ req, res }: { req: IncomingMessage; res: ServerResponse }) {
+async function route({ req, res, parking }: { req: IncomingMessage; res: ServerResponse; parking: BrowserParking }) {
     const { pathname } = new URL(req.url || "/", "http://agent");
 
     if (pathname == "/health") {
@@ -82,6 +87,14 @@ async function route({ req, res }: { req: IncomingMessage; res: ServerResponse }
     }
 
     if (pathname == "/mcp" || pathname.startsWith("/mcp/")) {
+        // A GET is the session's event stream, open for as long as the
+        // session: only calls hold parking off while they run.
+        const holding = req.method == "GET" ? undefined : parking.hold();
+
+        if (holding) res.once("close", holding.done);
+
+        await parking.wake();
+
         return proxyLoopback({ req, res, port: AgentConfig.McpPort, unavailable: "The browser tools aren't answering yet." });
     }
 

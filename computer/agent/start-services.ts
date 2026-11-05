@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import { AgentState } from "./agent-state";
 import browserArgs from "./browser-args";
 import clearProfileLocks from "./clear-profile-locks";
+import type { BrowserParking } from "./create-browser-parking";
 import { AgentConfig } from "./config";
 import findBrowserBinary from "./find-browser-binary";
 import isPortAnswering from "./is-port-answering";
@@ -22,9 +23,10 @@ const NoSandboxPattern = /no usable sandbox|setuid sandbox|user namespaces|clone
  * view shows Chrome's whole window), the session bus (where the notification watcher meets Chrome),
  * Chrome, Playwright MCP once Chrome's DevTools port answers, and the web
  * terminal (ttyd, a login shell in the workspace). Each one comes back
- * when it exits. Returns them in the order they stop.
+ * when it exits (a new Chrome tells `parking` its old tabs are gone).
+ * Returns them in the order they stop.
  */
-export default async function startServices(): Promise<Supervised[]> {
+export default async function startServices({ parking }: { parking: BrowserParking }): Promise<Supervised[]> {
     const { Uid: uid, Gid: gid, RunDir, Screen } = AgentConfig;
     const binary = findBrowserBinary();
 
@@ -101,7 +103,10 @@ export default async function startServices(): Promise<Supervised[]> {
         cwd: AgentConfig.Home,
         uid,
         gid,
-        onStart: ({ pid }) => writeBrowserState({ pid }),
+        onStart: ({ pid }) => {
+            parking.browserRestarted();
+            writeBrowserState({ pid });
+        },
         onExit: ({ uptime_ms, tail }) => {
             if (AgentState.browser_sandbox && uptime_ms < 20_000 && NoSandboxPattern.test(tail)) {
                 AgentState.browser_sandbox = false;

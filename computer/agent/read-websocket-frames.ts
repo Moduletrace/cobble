@@ -10,15 +10,21 @@ type Params = {
      * A frame claiming more than this ends the connection.
      */
     max_payload: number;
+    /**
+     * Who sends the frames: a client (a browser, the default) always
+     * masks them, a server (Chrome's DevTools, to the agent's own client)
+     * never does.
+     */
+    from?: "client" | "server";
 };
 
 /**
- * Reads a browser's websocket frames (RFC 6455) from a byte stream fed in
- * any chunks: returns the function to feed them to, which calls `onFrame`
- * with each whole frame, unmasked. Throws on an unmasked or oversized
- * frame (a browser always masks).
+ * Reads websocket frames (RFC 6455) from a byte stream fed in any chunks:
+ * returns the function to feed them to, which calls `onFrame` with each
+ * whole frame, unmasked. Throws on a frame masked the wrong way for its
+ * sender, or an oversized one.
  */
-export default function readWebsocketFrames({ onFrame, max_payload }: Params) {
+export default function readWebsocketFrames({ onFrame, max_payload, from = "client" }: Params) {
     let buffer: Buffer = Buffer.alloc(0);
 
     return (chunk: Buffer) => {
@@ -27,10 +33,12 @@ export default function readWebsocketFrames({ onFrame, max_payload }: Params) {
         while (buffer.length >= 2) {
             const first = buffer[0]!;
             const second = buffer[1]!;
+            const masked = Boolean(second & 0x80);
             let length = second & 0x7f;
             let offset = 2;
 
-            if (!(second & 0x80)) throw new Error("A client frame came unmasked.");
+            if (from == "client" && !masked) throw new Error("A client frame came unmasked.");
+            if (from == "server" && masked) throw new Error("A server frame came masked.");
 
             if (length == 126) {
                 if (buffer.length < 4) return;
@@ -45,14 +53,20 @@ export default function readWebsocketFrames({ onFrame, max_payload }: Params) {
             }
 
             if (length > max_payload) throw new Error("A frame was too large.");
-            if (buffer.length < offset + 4 + length) return;
 
-            const mask = buffer.subarray(offset, offset + 4);
-            const payload = Buffer.from(buffer.subarray(offset + 4, offset + 4 + length));
+            const mask_length = masked ? 4 : 0;
 
-            for (let index = 0; index < payload.length; index++) payload[index]! ^= mask[index & 3]!;
+            if (buffer.length < offset + mask_length + length) return;
 
-            buffer = buffer.subarray(offset + 4 + length);
+            const payload = Buffer.from(buffer.subarray(offset + mask_length, offset + mask_length + length));
+
+            if (masked) {
+                const mask = buffer.subarray(offset, offset + 4);
+
+                for (let index = 0; index < payload.length; index++) payload[index]! ^= mask[index & 3]!;
+            }
+
+            buffer = buffer.subarray(offset + mask_length + length);
             onFrame({ fin: Boolean(first & 0x80), opcode: first & 0x0f, payload });
         }
     };

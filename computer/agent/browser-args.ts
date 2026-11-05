@@ -40,6 +40,12 @@ export default function browserArgs({ profile_dir, cdp_port, screen, scale, lang
          */
         "--ignore-gpu-blocklist",
         /**
+         * ...but compositing the page in software, as Chrome does with
+         * the GPU blocklisted: half the CPU of drawing every frame through
+         * Mesa, and WebGL still runs (and names Mesa) as before.
+         */
+        "--disable-gpu-compositing",
+        /**
          * The image is updated instead; this keeps Chrome from nagging.
          */
         "--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT",

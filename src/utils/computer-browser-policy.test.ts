@@ -20,6 +20,10 @@ describe("computerBrowserPolicy", () => {
     });
 
     test("an empty list installs nothing", () => {
-        expect(JSON.parse(computerBrowserPolicy({ extensions: [] }))).toEqual({ ExtensionSettings: {} });
+        expect(JSON.parse(computerBrowserPolicy({ extensions: [] })).ExtensionSettings).toEqual({});
+    });
+
+    test("never lets Chrome discard a tab", () => {
+        expect(JSON.parse(computerBrowserPolicy()).TabDiscardingExceptions).toEqual(["*"]);
     });
 });
