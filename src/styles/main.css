@@ -212,6 +212,88 @@
     /* Needs you: a double nudge, then a pause. */
     --animate-stone-nudge: stone-nudge 2.6s ease-in-out infinite;
 
+    /* The whole stone, under the eyes: idle breathes, working rocks,
+       done squashes and hops once, asleep sinks and rises slowly,
+       needs-you wobbles in time with the eyes' nudge. Origin is the
+       stone's base, so it moves as if sitting on something. */
+    --animate-stone-body-idle: stone-body-idle 4.2s ease-in-out infinite;
+    --animate-stone-body-working: stone-body-working 1.8s ease-in-out infinite;
+    --animate-stone-body-done: stone-body-done 0.7s ease-out 1;
+    --animate-stone-body-asleep: stone-body-asleep 4.8s ease-in-out infinite;
+    --animate-stone-body-needs-you: stone-body-needs-you 2.6s ease-in-out
+        infinite;
+
+    @keyframes stone-body-idle {
+        0%,
+        100% {
+            transform: scale(1, 1);
+        }
+        50% {
+            transform: scale(1.01, 0.985);
+        }
+    }
+
+    @keyframes stone-body-working {
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+        25% {
+            transform: rotate(-3deg);
+        }
+        75% {
+            transform: rotate(3deg);
+        }
+    }
+
+    @keyframes stone-body-done {
+        0% {
+            transform: translateY(0) scale(1, 1);
+        }
+        20% {
+            transform: translateY(0) scale(1.06, 0.9);
+        }
+        50% {
+            transform: translateY(-8px) scale(0.97, 1.04);
+        }
+        80% {
+            transform: translateY(0) scale(1.03, 0.96);
+        }
+        100% {
+            transform: translateY(0) scale(1, 1);
+        }
+    }
+
+    @keyframes stone-body-asleep {
+        0%,
+        100% {
+            transform: scale(1, 1);
+        }
+        50% {
+            transform: scale(1.025, 0.96);
+        }
+    }
+
+    @keyframes stone-body-needs-you {
+        0%,
+        68%,
+        100% {
+            transform: rotate(0deg);
+        }
+        73% {
+            transform: rotate(-5deg);
+        }
+        79% {
+            transform: rotate(4deg);
+        }
+        85% {
+            transform: rotate(-2deg);
+        }
+        91% {
+            transform: rotate(0deg);
+        }
+    }
+
     @keyframes stone-blink {
         0%,
         93%,
