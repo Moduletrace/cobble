@@ -6,6 +6,7 @@ import grabBots from "../bots/grab-bots";
 import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overview";
 import grabConversationFiles from "../bot-files/grab-conversation-files";
 import grabBotComputers from "../computers/grab-bot-computers";
+import userHasBrowsers from "../browsers/user-has-browsers";
 import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import grabUserWorkspaces from "../workspaces/grab-user-workspaces";
 import grabUserConversation from "./grab-user-conversation";
@@ -24,8 +25,9 @@ type Params = {
  * `/admin/workspaces/<id>/bots/<id>`): the rail's crew (the workspace's
  * in a workspace) and workspaces, the bot, the text model it runs on, its
  * computers, tools, MCP servers and files there, and whether its mic and
- * read-aloud have a model to run on. The history (its session, messages
- * and active task) is left to the client (`grabConversationHistory`,
+ * read-aloud have a model to run on, and whether the user has a browser
+ * of their own (the composer's Browser button). The history (its session,
+ * messages and active task) is left to the client (`grabConversationHistory`,
  * `api/admin/bots/conversation-history`), so a page the back button
  * restores never shows an old thread. The full model settings are left to
  * the models modal: the install-wide catalog (`api/admin/harness/catalog`)
@@ -59,13 +61,14 @@ export default async function grabConversationProps({
     /** Loading its history marks the open session read. */
     bot.unread = 0;
 
-    const [bot_text_model, bot_computers, bot_extensions, bot_files, transcription, speech] = await Promise.all([
+    const [bot_text_model, bot_computers, bot_extensions, bot_files, transcription, speech, has_browsers] = await Promise.all([
         grabTextModel({ bot_id: bot.id, workspace_id: scope }),
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabBotExtensionsOverview({ user_id, bot_id: bot.id, workspace_id: scope }),
         grabConversationFiles({ bot_id: bot.id, workspace_id: scope }),
         hasHarnessModel({ harness: "transcription", bot_id: bot.id, workspace_id: scope }),
         hasHarnessModel({ harness: "speech", bot_id: bot.id, workspace_id: scope }),
+        userHasBrowsers({ user_id }).catch(() => false),
     ]);
 
     return {
@@ -78,6 +81,7 @@ export default async function grabConversationProps({
         bot_extensions,
         bot_files,
         bot_voice: { transcription, speech },
+        has_browsers,
     };
 }
 

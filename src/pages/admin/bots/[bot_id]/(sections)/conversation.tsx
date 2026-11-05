@@ -452,6 +452,7 @@ export default function Conversation() {
                                     workspace_id={workspace_id}
                                     extensions={pageProps?.bot_extensions}
                                     voice={pageProps?.bot_voice}
+                                    has_browsers={Boolean(pageProps?.has_browsers)}
                                     reply_to={reply_to}
                                     onCancelReply={() => setReplyTo(null)}
                                     onSendStart={({ message }) =>

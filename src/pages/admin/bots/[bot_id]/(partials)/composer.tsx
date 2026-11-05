@@ -59,6 +59,10 @@ type Props = {
      */
     voice?: BotVoicePayload | null;
     /**
+     * The Browser button shows only when the user has a browser of their own.
+     */
+    has_browsers?: boolean;
+    /**
      * The message the next one quotes, if the user picked one.
      */
     reply_to?: BotMessageWithAttachments | null;
@@ -96,6 +100,7 @@ export default function Composer({
     workspace_id,
     extensions,
     voice,
+    has_browsers,
     reply_to,
     onCancelReply,
     onSendStart,
@@ -361,6 +366,7 @@ export default function Composer({
                     bot={bot}
                     workspace_id={workspace_id}
                     initial={extensions}
+                    has_browsers={has_browsers}
                 />
             </Stack>
         </Stack>

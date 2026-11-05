@@ -2079,6 +2079,11 @@ export type PagePropsType = {
      */
     bot_voice?: BotVoicePayload | null;
     /**
+     * Whether the user has added a browser of their own; the composer's
+     * Browser button shows only then.
+     */
+    has_browsers?: boolean | null;
+    /**
      * The open conversation's text model (its header). The full model
      * settings load when the models modal opens.
      */

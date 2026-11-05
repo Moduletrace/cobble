@@ -14,16 +14,21 @@ type Props = {
     bot: BotWithLastMessage;
     workspace_id?: number | null;
     initial?: BotExtensionsPayload | null;
+    /**
+     * Whether the user has a browser of their own; without one there is
+     * nothing to pick, so the Browser button stays away.
+     */
+    has_browsers?: boolean;
 };
 
 /**
  * Under the composer: one button counting the MCP servers, tools and
  * skills the bot can use here, one beside it counting the knowledgebases it
  * searches (each opens in a modal, so ten of them don't fill the
- * composer), then the user's browsers here and the computer it's on,
- * opening it in the viewer.
+ * composer), then the user's browsers here (only once they've added one)
+ * and the computer it's on, opening it in the viewer.
  */
-export default function ComposerTools({ bot, workspace_id, initial }: Props) {
+export default function ComposerTools({ bot, workspace_id, initial, has_browsers }: Props) {
     const bot_name = bot.name || "this bot";
     const extensions = useExtensions({
         owner: { bot_id: bot.id || 0, workspace_id },
@@ -74,13 +79,15 @@ export default function ComposerTools({ bot, workspace_id, initial }: Props) {
                 />
             ) : null}
 
-            {(has_tools || has_knowledge) && computers.length ? (
+            {(has_tools || has_knowledge) && (has_browsers || computers.length) ? (
                 <Span className="-mr-2 opacity-40">
                     <Dot size={20} />
                 </Span>
             ) : null}
 
-            <ComposerBrowserButton bot_id={bot.id || 0} bot_name={bot_name} workspace_id={workspace_id} />
+            {has_browsers ? (
+                <ComposerBrowserButton bot_id={bot.id || 0} bot_name={bot_name} workspace_id={workspace_id} />
+            ) : null}
 
             <ComposerComputerButton />
 
