@@ -27,6 +27,9 @@
 @source not "../styles/**";
 @source not "../utils/**";
 @source not "../websocket/**";
+/* Pages, hooks and types still name refs in their comments (`[task:ID]`), so
+   the ref forms themselves are never utilities, wherever they're written. */
+@source not inline("[{bot,workspace,computer,file,folder,task,room,graphic,question,proposal,hook-proposal,secret,secret-request,take-over}:ID]");
 
 /* Cobble design tokens (handoff `tokens/tokens.css`). Light on `:root`, dark
    on `.dark` (twui's dark variant). Exposed to Tailwind in `@theme inline`. */
