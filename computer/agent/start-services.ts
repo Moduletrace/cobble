@@ -68,6 +68,7 @@ export default async function startServices({ parking }: { parking: BrowserParki
             // The screen size is a setting (and what sites see); a viewer
             // only scales it.
             "-AcceptSetDesktopSize=0",
+            ...(AgentConfig.BrowserLightweight ? ["-FrameRate", String(AgentConfig.LightweightFrameRate)] : []),
         ],
         env: () => userEnv(),
         uid,
@@ -100,6 +101,7 @@ export default async function startServices({ parking }: { parking: BrowserParki
                 lang: AgentConfig.Lang,
                 accept_lang: AgentConfig.AcceptLang,
                 sandbox: AgentState.browser_sandbox,
+                lightweight: AgentConfig.BrowserLightweight,
                 extra: AgentConfig.BrowserExtraArgs,
             });
         },

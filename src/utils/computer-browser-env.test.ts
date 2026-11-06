@@ -13,6 +13,7 @@ describe("computerBrowserEnv", () => {
                     screen: "1366x768",
                     scale: "100",
                     sandbox: false,
+                    lightweight: true,
                     browser_args: "--mute-audio",
                     mcp_args: "--caps vision",
                 },
@@ -25,6 +26,7 @@ describe("computerBrowserEnv", () => {
             "COBBLE_BROWSER_LANG=en-GB",
             "COBBLE_BROWSER_ACCEPT_LANG=en-GB,en",
             "COBBLE_BROWSER_SANDBOX=false",
+            "COBBLE_BROWSER_LIGHTWEIGHT=true",
             "COBBLE_BROWSER_ARGS=--mute-audio",
             "COBBLE_MCP_ARGS=--caps vision",
         ]);
@@ -32,7 +34,7 @@ describe("computerBrowserEnv", () => {
 
     test("nothing set leaves the agent's defaults, with the app's timezone", () => {
         expect(computerBrowserEnv({ settings: {}, fallback_timezone: "Europe/Helsinki" })).toEqual(["TZ=Europe/Helsinki"]);
-        expect(computerBrowserEnv({ settings: { sandbox: true, scale: "125" } })).toEqual([]);
+        expect(computerBrowserEnv({ settings: { sandbox: true, scale: "125", lightweight: false } })).toEqual([]);
     });
 });
 

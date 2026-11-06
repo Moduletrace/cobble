@@ -91,6 +91,7 @@ export const ComputerBrowserSettingsSchema = z.object({
     screen: z.enum(ComputerScreenSizes).optional(),
     scale: z.enum(ComputerBrowserScales).optional(),
     sandbox: z.boolean().optional(),
+    lightweight: z.boolean().optional(),
     browser_args: extraArgs({ blocked: ComputerBlockedBrowserArgs, what: "Chrome" }),
     mcp_args: extraArgs({ blocked: ComputerBlockedMcpArgs, what: "Playwright MCP" }),
 });

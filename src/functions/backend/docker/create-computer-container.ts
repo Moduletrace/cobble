@@ -104,6 +104,12 @@ export default async function createComputerContainer({
                 Interval: seconds(AppData.ComputerHealthcheck.IntervalSeconds),
                 Timeout: seconds(AppData.ComputerHealthcheck.TimeoutSeconds),
                 StartPeriod: seconds(AppData.ComputerHealthcheck.StartPeriodSeconds),
+                /**
+                 * Checked this often while it starts (Docker 25+; older
+                 * engines ignore it), so a computer that's ready is marked
+                 * healthy within a second, not at the next interval.
+                 */
+                StartInterval: seconds(AppData.ComputerHealthcheck.StartIntervalSeconds),
                 Retries: AppData.ComputerHealthcheck.Retries,
             },
             HostConfig: {

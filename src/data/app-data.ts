@@ -205,6 +205,7 @@ export const AppData = {
         IntervalSeconds: 5,
         TimeoutSeconds: 5,
         StartPeriodSeconds: 120,
+        StartIntervalSeconds: 1,
         Retries: 3,
     },
     ComputerHealthyTimeoutMs: 5 * 60 * 1000,

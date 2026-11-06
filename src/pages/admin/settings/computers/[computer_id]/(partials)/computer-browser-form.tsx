@@ -21,7 +21,8 @@ type Props = {
 /**
  * A computer's browser settings (`ComputerBrowserSettingsSchema`): its
  * timezone and languages (matched to where its traffic comes from), its
- * screen and how large pages draw on it, Chrome's sandbox, and extra Chrome and Playwright MCP flags. A
+ * screen and how large pages draw on it, Chrome's sandbox, a lightweight
+ * browser for small hosts, and extra Chrome and Playwright MCP flags. A
  * field left empty uses the default. Saving recreates the computer with
  * them; its files and logins stay.
  */
@@ -34,6 +35,7 @@ export default function ComputerBrowserForm({ computer, onUpdated }: Props) {
     const [screen, setScreen] = useState<string>(stored.screen || ComputerScreenSizes[0]);
     const [scale, setScale] = useState<string>(stored.scale || ComputerDefaultBrowserScale);
     const [sandbox, setSandbox] = useState(stored.sandbox !== false);
+    const [lightweight, setLightweight] = useState(stored.lightweight === true);
     const [browser_args, setBrowserArgs] = useState(stored.browser_args || "");
     const [mcp_args, setMcpArgs] = useState(stored.mcp_args || "");
     const [loading, setLoading] = useState(false);
@@ -50,7 +52,7 @@ export default function ComputerBrowserForm({ computer, onUpdated }: Props) {
             path: "computers/update-computer",
             body: {
                 computer_id: computer.id,
-                browser_settings: { timezone, language, accept_languages, screen, scale, sandbox, browser_args, mcp_args },
+                browser_settings: { timezone, language, accept_languages, screen, scale, sandbox, lightweight: lightweight || undefined, browser_args, mcp_args },
             },
         });
 
@@ -149,6 +151,12 @@ export default function ComputerBrowserForm({ computer, onUpdated }: Props) {
                 label="Chrome's sandbox (turn off only if Chrome won't start: the host blocks user namespaces)"
                 checked={sandbox}
                 changeHandler={setSandbox}
+            />
+            <Checkbox
+                title="Lightweight browser"
+                label="Lightweight browser (for small hosts: no WebGL or software GPU, reduced motion, a slower screen view; sites see a less ordinary browser)"
+                checked={lightweight}
+                changeHandler={setLightweight}
             />
             <AddFormActions submit_label="Save browser settings" loading={loading} error={error} />
         </Form>

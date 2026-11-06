@@ -69,6 +69,18 @@ export const AgentConfig = {
      */
     BrowserSandbox: (env.COBBLE_BROWSER_SANDBOX || "true").toLowerCase() != "false",
     /**
+     * `true` runs a lightweight browser for small hosts (`browserArgs`'s
+     * `lightweight`) and caps the screen's updates at
+     * `LightweightFrameRate`.
+     */
+    BrowserLightweight: (env.COBBLE_BROWSER_LIGHTWEIGHT || "").toLowerCase() == "true",
+    /**
+     * The screen's updates a second with a lightweight browser (Xvnc's
+     * `-FrameRate`, 60 otherwise): less to encode and send while a page
+     * animates.
+     */
+    LightweightFrameRate: 20,
+    /**
      * More Chrome flags, space separated.
      */
     BrowserExtraArgs: safeExtraArgs({ text: env.COBBLE_BROWSER_ARGS, blocked: BrowserBlockedArgs }),

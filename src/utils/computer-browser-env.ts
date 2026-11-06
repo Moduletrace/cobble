@@ -24,6 +24,7 @@ export default function computerBrowserEnv({ settings, fallback_timezone }: Para
         COBBLE_BROWSER_LANG: settings.language,
         COBBLE_BROWSER_ACCEPT_LANG: settings.accept_languages?.replace(/\s+/g, ""),
         COBBLE_BROWSER_SANDBOX: settings.sandbox === false ? "false" : undefined,
+        COBBLE_BROWSER_LIGHTWEIGHT: settings.lightweight ? "true" : undefined,
         COBBLE_BROWSER_ARGS: settings.browser_args,
         COBBLE_MCP_ARGS: settings.mcp_args,
     };

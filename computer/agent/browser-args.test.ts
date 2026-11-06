@@ -29,4 +29,34 @@ describe("browserArgs", () => {
 
         expect(args).toEqual(expect.arrayContaining(["--ignore-gpu-blocklist", "--disable-gpu-compositing"]));
     });
+
+    test("a lightweight browser turns the GPU off and drops the WebGL flags", () => {
+        const args = browserArgs({ ...base, screen: { width: 1366, height: 768 }, scale: 1, lightweight: true });
+
+        expect(args).toEqual(
+            expect.arrayContaining([
+                "--disable-gpu",
+                "--force-prefers-reduced-motion",
+                "--disable-smooth-scrolling",
+                "--disable-component-update",
+            ]),
+        );
+        expect(args).not.toContain("--ignore-gpu-blocklist");
+        expect(args).not.toContain("--disable-gpu-compositing");
+    });
+
+    test("folds the user's --disable-features into the lightweight list", () => {
+        const args = browserArgs({
+            ...base,
+            screen: { width: 1366, height: 768 },
+            scale: 1,
+            lightweight: true,
+            extra: ["--disable-features=Foo,Translate", "--mute-audio"],
+        });
+        const features = args.filter((arg) => arg.startsWith("--disable-features="));
+
+        expect(features).toHaveLength(1);
+        expect(features[0]!.split("=")[1]!.split(",")).toEqual(expect.arrayContaining(["MediaRouter", "Translate", "Foo"]));
+        expect(args).toContain("--mute-audio");
+    });
 });
