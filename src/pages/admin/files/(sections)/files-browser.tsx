@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import H2 from "@moduletrace/twui/layout/H2";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
@@ -5,6 +6,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type { StorageFolderPayload, StorageSpecOption } from "@/src/types";
 import type { StorageSpec } from "@/src/utils/storage-volumes";
 import { emptyFolderText, folderSummary } from "@/src/utils/folder-text";
+import imagePreviewGallery from "@/src/utils/image-preview-gallery";
 import FilesBreadcrumbRow from "@/src/components/general/files-breadcrumb-row";
 import FilesSearchInput from "@/src/components/general/files-search-input";
 import FilesVolumeRow from "../(partials)/files-volume-row";
@@ -42,6 +44,11 @@ export default function FilesBrowser({
     onOpenFolder,
     onOpenVolume,
 }: Props) {
+    const gallery = useMemo(
+        () => imagePreviewGallery({ items: (folder?.entries || []).map((entry) => ({ ...entry, url: entry.url || "" })) }),
+        [folder],
+    );
+
     return (
         <Row className="w-full mt-6 gap-6! flex-wrap items-start lg:flex-nowrap">
             <Stack className="w-full lg:w-[180px] shrink-0 items-stretch">
@@ -98,6 +105,7 @@ export default function FilesBrowser({
                                         entry.kind == "folder" &&
                                         entry.path == path
                                     }
+                                    gallery={gallery}
                                     onOpenFolder={onOpenFolder}
                                 />
                             ))

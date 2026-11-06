@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import Link from "@moduletrace/twui/layout/Link";
+import type { FilePreviewItem } from "@/src/types";
 import isPlainClick from "@/src/utils/is-plain-click";
 import FilePreviewModal from "./file-preview-modal";
 
@@ -8,6 +9,11 @@ type Props = {
     url: string;
     media_type?: string | null;
     size?: number;
+    /**
+     * The images it sits among (`imagePreviewGallery`), for Previous and
+     * Next in the preview.
+     */
+    gallery?: FilePreviewItem[];
     title?: string;
     className?: string;
     children: ReactNode;
@@ -18,7 +24,7 @@ type Props = {
  * plain click. It stays a real link to the bytes, so a middle click or
  * Ctrl/Cmd click still opens the file in a new tab.
  */
-export default function FilePreviewLink({ name, url, media_type, size, title, className, children }: Props) {
+export default function FilePreviewLink({ name, url, media_type, size, gallery, title, className, children }: Props) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -44,6 +50,7 @@ export default function FilePreviewLink({ name, url, media_type, size, title, cl
                     url={url}
                     media_type={media_type}
                     size={size}
+                    gallery={gallery}
                     onClose={() => setOpen(false)}
                 />
             ) : null}

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -14,6 +14,7 @@ import HeaderIconButton from "@/src/components/general/header-icon-button";
 import { AppContext } from "@/src/pages/__root";
 import useDebouncedValue from "@/src/hooks/use-debounced-value";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
+import imagePreviewGallery from "@/src/utils/image-preview-gallery";
 import useBotFiles from "../(hooks)/use-bot-files";
 import FileRow from "./file-row";
 import HeaderMenuItem from "./header-menu-item";
@@ -83,6 +84,10 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
     };
 
     const files = data?.files || [];
+    const gallery = useMemo(
+        () => imagePreviewGallery({ items: files.map((file) => ({ ...file, name: file.path || file.name })) }),
+        [data],
+    );
     const usage = data?.usage;
 
     return (
@@ -146,6 +151,7 @@ export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) 
                             file={file}
                             can_manage={can_manage}
                             busy={busy_id == file.id}
+                            gallery={gallery}
                             onDelete={() =>
                                 run({
                                     url: `/api/admin/bots/delete-file`,

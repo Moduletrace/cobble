@@ -4,7 +4,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { twMerge } from "tailwind-merge";
 import { FolderOpen } from "lucide-react";
-import type { MediaType, StorageEntry } from "@/src/types";
+import type { FilePreviewItem, MediaType, StorageEntry } from "@/src/types";
 import formatBytes from "@/src/utils/format-bytes";
 import relativeTime from "@/src/utils/relative-time";
 import AttachmentIcon from "@/src/pages/admin/bots/[bot_id]/(partials)/attachment-icon";
@@ -13,6 +13,10 @@ import FilePreviewLink from "@/src/components/general/file-preview-link";
 type Props = {
     entry: StorageEntry;
     selected?: boolean;
+    /**
+     * The folder's images, so an image's preview steps through the rest.
+     */
+    gallery?: FilePreviewItem[];
     onOpenFolder: (path: string) => void;
 };
 
@@ -21,7 +25,7 @@ type Props = {
  * file preview (its own media record when it is one of the bot's files, else
  * the browser's streaming route).
  */
-export default function StorageEntryRow({ entry, selected, onOpenFolder }: Props) {
+export default function StorageEntryRow({ entry, selected, gallery, onOpenFolder }: Props) {
     const is_folder = entry.kind == "folder";
 
     return (
@@ -57,6 +61,7 @@ export default function StorageEntryRow({ entry, selected, onOpenFolder }: Props
                         url={entry.url || ""}
                         media_type={entry.media_type}
                         size={entry.size}
+                        gallery={gallery}
                         className="text-[13px] font-bold leading-5 text-ink break-words hover:opacity-80"
                     >
                         {entry.name}

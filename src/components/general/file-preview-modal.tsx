@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Link from "@moduletrace/twui/layout/Link";
@@ -5,16 +6,27 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { Download, SquareArrowOutUpRight } from "lucide-react";
+import useGalleryKeys from "@/src/hooks/use-gallery-keys";
+import usePreloadImages from "@/src/hooks/use-preload-images";
 import useTopModalEscape from "@/src/hooks/use-top-modal-escape";
+import type { FilePreviewItem } from "@/src/types";
 import filePreviewKind from "@/src/utils/file-preview-kind";
 import formatBytes from "@/src/utils/format-bytes";
+import galleryIndex from "@/src/utils/gallery-index";
 import FilePreviewBody from "./file-preview-body";
+import FilePreviewStepper from "./file-preview-stepper";
 
 type Props = {
     name: string;
     url: string;
     media_type?: string | null;
     size?: number;
+    /**
+     * The images it was opened among (a folder's, a message's). When the
+     * file is one of them, Previous and Next (and the arrow keys) step
+     * through them without closing the preview.
+     */
+    gallery?: FilePreviewItem[];
     onClose: () => void;
 };
 
@@ -25,18 +37,29 @@ const ActionClassName =
  * A file over the page: markdown rendered, a CSV as a table, an image,
  * PDF, audio or video in place, other text as code, with ways to download
  * it or open it in a new tab. A file it can't show offers those only.
+ * Opened from a gallery, it steps through its images; each one opens fresh
+ * (fitted, scrolled to the top), and its neighbours load ahead.
  */
-export default function FilePreviewModal({
-    name,
-    url,
-    media_type,
-    size,
-    onClose,
-}: Props) {
+export default function FilePreviewModal({ gallery, onClose, ...opened }: Props) {
+    const [index, set_index] = useState(() => galleryIndex({ gallery, url: opened.url }));
+    const stepping = Boolean(gallery && index >= 0 && gallery.length > 1);
+    const shown: FilePreviewItem = (stepping && gallery?.[index]) || opened;
+    const { name, url, media_type, size } = shown;
     const kind = filePreviewKind({ name, media_type });
     const base_name = name.split("/").pop() || name;
+    const count = gallery?.length || 0;
+    const step = ({ by }: { by: number }) =>
+        set_index((current) => Math.min(count - 1, Math.max(0, current + by)));
 
     useTopModalEscape({ onClose });
+    useGalleryKeys({
+        enabled: stepping,
+        onPrevious: () => step({ by: -1 }),
+        onNext: () => step({ by: 1 }),
+    });
+    usePreloadImages({
+        urls: stepping ? [gallery?.[index + 1]?.url || "", gallery?.[index - 1]?.url || ""] : [],
+    });
 
     return (
         <Modal
@@ -60,6 +83,14 @@ export default function FilePreviewModal({
                         </Span>
                     ) : null}
                 </Stack>
+                {stepping ? (
+                    <FilePreviewStepper
+                        index={index}
+                        count={count}
+                        onPrevious={() => step({ by: -1 })}
+                        onNext={() => step({ by: 1 })}
+                    />
+                ) : null}
                 <Link
                     href={url}
                     download={base_name}
@@ -81,6 +112,7 @@ export default function FilePreviewModal({
                 </Link>
             </Row>
             <FilePreviewBody
+                key={url}
                 kind={kind}
                 name={base_name}
                 url={url}

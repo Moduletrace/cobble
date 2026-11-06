@@ -1,22 +1,24 @@
 import Img from "@moduletrace/twui/layout/Img";
 import Span from "@moduletrace/twui/layout/Span";
-import type { BotMessageAttachment } from "@/src/types";
+import type { BotMessageAttachment, FilePreviewItem } from "@/src/types";
 import FilePreviewLink from "@/src/components/general/file-preview-link";
 import AttachmentIcon from "./attachment-icon";
 
 /**
  * One file on a message: an image as a thumbnail, anything else as a
- * named chip. Both open the file in the preview.
+ * named chip. Both open the file in the preview; an image steps through
+ * the message's other images (`gallery`).
  */
 export default function MessageAttachment({
     name,
     media_type,
     url,
     thumbnail_url,
-}: BotMessageAttachment) {
+    gallery,
+}: BotMessageAttachment & { gallery?: FilePreviewItem[] }) {
     if (media_type == "image") {
         return (
-            <FilePreviewLink name={name} url={url} media_type={media_type} title={name} className="block">
+            <FilePreviewLink name={name} url={url} media_type={media_type} gallery={gallery} title={name} className="block">
                 <Img
                     src={thumbnail_url || url}
                     alt={name}

@@ -1427,6 +1427,18 @@ export type BotFileScopesPayload = {
 /**
  * One entry in a folder the files browser shows: a file or a subfolder.
  */
+/**
+ * One file the preview can show: its name, where its bytes are, and what
+ * kind of media it is. A list of them is a preview's gallery (the images
+ * of a folder or a message), stepped through with Previous and Next.
+ */
+export type FilePreviewItem = {
+    name: string;
+    url: string;
+    media_type?: string | null;
+    size?: number;
+};
+
 export type StorageEntry = {
     name: string;
     /**

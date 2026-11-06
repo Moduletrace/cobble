@@ -3,7 +3,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Button from "@moduletrace/twui/layout/Button";
 import { Trash2 } from "lucide-react";
-import type { MediaType, PublicBotFile } from "@/src/types";
+import type { FilePreviewItem, MediaType, PublicBotFile } from "@/src/types";
 import relativeTime from "@/src/utils/relative-time";
 import FilePreviewLink from "@/src/components/general/file-preview-link";
 import AttachmentIcon from "./attachment-icon";
@@ -15,6 +15,10 @@ type Props = {
      */
     can_manage: boolean;
     busy?: boolean;
+    /**
+     * The listed images, so an image's preview steps through the rest.
+     */
+    gallery?: FilePreviewItem[];
     onDelete: () => void;
 };
 
@@ -22,7 +26,7 @@ type Props = {
  * One file in the files modal: its type, path, size and age, and what can
  * be done with it.
  */
-export default function FileRow({ file, can_manage, busy, onDelete }: Props) {
+export default function FileRow({ file, can_manage, busy, gallery, onDelete }: Props) {
     return (
         <Row className="w-full gap-3! flex-nowrap items-start py-2 border-0 border-b border-solid border-hairline last:border-b-0">
             <Row className="mt-0.5 text-ink-secondary">
@@ -34,6 +38,7 @@ export default function FileRow({ file, can_manage, busy, onDelete }: Props) {
                     url={file.url}
                     media_type={file.media_type}
                     size={file.size}
+                    gallery={gallery}
                     className="text-[13px] font-bold leading-5 text-ink break-words hover:opacity-80"
                 >
                     {file.path || file.name}

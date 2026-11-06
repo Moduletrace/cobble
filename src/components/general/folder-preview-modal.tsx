@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Link from "@moduletrace/twui/layout/Link";
@@ -10,6 +10,7 @@ import useDebouncedValue from "@/src/hooks/use-debounced-value";
 import useStorageFolder from "@/src/hooks/use-storage-folder";
 import useTopModalEscape from "@/src/hooks/use-top-modal-escape";
 import { emptyFolderText, folderSummary } from "@/src/utils/folder-text";
+import imagePreviewGallery from "@/src/utils/image-preview-gallery";
 import { storagePathName, storageSpecHref, type StorageSpec } from "@/src/utils/storage-volumes";
 import FilesBreadcrumbRow from "./files-breadcrumb-row";
 import FilesSearchInput from "./files-search-input";
@@ -27,7 +28,8 @@ type Props = {
 /**
  * A folder over the page, as the files browser shows it: its entries,
  * the trail back up and a search by name. A folder inside opens in place,
- * a file opens in its own preview over this one, and "Open in Files" goes
+ * a file opens in its own preview over this one (an image stepping
+ * through the folder's other images), and "Open in Files" goes
  * to the same folder in the files browser. The listing loads through the
  * files browser's API, so the same access rules hold.
  */
@@ -37,6 +39,11 @@ export default function FolderPreviewModal({ spec, path: start_path, onClose }: 
     const query = useDebouncedValue({ value: search.trim() });
     const { folder, loading, error } = useStorageFolder({ spec, path, search: query });
     const name = folder?.breadcrumbs.at(-1)?.name || folder?.label || storagePathName({ volume: spec.volume, path });
+
+    const gallery = useMemo(
+        () => imagePreviewGallery({ items: (folder?.entries || []).map((entry) => ({ ...entry, url: entry.url || "" })) }),
+        [folder],
+    );
 
     useTopModalEscape({ onClose });
 
@@ -85,6 +92,7 @@ export default function FolderPreviewModal({ spec, path: start_path, onClose }: 
                             key={entry.path}
                             entry={entry}
                             selected={entry.kind == "folder" && entry.path == path}
+                            gallery={gallery}
                             onOpenFolder={openFolder}
                         />
                     ))

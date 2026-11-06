@@ -5,6 +5,7 @@ import FilePreviewBody from "./file-preview-body";
 import FilePreviewLink from "./file-preview-link";
 import FilePreviewMarkdown from "./file-preview-markdown";
 import FilePreviewTable from "./file-preview-table";
+import FilePreviewStepper from "./file-preview-stepper";
 import FolderPreviewLink from "./folder-preview-link";
 
 test("a markdown file renders as a document, raw HTML left out", () => {
@@ -72,4 +73,16 @@ test("a folder link stays a real link to the files browser until clicked", () =>
 
     expect(html).toContain('href="/admin/files?volume=bots&amp;owner=3&amp;path=reports"');
     expect(html).toContain("Open reports");
+});
+
+test("a gallery's stepper says where the image stands and stops at the ends", () => {
+    const first = renderToString(<FilePreviewStepper index={0} count={3} onPrevious={() => {}} onNext={() => {}} />);
+    const last = renderToString(<FilePreviewStepper index={2} count={3} onPrevious={() => {}} onNext={() => {}} />);
+
+    expect(first).toContain("1 of 3");
+    expect(first).toContain("Previous image");
+    expect(first).toContain("Next image");
+    expect(last).toContain("3 of 3");
+    expect((first.match(/disabled=""/g) || []).length).toBe(1);
+    expect((last.match(/disabled=""/g) || []).length).toBe(1);
 });
