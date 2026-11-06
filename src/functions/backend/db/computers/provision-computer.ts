@@ -8,6 +8,7 @@ import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import prepareComputerDataDir from "./prepare-computer-data-dir";
 import computerBrowserEnv from "@/src/utils/computer-browser-env";
 import parseComputerBrowserSettings from "@/src/utils/parse-computer-browser-settings";
+import keepComputerSetupAlive from "./keep-computer-setup-alive";
 import pushComputerUpdate from "./push-computer-update";
 import syncComputerBrowserPolicy from "./sync-computer-browser-policy";
 
@@ -34,7 +35,9 @@ type Params = {
  * owner's tabs hear about it either way. Its browser gets its policy
  * (`syncComputerBrowserPolicy`). The metadata's `layout` says the
  * container runs the current image and mounts (`syncComputers` recreates
- * one that doesn't). Never throws.
+ * one that doesn't). While it runs it keeps the row touched
+ * (`keepComputerSetupAlive`), so a setup the app lost to a restart is told
+ * apart and started again. Never throws.
  */
 export default async function provisionComputer({ computer_id, fresh, pull }: Params) {
     const row = (
@@ -49,6 +52,7 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
     if (!row?.id || !row.name) return;
 
     const metadata = parseJobJson({ text: row.metadata }) || {};
+    const stopHeartbeat = keepComputerSetupAlive({ container_id: Number(row.id) });
 
     try {
         await BunSQLite.sql({
@@ -109,6 +113,8 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
         }).catch(() => {});
 
         await logError({ title: `Computer #${computer_id} couldn't be set up`, error }).catch(() => {});
+    } finally {
+        stopHeartbeat();
     }
 
     await pushComputerUpdate({ computer_id }).catch(() => {});

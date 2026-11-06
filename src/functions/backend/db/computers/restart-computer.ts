@@ -6,6 +6,7 @@ import restartDockerContainer from "@/src/functions/backend/docker/restart-docke
 import { logError } from "@/src/functions/backend/logger";
 import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import provisionComputer from "./provision-computer";
+import keepComputerSetupAlive from "./keep-computer-setup-alive";
 import pushComputerUpdate from "./push-computer-update";
 import syncComputerBrowserPolicy from "./sync-computer-browser-policy";
 
@@ -36,6 +37,7 @@ export default async function restartComputer({ computer_id }: Params) {
     if (!row?.id) return;
 
     const metadata = parseJobJson({ text: row.metadata }) || {};
+    const stopHeartbeat = keepComputerSetupAlive({ container_id: Number(row.id) });
 
     try {
         const docker_id = row.docker_id;
@@ -82,6 +84,8 @@ export default async function restartComputer({ computer_id }: Params) {
         }).catch(() => {});
 
         await logError({ title: `Computer #${computer_id} couldn't be restarted`, error }).catch(() => {});
+    } finally {
+        stopHeartbeat();
     }
 
     await pushComputerUpdate({ computer_id }).catch(() => {});

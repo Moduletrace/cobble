@@ -211,6 +211,16 @@ export const AppData = {
     ComputerHealthyTimeoutMs: 5 * 60 * 1000,
     ComputerHealthPollMs: 2000,
     /**
+     * A computer being set up or restarted (`creating`) has its container's
+     * `updated_at` touched this often by the process doing it
+     * (`keepComputerSetupAlive`). Untouched for `ComputerSetupStaleMs`, the
+     * process is gone (the app restarted mid-way): the computer shows as
+     * failed so it can be set up again, and `syncComputers` starts it
+     * again (`computerSetupInterrupted`).
+     */
+    ComputerSetupHeartbeatMs: 30 * 1000,
+    ComputerSetupStaleMs: 3 * 60 * 1000,
+    /**
      * How long docker gives a computer's container to stop before it is
      * killed, when it is removed or recreated.
      */
