@@ -1,10 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
-/**
- * Loaded first, as the app loads it: message markdown and the file preview
- * import each other, and entering at the markdown fails.
- */
-import "@/src/components/general/file-preview-markdown";
 import WorkspaceAboutGroup from "./workspace-about-group";
 
 describe("WorkspaceAboutGroup", () => {

@@ -3,6 +3,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import { useContext, useMemo, useState } from "react";
 import { AppContext } from "@/src/pages/__root";
 import { CrewBotsContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-bots-context";
+import { CrewWorkspacesContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-workspaces-context";
 import { FilePlaceContext } from "@/src/pages/admin/bots/[bot_id]/(data)/file-place-context";
 import SettingsList from "@/src/pages/admin/settings/(partials)/settings-list";
 import type { BotHookEventStatus } from "@/src/dict/bot-hook-dict";
@@ -26,6 +27,11 @@ type Props = {
  */
 export default function HookCalls({ hook_id, bot_id, workspace_id }: Props) {
     const { pageProps } = useContext(AppContext);
+    /**
+     * A conversation's live workspaces when opened in one, else the page's.
+     */
+    const outer_workspaces = useContext(CrewWorkspacesContext);
+    const workspaces = outer_workspaces.length ? outer_workspaces : pageProps?.workspaces || [];
     const [query, set_query] = useState("");
     const [status, set_status] = useState<BotHookEventStatus | "">("");
     const { events, loading, error, more, loadOlder } = useHookEvents({ hook_id, query, status });
@@ -40,11 +46,13 @@ export default function HookCalls({ hook_id, bot_id, workspace_id }: Props) {
                 empty={loading ? "Loading calls..." : error || (filtered ? "No calls match." : "No calls yet.")}
             >
                 <CrewBotsContext.Provider value={pageProps?.bots || []}>
-                    <FilePlaceContext.Provider value={place}>
-                        {events.map((event) => (
-                            <HookEventRow key={`${event.id}-${event.status}`} event={event} />
-                        ))}
-                    </FilePlaceContext.Provider>
+                    <CrewWorkspacesContext.Provider value={workspaces}>
+                        <FilePlaceContext.Provider value={place}>
+                            {events.map((event) => (
+                                <HookEventRow key={`${event.id}-${event.status}`} event={event} />
+                            ))}
+                        </FilePlaceContext.Provider>
+                    </CrewWorkspacesContext.Provider>
                 </CrewBotsContext.Provider>
             </SettingsList>
             {more && events.length ? (

@@ -5,6 +5,7 @@ import { AppContext } from "@/src/pages/__root";
 import SettingsShell from "@/src/pages/admin/settings/(partials)/settings-shell";
 import ChatroomRetryButton from "@/src/components/general/chatroom-retry-button";
 import { CrewBotsContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-bots-context";
+import { CrewWorkspacesContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-workspaces-context";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import type { ChatroomSummary } from "@/src/types";
 import chatroomStatusLine from "@/src/utils/chatroom-status-line";
@@ -35,45 +36,47 @@ export default function ChatroomBody({ chatroom, messages }: Props) {
 
     return (
         <CrewBotsContext.Provider value={pageProps?.bots || []}>
-            <SettingsShell
-                title={room.title || "Chatroom"}
-                description={`${chatroomStatusLine(room)}. A request between bots, through the coordinator. Read-only.`}
-                action={
-                    can_stop ? (
-                        <ChatroomStopButton chatroom_id={Number(room.id)} />
-                    ) : (
-                        <ChatroomRetryButton chatroom={room} />
-                    )
-                }
-                no_trail={Boolean(room.workspace_id)}
-            >
-                <Row className="w-full gap-x-6! gap-y-2! py-5 items-center">
-                    {room.bots.map((bot) => (
-                        <ChatroomBotsRow
-                            key={bot.id}
-                            bot={bot}
-                            part={
-                                bot.id == room.requester_bot_id
-                                    ? "asked"
-                                    : bot.kind == "coordinator"
-                                      ? "passes it on"
-                                      : "was asked"
-                            }
-                        />
-                    ))}
-                </Row>
-                <Stack className="w-full gap-6! items-stretch py-2">
-                    {thread.map((message) => (
-                        <ChatroomMessageRow
-                            key={message.id}
-                            message={message}
-                            bot={bots.get(Number(message.bot_id)) || null}
-                        />
-                    ))}
-                    <ChatroomOutcome chatroom={room} />
-                    <ChatroomStatus room={room} />
-                </Stack>
-            </SettingsShell>
+            <CrewWorkspacesContext.Provider value={pageProps?.workspaces || []}>
+                <SettingsShell
+                    title={room.title || "Chatroom"}
+                    description={`${chatroomStatusLine(room)}. A request between bots, through the coordinator. Read-only.`}
+                    action={
+                        can_stop ? (
+                            <ChatroomStopButton chatroom_id={Number(room.id)} />
+                        ) : (
+                            <ChatroomRetryButton chatroom={room} />
+                        )
+                    }
+                    no_trail={Boolean(room.workspace_id)}
+                >
+                    <Row className="w-full gap-x-6! gap-y-2! py-5 items-center">
+                        {room.bots.map((bot) => (
+                            <ChatroomBotsRow
+                                key={bot.id}
+                                bot={bot}
+                                part={
+                                    bot.id == room.requester_bot_id
+                                        ? "asked"
+                                        : bot.kind == "coordinator"
+                                          ? "passes it on"
+                                          : "was asked"
+                                }
+                            />
+                        ))}
+                    </Row>
+                    <Stack className="w-full gap-6! items-stretch py-2">
+                        {thread.map((message) => (
+                            <ChatroomMessageRow
+                                key={message.id}
+                                message={message}
+                                bot={bots.get(Number(message.bot_id)) || null}
+                            />
+                        ))}
+                        <ChatroomOutcome chatroom={room} />
+                        <ChatroomStatus room={room} />
+                    </Stack>
+                </SettingsShell>
+            </CrewWorkspacesContext.Provider>
         </CrewBotsContext.Provider>
     );
 }
