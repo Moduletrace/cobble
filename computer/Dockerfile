@@ -127,8 +127,10 @@ RUN set -eu; \
 # coordinator, which installs what worker bots ask for (it's lost when the
 # container is recreated). Worker bots get accounts of their own, without
 # sudo, made by the agent. Chrome and Chromium read managed policies (the
-# app's default extensions) from the same folder.
-RUN setpriv --version && setfacl --version && nft --version \
+# app's default extensions) from the same folder. nft is only looked for,
+# never run: it opens a netlink socket even for --version, which an
+# emulated (arm64 on amd64) build doesn't have.
+RUN setpriv --version && setfacl --version && command -v nft \
     && useradd --create-home --uid 1000 --shell /bin/bash gem \
     && echo 'gem ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/gem \
     && chmod 440 /etc/sudoers.d/gem \
