@@ -36,7 +36,10 @@ type Args = {
  * (`tasks`), so it's called a run: told "Task #52", bots and users look
  * for it in `list_tasks` and don't find it. While a run is open in the
  * session on that computer a new one is refused unless it's separate
- * work, since it would only wait behind it (one task per computer).
+ * work (one task per computer, so a repeat would only wait behind it).
+ * Different work is queued then and there with `separate`: nothing runs
+ * when a run ends but posting its result, so a bot that said "once that's
+ * done I'll start the next one" never did.
  */
 export default function startTaskTool({
     user_id,
@@ -51,7 +54,7 @@ export default function startTaskTool({
 
     return {
         name: "start_task",
-        description: `Queue work that takes a while or needs a computer. It runs in the background and its result is posted in this chat. It's a run, not a task on the to-do list: list_tasks never shows it, so don't send the user there to find it. Write the instructions as a full brief for yourself: what to do, where, and how you'll know it's done. Tasks run one at a time per computer, so while one of yours is open here, a new one only waits behind it: don't start the same work again with another title. ${
+        description: `Queue work that takes a while or needs a computer. It runs in the background and its result is posted in this chat. It's a run, not a task on the to-do list: list_tasks never shows it, so don't send the user there to find it. Write the instructions as a full brief for yourself: what to do, where, and how you'll know it's done. Runs go one at a time per computer. While one of yours is open here, never start the same work again under another title, but queue different work now with separate: true and it starts as soon as the open one ends. Nothing starts it later but this call, so never tell the user you'll start it once the other run finishes. ${
             computers.length
                 ? `Computers you can use: ${listed}. Defaults to ${computers[0]!.id}, the one you're on.`
                 : `You have no computer, so the task can't run commands or browse.`
@@ -63,7 +66,7 @@ export default function startTaskTool({
             separate: z
                 .boolean()
                 .optional()
-                .describe("Only for different work while another run of yours is open here on that computer, never to retry or redo it."),
+                .describe("For different work while another run of yours is open here on that computer: it's queued and starts when that one ends. Never to retry or redo the open run."),
         }),
         run: async ({ args }) => {
             const same = await grabOpenBotTask({ bot_id, session_id, title: args.title });
@@ -80,7 +83,7 @@ export default function startTaskTool({
 
             if (open) {
                 throw new Error(
-                    `Run #${open.id} "${open.title || "Task"}" is still ${open.status == "pending" ? "queued" : "under way"} here on that computer, and a new one would only wait behind it. If this is the same work, don't start it again: its result will be posted here (the user can Stop it to start over). Only for different work, call start_task again with separate.`,
+                    `Run #${open.id} "${open.title || "Task"}" is still ${open.status == "pending" ? "queued" : "under way"} here on that computer. If this is the same work, don't start it again: its result will be posted here (the user can Stop it to start over). If it's different work, call start_task again now with separate: true; it's queued and starts as soon as run #${open.id} ends. Nothing starts it later but you, now, so never tell the user you'll start it once run #${open.id} is done.`,
                 );
             }
 
