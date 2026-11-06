@@ -9,6 +9,8 @@
  * (`fileRef`), which is what downloads. There is no guessing from the
  * name's extension: the ref says which one it is.
  */
+import { AppData } from "@/src/data/app-data";
+import computerWorkspacePath from "./computer-workspace-path";
 import {
     isStorageVolume,
     parseStorageSpec,
@@ -36,6 +38,23 @@ type RefParams = {
 
 function cleanPath({ path }: { path?: string | null }) {
     return (path || "").trim().replace(/^\/+|\/+$/g, "");
+}
+
+/**
+ * A path in a folder ref, as the files browser names it. On a computer a
+ * bot may write the folder as it sees it there (`/home/cb-3/workspace/...`,
+ * `/home/gem/workspace/...`): that becomes its real place in the
+ * computer's workspace (`computerWorkspacePath`), relative to it.
+ */
+function refPath({ volume, path }: { volume: string; path: string }) {
+    if (volume != "computers") return path;
+
+    const workspace = AppData.ComputerWorkspaceDir;
+    const real = computerWorkspacePath({ absolute: `/${path}` });
+
+    if (real == workspace) return "";
+
+    return real.startsWith(`${workspace}/`) ? real.slice(workspace.length + 1) : path;
 }
 
 /**
@@ -91,7 +110,7 @@ export function parseFolderRefHref({
 
     return {
         spec: { volume, owner_id: Math.trunc(owner_id) },
-        path: rest.join(":").replace(/^\/+|\/+$/g, ""),
+        path: refPath({ volume, path: rest.join(":").replace(/^\/+|\/+$/g, "") }),
     };
 }
 
@@ -114,5 +133,5 @@ export function folderRefUrl({ volume, owner_id, path }: RefParams) {
 
     if (!spec) return StorageBrowserPath;
 
-    return storageSpecHref({ spec, path });
+    return storageSpecHref({ spec, path: refPath({ volume: known, path: cleanPath({ path }) }) });
 }

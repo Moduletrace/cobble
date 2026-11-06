@@ -110,7 +110,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.2.0",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.3.0",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
@@ -174,9 +174,12 @@ export const AppData = {
      * (`migrateComputerLayout`), keeping its workspace and browser profile.
      * `cobble-computer` moved every computer off the AIO sandbox;
      * `cobble-computer-accounts` gave worker bots their own accounts (the
-     * container gets `NET_ADMIN` to keep them off its services).
+     * container gets `NET_ADMIN` to keep them off its services);
+     * `cobble-computer-homes` has workers work in their own home
+     * (`/home/cb-<bot>/workspace`, a link the agent keeps to their folder),
+     * which an older agent would make a folder that isn't kept.
      */
-    ComputerWorkspaceLayout: "cobble-computer-accounts",
+    ComputerWorkspaceLayout: "cobble-computer-homes",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
     /**

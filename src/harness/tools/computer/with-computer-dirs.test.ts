@@ -12,16 +12,18 @@ const echoTool = (name: string): HarnessTool => ({
 });
 
 const dirs = computerRunDirs({ bot_id: 3, user_id: 7, workspace_id: 2 });
-const cwd = "/home/gem/workspace/bots/3/users/7";
+const cwd = "/home/cb-3/workspace/users/7";
+const shared = "/home/cb-3/workspace/workspaces/2";
 const signal = new AbortController().signal;
 const call = async (name: string, args: Record<string, unknown>) =>
     JSON.parse((await withComputerDirs({ tool: echoTool(name), dirs }).run({ args, signal })) as string);
 
 describe("withComputerDirs", () => {
     test("uploads resolve paths and refuse outside ones", async () => {
-        expect((await call("browser_file_upload", { paths: ["a.pdf", "/home/gem/workspace/workspaces/2/b.png"] })).paths).toEqual([
+        expect((await call("browser_file_upload", { paths: ["a.pdf", `${shared}/b.png`, "/home/gem/workspace/workspaces/2/c.png"] })).paths).toEqual([
             `${cwd}/a.pdf`,
-            "/home/gem/workspace/workspaces/2/b.png",
+            `${shared}/b.png`,
+            `${shared}/c.png`,
         ]);
         await expect(call("browser_file_upload", { paths: ["/home/gem/.bashrc"] })).rejects.toThrow();
         await expect(call("browser_file_upload", { paths: ["../../../4/x"] })).rejects.toThrow();
@@ -50,9 +52,7 @@ describe("withComputerDirs", () => {
 
     test("a file saved by name lands in the run's folders", async () => {
         expect((await call("browser_take_screenshot", { filename: "shot.png" })).filename).toBe(`${cwd}/shot.png`);
-        expect((await call("browser_snapshot", { filename: "/home/gem/workspace/workspaces/2/page.md" })).filename).toBe(
-            "/home/gem/workspace/workspaces/2/page.md",
-        );
+        expect((await call("browser_snapshot", { filename: `${shared}/page.md` })).filename).toBe(`${shared}/page.md`);
         await expect(call("browser_console_messages", { filename: "/home/gem/workspace/bots/4/log.txt" })).rejects.toThrow();
     });
 
@@ -63,9 +63,15 @@ describe("withComputerDirs", () => {
 });
 
 describe("computerDirsShell", () => {
-    test("a worker's: its umask, the folders, moved in, installs into its home", () => {
+    test("a worker's: its umask, the shared link put back, its folder, moved in, installs into its home", () => {
         expect(computerDirsShell({ dirs })).toBe(
-            `umask 007 && mkdir -p '${cwd}' '/home/gem/workspace/workspaces/2' && cd '${cwd}' && export HOME='${cwd}' && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
+            `umask 007 && { [ -e '${shared}' ] || [ -L '${shared}' ] || { mkdir -p '/home/cb-3/workspace/workspaces' && ln -s '/home/gem/workspace/workspaces/2' '${shared}'; }; } && mkdir -p '${cwd}' && cd '${cwd}' && export HOME='${cwd}' && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
+        );
+    });
+
+    test("a worker outside a workspace: no shared link", () => {
+        expect(computerDirsShell({ dirs: computerRunDirs({ bot_id: 3, user_id: 7 }) })).toBe(
+            `umask 007 && mkdir -p '${cwd}' && cd '${cwd}' && export HOME='${cwd}' && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
         );
     });
 

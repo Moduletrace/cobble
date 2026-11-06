@@ -8,6 +8,7 @@ describe("runUserFor", () => {
             uid: 100_007,
             gid: 100_007,
             home: "/home/cb-7",
+            kept_dir: "/home/cb-7/workspace",
             bot_dir: "/home/gem/workspace/bots/7",
             workspace: null,
         });
@@ -18,6 +19,7 @@ describe("runUserFor", () => {
             name: "cw-12",
             gid: 10_000_012,
             dir: "/home/gem/workspace/workspaces/12",
+            link: "/home/gem/workspace/bots/3/workspaces/12",
         });
     });
 

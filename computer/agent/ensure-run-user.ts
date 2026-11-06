@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
-import { chmod, chown, mkdir, stat } from "node:fs/promises";
+import { chmod, chown, lstat, mkdir, readlink, rename, stat, symlink, unlink } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { AgentConfig } from "./config";
+import commandArgv from "./command-argv";
 import log from "./log";
 import type { RunUser } from "./run-user-for";
 
@@ -20,19 +21,28 @@ let queue: Promise<unknown> = Promise.resolve();
  * Makes a worker's account and, in a workspace, its group (idempotent,
  * one at a time), and hands it its folders: its home (private), the bot's
  * folder (its own) and the workspace's (its group's). Neither gem nor any
- * other worker can read them; the coordinator, as gem, uses sudo.
+ * other worker can read them; the coordinator, as gem, uses sudo. Then,
+ * on every call, makes sure of the links the worker works through
+ * (`keepLinks`): only the bot's folder is kept, so a write through a link
+ * that's gone would land somewhere a recreate wipes.
  */
-export default function ensureRunUser({ run_user }: { run_user: RunUser }) {
+export default async function ensureRunUser({ run_user }: { run_user: RunUser }) {
     const key = `${run_user.uid}:${run_user.workspace?.gid || 0}`;
 
-    if (ready.has(key)) return Promise.resolve();
+    if (!ready.has(key)) {
+        await serially(async () => {
+            if (ready.has(key)) return;
 
-    const next = queue.then(async () => {
-        if (ready.has(key)) return;
+            await setUp({ run_user });
+            ready.add(key);
+        });
+    }
 
-        await setUp({ run_user });
-        ready.add(key);
-    });
+    if (!(await linksInPlace({ run_user }))) await serially(() => keepLinks({ run_user }));
+}
+
+function serially(work: () => Promise<void>) {
+    const next = queue.then(work);
 
     queue = next.catch(() => {});
 
@@ -71,6 +81,65 @@ async function setUp({ run_user }: { run_user: RunUser }) {
      * bots share it through the group.
      */
     if (workspace) await shareFolder({ dir: workspace.dir, uid: 0, gid: workspace.gid });
+
+    await keepLinks({ run_user });
+}
+
+/**
+ * Whether the worker's links lead where they should: `workspace` in its
+ * home to the bot's folder, and in a workspace, `workspaces/<id>` in the
+ * bot's folder to the workspace's shared one. Only reads.
+ */
+async function linksInPlace({ run_user }: { run_user: RunUser }) {
+    if (!(await isLinkTo({ link: run_user.kept_dir, target: run_user.bot_dir }))) return false;
+
+    return !run_user.workspace || isLinkTo({ link: run_user.workspace.link, target: run_user.workspace.dir });
+}
+
+async function isLinkTo({ link, target }: { link: string; target: string }) {
+    const info = await lstat(link).catch(() => null);
+
+    return !!info?.isSymbolicLink() && (await readlink(link).catch(() => "")) == target;
+}
+
+/**
+ * Puts the worker's links back where they're missing or lead elsewhere.
+ * Whatever else sits in a link's place is moved aside, never deleted.
+ * The home's link is made as root (the home is a real folder in root's
+ * /home, so nothing in its path is the worker's to swap); the shared
+ * folder's, inside the bot's folder (the worker's own), by the worker's
+ * account, so a link it left there can't send root anywhere.
+ */
+async function keepLinks({ run_user }: { run_user: RunUser }) {
+    const { kept_dir, bot_dir, workspace } = run_user;
+
+    if (!(await isLinkTo({ link: kept_dir, target: bot_dir }))) {
+        const info = await lstat(kept_dir).catch(() => null);
+
+        if (info?.isSymbolicLink()) await unlink(kept_dir);
+        else if (info) await rename(kept_dir, `${kept_dir}.before-${Date.now()}`);
+
+        await symlink(bot_dir, kept_dir);
+    }
+
+    if (workspace && !(await isLinkTo({ link: workspace.link, target: workspace.dir }))) {
+        const link = quoted({ text: workspace.link });
+        const target = quoted({ text: workspace.dir });
+        const argv = commandArgv({
+            command: [
+                `umask 007`,
+                `mkdir -p "$(dirname ${link})"`,
+                `if [ -L ${link} ]; then ln -sfn ${target} ${link}; elif [ -e ${link} ]; then mv ${link} ${link}.before-$(date +%s) && ln -s ${target} ${link}; else ln -s ${target} ${link}; fi`,
+            ].join(" && "),
+            as: { uid: run_user.uid, gid: run_user.gid },
+        });
+
+        await run(argv.file, argv.args, { cwd: "/", timeout: 30_000 });
+    }
+}
+
+function quoted({ text }: { text: string }) {
+    return `'${text.replaceAll("'", `'\\''`)}'`;
 }
 
 /**

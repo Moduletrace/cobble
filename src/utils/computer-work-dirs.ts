@@ -1,11 +1,17 @@
 import path from "node:path";
 import { AppData } from "@/src/data/app-data";
 import AppError from "@/src/utils/app-error";
+import computerWorkerAccount from "@/src/utils/computer-worker-account";
+import computerWorkspacePath from "@/src/utils/computer-workspace-path";
 
 /**
- * Where one run may work on a computer, every path absolute inside the
- * computer's workspace (`AppData.ComputerWorkspaceDir`, the only directory
- * mounted from the data volume).
+ * Where one run may work on a computer, every path absolute and as the run
+ * sees it. Only the computer's workspace (`AppData.ComputerWorkspaceDir`)
+ * is mounted from the data volume. A worker sees its folders through its
+ * own home: `/home/cb-<bot>/workspace` is a link to `bots/<bot>` in the
+ * workspace, and `workspaces/<id>` in it a link to the workspace's shared
+ * folder (`computerWorkspacePath` turns either spelling into the real
+ * one). The coordinator works in the workspace itself.
  */
 export type ComputerRunDirs = {
     /**
@@ -13,16 +19,18 @@ export type ComputerRunDirs = {
      */
     workspace: string;
     /**
-     * Where the run starts and where a relative path lands: the user's
-     * folder in the bot's (`bots/<bot>/users/<user>`).
+     * Where the run starts, its `HOME`, and where a relative path lands:
+     * the user's folder in the bot's (`users/<user>`).
      */
     cwd: string;
     /**
-     * The bot's own folder (`bots/<bot>`).
+     * The bot's own folder: a worker's `/home/cb-<bot>/workspace`, the
+     * coordinator's `bots/<bot>` in the workspace.
      */
     bot_dir: string;
     /**
-     * The workspace's shared folder (`workspaces/<id>`), in a workspace.
+     * The workspace's shared folder, in a workspace: a worker's
+     * `workspaces/<id>` inside its own, the coordinator's in the workspace.
      */
     shared_dir: string | null;
     /**
@@ -62,9 +70,11 @@ type Params = {
 
 /**
  * The folders a run works in on a computer: the user's own inside the
- * bot's (`bots/<bot>/users/<user>`, where it starts), the bot's own
- * (`bots/<bot>`, for work that is the same for every user) and, in a
- * workspace, the folder its bots share (`workspaces/<id>`).
+ * bot's (`users/<user>`, where it starts), the bot's own (for work that is
+ * the same for every user) and, in a workspace, the folder its bots share.
+ * A worker's are under `/home/cb-<bot>/workspace` (its account's home
+ * stays in the container, only that folder is kept); the coordinator's
+ * are in the computer's workspace (`bots/<bot>`, `workspaces/<id>`).
  */
 export default function computerRunDirs({
     bot_id,
@@ -73,10 +83,14 @@ export default function computerRunDirs({
     workspace_id,
 }: Params): ComputerRunDirs {
     const workspace = AppData.ComputerWorkspaceDir;
-    const bot_dir = path.posix.join(workspace, "bots", String(Number(bot_id)));
+    const is_coordinator = bot_kind == "coordinator";
+    const in_workspace = Number(workspace_id) > 0;
+    const bot_dir = is_coordinator
+        ? path.posix.join(workspace, "bots", String(Number(bot_id)))
+        : computerWorkerAccount({ bot_id }).workspace;
     const cwd = path.posix.join(bot_dir, "users", String(Number(user_id)));
-    const shared_dir = Number(workspace_id) > 0
-        ? path.posix.join(workspace, "workspaces", String(Number(workspace_id)))
+    const shared_dir = in_workspace
+        ? path.posix.join(is_coordinator ? workspace : bot_dir, "workspaces", String(Number(workspace_id)))
         : null;
 
     return {
@@ -84,13 +98,11 @@ export default function computerRunDirs({
         cwd,
         bot_dir,
         shared_dir,
-        roots: bot_kind == "coordinator"
-            ? [workspace]
-            : [bot_dir, ...(shared_dir ? [shared_dir] : [])],
+        roots: is_coordinator ? [workspace] : [bot_dir, ...(shared_dir ? [shared_dir] : [])],
         user_id: Number(user_id),
-        run_as: bot_kind == "coordinator"
+        run_as: is_coordinator
             ? null
-            : { bot_id: Number(bot_id), workspace_id: Number(workspace_id) > 0 ? Number(workspace_id) : null },
+            : { bot_id: Number(bot_id), workspace_id: in_workspace ? Number(workspace_id) : null },
     };
 }
 
@@ -105,8 +117,11 @@ export function isInsideDir({ parent, child }: { parent: string; child: string }
  * Turns a path a bot gave a computer tool into the absolute one it means,
  * only when it is one of the run's: a relative path (or `~`, which the
  * run's shells read as its folder) lands in `cwd`, an absolute one must be
- * inside `roots`, and another user's folder in a bot's is refused. Throws
- * an `AppError` the bot gets back as the tool's error.
+ * inside `roots`, and another user's folder in a bot's is refused. Checked
+ * on the real path (`computerWorkspacePath`), so a worker may also give
+ * one under the computer's workspace (what `pwd -P` or a script's own cwd
+ * prints), and returned as the run sees it (`computerRunPath`). Throws an
+ * `AppError` the bot gets back as the tool's error.
  */
 export function resolveComputerPath({
     path: requested,
@@ -130,22 +145,47 @@ export function resolveComputerPath({
               : path.posix.join(dirs.cwd, raw || "."),
     ).replace(/(.)\/+$/, "$1");
 
-    if (!isComputerPathAllowed({ absolute, dirs })) {
+    const real = computerWorkspacePath({ absolute });
+
+    if (!isComputerPathAllowed({ real, dirs })) {
         throw new AppError(
             `${absolute} is outside your folders on this computer. Work in ${dirs.cwd} (this user's), ${dirs.roots.join(" or ")} for work every user shares.`,
         );
     }
 
-    return absolute;
+    return computerRunPath({ real, dirs });
 }
 
 /**
- * Whether an absolute, normalized path is one the run may touch.
+ * A real path on the computer (`computerWorkspacePath`) as the run sees
+ * it: for a worker, its folder and the workspace's shared one through its
+ * own home (`/home/cb-<bot>/workspace/...`).
  */
-function isComputerPathAllowed({ absolute, dirs }: { absolute: string; dirs: ComputerRunDirs }) {
-    if (!dirs.roots.some((root) => isInsideDir({ parent: root, child: absolute }))) return false;
+export function computerRunPath({ real, dirs }: { real: string; dirs: ComputerRunDirs }) {
+    if (!dirs.run_as) return real;
 
-    const relative = path.posix.relative(dirs.workspace, absolute).split("/");
+    for (const dir of [dirs.shared_dir, dirs.bot_dir]) {
+        if (!dir) continue;
+
+        const dir_real = computerWorkspacePath({ absolute: dir });
+
+        if (isInsideDir({ parent: dir_real, child: real })) {
+            return `${dir}${real.slice(dir_real.length)}`;
+        }
+    }
+
+    return real;
+}
+
+/**
+ * Whether a real, normalized path is one the run may touch.
+ */
+function isComputerPathAllowed({ real, dirs }: { real: string; dirs: ComputerRunDirs }) {
+    const roots = dirs.roots.map((root) => computerWorkspacePath({ absolute: root }));
+
+    if (!roots.some((root) => isInsideDir({ parent: root, child: real }))) return false;
+
+    const relative = path.posix.relative(dirs.workspace, real).split("/");
 
     /**
      * `bots/<bot>/users/<user>/...`: only the run's own user.
@@ -158,9 +198,10 @@ function isComputerPathAllowed({ absolute, dirs }: { absolute: string; dirs: Com
 }
 
 /**
- * A path inside the computer's workspace as a folder ref or the files
- * browser names it: relative to the workspace root, no leading slash.
+ * A path inside the computer's workspace as the files browser names it:
+ * relative to the workspace root, no leading slash. A worker's
+ * `/home/cb-<bot>/workspace/...` is read as the real path it links to.
  */
 export function computerWorkspaceRelative({ absolute }: { absolute: string }) {
-    return path.posix.relative(AppData.ComputerWorkspaceDir, absolute);
+    return path.posix.relative(AppData.ComputerWorkspaceDir, computerWorkspacePath({ absolute }));
 }

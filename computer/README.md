@@ -55,7 +55,13 @@ commands. Every worker bot works as its own account, `cb-<bot id>` (uid and
 gid `100000 + id`, no sudo), made by the agent the first time the app acts
 for it (`run_as`). Its folder `bots/<id>` is its own (`2770`), and a
 workspace's folder `workspaces/<id>` (root's) belongs to the group `cw-<id>`
-its bots join. `gem`, and so Chrome, can't open either: the app passes a
+its bots join. A worker works through its home: `/home/cb-<id>/workspace`
+is a link to `bots/<id>` (the only part of its home that's kept, since the
+home itself lives in the container), its users' folders are `users/<user>`
+in it, and in a workspace `workspaces/<workspace id>` in it is a link to
+that workspace's folder. The agent checks both links on every request for
+the worker and puts back one that's gone (whatever sits in its place is
+moved aside). `gem`, and so Chrome, can't open either: the app passes a
 worker's uploads, downloads and files saved by name through a folder of the
 call's own, copied by the worker's account (`sudo -u`), and a worker can't
 open `file:` URLs. Its env files live in its own home.
@@ -116,7 +122,7 @@ tag; the release workflow builds a tag once (a dispatch with
 bun run build:computer          # builds AppData.ComputerImage for this machine
 docker run -d --name cobble-computer-dev --shm-size 2g \
   --security-opt seccomp=unconfined --cap-add NET_ADMIN -p 8170:8080 \
-  ghcr.io/moduletrace/cobble-computer:1.2.0
+  ghcr.io/moduletrace/cobble-computer:1.3.0
 ```
 
 A computer run by hand like that has no token, so anyone who reaches its port

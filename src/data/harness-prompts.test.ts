@@ -53,9 +53,10 @@ describe("harness prompts", () => {
             dirs: computerRunDirs({ bot_id: 3, user_id: 7, workspace_id: 2 }),
         });
 
-        expect(note).toContain("[folder:computer:8:bots/3/users/7/seo/coderank/raw]");
-        expect(note).toContain("/home/gem/workspace/bots/3/users/7");
-        expect(note).toContain("/home/gem/workspace/workspaces/2");
+        expect(note).toContain("[folder:computer:8:home/cb-3/workspace/users/7/seo/coderank/raw]");
+        expect(note).toContain("starts in /home/cb-3/workspace/users/7 (also ~ and $HOME)");
+        expect(note).toContain("/home/cb-3/workspace/workspaces/2: shared");
+        expect(note).toContain("only /home/cb-3/workspace and the browser's logins survive it (the rest of your account's home, /home/cb-3, doesn't)");
         expect(note).toContain("request_install");
         expect(note).not.toContain("sudo apt-get");
     });
@@ -67,6 +68,8 @@ describe("harness prompts", () => {
         });
 
         expect(note).toContain("sudo apt-get");
+        expect(note).toContain("/home/gem/workspace/bots/1/users/7");
+        expect(note).toContain("only /home/gem/workspace and the browser's logins survive it. ");
         expect(note).not.toContain("request_install");
     });
 

@@ -105,3 +105,22 @@ describe("linkComputerRefs", () => {
         expect(parseFolderRefHref({ href: linked.match(/\((#file-[^)]+)\)/)?.[1] })).toBeNull();
     });
 });
+
+describe("computer folder refs written as the bot sees them", () => {
+    test("a worker's kept folder and the computer's workspace open their real place", () => {
+        const open = (path: string) => parseFolderRefHref({ href: folderRefHref({ volume: "computer", owner_id: 3, path }) })?.path;
+
+        expect(open("/home/cb-7/workspace/users/1/seo")).toBe("bots/7/users/1/seo");
+        expect(open("home/cb-7/workspace/workspaces/2/brief")).toBe("workspaces/2/brief");
+        expect(open("/home/gem/workspace/bots/7/notes")).toBe("bots/7/notes");
+        expect(open("/home/gem/workspace")).toBe("");
+        expect(open("bots/7/users/1")).toBe("bots/7/users/1");
+        expect(open("seo/raw")).toBe("seo/raw");
+    });
+
+    test("other volumes keep the path as written", () => {
+        expect(parseFolderRefHref({ href: folderRefHref({ volume: "bot", owner_id: 3, path: "home/cb-7/workspace" }) })?.path).toBe(
+            "home/cb-7/workspace",
+        );
+    });
+});

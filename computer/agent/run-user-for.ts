@@ -10,20 +10,27 @@ export type RunUser = {
      */
     home: string;
     /**
+     * `workspace` in its home: a link to `bot_dir`, the only part of its
+     * home that's kept. The app names every worker path through it.
+     */
+    kept_dir: string;
+    /**
      * The bot's folder in the workspace, owned by the account.
      */
     bot_dir: string;
     /**
      * The workspace the run is in: its shared folder belongs to this group,
-     * which the account joins.
+     * which the account joins, and `link` (`workspaces/<id>` in the bot's
+     * folder) leads to it.
      */
-    workspace: { name: string; gid: number; dir: string } | null;
+    workspace: { name: string; gid: number; dir: string; link: string } | null;
 };
 
 /**
  * The account a worker bot's commands run as on this computer
  * (`cb-<bot id>`, no sudo) and, in a workspace, the group its bots share
- * (`cw-<id>`). Throws for an id that isn't a whole number in range.
+ * (`cw-<id>`). Keep alike the app's `computerWorkerAccount` and
+ * `computerRunDirs`. Throws for an id that isn't a whole number in range.
  */
 export default function runUserFor({ bot_id, workspace_id }: { bot_id: unknown; workspace_id?: unknown }): RunUser {
     const bot = runId({ value: bot_id });
@@ -38,18 +45,22 @@ export default function runUserFor({ bot_id, workspace_id }: { bot_id: unknown; 
 
     const id = AgentConfig.WorkerIdBase + bot;
     const name = `cb-${bot}`;
+    const home = `/home/${name}`;
+    const bot_dir = path.posix.join(AgentConfig.WorkspaceDir, "bots", String(bot));
 
     return {
         name,
         uid: id,
         gid: id,
-        home: `/home/${name}`,
-        bot_dir: path.posix.join(AgentConfig.WorkspaceDir, "bots", String(bot)),
+        home,
+        kept_dir: path.posix.join(home, "workspace"),
+        bot_dir,
         workspace: workspace
             ? {
                   name: `cw-${workspace}`,
                   gid: AgentConfig.WorkspaceGroupBase + workspace,
                   dir: path.posix.join(AgentConfig.WorkspaceDir, "workspaces", String(workspace)),
+                  link: path.posix.join(bot_dir, "workspaces", String(workspace)),
               }
             : null,
     };

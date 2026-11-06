@@ -95,9 +95,8 @@ export default function importFileTool({
              * Workspace-relative from here on, which is what a folder ref
              * names.
              */
-            const source = computerWorkspaceRelative({
-                absolute: resolveComputerPath({ path: args.path, dirs }),
-            });
+            const shown = resolveComputerPath({ path: args.path, dirs });
+            const source = computerWorkspaceRelative({ absolute: shown });
 
             if (!source) return `Give a file or folder inside your folder, e.g. "seo/coderank/raw".`;
 
@@ -110,13 +109,14 @@ export default function importFileTool({
             const kind = await sourceKind({ computer: target, source, run_as: dirs.run_as, signal });
 
             if (kind == "missing") {
-                return `Nothing at ${onComputer({ source })} on this computer. Check it with search_computers or the computer's own tools before importing.`;
+                return `Nothing at ${shown} on this computer. Check it with search_computers or the computer's own tools before importing.`;
             }
 
             if (kind == "folder") {
                 return importFolder({
                     computer: target,
                     source,
+                    shown,
                     name: (args.name || source.split("/").pop() || "import").trim(),
                     scope: own,
                     bot_id,
@@ -130,6 +130,7 @@ export default function importFileTool({
             return importOneFile({
                 computer: target,
                 source,
+                shown,
                 name: (args.name || source.split("/").pop() || "import").trim(),
                 scope: own,
                 bot_id,
@@ -146,7 +147,14 @@ export default function importFileTool({
 
 type ImportTarget = {
     computer: ComputerApi;
+    /**
+     * Relative to the computer's workspace, where it really is.
+     */
     source: string;
+    /**
+     * Its path as the run sees it, for what the bot is told.
+     */
+    shown: string;
     name: string;
     scope: StorageScope;
     bot_id: number | string;
@@ -180,7 +188,7 @@ async function importOneFile({
         signal,
     });
 
-    if (!download.ok) return importFailure({ reason: download.reason, size: download.size, path: target.source });
+    if (!download.ok) return importFailure({ reason: download.reason, size: download.size, shown: target.shown });
 
     const previous = await grabBotFileRow({
         scope: target.scope.scope,
@@ -206,11 +214,11 @@ async function importOneFile({
     return [
         previous?.id
             ? `You already had ${saved.path} (same ref, no second copy): its bytes are now this file, ${formatSize({ bytes: download.size })} byte for byte.`
-            : `Copied ${onComputer({ source: target.source })} into your files as ${saved.path} [file:${saved.id}], ${formatSize({ bytes: download.size })} byte for byte.`,
+            : `Copied ${target.shown} into your files as ${saved.path} [file:${saved.id}], ${formatSize({ bytes: download.size })} byte for byte.`,
         `The original is still on the computer, in ${folderRef({
             volume: "computer",
             owner_id: target.computer_id,
-            path: sourceFolder({ path: target.source }),
+            path: sourceFolder({ path: target.shown }),
         })}`,
         "Name the copy with its [file:ID] ref when you tell the user about it.",
     ].join("\n");
@@ -239,22 +247,22 @@ async function importFolder({
         return importFailure({
             reason: archive.reason,
             size: archive.size,
-            path: target.source,
+            shown: target.shown,
         });
     }
 
     const saved = await unpackArchive({ archive: archive.bytes, folder: name.replace(/\/+$/, ""), scope, bot_id, user_id });
 
-    if (!saved.length) return `The folder ${onComputer({ source: target.source })} is empty, so nothing was imported.`;
+    if (!saved.length) return `The folder ${target.shown} is empty, so nothing was imported.`;
 
     return [
-        `Copied ${saved.length} file(s) from ${onComputer({ source: target.source })} into your files under ${name}/:`,
+        `Copied ${saved.length} file(s) from ${target.shown} into your files under ${name}/:`,
         ...saved.slice(0, 20).map((file) => `- ${file.path} [file:${file.id}]`),
         saved.length > 20 ? `(and ${saved.length - 20} more)` : "",
         `The originals are still on the computer, in ${folderRef({
             volume: "computer",
             owner_id: computer_id,
-            path: target.source,
+            path: target.shown,
         })}`,
         "Name the copies that matter with their [file:ID] refs.",
     ]
@@ -306,23 +314,26 @@ async function sourceKind({
 function importFailure({
     reason,
     size,
-    path: source,
+    shown,
 }: {
     reason: "missing" | "too_big" | "cut_short";
     size: number;
-    path: string;
+    /**
+     * The path as the run sees it.
+     */
+    shown: string;
 }) {
     const limit = formatSize({ bytes: AppData.BotFileImportMaxBytes });
 
     if (reason == "missing") {
-        return `Nothing at ${onComputer({ source })} on this computer. Check it with search_computers or the computer's own tools before importing.`;
+        return `Nothing at ${shown} on this computer. Check it with search_computers or the computer's own tools before importing.`;
     }
 
     if (reason == "too_big") {
-        return `${onComputer({ source })} is ${formatSize({ bytes: size })}, over the ${limit} limit, so nothing was copied. Zip it on the computer first, or import the files that matter on their own.`;
+        return `${shown} is ${formatSize({ bytes: size })}, over the ${limit} limit, so nothing was copied. Zip it on the computer first, or import the files that matter on their own.`;
     }
 
-    return `The copy of ${onComputer({ source })} came back with ${formatSize({ bytes: size })} of its bytes, so it was thrown away rather than saved. Try again; if it keeps happening, the file is changing while it is read.`;
+    return `The copy of ${shown} came back with ${formatSize({ bytes: size })} of its bytes, so it was thrown away rather than saved. Try again; if it keeps happening, the file is changing while it is read.`;
 }
 
 /**

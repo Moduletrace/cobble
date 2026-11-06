@@ -1,7 +1,8 @@
 import { AppData } from "@/src/data/app-data";
 import botRef from "@/src/utils/bot-ref";
 import folderRef from "@/src/utils/folder-ref";
-import { computerWorkspaceRelative, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import computerWorkerAccount from "@/src/utils/computer-worker-account";
+import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 
 /**
  * Prompts the helper harnesses send. The text model gets their output in
@@ -109,14 +110,16 @@ export const ComputerFilesNote = ({
     can_import?: boolean;
 }) => `# Files on the computer
 
-You work only in your own folders on the computer, never elsewhere in it: every shell and file tool starts in ${dirs.cwd} (also ~), and a path outside your folders is refused.
+You work only in your own folders on the computer, never elsewhere in it: every shell and file tool starts in ${dirs.cwd} (also ~ and $HOME), and a path outside your folders is refused.
 
 - ${dirs.cwd}: this user's work. Everything for them goes here.
 - ${dirs.bot_dir}: only what is the same for every user you work for (other users' folders in it are not yours).${
     dirs.shared_dir ? `\n- ${dirs.shared_dir}: shared with every bot in this workspace.` : ""
 }
 - The browser downloads to its own folder: move what you download into your folder straight away.
-- A computer can be restarted or rebuilt at any time, and only ${AppData.ComputerWorkspaceDir} and the browser's logins survive it. ${
+- A computer can be restarted or rebuilt at any time, and only ${dirs.run_as ? dirs.bot_dir : AppData.ComputerWorkspaceDir} and the browser's logins survive it${
+    dirs.run_as ? ` (the rest of your account's home, ${computerWorkerAccount({ bot_id: dirs.run_as.bot_id }).home}, doesn't)` : ""
+}. ${
     dirs.run_as
         ? `You work as your own account, without sudo, and the browser can't open your folders' files (file: URLs): to look at a page you made, serve its folder on localhost (python3 -m http.server --bind 127.0.0.1, in the background) and open that. Python and Node packages you install yourself (pip install --user, npm install -g) go to ~/.local in this user's folder, so they stay. A system package (apt) needs the coordinator: in a task, ask with request_install, then end your run saying you're waiting for it; you're woken with the answer. System packages may be gone after a rebuild: check for one first (command -v) and ask again when it's missing.`
         : `Programs you install (sudo apt-get install -y, pip, npm -g) may be gone afterwards: check for one first (command -v) and install it again when it's missing.`
@@ -124,7 +127,7 @@ You work only in your own folders on the computer, never elsewhere in it: every 
 
 What you make there (downloads, screenshots, a crawl, raw evidence, logs) is kept with the computer, not in your files, and it is not searchable.
 
-- The user can open any of it: name a folder on the computer as a folder ref, its path from the computer's workspace (${AppData.ComputerWorkspaceDir}), e.g. ${folderRef({ volume: "computer", owner_id: computer_id, path: `${computerWorkspaceRelative({ absolute: dirs.cwd })}/seo/coderank/raw` })}. It opens that folder in Files, so it downloads nothing. Point at the folder holding the evidence they may want to see.
+- The user can open any of it: name a folder on the computer as a folder ref with its full path as you see it, e.g. ${folderRef({ volume: "computer", owner_id: computer_id, path: `${dirs.cwd}/seo/coderank/raw` })}. It opens that folder in Files, so it downloads nothing. Point at the folder holding the evidence they may want to see.
 ${
     can_import
         ? `- import_file copies a file or a folder off the computer into your own files, in one go, and the copy is searchable straight away. Import the finished work (the report, the spreadsheet, the final document), attach it when it is what they asked for, and name it with its [file:ID] ref.\n- The raw evidence can stay on the computer: import it only when the user needs it kept, or when the computer may be rebuilt.\n`
