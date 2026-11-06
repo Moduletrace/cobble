@@ -8,6 +8,7 @@ import pruneLogs from "./prune-logs";
 import syncNotifyWatchers from "./sync-notify-watchers";
 import cronSyncHarnessModels from "./sync-harness-models";
 import syncComputers from "./sync-computers";
+import cronSyncAppNetworks from "./sync-app-networks";
 import syncMcpServers from "./sync-mcp-servers";
 import runCronJobs from "./run-cron-jobs";
 import ingestPendingFiles from "./ingest-pending-files";
@@ -77,6 +78,13 @@ export default function cron() {
         schedule: "*/5 * * * *",
         task: syncComputers,
         run_on_start: true,
+    });
+
+    registerCronJob({
+        title: "sync-app-networks",
+        schedule: "*/5 * * * *",
+        task: cronSyncAppNetworks,
+        quiet: true,
     });
 
     registerCronJob({

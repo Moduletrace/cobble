@@ -21,6 +21,7 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { UserTypes } from "../dict/user-types-dict";
+import type { AppNetworkStatus } from "../dict/app-network-dict";
 import type { BotPermissions, BotTypes } from "../dict/bot-types-dict";
 import type { StorageVolume } from "../utils/storage-volumes";
 import type { RunningVersion } from "../utils/running-version";
@@ -1211,6 +1212,34 @@ export type HookCallRetentionOverview = {
 /**
  * How long logs are kept (Settings > General, `grab-logs-keep-days.ts`).
  */
+/**
+ * The extra docker networks the app's own container joins (Settings >
+ * General, `syncAppNetworks`).
+ */
+export type AppNetworksOverview = {
+    /**
+     * False for a server running outside docker: the list is kept, but
+     * there's no container to connect.
+     */
+    in_docker: boolean;
+    networks: {
+        name: string;
+        status: AppNetworkStatus;
+        message?: string;
+    }[];
+    /**
+     * Networks the container is on that aren't in the list (the computers'
+     * network, the installer's `--extra-network`): shown, never removed here.
+     */
+    other_networks: string[];
+    /**
+     * Every other network on this machine the app could join, for the
+     * picker (`listJoinableNetworks`).
+     */
+    available_networks: string[];
+    max: number;
+};
+
 export type LogRetentionOverview = {
     keep_days: number;
     default_days: number;

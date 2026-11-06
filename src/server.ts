@@ -23,6 +23,7 @@ import grabPrecacheManifest from "./functions/server/pwa/grab-precache-manifest"
 import compressResponse from "./functions/server/compress-response";
 import { ComputerProxyPrefix } from "./dict/computer-dict";
 import ensureDockerNetwork from "./functions/backend/docker/ensure-docker-network";
+import syncAppNetworks from "./functions/backend/docker/sync-app-networks";
 import { ensureVapidKeys } from "./push/vapid";
 import isSameOriginUpgrade from "./utils/is-same-origin-upgrade";
 import { setRequestPeerIP } from "./utils/request-peer-ip";
@@ -86,6 +87,13 @@ try {
     );
     process.exit(1);
 }
+
+/**
+ * The extra networks a super admin gave the app's container (Settings >
+ * General). Recreating the container on an update drops them, so the app
+ * joins them again itself. Never fatal.
+ */
+await syncAppNetworks().catch(() => {});
 
 /**
  * The app always serves plain HTTP and leaves TLS to whatever sits in

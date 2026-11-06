@@ -92,6 +92,11 @@ export const AppData = {
      */
     DockerNetworkName: SiteData["SiteSlug"],
     /**
+     * How many extra docker networks the app's own container may join
+     * (`app_extra_networks`, Settings > General). Computers never join them.
+     */
+    AppExtraNetworksMax: 16,
+    /**
      * Port a computer's agent listens on inside its container: its shell
      * and file API, Playwright MCP (`/mcp`), its screen (`/desktop/`) and
      * its shell (`/terminal/`).
