@@ -5,6 +5,7 @@ import FilePreviewBody from "./file-preview-body";
 import FilePreviewLink from "./file-preview-link";
 import FilePreviewMarkdown from "./file-preview-markdown";
 import FilePreviewTable from "./file-preview-table";
+import FolderPreviewLink from "./folder-preview-link";
 
 test("a markdown file renders as a document, raw HTML left out", () => {
     const html = renderToString(
@@ -50,4 +51,25 @@ test("a file link stays a real link to the bytes until clicked", () => {
 
     expect(html).toContain('href="/media/9"');
     expect(html).toContain("Preview report.md");
+});
+
+test("an image opens in the viewer, with its zoom and fit controls", () => {
+    const html = renderToString(<FilePreviewBody kind="image" name="page.png" url="/media/5" />);
+
+    expect(html).toContain('src="/media/5"');
+    expect(html).toContain("Zoom in (+)");
+    expect(html).toContain("Zoom out (-)");
+    expect(html).toContain("Fit width");
+    expect(html).toContain("Actual size");
+});
+
+test("a folder link stays a real link to the files browser until clicked", () => {
+    const html = renderToString(
+        <FolderPreviewLink spec={{ volume: "bots", owner_id: 3 }} path="reports" href="/admin/files?volume=bots&owner=3&path=reports" title="Open reports">
+            reports
+        </FolderPreviewLink>,
+    );
+
+    expect(html).toContain('href="/admin/files?volume=bots&amp;owner=3&amp;path=reports"');
+    expect(html).toContain("Open reports");
 });

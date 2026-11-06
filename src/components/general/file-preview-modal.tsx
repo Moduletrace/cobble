@@ -5,6 +5,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { Download, SquareArrowOutUpRight } from "lucide-react";
+import useTopModalEscape from "@/src/hooks/use-top-modal-escape";
 import filePreviewKind from "@/src/utils/file-preview-kind";
 import formatBytes from "@/src/utils/format-bytes";
 import FilePreviewBody from "./file-preview-body";
@@ -34,6 +35,8 @@ export default function FilePreviewModal({
 }: Props) {
     const kind = filePreviewKind({ name, media_type });
     const base_name = name.split("/").pop() || name;
+
+    useTopModalEscape({ onClose });
 
     return (
         <Modal

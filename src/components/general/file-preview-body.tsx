@@ -1,7 +1,7 @@
-import Img from "@moduletrace/twui/layout/Img";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { FilePreviewKind } from "@/src/utils/file-preview-kind";
 import FilePreviewNotice from "./file-preview-notice";
+import ImageViewer from "./image-viewer";
 import FilePreviewText from "./file-preview-text";
 
 type Props = {
@@ -13,7 +13,8 @@ type Props = {
 
 /**
  * The preview itself, by kind. Media the browser draws itself (images,
- * PDFs, audio, video) load from the file's URL; text kinds are read into
+ * PDFs, audio, video) load from the file's URL, an image in a viewer with
+ * zoom and fits (`ImageViewer`); text kinds are read into
  * the page (`FilePreviewText`). Nothing here runs the file: an SVG shows
  * through `<img>`, which runs no script, and an HTML page in a frame
  * sandboxed twice (the attribute here and the `sandbox` CSP the media
@@ -22,11 +23,7 @@ type Props = {
  */
 export default function FilePreviewBody({ kind, name, url, size }: Props) {
     if (kind == "image") {
-        return (
-            <Stack className="grow min-h-0 w-full items-center justify-center p-4 overflow-auto bg-sunken">
-                <Img src={url} alt={name} className="max-w-full max-h-full object-contain" />
-            </Stack>
-        );
+        return <ImageViewer url={url} name={name} />;
     }
 
     if (kind == "pdf") {

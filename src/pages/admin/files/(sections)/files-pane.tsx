@@ -3,7 +3,7 @@ import useDebouncedValue from "@/src/hooks/use-debounced-value";
 import { AppContext } from "@/src/pages/__root";
 import type { StorageSpecOption } from "@/src/types";
 import { parseStorageSpec, type StorageSpec } from "@/src/utils/storage-volumes";
-import useStorageFolder from "../(hooks)/use-storage-folder";
+import useStorageFolder from "@/src/hooks/use-storage-folder";
 import FilesBrowser from "./files-browser";
 
 /**

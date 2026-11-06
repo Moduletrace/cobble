@@ -4,11 +4,11 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { StorageFolderPayload, StorageSpecOption } from "@/src/types";
 import type { StorageSpec } from "@/src/utils/storage-volumes";
-import { emptyFolderText, folderSummary } from "../(functions)/folder-text";
-import FilesBreadcrumbRow from "../(partials)/files-breadcrumb-row";
-import FilesSearchInput from "../(partials)/files-search-input";
+import { emptyFolderText, folderSummary } from "@/src/utils/folder-text";
+import FilesBreadcrumbRow from "@/src/components/general/files-breadcrumb-row";
+import FilesSearchInput from "@/src/components/general/files-search-input";
 import FilesVolumeRow from "../(partials)/files-volume-row";
-import StorageEntryRow from "../(partials)/storage-entry-row";
+import StorageEntryRow from "@/src/components/general/storage-entry-row";
 import Divider from "@moduletrace/twui/layout/Divider";
 import Paper from "@moduletrace/twui/elements/Paper";
 
