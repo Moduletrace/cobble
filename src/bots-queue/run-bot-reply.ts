@@ -108,6 +108,7 @@ export default async function runBotReply({
     const history = await grabBotMessages({
         session_id,
         limit: AppData.BotReplyHistoryMessages,
+        user_id,
     });
 
     const answered_id = await grabAnsweredMessageId({ session_id });

@@ -4,7 +4,8 @@ type Params = {
 
 /**
  * The opening of the line the app adds after a bot's past message, naming
- * the tools its run called (`botMessagesToHarness`).
+ * the tools its run called and the user's reactions to it
+ * (`botMessagesToHarness`).
  */
 export const AppRecordPrefix = "[App record:";
 

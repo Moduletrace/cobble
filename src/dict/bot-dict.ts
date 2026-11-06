@@ -174,6 +174,10 @@ export const BotMessageReactions = [
         value: "👍",
     },
     {
+        title: "Dislike",
+        value: "👎",
+    },
+    {
         title: "Love",
         value: "❤️",
     },

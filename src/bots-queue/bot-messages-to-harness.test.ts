@@ -212,3 +212,64 @@ describe("botMessagesToHarness with mentions", () => {
         ]);
     });
 });
+
+describe("botMessagesToHarness with reactions", () => {
+    test("adds the user's reactions to the record of the message's tools", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "summarise it"),
+                    {
+                        ...message("bot", "Here it is."),
+                        tool_log: JSON.stringify([{ name: "read_file", ok: true }]),
+                        reactions: [
+                            { emoji: "👍" as const, count: 1, mine: true },
+                            { emoji: "👎" as const, count: 1, mine: true },
+                        ],
+                    },
+                ],
+            }),
+        ).toEqual([
+            { role: "user", content: "summarise it" },
+            {
+                role: "assistant",
+                content:
+                    "Here it is.\n\n[App record: this message's run called read_file. The user reacted to it with 👍 (like), 👎 (dislike).]",
+            },
+        ]);
+    });
+
+    test("records reactions on a message whose run wasn't recorded", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "hi"),
+                    {
+                        ...message("bot", "hello"),
+                        reactions: [{ emoji: "❤️" as const, count: 1, mine: true }],
+                    },
+                ],
+            }),
+        ).toEqual([
+            { role: "user", content: "hi" },
+            { role: "assistant", content: "hello\n\n[App record: The user reacted to it with ❤️ (love).]" },
+        ]);
+    });
+
+    test("leaves out reactions that aren't the user's", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "hi"),
+                    {
+                        ...message("bot", "hello"),
+                        reactions: [{ emoji: "🎉" as const, count: 1, mine: false }],
+                    },
+                ],
+            }),
+        ).toEqual([
+            { role: "user", content: "hi" },
+            { role: "assistant", content: "hello" },
+        ]);
+    });
+});

@@ -1,7 +1,8 @@
 import isCrewMessage from "@/src/utils/is-crew-message";
+import { BotMessageReactions } from "@/src/dict/bot-dict";
 import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessContentPart, HarnessMessage, HarnessToolUse } from "@/src/harness/types";
-import type { BotMessageWithAttachments } from "@/src/types";
+import type { BotMessageReaction, BotMessageWithAttachments } from "@/src/types";
 import describeMessageRefs, { type MessageRefNames } from "@/src/utils/describe-message-refs";
 import { AppRecordPrefix } from "@/src/utils/strip-app-records";
 import describeAttachment from "./describe-attachment";
@@ -10,7 +11,15 @@ import crewMessageBlock from "@/src/utils/crew-message-block";
 type Params = {
     messages: Pick<
         BotMessageWithAttachments,
-        "id" | "author" | "text" | "attachments" | "reply_to" | "tool_log" | "from_chatroom_id" | "from_install_request_id"
+        | "id"
+        | "author"
+        | "text"
+        | "attachments"
+        | "reply_to"
+        | "tool_log"
+        | "reactions"
+        | "from_chatroom_id"
+        | "from_install_request_id"
     >[];
     /**
      * Loaded files by message id (`loadAttachmentParts`). Files of other
@@ -34,7 +43,8 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * starts with the user. A turn that is only text stays a string. A bot
  * message whose run was recorded (`tool_log`) is followed by the app's
  * record of the tools it called, so the bot can tell what its past
- * messages actually did from what they say. A chatroom's outcome brought
+ * messages actually did from what they say, and of how the user reacted
+ * to it, their feedback on it. A chatroom's outcome brought
  * back to the bot, or the coordinator's answer to its install request
  * (`isCrewMessage`), is a user turn fenced as what the
  * coordinator passed on (`crewMessageBlock`), never the user's words.
@@ -95,7 +105,9 @@ function messageParts({
     const content: HarnessContentPart[] = text ? [{ type: "text", text }] : [];
 
     if (role == "assistant") {
-        const record = text ? appRecord({ tool_log: message.tool_log }) : "";
+        const record = text
+            ? appRecord({ tool_log: message.tool_log, reactions: message.reactions })
+            : "";
 
         return record ? [...content, { type: "text", text: record }] : content;
     }
@@ -116,10 +128,25 @@ function messageParts({
 }
 
 /**
- * The app's line after a bot message naming the tools its run called, or
- * nothing when the run wasn't recorded.
+ * The app's line after a bot message naming the tools its run called and
+ * the user's own reactions to it, or nothing when there's neither.
  */
-function appRecord({ tool_log }: { tool_log?: string | null }) {
+function appRecord({
+    tool_log,
+    reactions,
+}: {
+    tool_log?: string | null;
+    reactions?: BotMessageReaction[];
+}) {
+    const facts = [toolsRecord({ tool_log }), reactionsRecord({ reactions })].filter(Boolean);
+
+    return facts.length ? `${AppRecordPrefix} ${facts.join(" ")}]` : "";
+}
+
+/**
+ * The tools a recorded run called, or nothing when it wasn't recorded.
+ */
+function toolsRecord({ tool_log }: { tool_log?: string | null }) {
     if (!tool_log) return "";
 
     let uses: HarnessToolUse[];
@@ -134,7 +161,23 @@ function appRecord({ tool_log }: { tool_log?: string | null }) {
 
     const called = uses.length ? describeToolUses({ uses }) : "no tools";
 
-    return `${AppRecordPrefix} this message's run called ${called}.]`;
+    return `this message's run called ${called}.`;
+}
+
+/**
+ * The reactions the user gave a message, named, or nothing. A bot's own
+ * reactions aren't the user's feedback.
+ */
+function reactionsRecord({ reactions }: { reactions?: BotMessageReaction[] }) {
+    const named = (reactions || [])
+        .filter((reaction) => reaction.mine)
+        .map((reaction) => {
+            const title = BotMessageReactions.find((known) => known.value == reaction.emoji)?.title;
+
+            return title ? `${reaction.emoji} (${title.toLowerCase()})` : reaction.emoji;
+        });
+
+    return named.length ? `The user reacted to it with ${named.join(", ")}.` : "";
 }
 
 /**
