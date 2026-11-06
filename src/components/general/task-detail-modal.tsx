@@ -11,14 +11,19 @@ import TaskDetailPanel from "./task-detail-panel";
 type Props = {
     /**
      * The list row clicked; open while set. Its notes and files load when
-     * it opens, so the list stays small.
+     * it opens, so the list stays small. A task named in a message gives
+     * its id alone.
      */
-    task?: TaskWithNames | null;
+    task?: (Partial<TaskWithNames> & { id?: TaskWithNames["id"] }) | null;
     /**
      * A crew manager can change it, file onto it and delete it.
      */
     can_manage?: boolean;
     onClose: () => void;
+    /**
+     * Its details came in.
+     */
+    onLoaded?: (params: { task: TaskDetail }) => void;
     onChanged: (params: { task: TaskDetail; msg?: string }) => void;
     onDeleted: (params: { task_id: number }) => void;
 };
@@ -27,7 +32,7 @@ type Props = {
  * A task opened from a list in a modal of its own: everything about it, and
  * for a crew manager its edit, hand-over, files and delete.
  */
-export default function TaskDetailModal({ task, can_manage, onClose, onChanged, onDeleted }: Props) {
+export default function TaskDetailModal({ task, can_manage, onClose, onLoaded, onChanged, onDeleted }: Props) {
     const [detail, set_detail] = useState<TaskDetail | null>(null);
     const [error, set_error] = useState<string>();
     const task_id = task?.id ? Number(task.id) : 0;
@@ -53,6 +58,7 @@ export default function TaskDetailModal({ task, can_manage, onClose, onChanged, 
                 }
 
                 set_detail(res.singleRes);
+                onLoaded?.({ task: res.singleRes });
             });
 
         return () => {

@@ -251,7 +251,8 @@ Tasks are the crew's to-do list. A task belongs to one bot, on its own list or i
 - create_task adds one, with a brief: what to do, where, and what done looks like. Only add a task for work that will take more than this reply; never one for something you're doing now.
 - update_task moves it along. Set doing when you start, blocked with a reason when only the user can unblock it, and done only once the work is verified (see the check note above). Add a note as you go: it's what the user reads on the task, so one short line per real step, not a play-by-play.
 - On a workspace-wide task, read its log first (list_tasks with task_id) to see which bot did what and when, take a part nobody has done yet, and log each part you finish with update_task. Every note is recorded under your name and id, so the log is how the crew stays in step.
-- A deliverable is a file: save it first with write_file, make_pdf or generate_image, then pass its [file:ID] ref in deliverable_file_ids, so the task carries what it produced.`;
+- A deliverable is a file: save it first with write_file, make_pdf or generate_image, then pass its [file:ID] ref in deliverable_file_ids, so the task carries what it produced.
+- When you name a task, write its [task:ID] ref, e.g. [task:12], so the user can open it. Only tasks from list_tasks or create_task have one; a run from start_task or delegate_task is not a task.`;
 
 /**
  * Added to a chat reply: when and how to bring pending tasks up, so the bot
@@ -261,7 +262,7 @@ export const TaskReminderNote = `# Mentioning pending tasks
 
 You have tasks of your own to keep up with. When the message is an opening ("hello", "what's up"), or after you've answered and propose what's next, call list_tasks and look at what's open.
 
-- If something is blocked on the user, or something open plainly connects to what they're asking, mention it in one short line with its status, at most ${AppData.TaskReminderDigestCount} tasks: "Still open: #12 send the signed form (blocked: you need to sign it), #14 recheck the invoices."
+- If something is blocked on the user, or something open plainly connects to what they're asking, mention it in one short line with its status, at most ${AppData.TaskReminderDigestCount} tasks: "Still open: [task:12] send the signed form (blocked: you need to sign it), [task:14] recheck the invoices."
 - Don't list everything, don't repeat the same reminder reply after reply, and skip it when the user is mid-task, winding down, or you've just asked them a question. A greeting is a good moment; every greeting is not.
 - Never invent a task: name only what list_tasks returned.`;
 

@@ -87,6 +87,7 @@ function wordRefs({
         .replace(/\[secret-request:(\d+)\](?!\()/g, "(secret request $1)")
         .replace(/\[question:(\d+)\](?!\()/g, "(questions $1)")
         .replace(/\[graphic:(\d+)\](?!\()/g, "(graphic $1)")
+        .replace(/\[task:(\d+)\](?!\()/g, "task #$1")
         .replace(/\[file:(\d+)\](?!\()/g, "file $1")
         .replace(/\[folder:[a-z]+:\d+:([^\]\n]+)\](?!\()/g, "`$1`")
         .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, "the $1 $2 folder");

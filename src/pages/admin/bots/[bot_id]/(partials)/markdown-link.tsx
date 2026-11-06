@@ -16,6 +16,7 @@ import { parseFolderRefHref } from "@/src/utils/folder-ref";
 import { botQuestionRefId } from "@/src/utils/bot-question-ref";
 import { graphicRefId } from "@/src/utils/graphic-ref";
 import { chatroomRefId } from "@/src/utils/chatroom-ref";
+import { taskRefId } from "@/src/utils/task-ref";
 import BotQuestionRefChip from "./bot-question-ref-chip";
 import BotRefChip from "./bot-ref-chip";
 import ChatroomRefChip from "./chatroom-ref-chip";
@@ -28,6 +29,7 @@ import ProposalRefChip from "./proposal-ref-chip";
 import SecretRefChip from "./secret-ref-chip";
 import SecretRequestRefChip from "./secret-request-ref-chip";
 import TakeOverChip from "./take-over-chip";
+import TaskRefChip from "./task-ref-chip";
 import WorkspaceRefChip from "./workspace-ref-chip";
 
 /**
@@ -40,7 +42,8 @@ import WorkspaceRefChip from "./workspace-ref-chip";
  * secret it showed a masked chip, a secret it asked for a chip that opens
  * the card it's typed into, questions it asked a chip that opens the card
  * they're answered in, a graphic it made the graphic itself, a
- * chatroom a chip that opens it;
+ * chatroom a chip that opens it, a task on the tracker a chip that opens
+ * the task;
  * anything else opens in a new tab.
  */
 export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
@@ -114,6 +117,10 @@ export default function MarkdownLink({ href, children }: ComponentProps<"a">) {
     const chatroom_id = chatroomRefId({ href });
 
     if (chatroom_id) return <ChatroomRefChip chatroom_id={chatroom_id} />;
+
+    const task_id = taskRefId({ href });
+
+    if (task_id) return <TaskRefChip task_id={task_id} />;
 
     const graphic_id = graphicRefId({ href });
 
