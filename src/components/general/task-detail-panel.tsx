@@ -14,6 +14,7 @@ import TaskStatusMoves from "@/src/components/general/task-status-moves";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import TaskFactRow from "@/src/components/general/task-fact-row";
 import TaskNoteRow from "@/src/components/general/task-note-row";
+import TaskMarkdown from "@/src/components/general/task-markdown";
 import type { BotFace } from "@/src/dict/bot-dict";
 import { AppContext } from "@/src/pages/__root";
 import botStoneProps from "@/src/utils/bot-stone-props";
@@ -306,7 +307,7 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
             ) : null}
 
             {task.description ? (
-                <Span className="whitespace-pre-wrap text-[13px] leading-[19px] text-ink">{task.description}</Span>
+                <TaskMarkdown text={task.description} />
             ) : null}
 
             <Stack className="w-full gap-1! items-stretch">

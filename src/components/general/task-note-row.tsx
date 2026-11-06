@@ -3,6 +3,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { TaskNote } from "@/src/types";
 import relativeTime from "@/src/utils/relative-time";
+import TaskMarkdown from "./task-markdown";
 
 type Props = {
     note: TaskNote;
@@ -10,7 +11,7 @@ type Props = {
 
 /**
  * One note on an opened task: who wrote it (the user, or the bot by name),
- * how long ago, and what it says.
+ * how long ago, and what it says (markdown, like a message).
  */
 export default function TaskNoteRow({ note }: Props) {
     const author = note.author == "user" ? "You" : note.bot_name || "Bot";
@@ -25,7 +26,7 @@ export default function TaskNoteRow({ note }: Props) {
                     </Span>
                 ) : null}
             </Row>
-            <Span className="whitespace-pre-wrap text-[13px] leading-[18px] text-ink">{note.text}</Span>
+            {note.text ? <TaskMarkdown text={note.text} /> : null}
         </Stack>
     );
 }
