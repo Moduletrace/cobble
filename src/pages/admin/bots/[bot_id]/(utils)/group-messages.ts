@@ -1,9 +1,11 @@
+import isCrewMessage from "@/src/utils/is-crew-message";
 import type { BotMessageWithAttachments } from "@/src/types";
 
 export type MessageGroup = {
     key: string;
     /**
-     * `crew`: a chatroom's outcome brought back to the bot (`from_chatroom_id`),
+     * `crew`: a chatroom's outcome or an install request's answer brought
+     * back to the bot (`isCrewMessage`),
      * stored on the user's side but shown as from the coordinator.
      */
     author: "bot" | "user" | "crew";
@@ -38,7 +40,7 @@ export default function groupMessages({
     const groups: MessageGroup[] = [];
 
     for (const message of messages) {
-        const author = message.from_chatroom_id ? "crew" : message.author === "user" ? "user" : "bot";
+        const author = isCrewMessage({ message }) ? "crew" : message.author === "user" ? "user" : "bot";
         const at = Number(message.created_at || 0);
         const last = groups[groups.length - 1];
 

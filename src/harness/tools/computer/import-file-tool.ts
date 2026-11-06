@@ -10,6 +10,7 @@ import {
     computerWorkspaceRelative,
     resolveComputerPath,
     type ComputerRunDirs,
+    type ComputerRunAs,
 } from "@/src/utils/computer-work-dirs";
 import folderRef from "@/src/utils/folder-ref";
 import type { StorageScope } from "@/src/utils/storage-access";
@@ -106,7 +107,7 @@ export default function importFileTool({
 
             if (!target.ready) return computerNotReadyMessage(target);
 
-            const kind = await sourceKind({ computer: target, source, signal });
+            const kind = await sourceKind({ computer: target, source, run_as: dirs.run_as, signal });
 
             if (kind == "missing") {
                 return `Nothing at ${onComputer({ source })} on this computer. Check it with search_computers or the computer's own tools before importing.`;
@@ -121,6 +122,7 @@ export default function importFileTool({
                     bot_id,
                     user_id,
                     computer_id,
+                    run_as: dirs.run_as,
                     signal,
                 });
             }
@@ -135,6 +137,7 @@ export default function importFileTool({
                 computer_id,
                 attach: args.attach,
                 onAttach,
+                run_as: dirs.run_as,
                 signal,
             });
         },
@@ -149,6 +152,10 @@ type ImportTarget = {
     bot_id: number | string;
     user_id: number | string;
     computer_id: number | string;
+    /**
+     * The worker's account it's read as (`ComputerRunDirs.run_as`).
+     */
+    run_as: ComputerRunAs | null;
 };
 
 /**
@@ -169,6 +176,7 @@ async function importOneFile({
         computer: target.computer,
         path: onComputer({ source: target.source }),
         max_bytes: AppData.BotFileImportMaxBytes,
+        run_as: target.run_as,
         signal,
     });
 
@@ -223,6 +231,7 @@ async function importFolder({
     const archive = await readFolderArchive({
         computer: target.computer,
         source: target.source,
+        run_as: target.run_as,
         signal,
     });
 
@@ -269,16 +278,19 @@ function sourceFolder({ path: source }: { path: string }) {
 async function sourceKind({
     computer,
     source,
+    run_as,
     signal,
 }: {
     computer: ComputerApi;
     source: string;
+    run_as: ComputerRunAs | null;
     signal?: AbortSignal;
 }): Promise<"file" | "folder" | "missing"> {
     const result = await runComputerCommand({
         computer,
         command: `d=${shellQuote({ text: onComputer({ source }) })}; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
         timeout_ms: AppData.ComputerSearchTimeoutMs,
+        run_as,
         signal,
     });
 
@@ -325,17 +337,21 @@ function formatSize({ bytes }: { bytes: number }) {
 
 /**
  * A folder as a gzipped tar. The tar is built in a temp file on the
- * computer, its size checked there, and then streamed over the download
- * endpoint (never through the shell, whose output is capped), so a folder
- * of any size under the limit arrives whole.
+ * computer (in the home of the account it's read as, the one place
+ * outside its folders a worker's download may come from), its size
+ * checked there, and then streamed over the download endpoint (never
+ * through the shell, whose output is capped), so a folder of any size
+ * under the limit arrives whole.
  */
 async function readFolderArchive({
     computer,
     source,
+    run_as,
     signal,
 }: {
     computer: ComputerApi;
     source: string;
+    run_as: ComputerRunAs | null;
     signal?: AbortSignal;
 }): Promise<ComputerDownload> {
     const limit = AppData.BotFileImportMaxBytes;
@@ -343,7 +359,7 @@ async function readFolderArchive({
         computer,
         command: [
             `d=${shellQuote({ text: onComputer({ source }) })}`,
-            `t=$(mktemp /tmp/cobble-import-XXXXXX.tgz)`,
+            `t=$(mktemp "$HOME/.cobble-import-XXXXXX.tgz")`,
             `tar -czf "$t" -C "$(dirname "$d")" "$(basename "$d")" || { rm -f "$t"; echo FAILED; exit 0; }`,
             `s=$(wc -c < "$t")`,
             `if [ "$s" -gt ${limit} ]; then rm -f "$t"; echo TOO_BIG; exit 0; fi`,
@@ -351,6 +367,7 @@ async function readFolderArchive({
             `echo "SIZE:$s"`,
         ].join("; "),
         timeout_ms: AppData.ComputerSearchTimeoutMs * 4,
+        run_as,
         signal,
     });
 
@@ -366,12 +383,13 @@ async function readFolderArchive({
     }
 
     try {
-        return await downloadComputerFile({ computer, path: archive_path, max_bytes: limit, signal });
+        return await downloadComputerFile({ computer, path: archive_path, max_bytes: limit, run_as, signal });
     } finally {
         runComputerCommand({
             computer,
             command: `rm -f ${shellQuote({ text: archive_path })}`,
             timeout_ms: 30_000,
+            run_as,
         }).catch(() => undefined);
     }
 }

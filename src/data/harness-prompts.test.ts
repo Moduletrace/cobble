@@ -56,6 +56,18 @@ describe("harness prompts", () => {
         expect(note).toContain("[folder:computer:8:bots/3/users/7/seo/coderank/raw]");
         expect(note).toContain("/home/gem/workspace/bots/3/users/7");
         expect(note).toContain("/home/gem/workspace/workspaces/2");
+        expect(note).toContain("request_install");
+        expect(note).not.toContain("sudo apt-get");
+    });
+
+    test("the coordinator's computer files note keeps sudo", () => {
+        const note = ComputerFilesNote({
+            computer_id: 8,
+            dirs: computerRunDirs({ bot_id: 1, bot_kind: "coordinator", user_id: 7 }),
+        });
+
+        expect(note).toContain("sudo apt-get");
+        expect(note).not.toContain("request_install");
     });
 
     test("notes with nothing bot-specific carry no ref example", () => {

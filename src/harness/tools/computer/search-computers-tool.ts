@@ -76,6 +76,7 @@ export default function searchComputersTool({
                                 computer: target,
                                 command: `${computerDirsShell({ dirs })}${args.command}`,
                                 timeout_ms: AppData.ComputerSearchTimeoutMs,
+                                run_as: dirs.run_as,
                                 signal,
                             }),
                             grabComputerEnvs({

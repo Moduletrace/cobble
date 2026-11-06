@@ -1,3 +1,4 @@
+import isCrewMessage from "@/src/utils/is-crew-message";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import isAwaitingReply from "../(utils)/is-awaiting-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
@@ -290,11 +291,11 @@ export default function Conversation() {
                  * rollover whose summary push was missed): the thread
                  * moves there, and loads it so its opening shows too.
                  */
-                if (message.author == "user" && !message.from_chatroom_id && startsNewSession(message)) {
+                if (message.author == "user" && !isCrewMessage({ message }) && startsNewSession(message)) {
                     setSessionId(Number(message.session_id));
                     setMessages([message]);
                     history.retry();
-                } else if (message.author == "user" && !message.from_chatroom_id) {
+                } else if (message.author == "user" && !isCrewMessage({ message })) {
                     window.location.reload();
                 } else {
                     setHasOtherUnread(true);

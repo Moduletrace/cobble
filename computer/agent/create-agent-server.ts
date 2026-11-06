@@ -20,7 +20,8 @@ import serveStaticFile from "./serve-static-file";
  *
  * - `GET /health` (open): 200 once the browser and its tools answer.
  * - `GET /api/info`, `POST /api/exec`, `GET /api/files/stat|download`,
- *   `POST /api/files/write`: the app's shell and file access.
+ *   `POST /api/files/write`: the app's shell and file access, as gem or
+ *   as a worker bot's own account (`run_as`).
  * - `/mcp`: Playwright MCP, driving the computer's browser.
  * - `/desktop/` and its `/desktop/websockify` websocket: the screen
  *   (noVNC over Xvnc), Chrome's whole window.
@@ -124,6 +125,7 @@ async function route({ req, res, parking }: { req: IncomingMessage; res: ServerR
                 home_dir: AgentConfig.Home,
                 workspace_dir: AgentConfig.WorkspaceDir,
                 user: AgentConfig.User,
+                workers_guarded: AgentState.workers_guarded,
                 browser: {
                     binary: AgentState.browser_binary,
                     version: AgentState.browser_version,

@@ -15,6 +15,7 @@ export default function userEnv({ extra = {} }: { extra?: NodeJS.ProcessEnv } = 
         LANG: process.env.LANG || "C.UTF-8",
         TZ: process.env.TZ || "UTC",
         DISPLAY: AgentConfig.Display,
+        XAUTHORITY: AgentConfig.XAuthority,
         XDG_RUNTIME_DIR: `${AgentConfig.RunDir}/xdg`,
         DBUS_SESSION_BUS_ADDRESS: `unix:path=${AgentConfig.RunDir}/bus`,
         PIP_BREAK_SYSTEM_PACKAGES: "1",

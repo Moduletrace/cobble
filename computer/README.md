@@ -5,7 +5,7 @@ screen and a shell, in one lean Debian 13 (trixie) container. It replaces the
 AIO sandbox, whose browser sites like Google turned away.
 
 ```
-app ──http:8080──► agent ─┬─ /api/exec, /api/files/*  shell and files, as gem
+app ──http:8080──► agent ─┬─ /api/exec, /api/files/*  shell and files, as gem or a worker bot
                           ├─ /terminal/ ─► ttyd (a shell in the browser)
                           ├─ /mcp ─► Playwright MCP ──CDP 127.0.0.1:9222──► Google Chrome
                           └─ /desktop/ noVNC ──websocket──► VNC 127.0.0.1:5900     (headful)
@@ -46,9 +46,28 @@ app ──http:8080──► agent ─┬─ /api/exec, /api/files/*  shell and 
 - **Shell** (`/terminal/`): ttyd, a terminal in the browser, as `gem`.
 
 No window manager, desktop or code editor: the image stays small and starts
-fast. Bots
-install what else they need with `sudo apt-get install -y` (lost when the
-container is recreated).
+fast.
+
+## Accounts
+
+The services run as `gem` (passwordless sudo), and so do the coordinator's
+commands. Every worker bot works as its own account, `cb-<bot id>` (uid and
+gid `100000 + id`, no sudo), made by the agent the first time the app acts
+for it (`run_as`). Its folder `bots/<id>` is its own (`2770`), and a
+workspace's folder `workspaces/<id>` (root's) belongs to the group `cw-<id>`
+its bots join. `gem`, and so Chrome, can't open either: the app passes a
+worker's uploads, downloads and files saved by name through a folder of the
+call's own, copied by the worker's account (`sudo -u`), and a worker can't
+open `file:` URLs. Its env files live in its own home.
+
+A worker can't reach the computer's own services: an nftables rule
+(`guardServicePorts`, which needs `--cap-add NET_ADMIN`) resets its
+connections to the agent, Chrome's DevTools, Playwright MCP, VNC and ttyd,
+and the X display asks for gem's cookie (`XAUTHORITY`). If the rule can't be
+set, the agent refuses everything asked for a worker. Workers install
+Python and Node packages into their own folder (`pip install --user`,
+`npm install -g` into `~/.local`); system packages are the coordinator's
+(`request_install` in the app), lost when the container is recreated.
 
 ## API
 
@@ -58,11 +77,11 @@ when that's set (the app sets it per computer).
 | Path | |
 | --- | --- |
 | `GET /health` | 200 once Chrome's DevTools and Playwright MCP answer |
-| `GET /api/info` | home, workspace, user, browser binary and version |
-| `POST /api/exec` | `{ command, timeout_seconds?, cwd? }`: one `bash -c` as `gem`, own process group, no stdin, killed with its children at the timeout or when the request goes away. `{ output, exit_code, timed_out, truncated }` |
-| `GET /api/files/stat?path=` | `{ exists, type, size, mtime_ms }` |
-| `GET /api/files/download?path=` | the bytes; the connection is cut if the file changes mid-send |
-| `POST /api/files/write` | `{ path, content, encoding?: "utf8" \| "base64", mode? }`, owned by `gem` |
+| `GET /api/info` | home, workspace, user, browser binary and version, whether workers are guarded |
+| `POST /api/exec` | `{ command, timeout_seconds?, cwd?, run_as? }`: one `bash -c` as `gem` (or, with `run_as: { bot_id, workspace_id? }`, as that worker's account), own process group, no stdin, killed with its children at the timeout or when the request goes away. `{ output, exit_code, timed_out, truncated }` |
+| `GET /api/files/stat?path=` | `{ exists, type, size, mtime_ms }`; with `run_as_bot_id` (and `run_as_workspace_id`) only inside that worker's folders and home |
+| `GET /api/files/download?path=` | the bytes; the connection is cut if the file changes mid-send; `run_as_*` as for stat |
+| `POST /api/files/write` | `{ path, content, encoding?: "utf8" \| "base64", mode?, run_as? }`, owned by `gem`, or written by the worker's own account |
 | `/mcp` | Playwright MCP (`--shared-browser-context --codegen none --no-webmcp --file-paths absolute`, its files in `~/.cobble/playwright`, capped at 256 MB); Chrome saves downloads in `~/Downloads` |
 | `/desktop/` | the screen (noVNC); `/desktop/websockify` is its websocket to Xvnc |
 | `/terminal/` | a shell in the browser (ttyd, as `gem`, in the workspace) |
@@ -83,8 +102,8 @@ when that's set (the app sets it per computer).
 | `TZ` | `UTC` | the browser's timezone |
 
 Chrome's sandbox needs user namespaces, so run the container with
-`--security-opt seccomp=unconfined` (the app does), and a big `/dev/shm`
-(`--shm-size 2g`).
+`--security-opt seccomp=unconfined` (the app does), a big `/dev/shm`
+(`--shm-size 2g`), and `--cap-add NET_ADMIN` for worker accounts.
 
 ## Building
 
@@ -96,8 +115,8 @@ tag; the release workflow builds a tag once (a dispatch with
 ```sh
 bun run build:computer          # builds AppData.ComputerImage for this machine
 docker run -d --name cobble-computer-dev --shm-size 2g \
-  --security-opt seccomp=unconfined -p 8170:8080 \
-  ghcr.io/moduletrace/cobble-computer:1.1.0
+  --security-opt seccomp=unconfined --cap-add NET_ADMIN -p 8170:8080 \
+  ghcr.io/moduletrace/cobble-computer:1.2.0
 ```
 
 A computer run by hand like that has no token, so anyone who reaches its port

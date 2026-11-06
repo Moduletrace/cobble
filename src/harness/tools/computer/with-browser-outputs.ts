@@ -30,7 +30,7 @@ export default function withBrowserOutputs({ tool, computer, dirs }: Params): Ha
         run: async ({ args, signal }) => {
             const output = await tool.run({ args, signal });
             const text = browserOutputText({ text: typeof output == "string" ? output : output.text, output_dir });
-            const { moved, pending } = await collectComputerDownloads({ computer, dir: downloads_dir, signal }).catch(() => ({
+            const { moved, pending } = await collectComputerDownloads({ computer, dir: downloads_dir, run_as: dirs.run_as, signal }).catch(() => ({
                 moved: [],
                 pending: [],
             }));

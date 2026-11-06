@@ -1,18 +1,24 @@
 import { AgentConfig } from "./config";
 import createAgentServer from "./create-agent-server";
 import createBrowserParking from "./create-browser-parking";
+import guardServicePorts from "./guard-service-ports";
 import log from "./log";
 import prepareRunDirs from "./prepare-run-dirs";
 import startServices from "./start-services";
 import type { Supervised } from "./supervise-process";
+import writeXAuthority from "./write-x-authority";
 
 /**
  * The computer's agent, its container's main process (under tini): starts
- * the browser and what it needs, and serves the app on one port. On TERM
+ * the browser and what it needs, and serves the app on one port. Worker
+ * bots' accounts are kept off its services (`guardServicePorts`) and the
+ * screen asks for gem's cookie (`writeXAuthority`). On TERM
  * (docker stop) it stops them in order, so Chrome saves its profile.
  */
 async function main() {
     prepareRunDirs();
+    writeXAuthority();
+    guardServicePorts();
 
     let services: Supervised[] = [];
     let stopping = false;

@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import { BotJobCancelledError } from "@/src/dict/bot-queue-dict";
 import AppError from "@/src/utils/app-error";
 import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
+import settleInstallRequest from "../install-requests/settle-install-request";
 
 type Params = {
     user_id: number | string;
@@ -39,6 +40,8 @@ export default async function cancelBotJob({ user_id, job_id }: Params) {
     }
 
     await recordHookCallResponse({ job, status: "failed", response: BotJobCancelledError, now });
+
+    await settleInstallRequest({ job, text: BotJobCancelledError, failed: true });
 
     return job;
 }

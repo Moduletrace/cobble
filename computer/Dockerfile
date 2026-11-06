@@ -77,9 +77,13 @@ ARG DEBIAN_MIRROR
 RUN if [ -n "$DEBIAN_MIRROR" ]; then sed -i "s|http://deb.debian.org/debian|$DEBIAN_MIRROR|g" /etc/apt/sources.list.d/debian.sources; fi \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        # What bots reach for on a shell; anything else is a sudo apt away.
+        # What bots reach for on a shell; anything else the coordinator
+        # installs (worker bots have no sudo).
         bash ca-certificates curl wget git jq less nano procps psmisc sudo \
         unzip zip xz-utils file openssh-client tzdata tini \
+        # Worker bots' own accounts: their folders shared with gem through
+        # ACLs, and kept off the services on loopback by nftables.
+        acl nftables \
         python3 python3-pip python3-venv nodejs \
         # The notification watcher (Python + GLib on the session bus).
         python3-gi gir1.2-glib-2.0 dbus-daemon dbus-session-bus-common \
@@ -119,10 +123,13 @@ RUN set -eu; \
     chmod 755 /usr/local/bin/ttyd; \
     ttyd --version
 
-# The computer's user, with sudo so bots can install what they need (it's
-# lost when the container is recreated). Chrome and Chromium read managed
-# policies (the app's default extensions) from the same folder.
-RUN useradd --create-home --uid 1000 --shell /bin/bash gem \
+# The computer's user, with sudo: the services run as it, and so does the
+# coordinator, which installs what worker bots ask for (it's lost when the
+# container is recreated). Worker bots get accounts of their own, without
+# sudo, made by the agent. Chrome and Chromium read managed policies (the
+# app's default extensions) from the same folder.
+RUN setpriv --version && setfacl --version && nft --version \
+    && useradd --create-home --uid 1000 --shell /bin/bash gem \
     && echo 'gem ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/gem \
     && chmod 440 /etc/sudoers.d/gem \
     && mkdir -p /home/gem/workspace /home/gem/.cobble-browser /etc/opt/chrome/policies/managed /etc/chromium \

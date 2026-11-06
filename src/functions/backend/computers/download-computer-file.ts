@@ -1,4 +1,6 @@
+import type { ComputerRunAs } from "@/src/utils/computer-work-dirs";
 import computerFetch, { type ComputerApi } from "./computer-fetch";
+import computerRunAsQuery from "./computer-run-as-query";
 import statComputerFile from "./stat-computer-file";
 
 type Params = {
@@ -11,6 +13,11 @@ type Params = {
      * Refuse it above this many bytes.
      */
     max_bytes: number;
+    /**
+     * Only inside this worker's own folders (`ComputerRunDirs.run_as`): a
+     * link it left there pointing elsewhere is refused.
+     */
+    run_as?: ComputerRunAs | null;
     signal?: AbortSignal;
 };
 
@@ -26,15 +33,15 @@ export type ComputerDownload =
  * file changes while it's sent, and the length is checked, so a short
  * transfer is reported instead of being saved.
  */
-export default async function downloadComputerFile({ computer, path, max_bytes, signal }: Params): Promise<ComputerDownload> {
-    const stat = await statComputerFile({ computer, path, signal });
+export default async function downloadComputerFile({ computer, path, max_bytes, run_as, signal }: Params): Promise<ComputerDownload> {
+    const stat = await statComputerFile({ computer, path, run_as, signal });
 
     if (!stat.exists || stat.type != "file") return { ok: false, reason: "missing", size: 0 };
     if (stat.size > max_bytes) return { ok: false, reason: "too_big", size: stat.size };
 
     const res = await computerFetch({
         computer,
-        path: `/api/files/download?path=${encodeURIComponent(path)}`,
+        path: `/api/files/download?path=${encodeURIComponent(path)}${computerRunAsQuery({ run_as })}`,
         timeout_ms: stat.size > 5 * 1024 * 1024 ? 120_000 : 60_000,
         signal,
     });

@@ -11,6 +11,7 @@ import stoppedJobReport, { pickReportedJobs } from "./stopped-job-report";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import closeChatroom from "../chatrooms/close-chatroom";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
+import settleInstallRequest from "../install-requests/settle-install-request";
 
 type Params = {
     bot_id: number | string;
@@ -96,6 +97,12 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
         }
 
         await recordHookCallResponse({ job: stopped, status: "failed", response: BotJobStoppedError, now });
+
+        /**
+         * A coordinator stopped on an install request: the worker that
+         * asked is told.
+         */
+        await settleInstallRequest({ job: stopped, text: BotJobStoppedError, failed: true });
 
         /**
          * Recorded as the job's last step, so the working row says why it

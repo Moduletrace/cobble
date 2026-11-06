@@ -27,11 +27,20 @@ describe("withComputerDirs", () => {
         await expect(call("browser_file_upload", { paths: ["../../../4/x"] })).rejects.toThrow();
     });
 
-    test("file URLs must be in the run's folders, web ones pass", async () => {
+    test("a worker opens no file URLs, web ones pass", async () => {
         expect((await call("browser_navigate", { url: "https://example.com" })).url).toBe("https://example.com");
-        expect((await call("browser_navigate", { url: `file://${cwd}/a.html` })).url).toBe(`file://${cwd}/a.html`);
+        await expect(call("browser_navigate", { url: `file://${cwd}/a.html` })).rejects.toThrow("Serve the folder instead");
         await expect(call("browser_navigate", { url: "file:///etc/passwd" })).rejects.toThrow();
-        await expect(call("browser_tabs", { action: "new", url: "file:///home/gem/.config/x" })).rejects.toThrow();
+        await expect(call("browser_tabs", { action: "new", url: "FILE:///home/gem/.config/x" })).rejects.toThrow();
+    });
+
+    test("the coordinator's file URLs must be in its folders", async () => {
+        const coordinator = computerRunDirs({ bot_id: 1, bot_kind: "coordinator", user_id: 7 });
+        const open = async (url: string) =>
+            JSON.parse((await withComputerDirs({ tool: echoTool("browser_navigate"), dirs: coordinator }).run({ args: { url }, signal })) as string);
+
+        expect((await open("file:///home/gem/workspace/bots/3/a.html")).url).toBe("file:///home/gem/workspace/bots/3/a.html");
+        await expect(open("file:///etc/passwd")).rejects.toThrow();
     });
 
     test("drops read their paths from the run's folders too", async () => {
@@ -54,9 +63,17 @@ describe("withComputerDirs", () => {
 });
 
 describe("computerDirsShell", () => {
-    test("creates the folders and moves in", () => {
+    test("a worker's: its umask, the folders, moved in, installs into its home", () => {
         expect(computerDirsShell({ dirs })).toBe(
-            `mkdir -p '${cwd}' '/home/gem/workspace/workspaces/2' && cd '${cwd}' && export HOME='${cwd}'; `,
+            `umask 007 && mkdir -p '${cwd}' '/home/gem/workspace/workspaces/2' && cd '${cwd}' && export HOME='${cwd}' && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
+        );
+    });
+
+    test("the coordinator's: the folders and moved in", () => {
+        const coordinator = computerRunDirs({ bot_id: 1, bot_kind: "coordinator", user_id: 7 });
+
+        expect(computerDirsShell({ dirs: coordinator })).toBe(
+            `mkdir -p '/home/gem/workspace/bots/1/users/7' && cd '/home/gem/workspace/bots/1/users/7' && export HOME='/home/gem/workspace/bots/1/users/7'; `,
         );
     });
 });

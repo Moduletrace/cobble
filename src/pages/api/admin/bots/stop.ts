@@ -2,6 +2,7 @@ import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
 import countOpenBotJobs from "@/src/functions/backend/db/bots-queue/count-open-bot-jobs";
 import stopBotJobs from "@/src/functions/backend/db/bots-queue/stop-bot-jobs";
+import endWorkerProcesses from "@/src/functions/backend/computers/end-worker-processes";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import { BotConversationRequestSchema } from "@/src/schemas/bot-schema";
 import type { BotStoppedPayload } from "@/src/types";
@@ -21,7 +22,8 @@ import type {
  * comes back at once. Stopping from a workspace stops the bot there and in
  * its own chat: the user asked for the bot to stop, not one tab of it.
  * A bot with nothing open is a no-op. The messages that end the wait go
- * out live, to this tab and the user's others.
+ * out live, to this tab and the user's others. A worker's background
+ * processes on those computers end too (`endWorkerProcesses`).
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BotStoppedPayload>> = async ({
     req,
@@ -76,6 +78,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotStoppedPayload>
             }
 
             await pushBotNotice({ bot_id: conversation.bot.id, bot: stopped.bot });
+
+            /**
+             * A worker's own account on its computers: what it left
+             * running in the background ends too (the coordinator works
+             * as the computer's user, which runs the computer itself).
+             */
+            if (conversation.bot.kind != "coordinator") {
+                endWorkerProcesses({ bot_id: conversation.bot.id, jobs: stopped.jobs }).catch(() => undefined);
+            }
         }
 
         return {

@@ -1,3 +1,4 @@
+import isCrewMessage from "@/src/utils/is-crew-message";
 import type { BotMessageWithAttachments, ConversationExport } from "@/src/types";
 import exportMessageText from "./export-message-text";
 import messagePreview from "./message-preview";
@@ -39,7 +40,7 @@ export default function conversationMarkdown({
     const authorName = (author?: string) => (author == "bot" ? bot_name : user_name);
 
     const messageBlock = (message: BotMessageWithAttachments) => {
-        const author = message.from_chatroom_id ? "The coordinator" : authorName(message.author);
+        const author = isCrewMessage({ message }) ? "The coordinator" : authorName(message.author);
         const lines = [`## ${author} · ${format_time(Number(message.created_at))}`, ""];
 
         if (message.reply_to) {

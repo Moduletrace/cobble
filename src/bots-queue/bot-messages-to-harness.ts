@@ -1,3 +1,4 @@
+import isCrewMessage from "@/src/utils/is-crew-message";
 import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessContentPart, HarnessMessage, HarnessToolUse } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
@@ -9,7 +10,7 @@ import crewMessageBlock from "@/src/utils/crew-message-block";
 type Params = {
     messages: Pick<
         BotMessageWithAttachments,
-        "id" | "author" | "text" | "attachments" | "reply_to" | "tool_log" | "from_chatroom_id"
+        "id" | "author" | "text" | "attachments" | "reply_to" | "tool_log" | "from_chatroom_id" | "from_install_request_id"
     >[];
     /**
      * Loaded files by message id (`loadAttachmentParts`). Files of other
@@ -34,7 +35,8 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * message whose run was recorded (`tool_log`) is followed by the app's
  * record of the tools it called, so the bot can tell what its past
  * messages actually did from what they say. A chatroom's outcome brought
- * back to the bot (`from_chatroom_id`) is a user turn fenced as what the
+ * back to the bot, or the coordinator's answer to its install request
+ * (`isCrewMessage`), is a user turn fenced as what the
  * coordinator passed on (`crewMessageBlock`), never the user's words.
  */
 export default function botMessagesToHarness({ messages, parts, refs }: Params): HarnessMessage[] {
@@ -81,7 +83,7 @@ function messageParts({
     parts?: Params["parts"];
     refs?: Params["refs"];
 }): HarnessContentPart[] {
-    if (role == "user" && message.from_chatroom_id) {
+    if (role == "user" && isCrewMessage({ message })) {
         const relayed = message.text?.trim() || "";
 
         return relayed ? [{ type: "text", text: crewMessageBlock({ from: "the coordinator", text: relayed }) }] : [];

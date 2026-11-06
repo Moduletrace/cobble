@@ -24,7 +24,7 @@ export default function computerWriteFileTool({ computer, dirs }: ComputerToolCo
         }),
         run: async ({ args, signal }) => {
             const path = resolveComputerPath({ path: args.path, dirs });
-            const written = await writeComputerFile({ computer, path, content: args.content, signal });
+            const written = await writeComputerFile({ computer, path, content: args.content, run_as: dirs.run_as, signal });
 
             return `Wrote ${path} (${written.size} bytes).`;
         },

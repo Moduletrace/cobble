@@ -19,6 +19,7 @@ import type { ComputerToolContext } from "./computer-tool-context";
 import computerWriteFileTool from "./computer-write-file-tool";
 import withBrowserOutputs from "./with-browser-outputs";
 import withComputerDirs from "./with-computer-dirs";
+import withWorkerBrowserFiles from "./with-worker-browser-files";
 
 type Params = {
     computer_id: number | string;
@@ -95,14 +96,19 @@ export default async function openComputerTools({
     }
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
-    const paths = await writeComputerEnv({ computer: target, envs, signal });
-
+    /**
+     * A worker's account is made (or checked) by the first call as it, so
+     * the folders come before the env files in its home.
+     */
     await runComputerCommand({
         computer: target,
         command: `${computerDirsShell({ dirs })}true`,
         timeout_ms: AppData.McpConnectTimeoutMs,
+        run_as: dirs.run_as,
         signal,
     });
+
+    const paths = await writeComputerEnv({ computer: target, envs, run_as: dirs.run_as, signal });
 
     /**
      * Grows as the bot captures secrets, so a value it saved is blanked
@@ -129,7 +135,13 @@ export default async function openComputerTools({
                 computerReadFileTool(context),
                 computerWriteFileTool(context),
                 computerEditFileTool(context),
-                ...browser_tools.map((tool) => withBrowserOutputs({ tool: withComputerDirs({ tool, dirs }), computer: target, dirs })),
+                ...browser_tools.map((tool) =>
+                    withBrowserOutputs({
+                        tool: withComputerDirs({ tool: withWorkerBrowserFiles({ tool, computer: target, dirs }), dirs }),
+                        computer: target,
+                        dirs,
+                    }),
+                ),
                 ...(user_id && bot_id && onSecretRef
                     ? [
                           captureSecretTool({

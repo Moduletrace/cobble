@@ -118,6 +118,12 @@ export default async function createComputerContainer({
                  * docker's default seccomp profile blocks.
                  */
                 SecurityOpt: ["seccomp=unconfined"],
+                /**
+                 * For the agent's nftables rule keeping worker bots'
+                 * accounts off the computer's own services on loopback;
+                 * it reaches only the container's own network.
+                 */
+                CapAdd: ["NET_ADMIN"],
                 ShmSize: AppData.ComputerShmBytes,
                 Memory: memory_mb * 1024 * 1024,
                 NanoCpus: Math.round(cpus * 1e9),

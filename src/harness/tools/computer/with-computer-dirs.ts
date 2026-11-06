@@ -1,3 +1,4 @@
+import AppError from "@/src/utils/app-error";
 import { resolveComputerPath, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import type { HarnessTool } from "../../types";
 
@@ -17,7 +18,10 @@ const UrlTools: Record<string, string> = {
 
 /**
  * Keeps a computer's browser tool in the run's folders
- * (`computerRunDirs`): a `file:` URL it opens must be inside them, and the
+ * (`computerRunDirs`): a `file:` URL it opens must be inside them (a
+ * worker opens none: the browser runs as the computer's user, which can't
+ * reach its folders, and a page from them could show other bots' files;
+ * it serves its pages on localhost instead), and the
  * files it reads (`paths`: uploads, drops) or writes (`filename`: a
  * screenshot, a snapshot, a log saved by name) are resolved there
  * (`resolveComputerPath`), relative ones landing in the run's own folder
@@ -32,6 +36,12 @@ export default function withComputerDirs({ tool, dirs }: Params): HarnessTool {
         ...tool,
         run: async ({ args, signal }) => {
             const url = url_key && typeof args?.[url_key] == "string" ? args[url_key].trim() : "";
+
+            if (/^file:/i.test(url) && dirs.run_as) {
+                throw new AppError(
+                    `The browser can't open files from your folders. Serve the folder instead, in the background (nohup python3 -m http.server 8000 --bind 127.0.0.1 --directory <folder> > /tmp/serve.log 2>&1 &), open http://127.0.0.1:8000/<file>, and stop the server when you're done.`,
+                );
+            }
 
             if (/^file:/i.test(url)) {
                 const file_path = decodeURIComponent(url.replace(/^file:(\/\/[^/]*)?/i, ""));

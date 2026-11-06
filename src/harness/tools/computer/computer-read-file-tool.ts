@@ -39,7 +39,13 @@ export default function computerReadFileTool({ computer, dirs, redact }: Compute
         }),
         run: async ({ args, signal }) => {
             const path = resolveComputerPath({ path: args.path, dirs });
-            const download = await downloadComputerFile({ computer, path, max_bytes: AppData.ComputerReadFileMaxBytes, signal });
+            const download = await downloadComputerFile({
+                computer,
+                path,
+                max_bytes: AppData.ComputerReadFileMaxBytes,
+                run_as: dirs.run_as,
+                signal,
+            });
 
             if (!download.ok) {
                 return download.reason == "missing"

@@ -11,6 +11,7 @@ import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
+import settleInstallRequest from "../install-requests/settle-install-request";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -86,6 +87,8 @@ export default async function notifyBotJobFailed({
     });
 
     await onChatroomJobEnded({ job, text: failure_message || job.last_error || "", failed: true });
+
+    await settleInstallRequest({ job, text: failure_message || job.last_error || "", failed: true });
 
     return { message, bot, relay };
 }

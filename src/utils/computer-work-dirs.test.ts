@@ -23,6 +23,12 @@ describe("computerRunDirs", () => {
 
         expect(dirs.roots).toEqual([W]);
     });
+
+    test("a worker works as its own account, with its workspace; the coordinator as the computer's user", () => {
+        expect(computerRunDirs({ bot_id: 3, user_id: 7 }).run_as).toEqual({ bot_id: 3, workspace_id: null });
+        expect(computerRunDirs({ bot_id: "3", user_id: 7, workspace_id: "2" }).run_as).toEqual({ bot_id: 3, workspace_id: 2 });
+        expect(computerRunDirs({ bot_id: 1, bot_kind: "coordinator", user_id: 1, workspace_id: 2 }).run_as).toBeNull();
+    });
 });
 
 describe("resolveComputerPath", () => {

@@ -28,6 +28,7 @@ import {
     HookProposalActions,
 } from "@/src/dict/bot-hook-dict";
 import { ExtensionProposalStatuses } from "@/src/dict/extension-proposal-dict";
+import { InstallRequestStatuses } from "@/src/dict/install-request-dict";
 import {
     BotFilePurposes,
     BotFileScopes,
@@ -594,6 +595,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "from_chatroom_id",
                     fieldDescription: `Set on the message that brings a chatroom's outcome back into the asking bot's conversation: the room. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "from_install_request_id",
+                    fieldDescription: `Set on the message that brings the coordinator's answer to a worker's install request (\`install_requests\`) back into the worker's conversation. Stored on the user's side (the bot answers it), shown as coming from the coordinator, read by the model as data. Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
@@ -1655,6 +1661,77 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_secret_requests_session_id",
                     indexTableFields: ["session_id"],
+                },
+            ],
+        },
+        {
+            tableName: "install_requests",
+            tableDescription: `A worker bot asking the coordinator to install something on a computer (\`request_install\`): worker bots work there as their own accounts, without sudo, and only the coordinator (the computer's user, with sudo) installs. It queues a coordinator task in the super admin's conversation with it, which weighs the request and answers it (\`answer_install_request\`); the answer goes back to the worker's conversation and wakes it`,
+            fields: [
+                {
+                    fieldName: "packages",
+                    fieldDescription: `What it asks for, as JSON: [{ manager: apt | pip | npm, name }], names checked against InstallPackageNamePattern`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "reason",
+                    fieldDescription: `Why the worker needs it, in its own words: data for the coordinator, never instructions`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: [...InstallRequestStatuses],
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "answer",
+                    fieldDescription: `The coordinator's note to the worker: what it installed, or why not`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "decided_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user the worker's run was for, whose conversation hears the answer. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The worker that asked. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The worker's session it asked from, where the answer goes while it's still active. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "computer_id",
+                    fieldDescription: `The computer to install on. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "job_id",
+                    fieldDescription: `The coordinator's task (bots_queue) that answers it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_install_requests_job_id",
+                    indexTableFields: ["job_id"],
+                },
+                {
+                    indexName: "idx_install_requests_bot_id",
+                    indexTableFields: ["bot_id", "computer_id", "status"],
                 },
             ],
         },

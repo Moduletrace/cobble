@@ -35,6 +35,18 @@ export type ComputerRunDirs = {
      * the run's, even inside its roots.
      */
     user_id: number;
+    /**
+     * Whose account the run's commands and files are on the computer: a
+     * worker's own (`cb-<bot>`, no sudo, its groups those of the
+     * workspace it's in), or null for the coordinator, which works as the
+     * computer's user (gem, with sudo). Sent to the agent as `run_as`.
+     */
+    run_as: ComputerRunAs | null;
+};
+
+export type ComputerRunAs = {
+    bot_id: number;
+    workspace_id: number | null;
 };
 
 type Params = {
@@ -76,6 +88,9 @@ export default function computerRunDirs({
             ? [workspace]
             : [bot_dir, ...(shared_dir ? [shared_dir] : [])],
         user_id: Number(user_id),
+        run_as: bot_kind == "coordinator"
+            ? null
+            : { bot_id: Number(bot_id), workspace_id: Number(workspace_id) > 0 ? Number(workspace_id) : null },
     };
 }
 

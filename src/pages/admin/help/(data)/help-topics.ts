@@ -121,6 +121,19 @@ Only you see the graphics a bot made for you.`,
 A computer's home folder lives in the app's data folder on the machine, so restarting or recreating its container never loses its files.`,
     },
     {
+        id: "computer-install",
+        title: "A bot needs something installed on its computer",
+        summary: "A bot says it can't use sudo, or that it asked the coordinator to install something.",
+        body: `On a computer, every worker bot works as its own account, without sudo: it can't read other bots' folders, reach the computer's own services or change the system, so one bot's mistake (or a page that tricked it) stays in its own folder.
+
+- **Python and Node packages:** the bot installs them itself, into its own folder (\`pip install --user\`, \`npm install -g\`), where they stay.
+- **Anything that needs root** (a system package with apt): the bot asks the coordinator. The request shows in your conversation with the coordinator (super admin only), which looks the packages up, installs what it accepts and refuses anything that would add package sources, run install scripts from the web or change the computer's accounts. The bot that asked is woken with the answer and carries on.
+- **The coordinator refused something you want:** install it yourself from the computer's **Shell** (crew managers), or ask the coordinator in its chat.
+- **"This computer can't keep its bots apart":** its container couldn't set the firewall rule that keeps worker bots off its services, so the computer refuses to run anything for them. Rebuild it from **Settings, Computers** (a super admin): the app recreates its container with what it needs, and its files and logins stay.
+
+System packages go when a computer is rebuilt; the bot asks again when it finds one missing.`,
+    },
+    {
         id: "bot-asleep",
         title: "A bot is asleep, or says no model is available",
         summary: "Its face is asleep and replies wait, or tasks fail naming the models.",

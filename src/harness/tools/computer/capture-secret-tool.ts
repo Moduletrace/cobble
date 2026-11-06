@@ -105,6 +105,7 @@ async function readValue({
             computer,
             path: resolveComputerPath({ path: args.path, dirs }),
             max_bytes: AppData.CapturedSecretMaxChars * 4,
+            run_as: dirs.run_as,
             signal,
         });
 
@@ -127,6 +128,7 @@ async function readValue({
             computer,
             command: `(${computerDirsShell({ dirs })}[ -f ${shell_path} ] && . ${shell_path}; ${args.command}) 2>/dev/null`,
             timeout_ms: AppData.CaptureSecretTimeoutMs,
+            run_as: dirs.run_as,
             signal,
         });
 

@@ -12,6 +12,7 @@ import {
     ComputerFilesNote,
     ScheduledRunNote,
     HookRunNote,
+    InstallRequestNote,
     TasksNote,
     TaskRunNote,
     AskCrewNote,
@@ -38,6 +39,8 @@ import searchComputersTool from "@/src/harness/tools/computer/search-computers-t
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
+import answerInstallRequestTool from "@/src/harness/tools/bot/answer-install-request-tool";
+import requestInstallTool from "@/src/harness/tools/computer/request-install-tool";
 import composeBrowsersNote from "./compose-browsers-note";
 import computerRef from "@/src/utils/computer-ref";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
@@ -145,6 +148,11 @@ export default async function runBotTask({
          * chatroom's session is hidden from them.
          */
         const can_ask = Boolean(session_id) && !scheduled && !hooked && !params.chatroom_id;
+        /**
+         * The coordinator weighing a worker's install request
+         * (`request_install`): it answers it with answer_install_request.
+         */
+        const install_request_id = powers.is_coordinator ? Number(params.install_request_id) || 0 : 0;
         let failure = null as string | null;
 
         /**
@@ -235,6 +243,23 @@ export default async function runBotTask({
                   ]
                 : []),
             ...(scheduled || hooked ? [reportRunFailedTool({ onFail: ({ reason }) => (failure = reason) })] : []),
+            /**
+             * A worker has no sudo on its computer: it asks the
+             * coordinator to install, from a task the user follows (the
+             * answer wakes it there).
+             */
+            ...(computer && dirs.run_as && can_ask && job.computer_id && !powers.is_coordinator
+                ? [
+                      requestInstallTool({
+                          user_id,
+                          bot_id: bot.id,
+                          session_id,
+                          workspace_id,
+                          computer_id: job.computer_id,
+                      }),
+                  ]
+                : []),
+            ...(install_request_id && job.id ? [answerInstallRequestTool({ request_id: install_request_id, job_id: job.id })] : []),
             ...(computer?.tools || []),
             ...(job.computer_id
                 ? [
@@ -304,6 +329,7 @@ export default async function runBotTask({
                 TaskRunNote,
                 scheduled ? ScheduledRunNote : "",
                 hooked ? HookRunNote : "",
+                install_request_id ? InstallRequestNote : "",
                 botFilesNote({ bot_id: bot.id }),
                 ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
                 TasksNote,

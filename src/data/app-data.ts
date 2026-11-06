@@ -105,7 +105,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.1.0",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.2.0",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
@@ -167,11 +167,20 @@ export const AppData = {
      * Recorded in a container's `metadata.layout`: the image and mounts it
      * was created with. A container with another value is recreated
      * (`migrateComputerLayout`), keeping its workspace and browser profile.
-     * `cobble-computer` moved every computer off the AIO sandbox.
+     * `cobble-computer` moved every computer off the AIO sandbox;
+     * `cobble-computer-accounts` gave worker bots their own accounts (the
+     * container gets `NET_ADMIN` to keep them off its services).
      */
-    ComputerWorkspaceLayout: "cobble-computer",
+    ComputerWorkspaceLayout: "cobble-computer-accounts",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
+    /**
+     * A worker's install request (`request_install`): at most this many
+     * packages, a reason and notes this long, its answer this long.
+     */
+    InstallRequestMaxPackages: 20,
+    InstallRequestReasonMaxChars: 1000,
+    InstallRequestAnswerMaxChars: 2000,
     /**
      * Resources a new computer's container gets, saved on the computer
      * (`cpus`, `memory_mb`) when it is created.

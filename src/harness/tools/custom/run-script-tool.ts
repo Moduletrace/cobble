@@ -59,7 +59,12 @@ export default async function runScriptTool({
     if (!target.ready) throw new Error(computerNotReadyMessage(target));
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
-    const { shell_path } = await writeComputerEnv({ computer: target, envs, signal });
+    /**
+     * A bot's run works as its own account there (the coordinator's as
+     * the computer's user); a try from the settings page has none.
+     */
+    const run_as = dirs?.run_as || null;
+    const { shell_path } = await writeComputerEnv({ computer: target, envs, run_as, signal });
     const language =
         CustomToolScriptLanguages.find((l) => l.value == config.language) || CustomToolScriptLanguages[0];
 
@@ -80,6 +85,7 @@ export default async function runScriptTool({
             `exit $status`,
         ].join("; ")})`,
         timeout_ms: Math.min(config.timeout_ms || AppData.CustomToolDefaultTimeoutMs, AppData.CustomToolMaxTimeoutMs),
+        run_as,
         signal,
     });
 

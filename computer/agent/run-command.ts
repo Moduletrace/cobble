@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import commandArgv from "./command-argv";
 import { killGroup } from "./supervise-process";
 
 type Params = {
@@ -7,6 +8,11 @@ type Params = {
     env: NodeJS.ProcessEnv;
     uid?: number;
     gid?: number;
+    /**
+     * Another account to run it as, with its groups (a worker's): `uid`
+     * and `gid` are then left out.
+     */
+    as?: { uid: number; gid: number };
     timeout_seconds: number;
     max_output_bytes: number;
     /**
@@ -36,6 +42,7 @@ export default function runCommand({
     env,
     uid,
     gid,
+    as,
     timeout_seconds,
     max_output_bytes,
     signal,
@@ -47,11 +54,11 @@ export default function runCommand({
         let timed_out = false;
         let settled = false;
 
-        const child = spawn("bash", ["-c", command], {
+        const argv = commandArgv({ command, as });
+        const child = spawn(argv.file, argv.args, {
             cwd,
             env,
-            uid,
-            gid,
+            ...(as ? {} : { uid, gid }),
             detached: true,
             stdio: ["ignore", "pipe", "pipe"],
         });

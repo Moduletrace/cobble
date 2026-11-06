@@ -30,7 +30,13 @@ export default function computerEditFileTool({ computer, dirs }: ComputerToolCon
         }),
         run: async ({ args, signal }) => {
             const path = resolveComputerPath({ path: args.path, dirs });
-            const download = await downloadComputerFile({ computer, path, max_bytes: AppData.ComputerWriteFileMaxChars, signal });
+            const download = await downloadComputerFile({
+                computer,
+                path,
+                max_bytes: AppData.ComputerWriteFileMaxChars,
+                run_as: dirs.run_as,
+                signal,
+            });
 
             if (!download.ok) {
                 return download.reason == "missing"
@@ -53,7 +59,7 @@ export default function computerEditFileTool({ computer, dirs }: ComputerToolCon
                     : `old_text is in ${path} ${edit.count} times. Include more of the lines around it, or pass replace_all.`;
             }
 
-            await writeComputerFile({ computer, path, content: edit.text, signal });
+            await writeComputerFile({ computer, path, content: edit.text, run_as: dirs.run_as, signal });
 
             return `Edited ${path} (${edit.count} replacement${edit.count == 1 ? "" : "s"}).`;
         },

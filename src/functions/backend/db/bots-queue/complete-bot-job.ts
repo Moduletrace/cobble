@@ -16,6 +16,7 @@ import type { HarnessToolUse } from "@/src/harness/types";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
+import settleInstallRequest from "../install-requests/settle-install-request";
 
 type Params = {
     job_id: number | string;
@@ -166,6 +167,8 @@ export default async function completeBotJob({
     const relay = silent ? null : await relayJobToRequester({ job, text: result });
 
     await onChatroomJobEnded({ job, text: silent ? "" : result });
+
+    await settleInstallRequest({ job, text: result });
 
     return { message, bot, relay };
 }

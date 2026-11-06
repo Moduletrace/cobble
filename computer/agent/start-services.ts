@@ -49,6 +49,10 @@ export default async function startServices({ parking }: { parking: BrowserParki
             "96",
             "-nolisten",
             "tcp",
+            // Only what holds gem's cookie reaches the screen, never a
+            // worker bot's account.
+            "-auth",
+            AgentConfig.XAuthority,
             "-desktop",
             "Computer",
             // VNC on loopback only, without a password: the agent's token

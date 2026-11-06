@@ -22,10 +22,30 @@ export const AgentConfig = {
      * every request is let in (a computer run by hand for development).
      */
     Token: env.COBBLE_COMPUTER_TOKEN || "",
+    /**
+     * The computer's own user, with passwordless sudo: the services run as
+     * it, and so do the coordinator's commands. Worker bots get accounts of
+     * their own (`runUserFor`).
+     */
     User: "gem",
     Uid: 1000,
     Gid: 1000,
     Home: "/home/gem",
+    /**
+     * A worker bot's account is `cb-<bot id>`, uid and gid
+     * `WorkerIdBase + bot id`, without sudo; a workspace's group is
+     * `cw-<id>`, gid `WorkspaceGroupBase + id`. Ids above `MaxRunId` are
+     * refused, so the ranges never meet. Keep alike the app's
+     * `computerWorkerAccount`.
+     */
+    WorkerIdBase: 100_000,
+    WorkspaceGroupBase: 10_000_000,
+    MaxRunId: 9_000_000,
+    /**
+     * The X display's cookie (gem's alone): without it nothing reaches the
+     * screen, so a worker can't watch or type into Chrome.
+     */
+    XAuthority: "/run/cobble/xauth",
     WorkspaceDir: "/home/gem/workspace",
     ProfileDir: env.COBBLE_BROWSER_PROFILE_DIR || "/home/gem/.cobble-browser",
     /**
