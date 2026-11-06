@@ -78,7 +78,12 @@ export default function withWorkerBrowserFiles({ tool, computer, dirs }: Params)
  * can't be read as the worker.
  */
 async function openStage({ computer, who, inputs, signal }: { computer: ComputerApi; who: string; inputs: string[]; signal?: AbortSignal }) {
-    const copy = `umask 022; cp -- "$1" "$2"`;
+    /**
+     * `cp` keeps the source's mode (a worker's files are `0660`), so the
+     * copy is opened up for the browser: the folder itself is only the
+     * computer's user's and this worker's.
+     */
+    const copy = `cp -- "$1" "$2" && chmod 0644 -- "$2"`;
     const command = [
         `s=$(mktemp -d /tmp/cobble-browser-XXXXXX) || exit 1`,
         `setfacl -m ${shellQuote({ text: `u:${who}:rwx` })} "$s" || { rm -rf -- "$s"; exit 1; }`,
