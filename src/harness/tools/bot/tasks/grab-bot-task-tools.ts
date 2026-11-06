@@ -4,6 +4,7 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import grabStorageScopes from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../../types";
 import createTaskTool from "./create-task-tool";
+import deleteTaskTool from "./delete-task-tool";
 import listTasksTool from "./list-tasks-tool";
 import updateTaskTool from "./update-task-tool";
 
@@ -21,6 +22,11 @@ type Params = {
      */
     admin_workspace_ids?: number[];
     workspace_id?: number | string | null;
+    /**
+     * A chat reply the user follows: it also gets delete_task. Never a
+     * routine, a hook call or a chatroom run.
+     */
+    can_delete?: boolean;
 };
 
 /**
@@ -30,6 +36,7 @@ type Params = {
  * move it along and file what they produced. The coordinator's create_task
  * may target any worker or workspace; its update_task may link any file it
  * can reach. A workspace admin's may give tasks there to the other members.
+ * Only a chat reply the user follows deletes tasks (`can_delete`).
  */
 export default async function grabBotTaskTools({
     user_id,
@@ -37,6 +44,7 @@ export default async function grabBotTaskTools({
     is_coordinator,
     admin_workspace_ids = [],
     workspace_id,
+    can_delete,
 }: Params): Promise<HarnessTool[]> {
     let workers: BUN_SQLITE_COBBLE_BOTS[] = [];
     let members: BUN_SQLITE_COBBLE_BOTS[] = [];
@@ -76,5 +84,6 @@ export default async function grabBotTaskTools({
             members,
         }),
         updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes }),
+        ...(can_delete ? [deleteTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids })] : []),
     ];
 }

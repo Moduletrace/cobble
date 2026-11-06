@@ -640,6 +640,12 @@ export const AppData = {
      */
     BotReplyMaxToolSteps: 20,
     /**
+     * From this many characters, a bot message whose run called no tools
+     * shows "No tools used" under it (`MessageNoToolsChip`): a long report
+     * with nothing behind it was made up, and the user acted on one.
+     */
+    MessageNoToolsMinChars: 400,
+    /**
      * Messages a chat reply may send while it works (`send_message`):
      * acknowledging something the user wrote meanwhile, a heads-up. Its
      * answer still comes at the end.

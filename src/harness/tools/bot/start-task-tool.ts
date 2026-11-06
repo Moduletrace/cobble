@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppData } from "@/src/data/app-data";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import countComputerTaskJobs from "@/src/functions/backend/db/bots-queue/count-computer-task-jobs";
@@ -27,6 +28,7 @@ type Args = {
     instructions: string;
     computer_id?: number;
     separate?: boolean;
+    max_steps?: number;
 };
 
 /**
@@ -39,7 +41,10 @@ type Args = {
  * work (one task per computer, so a repeat would only wait behind it).
  * Different work is queued then and there with `separate`: nothing runs
  * when a run ends but posting its result, so a bot that said "once that's
- * done I'll start the next one" never did.
+ * done I'll start the next one" never did. `max_steps` caps the run's
+ * model turns below the install's limit (`params.max_steps`, read by
+ * `runBotTask`): a bot told to "keep it to ~20 steps" only wrote it in
+ * its brief, and the run searched on for 40 minutes.
  */
 export default function startTaskTool({
     user_id,
@@ -67,6 +72,15 @@ export default function startTaskTool({
                 .boolean()
                 .optional()
                 .describe("For different work while another run of yours is open here on that computer: it's queued and starts when that one ends. Never to retry or redo the open run."),
+            max_steps: z
+                .number()
+                .int()
+                .min(1)
+                .max(AppData.BotStepLimitMax)
+                .optional()
+                .describe(
+                    "The most model turns the run may take (each turn is one or more tool calls), enforced by the app; leave out for the install's limit. Set it whenever the user asked to keep a run short or cheap, and for lookups and searches (about 15 to 30), so a run that can't find something stops and reports what it tried instead of searching on.",
+                ),
         }),
         run: async ({ args }) => {
             const same = await grabOpenBotTask({ bot_id, session_id, title: args.title });
@@ -95,11 +109,12 @@ export default function startTaskTool({
                 instructions: args.instructions,
                 message_id,
                 computer_id: computer_id || undefined,
+                params: args.max_steps ? { max_steps: args.max_steps } : undefined,
             });
 
             const ahead = computer_id ? await countComputerTaskJobs({ computer_id, except_job_id: job_id }) : 0;
 
-            return `Run #${job_id} queued; you'll work on it yourself in the background. It's not on the task list (list_tasks), so never tell the user to look for it there. ${
+            return `Run #${job_id} queued${args.max_steps ? ` with at most ${args.max_steps} steps` : ""}; you'll work on it yourself in the background. It's not on the task list (list_tasks), so never tell the user to look for it there. ${
                 ahead
                     ? `The computer has ${ahead} other ${ahead == 1 ? "run" : "runs"} queued or working (they go one at a time), so it waits for ${ahead == 1 ? "it" : "them"} first: tell the user it's queued behind other work, not that it's running. `
                     : ""

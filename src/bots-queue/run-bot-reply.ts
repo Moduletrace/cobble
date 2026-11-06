@@ -53,6 +53,7 @@ import grabMessageRefNames from "@/src/functions/backend/db/bots/grab-message-re
 import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import hasUnansweredMessage from "./has-unanswered-message";
+import reviewBotReply from "./review-bot-reply";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
@@ -85,7 +86,9 @@ type Params = BotJobContext & {
  * that's separate can be acknowledged at once (`send_message`) and done
  * after the current work. The job records the newest
  * one it read (`markReplyAnswered`). Finishes silently when an earlier
- * reply already read everything (`hasUnansweredMessage`).
+ * reply already read everything (`hasUnansweredMessage`). An answer naming
+ * files or tasks that don't exist, or saying work is under way when none
+ * is, is written again once (`reviewBotReply`).
  */
 export default async function runBotReply({
     bot,
@@ -243,6 +246,10 @@ export default async function runBotReply({
      * workspace's admin.
      */
     const powers = await grabBotRunPowers({ bot_id: bot.id, workspace_id });
+    /**
+     * A chatroom's turn is a reply too, and nobody follows that.
+     */
+    const attended = !(await isHiddenSession({ session_id }));
     let led: WorkspaceAdminTools | null = null;
 
     const tools = await grabBotChatTools({
@@ -253,6 +260,7 @@ export default async function runBotReply({
         session_id,
         workspace_id,
         scopes,
+        attended,
         message_id: job.message_id || undefined,
         onTakeOver: ({ ref }) => take_overs.push(ref),
         onPropose: ({ ref }) => proposals.push(ref),
@@ -279,9 +287,9 @@ export default async function runBotReply({
 
     /**
      * The user's own browsers, so a bot can browse from the chat with no
-     * computer. A room's turn is a reply too, and nobody follows that.
+     * computer.
      */
-    const browser_run_kind = (await isHiddenSession({ session_id })) ? "unattended" : "attended";
+    const browser_run_kind = attended ? "attended" : "unattended";
     const browsers = await openBotBrowsers({
         user_id,
         bot_id: bot.id,
@@ -422,6 +430,12 @@ export default async function runBotReply({
             signal,
             onStep: report,
             incoming,
+            /**
+             * Files, tasks and work the answer names are checked against
+             * the app's record before it goes out.
+             */
+            review: ({ text, tool_uses }) =>
+                reviewBotReply({ text, tool_uses, bot_id: bot.id!, user_id, session_id, scopes }),
         });
 
         if (job.id && answering_id) {

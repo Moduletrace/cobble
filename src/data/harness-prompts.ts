@@ -238,7 +238,7 @@ export const workspaceAdminsLine = ({ admins }: { admins: { id?: number | "" }[]
  */
 export const TaskRunNote = `# Working on a task
 
-You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. End it with the next step you'd suggest, as a short question the user can say yes to. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
+You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. End it with the next step you'd suggest, as a short question the user can say yes to. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
 
 /**
  * Added to every run: the shared to-do list, and how a bot keeps it

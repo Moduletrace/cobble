@@ -373,4 +373,74 @@ describe("runTextLoop", () => {
         expect(seen[1]!.messages.at(-1)!.content).toContain("Also this.");
         expect(seen[1]!.messages.at(-1)!.content).toContain("You've used every step");
     });
+
+    test("writes an answer the review faults again, once, with its note and the tool calls", async () => {
+        const { generate, seen } = scripted([
+            { text: null, tool_calls: [{ id: "c1", name: "remember", arguments: '{"note":"x"}' }] },
+            { text: "I'm scanning now. Scan done: 5 contests." },
+            { text: "I haven't scanned yet." },
+            { text: "never reached" },
+        ]);
+        const reviewed: { text: string; tools: string[] }[] = [];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan." }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            review: async ({ text, tool_uses }) => {
+                reviewed.push({ text, tools: tool_uses.map((use) => use.name) });
+                return "Not sent: nothing scanned.";
+            },
+        });
+
+        expect(result.text).toBe("I haven't scanned yet.");
+        expect(reviewed).toEqual([{ text: "I'm scanning now. Scan done: 5 contests.", tools: ["remember"] }]);
+        expect(seen[2]!.messages.slice(-2)).toEqual([
+            { role: "assistant", content: "I'm scanning now. Scan done: 5 contests." },
+            { role: "user", content: "Not sent: nothing scanned." },
+        ]);
+    });
+
+    test("lets the answer through when the review passes it or throws", async () => {
+        for (const review of [async () => null, async () => Promise.reject(new Error("db down"))]) {
+            const { generate, seen } = scripted([{ text: "Fine." }]);
+
+            const result = await runTextLoop({
+                system: "s",
+                messages: [{ role: "user", content: "Hi." }],
+                generate,
+                resolveCandidates,
+                review,
+            });
+
+            expect(result.text).toBe("Fine.");
+            expect(seen.length).toBe(1);
+        }
+    });
+
+    test("doesn't review the wrap up", async () => {
+        const { generate } = scripted([
+            { text: null, tool_calls: [{ id: "c1", name: "remember", arguments: '{"note":"x"}' }] },
+            { text: "Out of steps." },
+        ]);
+        let reviews = 0;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Go." }],
+            tools: [remember],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            review: async () => {
+                reviews++;
+                return "Not sent.";
+            },
+        });
+
+        expect(result.text).toBe("Out of steps.");
+        expect(reviews).toBe(0);
+    });
 });

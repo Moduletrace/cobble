@@ -52,6 +52,13 @@ type Params = {
      */
     incoming?: () => Promise<HarnessMessage[]>;
     /**
+     * Checks an answer before it's returned, with the tool calls the run
+     * made. A note sends the answer back to be written again with it, once
+     * per run; null lets it through. Not on the wrap up, and a check that
+     * throws lets the answer through.
+     */
+    review?: (params: { text: string; tool_uses: HarnessToolUse[] }) => Promise<string | null | undefined>;
+    /**
      * The bot the run is for: its own models are used where it has them.
      */
     bot_id?: number | string;
@@ -114,7 +121,8 @@ Don't repeat tool calls you have already made.`;
  * The text harness at work: the model answers or calls tools, tool results
  * go back to it, and so on until it answers without calling a tool. Tools
  * run one at a time, in order; images they return follow their results. Stays on one model unless it fails. After
- * `max_steps` turns the model is asked to wrap up without tools.
+ * `max_steps` turns the model is asked to wrap up without tools. An answer
+ * `review` finds fault with is written again once.
  */
 export default async function runTextLoop({
     system,
@@ -124,6 +132,7 @@ export default async function runTextLoop({
     signal = new AbortController().signal,
     onStep,
     incoming,
+    review,
     bot_id,
     workspace_id,
     generate = generateText,
@@ -140,6 +149,7 @@ export default async function runTextLoop({
     };
     const tool_uses: HarnessToolUse[] = [];
     let prefer_key: string | undefined;
+    let reviewed = false;
 
     for (let index = 0; index <= max_steps; index++) {
         if (signal.aborted) {
@@ -201,6 +211,17 @@ export default async function runTextLoop({
          */
         if (!tool_calls.length && !wrap_up && (await takeIncoming({ note: RedraftNote }))) {
             continue;
+        }
+
+        if (!tool_calls.length && !wrap_up && review && !reviewed) {
+            reviewed = true;
+
+            const note = await review({ text: answer.text || "", tool_uses }).catch(() => null);
+
+            if (note) {
+                pushUserTurn({ transcript, content: note });
+                continue;
+            }
         }
 
         if (!tool_calls.length) {

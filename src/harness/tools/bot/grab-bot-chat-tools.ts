@@ -59,6 +59,11 @@ type Params = {
      */
     scopes?: StorageScope[];
     /**
+     * The user follows the conversation (not a chatroom's hidden session):
+     * only then may the reply delete tasks.
+     */
+    attended?: boolean;
+    /**
      * Called when the bot asks the user to take over a computer.
      */
     onTakeOver?: (params: { ref: string }) => void;
@@ -110,6 +115,7 @@ export default async function grabBotChatTools({
     workspace_id,
     message_id,
     scopes = [],
+    attended,
     onTakeOver,
     onPropose,
     onWorkspaceAdmin,
@@ -126,6 +132,7 @@ export default async function grabBotChatTools({
             is_coordinator: powers.is_coordinator,
             admin_workspace_ids: powers.admin_workspace_ids,
             scopes,
+            can_delete_tasks: Boolean(attended),
             onPropose,
             onChatroom,
         })),

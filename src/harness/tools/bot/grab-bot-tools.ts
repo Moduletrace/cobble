@@ -49,6 +49,10 @@ type Params = {
      */
     hooked?: boolean;
     /**
+     * A chat reply the user follows, which may delete tasks.
+     */
+    can_delete_tasks?: boolean;
+    /**
      * In a chat reply: called with each hook proposal's ref, so the reply
      * carries its card. Without it the bot can't propose hooks.
      */
@@ -77,6 +81,7 @@ export default async function grabBotTools({
     admin_workspace_ids,
     scopes = [],
     hooked,
+    can_delete_tasks,
     onPropose,
     onChatroom,
 }: Params): Promise<HarnessTool[]> {
@@ -106,6 +111,7 @@ export default async function grabBotTools({
             is_coordinator: Boolean(is_coordinator),
             admin_workspace_ids,
             workspace_id,
+            can_delete: Boolean(can_delete_tasks) && !hooked,
         })),
     ];
 }

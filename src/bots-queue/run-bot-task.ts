@@ -322,11 +322,22 @@ export default async function runBotTask({
             taken: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools].map((tool) => tool.name),
         });
 
+        /**
+         * The install's limit, or less when the brief's writer set a
+         * budget (`start_task` `max_steps`).
+         */
+        const install_steps = await grabHarnessMaxToolSteps();
+        const budget = Math.floor(Number(params.max_steps) || 0);
+        const max_steps = budget > 0 ? Math.min(budget, install_steps) : install_steps;
+
         const result = await runTextLoop({
             system: [
                 prompt,
                 carry_over,
                 TaskRunNote,
+                budget > 0
+                    ? `This run has at most ${max_steps} steps (model turns), set when it was queued. Plan for that: save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`
+                    : "",
                 scheduled ? ScheduledRunNote : "",
                 hooked ? HookRunNote : "",
                 install_request_id ? InstallRequestNote : "",
@@ -382,7 +393,7 @@ export default async function runBotTask({
                 },
             ],
             tools: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools, ...knowledge.tools],
-            max_steps: await grabHarnessMaxToolSteps(),
+            max_steps,
             bot_id: bot.id,
             workspace_id,
             signal,
