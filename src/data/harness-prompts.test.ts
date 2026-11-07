@@ -5,6 +5,10 @@ import {
     ComputerFilesNote,
     coordinatorReplyNote,
     crewRequestsNote,
+    openRunsNote,
+    TaskIncomingNote,
+    TaskRedraftNote,
+    TaskWrapUpIncomingNote,
     TasksNote,
 } from "./harness-prompts";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
@@ -77,6 +81,38 @@ describe("harness prompts", () => {
     test("notes with nothing bot-specific carry no ref example", () => {
         expect(TasksNote).not.toContain("[folder:bot:");
         expect(TasksNote).not.toContain("[bot:");
+    });
+});
+
+describe("openRunsNote", () => {
+    test("names each open run and whether it's queued or under way", () => {
+        const note = openRunsNote({
+            runs: [
+                { id: 12, title: "Art directions", status: "processing" },
+                { id: 13, title: null, status: "pending" },
+            ],
+        });
+
+        expect(note).toContain(`Run #12 "Art directions": under way`);
+        expect(note).toContain(`Run #13 "Task": queued`);
+        expect(note).toContain("don't start another run");
+        expect(note).not.toContain("\u2014");
+    });
+
+    test("is empty with no open runs", () => {
+        expect(openRunsNote({ runs: [] })).toBe("");
+    });
+});
+
+describe("task incoming notes", () => {
+    test("leave separate requests to the chat and never offer send_message", () => {
+        for (const note of [TaskIncomingNote, TaskRedraftNote, TaskWrapUpIncomingNote]) {
+            expect(note).not.toContain("send_message");
+            expect(note).not.toContain("\u2014");
+        }
+
+        expect(TaskIncomingNote).toContain("leave it to the chat");
+        expect(TaskRedraftNote).toContain("leave it to the chat");
     });
 });
 

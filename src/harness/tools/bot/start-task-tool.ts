@@ -97,7 +97,7 @@ export default function startTaskTool({
 
             if (open) {
                 throw new Error(
-                    `Run #${open.id} "${open.title || "Task"}" is still ${open.status == "pending" ? "queued" : "under way"} here on that computer. If this is the same work, don't start it again: its result will be posted here (the user can Stop it to start over). If it's different work, call start_task again now with separate: true; it's queued and starts as soon as run #${open.id} ends. Nothing starts it later but you, now, so never tell the user you'll start it once run #${open.id} is done.`,
+                    `Run #${open.id} "${open.title || "Task"}" is still ${open.status == "pending" ? "queued" : "under way"} here on that computer. If this is the same work, don't start it again: its result will be posted here (the user can Stop it to start over). It's shown what the user writes here between its steps, so a correction or addition to that work reaches it and never calls for another run. If it's different work, call start_task again now with separate: true; it's queued and starts as soon as run #${open.id} ends. Nothing starts it later but you, now, so never tell the user you'll start it once run #${open.id} is done.`,
                 );
             }
 

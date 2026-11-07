@@ -19,6 +19,9 @@ import {
     AskCrewNote,
     crewRequestsNote,
     WorkspaceLearningNote,
+    TaskIncomingNote,
+    TaskRedraftNote,
+    TaskWrapUpIncomingNote,
 } from "@/src/data/harness-prompts";
 import {
     grabContextBudgetTokens,
@@ -59,6 +62,9 @@ import stripAppRecords from "@/src/utils/strip-app-records";
 import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
+import taskIncoming from "./task-incoming";
+import pushUserTurn from "@/src/harness/text/push-user-turn";
+import type { HarnessMessage } from "@/src/harness/types";
 
 type Params = BotJobContext & {
     bot: Pick<BUN_SQLITE_COBBLE_BOTS, "kind"> & { id: number };
@@ -79,6 +85,10 @@ type Params = BotJobContext & {
  * A scheduled run acts on its own (`ScheduledRunNote`), as does a hook
  * call (`HookRunNote`, its payload only data); one that reports it failed
  * (`report_run_failed`) throws, so the queue retries it.
+ * A task the user follows takes in what they write in its conversation
+ * from when it was queued (`taskIncoming`): already there at the start,
+ * between steps, past a report not yet out, and by the wrap up. A
+ * correction changes the work; anything else is left to the chat.
  * Every model turn is reported as a step (`report`).
  */
 export default async function runBotTask({
@@ -343,6 +353,33 @@ export default async function runBotTask({
         const budget = Math.floor(Number(params.max_steps) || 0);
         const max_steps = budget > 0 ? Math.min(budget, install_steps) : install_steps;
 
+        /**
+         * What the user wrote since the run was queued, for a run they
+         * follow: what's there now goes after the brief.
+         */
+        const incoming =
+            can_ask && session_id
+                ? await taskIncoming({ session_id, queued_at: Number(job.created_at) || Date.now(), user_id })
+                : null;
+        const arrived = (await incoming?.take()) || [];
+        const brief: HarnessMessage = {
+            role: "user",
+            content: composeJobBrief({
+                title: job.title,
+                instructions: job.instructions,
+                params,
+            }),
+        };
+        const opening: HarnessMessage[] = [brief];
+
+        if (arrived.length) {
+            pushUserTurn({ transcript: opening, content: TaskIncomingNote });
+
+            for (const turn of arrived) {
+                if (turn.role == "user") pushUserTurn({ transcript: opening, content: turn.content });
+            }
+        }
+
         const result = await runTextLoop({
             system: [
                 prompt,
@@ -400,16 +437,7 @@ export default async function runBotTask({
             ]
                 .filter(Boolean)
                 .join("\n\n"),
-            messages: [
-                {
-                    role: "user",
-                    content: composeJobBrief({
-                        title: job.title,
-                        instructions: job.instructions,
-                        params,
-                    }),
-                },
-            ],
+            messages: opening,
             tools: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools, ...knowledge.tools],
             max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
@@ -419,6 +447,16 @@ export default async function runBotTask({
             signal,
             onStep: (step) =>
                 report({ ...step, text: step.text && computer ? computer.redact(step.text) : step.text }),
+            ...(incoming
+                ? {
+                      incoming: incoming.take,
+                      incoming_notes: {
+                          working: TaskIncomingNote,
+                          redraft: TaskRedraftNote,
+                          wrap_up: TaskWrapUpIncomingNote,
+                      },
+                  }
+                : {}),
         });
 
         if (failure) {

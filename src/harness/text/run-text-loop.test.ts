@@ -418,6 +418,59 @@ describe("runTextLoop", () => {
         expect(seen[1]!.messages.at(-1)!.content).toContain("You've used every step");
     });
 
+    test("tells the run its own notes with what came in", async () => {
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"x"}` }] },
+            { text: "Report." },
+            { text: "Report, corrected." },
+        ]);
+        const arrivals = [
+            [{ role: "user" as const, content: "Use photos too." }],
+            [{ role: "user" as const, content: "And keep it short." }],
+        ];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Brief." }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            incoming: async () => arrivals.shift() || [],
+            incoming_notes: { working: "Working note.", redraft: "Redraft note." },
+        });
+
+        expect(result.text).toBe("Report, corrected.");
+        expect(seen[1]!.messages.at(-1)).toEqual({ role: "user", content: "Working note.\n\nUse photos too." });
+        expect(seen[2]!.messages.at(-1)).toEqual({ role: "user", content: "Redraft note.\n\nAnd keep it short." });
+    });
+
+    test("with a wrap up note, takes in what came in by the wrap up before it", async () => {
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([loop_call, { text: "Out of steps." }]);
+        let looks = 0;
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            incoming: async () => {
+                looks++;
+                return looks == 2 ? [{ role: "user", content: "Late correction." }] : [];
+            },
+            incoming_notes: { wrap_up: "Too late to act." },
+        });
+
+        expect(looks).toBe(2);
+        const last = seen[1]!.messages.at(-1)!.content as string;
+        expect(last).toContain("Too late to act.\n\nLate correction.");
+        expect(last.indexOf("Late correction.")).toBeLessThan(last.indexOf("You've used every step"));
+    });
+
     test("writes an answer the review faults again, once, with its note and the tool calls", async () => {
         const { generate, seen } = scripted([
             { text: null, tool_calls: [{ id: "c1", name: "remember", arguments: '{"note":"x"}' }] },

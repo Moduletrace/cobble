@@ -17,6 +17,7 @@ import {
     TaskReminderNote,
     workspaceAdminNote,
     WorkspaceLearningNote,
+    openRunsNote,
 } from "@/src/data/harness-prompts";
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import workspaceAdminsNote from "./workspace-admins-note";
@@ -36,7 +37,8 @@ import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-s
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabKnowledgebaseContext from "@/src/harness/tools/knowledgebases/grab-knowledgebase-context";
-import botMessagesToHarness from "./bot-messages-to-harness";
+import messagesToTurns from "./messages-to-turns";
+import grabOpenSessionRuns from "@/src/functions/backend/db/bots-queue/grab-open-session-runs";
 import composeBrowsersNote from "./compose-browsers-note";
 import composeComputersNote from "./compose-computers-note";
 import composeEnvsNote from "./compose-envs-note";
@@ -48,8 +50,6 @@ import readPastSessionTool from "@/src/harness/tools/bot/sessions/read-past-sess
 import { grabBotSessionMaxMessages } from "@/src/functions/backend/db/app-settings/grab-bot-session-max-messages";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
-import loadAttachmentParts from "./load-attachment-parts";
-import grabMessageRefNames from "@/src/functions/backend/db/bots/grab-message-ref-names";
 import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import hasUnansweredMessage from "./has-unanswered-message";
@@ -84,8 +84,9 @@ type Params = BotJobContext & {
  * Messages the user sends while it works join the run (`incoming`): one
  * that changes the work changes the answer before it goes out, and one
  * that's separate can be acknowledged at once (`send_message`) and done
- * after the current work. The job records the newest
- * one it read (`markReplyAnswered`). Finishes silently when an earlier
+ * after the current work. Runs open in the session take in what the user
+ * writes too (`openRunsNote`), so a correction to one starts no other.
+ * The job records the newest one it read (`markReplyAnswered`). Finishes silently when an earlier
  * reply already read everything (`hasUnansweredMessage`). An answer naming
  * files or tasks that don't exist, or saying work is under way when none
  * is, is written again once (`reviewBotReply`).
@@ -124,16 +125,6 @@ export default async function runBotReply({
     let seen_id = Math.max(0, ...history.map((message) => Number(message.id)));
     let answering_id = newestUserMessageId({ messages: history });
 
-    const toTurns = async ({ messages }: { messages: BotMessageWithAttachments[] }) =>
-        botMessagesToHarness({
-            messages,
-            parts: await loadAttachmentParts({ messages }),
-            refs: await grabMessageRefNames({
-                texts: messages.filter((m) => m.author == "user").map((m) => m.text || ""),
-                user_id,
-            }),
-        });
-
     /**
      * What the user wrote since the run last looked.
      */
@@ -150,7 +141,7 @@ export default async function runBotReply({
         seen_id = Math.max(seen_id, ...fresh.map((message) => Number(message.id)));
         answering_id = Math.max(answering_id, newestUserMessageId({ messages: fresh }));
 
-        return await toTurns({ messages: fresh });
+        return await messagesToTurns({ messages: fresh, user_id });
     };
 
     const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
@@ -340,6 +331,12 @@ export default async function runBotReply({
           ? workspaceAdminNote({ workspace_name: lead.workspace.name || "this workspace", members: lead.members })
           : await workspaceAdminsNote({ bot_id: bot.id, workspace_id });
 
+    /**
+     * The bot's runs open here hear what the user writes: a correction to
+     * one reaches it, so the reply doesn't start another.
+     */
+    const open_runs = attended ? await grabOpenSessionRuns({ bot_id: bot.id, session_id }) : [];
+
     try {
         const result = await runTextLoop({
             system: [
@@ -369,6 +366,7 @@ export default async function runBotReply({
                     run_kind: browser_run_kind,
                 }),
                 crew_note,
+                openRunsNote({ runs: open_runs }),
                 powers.is_coordinator ? "" : AskCrewNote,
                 skills.note,
                 knowledge.note,
@@ -378,7 +376,7 @@ export default async function runBotReply({
             ]
                 .filter(Boolean)
                 .join("\n\n"),
-            messages: await toTurns({ messages: history }),
+            messages: await messagesToTurns({ messages: history, user_id }),
             tools: [
                 ...tools,
                 sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),

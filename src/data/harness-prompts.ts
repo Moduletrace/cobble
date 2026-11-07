@@ -253,6 +253,53 @@ export const TaskRunNote = `# Working on a task
 You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. The report is posted straight to them, so write to them ("you"), never about them by name or as "the user". End it with the next step you'd suggest, as a short question the user can say yes to. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
 
 /**
+ * Told to a task run with what the user wrote in its conversation since
+ * it was queued (`taskIncoming`). The chat replies answer the user there;
+ * the run only decides whether it changes the work. A task has no
+ * send_message.
+ */
+export const TaskIncomingNote = `The user wrote in this conversation while you were working on this task (below). Your chat replies answer them there; here, only decide whether it changes this task, from what it means, not how it's worded:
+- If it changes, corrects or adds to this task, work from it from here on. Redo what it overrules instead of reporting a result it overruled, and say in your report what you changed because of it.
+- If it's about something else, leave it to the chat and carry on with this task.`;
+
+/**
+ * Told to a task run when the user wrote past a report that hadn't gone
+ * out yet.
+ */
+export const TaskRedraftNote = `Your report above was not sent: the user wrote in this conversation before it went out (below).
+- If it changes, corrects or adds to this task, do the work it calls for (don't repeat tool calls you have already made), then write the report again.
+- If it's about something else, leave it to the chat and send the report as it was.`;
+
+/**
+ * Told to a task run with what the user wrote by its wrap up, when it has
+ * no steps left to act on it.
+ */
+export const TaskWrapUpIncomingNote = `The user wrote in this conversation before you finished (below), and this run has no steps left to act on it. If it changes, corrects or adds to this task, say in your report what it changes and what is still to redo because of it; never report a result it overruled as it stands.`;
+
+/**
+ * Added to a chat reply while the bot has runs open in this conversation
+ * that take in what the user writes here: a correction to one reaches it,
+ * so the reply never starts another run for it. Empty with none.
+ */
+export const openRunsNote = ({
+    runs,
+}: {
+    runs: { id: number; title?: string | null; status: string }[];
+}) => {
+    if (!runs.length) return "";
+
+    const lines = runs.map(
+        (run) => `- Run #${run.id} "${run.title || "Task"}": ${run.status == "pending" ? "queued" : "under way"}`,
+    );
+
+    return `# Your runs open in this conversation
+
+${lines.join("\n")}
+
+Until it reports, a run is shown what the user writes here, between its steps. When the user corrects, changes or adds to the work of one of these runs, it takes that in: tell them so in a line, and don't start another run for it or redo that work in this reply (start_task with separate is only for different work). If they want a run to start over from scratch, they can Stop it and ask again.`;
+};
+
+/**
  * Added to every run: the shared to-do list, and how a bot keeps it
  * honest while it works.
  */

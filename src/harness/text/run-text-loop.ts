@@ -72,6 +72,14 @@ type Params = {
      */
     incoming?: () => Promise<HarnessMessage[]>;
     /**
+     * What the run is told with what came in: `working` after a round of
+     * tools, `redraft` past an answer that hadn't gone out (defaults
+     * `IncomingMessagesNote`, `RedraftNote`). With `wrap_up`, what came in
+     * by the wrap up is added before it too, for a run nothing picks up
+     * after (a task); without it a later reply does.
+     */
+    incoming_notes?: { working?: string; redraft?: string; wrap_up?: string };
+    /**
      * Checks an answer before it's returned, with the tool calls the run
      * made. A note sends the answer back to be written again with it, once
      * per run; null lets it through. Not on the wrap up, and a check that
@@ -170,6 +178,7 @@ export default async function runTextLoop({
     signal = new AbortController().signal,
     onStep,
     incoming,
+    incoming_notes,
     review,
     bot_id,
     workspace_id,
@@ -228,6 +237,8 @@ export default async function runTextLoop({
         const wrap_up = index == max_steps || out_of_tokens;
 
         if (wrap_up) {
+            if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up });
+
             pushUserTurn({
                 transcript,
                 content: wrapUpPrompt({ uses: tool_uses, reason: index == max_steps ? "steps" : "tokens" }),
@@ -285,7 +296,7 @@ export default async function runTextLoop({
          * An answer the user wrote past is drafted again. Not on the wrap
          * up: the run is out of steps, and a later reply picks them up.
          */
-        if (!tool_calls.length && !wrap_up && (await takeIncoming({ note: RedraftNote }))) {
+        if (!tool_calls.length && !wrap_up && (await takeIncoming({ note: incoming_notes?.redraft || RedraftNote }))) {
             continue;
         }
 
@@ -349,7 +360,7 @@ export default async function runTextLoop({
             });
         }
 
-        await takeIncoming({ note: IncomingMessagesNote });
+        await takeIncoming({ note: incoming_notes?.working || IncomingMessagesNote });
 
         /**
          * Steps left before the wrap up, once the next turn is taken.
