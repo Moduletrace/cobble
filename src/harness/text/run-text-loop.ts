@@ -120,6 +120,14 @@ export const wrapUpPrompt = ({ uses, reason = "steps" }: { uses: HarnessToolUse[
 The tools you actually called this run: ${describeToolUses({ uses })}. Nothing else happened. Don't say you saved, created, changed or sent anything this list doesn't show; what you meant to do and didn't is still left, so say so.`;
 
 /**
+ * Told once, `AppData.HarnessStepsLowWarning` steps before the wrap up,
+ * while the run can still save what it has: the wrap up has no tools, so a
+ * report not written by then is lost.
+ */
+export const stepsLowNote = ({ left }: { left: number }) =>
+    `You have ${left} step${left == 1 ? "" : "s"} left in this run. Save what the user will want now (the report or deliverable, with write_file or import_file) before anything else, then finish. What isn't saved when the steps run out is lost.`;
+
+/**
  * Told with what the user wrote while the run worked. Whether a message
  * belongs to the work is the model's call, from what it says: a correction
  * changes the work, a separate request is acknowledged (`send_message`,
@@ -209,6 +217,7 @@ export default async function runTextLoop({
     const tool_uses: HarnessToolUse[] = [];
     let prefer_key: string | undefined;
     let reviewed = false;
+    let warned_steps = max_steps < AppData.HarnessStepsLowMinSteps;
 
     for (let index = 0; index <= max_steps; index++) {
         if (signal.aborted) {
@@ -341,6 +350,16 @@ export default async function runTextLoop({
         }
 
         await takeIncoming({ note: IncomingMessagesNote });
+
+        /**
+         * Steps left before the wrap up, once the next turn is taken.
+         */
+        const left = max_steps - (index + 1);
+
+        if (!warned_steps && left <= AppData.HarnessStepsLowWarning) {
+            warned_steps = true;
+            pushUserTurn({ transcript, content: stepsLowNote({ left }) });
+        }
     }
 
     throw new Error(`Unreachable: the text loop ended without an answer.`);

@@ -5,7 +5,7 @@ import { DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
-import runTextLoop, { IncomingMessagesNote, RedraftNote } from "./run-text-loop";
+import runTextLoop, { IncomingMessagesNote, RedraftNote, stepsLowNote } from "./run-text-loop";
 
 const candidate: HarnessCandidate = {
     key: "1:m",
@@ -199,6 +199,50 @@ describe("runTextLoop", () => {
             role: "assistant",
             content: "Ran out of room; here's where I got to.",
         });
+    });
+
+    test("warns once, a few steps before the wrap up, in a long enough run", async () => {
+        const max_steps = AppData.HarnessStepsLowMinSteps;
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted(Array.from({ length: max_steps + 1 }, () => loop_call));
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps,
+            generate,
+            resolveCandidates,
+        });
+
+        const warned_at = max_steps - AppData.HarnessStepsLowWarning;
+        const note = stepsLowNote({ left: AppData.HarnessStepsLowWarning });
+        const warnings = seen.map((call) => call.messages.filter((m) => m.role == "user" && String(m.content).includes(note)).length);
+
+        expect(warnings[warned_at - 1]).toBe(0);
+        expect(warnings[warned_at]).toBe(1);
+        expect(seen[warned_at]!.messages.at(-1)).toEqual({ role: "user", content: note });
+        expect(warnings.at(-1)).toBe(1);
+    });
+
+    test("doesn't warn a short run", async () => {
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([loop_call, loop_call, { text: "Done." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: 2,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(JSON.stringify(seen)).not.toContain("left in this run");
     });
 
     test("records failed tool calls, and tells the wrap up so", async () => {

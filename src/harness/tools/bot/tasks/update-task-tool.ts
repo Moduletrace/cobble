@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import { type TaskStatus, TaskStatusValues } from "@/src/dict/task-dict";
 import addTaskNote from "@/src/functions/backend/db/tasks/add-task-note";
 import attachTaskFile from "@/src/functions/backend/db/tasks/attach-task-file";
+import detachTaskFile from "@/src/functions/backend/db/tasks/detach-task-file";
 import findDuplicateTask from "@/src/functions/backend/db/tasks/find-duplicate-task";
 import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
@@ -36,6 +37,7 @@ type Args = {
     note?: string;
     deliverable_file_ids?: number[];
     reference_file_ids?: number[];
+    unlink_file_ids?: number[];
     workspace_wide?: boolean;
 };
 
@@ -58,7 +60,7 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
 
     return {
         name: "update_task",
-        description: `Move a task along. Rename it with title or rewrite its brief with description (never create a second task for the same work just to fix its name). Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Call it as the work advances, not only at the end; every note is what the user sees on the task. A workspace-wide task is shared by every bot in its workspace: log a note for each part you do (it's recorded under your name and id, with the time) so the others see who did what, and don't mark it done while parts others are on are still open. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number.${can_share ? ` As ${is_coordinator ? "the coordinator" : "a workspace's admin"}, workspace_wide: true turns a bot's open task in ${is_coordinator ? "a" : "your"} workspace into a workspace-wide one every bot there works on (hand it to one bot again with delegate_task).` : ""}`,
+        description: `Move a task along. Rename it with title or rewrite its brief with description (never create a second task for the same work just to fix its name). Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Call it as the work advances, not only at the end; every note is what the user sees on the task. A workspace-wide task is shared by every bot in its workspace: log a note for each part you do (it's recorded under your name and id, with the time) so the others see who did what, and don't mark it done while parts others are on are still open. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number. A task holds ${AppData.TaskMediaMaxPerTask} files: to make room, or to drop a superseded version, unlink files with unlink_file_ids (list_tasks with task_id shows what's filed; the file stays in its folder). Unlink first, then file, in the same call.${can_share ? ` As ${is_coordinator ? "the coordinator" : "a workspace's admin"}, workspace_wide: true turns a bot's open task in ${is_coordinator ? "a" : "your"} workspace into a workspace-wide one every bot there works on (hand it to one bot again with delegate_task).` : ""}`,
         schema: z.object({
             task_id: z.number().int(),
             title: z
@@ -92,6 +94,10 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                 .array(z.number().int())
                 .optional()
                 .describe(`The [file:ID] refs of files it works from`),
+            unlink_file_ids: z
+                .array(z.number().int())
+                .optional()
+                .describe(`The [file:ID] refs of files filed on the task to take off it (they stay in their folder). The user's own uploads can't be unlinked this way.`),
             workspace_wide: z
                 .boolean()
                 .optional()
@@ -184,6 +190,29 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                     if (task.status != args.status) {
                         done.push(
                             `Moved it from ${task.status} to ${args.status}${args.status == "blocked" && args.blocked_reason?.trim() ? `: ${args.blocked_reason.trim()}` : ""}.`,
+                        );
+                    }
+                }
+            }
+
+            if (args.unlink_file_ids?.length) {
+                const filed = await grabTaskMedia({ task_id: task.id! });
+
+                for (const file_id of args.unlink_file_ids) {
+                    const link = filed.find((file) => Number(file.bot_file_id || 0) == Number(file_id));
+
+                    if (!link?.id) {
+                        said.push(`file ${file_id} isn't filed on it`);
+                        continue;
+                    }
+
+                    try {
+                        await detachTaskFile({ task_id: task.id!, task_media_id: link.id, user_id });
+                        said.push(`unlinked "${link.name}"`);
+                        done.push(`Unlinked "${link.name}".`);
+                    } catch (error: unknown) {
+                        said.push(
+                            `couldn't unlink file ${file_id}: ${error instanceof Error ? error.message : "unknown error"}`,
                         );
                     }
                 }

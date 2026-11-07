@@ -96,6 +96,13 @@ describe("delegateTaskTool", () => {
         expect(tool.description).toContain("task_id");
     });
 
+    test("can hand a task over without starting it", () => {
+        const tool = coordinatorTool();
+
+        expect(tool.schema?.safeParse({ bot_id: 5, task_id: 27, start: false }).success).toBe(true);
+        expect(tool.description).toContain("start: false");
+    });
+
     test("without a task_id, still needs a title and instructions", async () => {
         const tool = delegateTaskTool({
             user_id: 1,

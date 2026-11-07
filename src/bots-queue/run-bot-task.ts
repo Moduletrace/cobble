@@ -1,3 +1,4 @@
+import grabCrewRequests from "@/src/functions/backend/db/chatrooms/grab-crew-requests";
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings/grab-skill-limits";
 import grabWorkspaceAdminTools from "@/src/harness/tools/bot/grab-workspace-admin-tools";
@@ -16,6 +17,7 @@ import {
     TasksNote,
     TaskRunNote,
     AskCrewNote,
+    crewRequestsNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
 import {
@@ -369,6 +371,9 @@ export default async function runBotTask({
                     ? ""
                     : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
                 powers.is_coordinator || hooked ? "" : AskCrewNote,
+                powers.is_coordinator || hooked || params.chatroom_id
+                    ? ""
+                    : crewRequestsNote({ requests: await grabCrewRequests({ user_id, bot_id: bot.id, workspace_id }) }),
                 computer && computer_shared
                     ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files and code runners) while another run uses it, so you have its shell and files but not its browser. If the answer needs the browser, say so in your report instead of waiting.`
                     : computer

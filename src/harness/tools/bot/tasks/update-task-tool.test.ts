@@ -22,6 +22,12 @@ describe("updateTaskTool", () => {
         );
     });
 
+    test("takes files to unlink, and says how to make room", () => {
+        expect(tool.schema?.safeParse({ task_id: 20, unlink_file_ids: [303, 304] }).success).toBe(true);
+        expect(tool.description).toContain("unlink_file_ids");
+        expect(tool.description).toContain(`holds ${AppData.TaskMediaMaxPerTask} files`);
+    });
+
     test("tells the bot to rename rather than add a second task", () => {
         expect(tool.description).toContain("Rename it with title");
         expect(tool.description).toContain("never create a second task");

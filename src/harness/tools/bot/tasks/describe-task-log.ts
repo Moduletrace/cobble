@@ -1,9 +1,14 @@
 import type { BUN_SQLITE_COBBLE_TASKS } from "@/db/types/db";
-import type { TaskNote } from "@/src/types";
+import type { TaskFile, TaskNote } from "@/src/types";
 
 type Params = {
     task: BUN_SQLITE_COBBLE_TASKS;
     notes: TaskNote[];
+    /**
+     * What's filed on it (`grabTaskMedia`), so a bot can name, check and
+     * unlink them.
+     */
+    files?: TaskFile[];
     /**
      * The run's own bot, named "you" in the log.
      */
@@ -13,9 +18,10 @@ type Params = {
 /**
  * One task for a bot's run: where it is, its brief and its whole log, each
  * note with who wrote it (bot name and id, or the user) and when, so a bot
- * on a workspace-wide task sees what the others already did.
+ * on a workspace-wide task sees what the others already did, and its files
+ * (a bot file by its `[file:ID]` ref, a user's upload by name).
  */
-export default function describeTaskLog({ task, notes, bot_id }: Params) {
+export default function describeTaskLog({ task, notes, files = [], bot_id }: Params) {
     const who = task.bot_id
         ? task.bot_id == Number(bot_id)
             ? "yours"
@@ -38,10 +44,20 @@ export default function describeTaskLog({ task, notes, bot_id }: Params) {
               .join("\n")
         : "- Nothing logged yet.";
 
+    const filed = files.length
+        ? files
+              .map(
+                  (file) =>
+                      `- ${file.kind}: ${file.bot_file_id ? `[file:${file.bot_file_id}] ` : "the user's upload "}${file.name}${file.missing ? " (its bytes are gone)" : ""}`,
+              )
+              .join("\n")
+        : "";
+
     return [
         `#${task.id} [${task.status}] ${task.title} (${task.workspace_id ? `in workspace ${task.workspace_id}, ` : ""}${who})`,
         task.status == "blocked" && task.blocked_reason ? `Blocked: ${task.blocked_reason}` : "",
         `Brief:\n${task.description?.trim() || "(none)"}`,
+        filed ? `Files (${files.length}):\n${filed}` : "",
         `Log, oldest first:\n${log}`,
     ]
         .filter(Boolean)

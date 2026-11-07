@@ -15,6 +15,7 @@ import MessageGroupBlock from "./message-group-block";
 import OlderMessagesLoader from "./older-messages-loader";
 import QuoteSelectionButton from "./quote-selection-button";
 import ScrollToBottomButton from "./scroll-to-bottom-button";
+import quotableText from "../(utils)/quotable-text";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -165,7 +166,7 @@ export default function MessageThread({
                 <QuoteSelectionButton
                     selection={selection}
                     onQuote={() => {
-                        onQuote({ text: selection.text });
+                        onQuote({ text: quotableText({ range: selection.range }) });
                         clear();
                     }}
                 />

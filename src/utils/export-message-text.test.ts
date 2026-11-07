@@ -24,6 +24,12 @@ describe("exportMessageText", () => {
         expect(exportMessageText({ text: "Pick: [question:4]", ...names, heading_offset: 0 })).toBe("Pick: (questions 4)");
     });
 
+    test("words a task once, even after the bot's own word for it", () => {
+        expect(exportMessageText({ text: "Task [task:27] and [task:3]", ...names, heading_offset: 0 })).toBe(
+            "Task #27 and task #3",
+        );
+    });
+
     test("words graphics by number", () => {
         expect(exportMessageText({ text: "See [graphic:5]", ...names, heading_offset: 0 })).toBe("See (graphic 5)");
     });

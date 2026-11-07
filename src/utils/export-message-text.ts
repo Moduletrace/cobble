@@ -15,7 +15,7 @@ type Params = {
 /**
  * A message's markdown as it reads outside the app: its refs in words
  * (`[bot:3]` as `@Ada`, `[workspace:2]` as `#Launch`, `[computer:3]` as
- * "computer 3", a folder as its path, a graphic and a secret by number only, never
+ * "computer 3", a task as "task #4" (once, even after the bot's own "Task"), a folder as its path, a graphic and a secret by number only, never
  * a secret's value) and its headings dropped by
  * `heading_offset`. Code blocks are left exactly as they are.
  */
@@ -87,7 +87,10 @@ function wordRefs({
         .replace(/\[secret-request:(\d+)\](?!\()/g, "(secret request $1)")
         .replace(/\[question:(\d+)\](?!\()/g, "(questions $1)")
         .replace(/\[graphic:(\d+)\](?!\()/g, "(graphic $1)")
-        .replace(/\[task:(\d+)\](?!\()/g, "task #$1")
+        .replace(
+            /(\btask\s+)?\[task:(\d+)\](?!\()/gi,
+            (_, word: string | undefined, id: string) => `${word || "task "}#${id}`,
+        )
         .replace(/\[file:(\d+)\](?!\()/g, "file $1")
         .replace(/\[folder:[a-z]+:\d+:([^\]\n]+)\](?!\()/g, "`$1`")
         .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, "the $1 $2 folder");

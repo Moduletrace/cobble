@@ -46,11 +46,21 @@ type Params = {
      */
     requested_by_bot_id?: number | string | null;
     requested_by_session_id?: number | string | null;
+    /**
+     * False to only move it: the task goes to the new bot's list as to do
+     * and no job is queued, for when the user hasn't asked for the work to
+     * begin. Handing three tasks over "to wait for the go-ahead" once ran
+     * three jobs that each only reported they were waiting.
+     */
+    start?: boolean;
 };
 
 export type HandedOverTask = {
     task: BUN_SQLITE_COBBLE_TASKS;
-    job_id: number | string;
+    /**
+     * The job doing the work; null when it wasn't started.
+     */
+    job_id: number | string | null;
     bot_name: string;
     workspace_id: number | null;
     /**
@@ -65,7 +75,8 @@ export type HandedOverTask = {
  * that workspace), one on a bot's own list moves to the new bot's. The task goes to doing, its log
  * says who handed it over, and a job is queued in the new bot's
  * conversation with the task's brief and `params.tracker_task_id`, so the
- * bot moves this same task along and the job's end is noted on it.
+ * bot moves this same task along and the job's end is noted on it. With
+ * `start` false it only moves: to do, no job, the notice says so.
  */
 export default async function handOverTask({
     user_id,
@@ -76,6 +87,7 @@ export default async function handOverTask({
     handed_by,
     requested_by_bot_id,
     requested_by_session_id,
+    start = true,
 }: Params): Promise<HandedOverTask> {
     const task = await grabTaskRow({ task_id });
 
@@ -107,7 +119,7 @@ export default async function handOverTask({
     const conversation = await grabUserConversation({ user_id, bot_id: bot.id, workspace_id: run_workspace_id });
     const session = await ensureBotSession({ user_id, bot_id: bot.id, workspace_id: run_workspace_id });
     const title = (task.title || "Task").slice(0, 80);
-    const open = await grabOpenBotTask({ bot_id: bot.id, session_id: Number(session.id), title });
+    const open = start ? await grabOpenBotTask({ bot_id: bot.id, session_id: Number(session.id), title }) : null;
 
     if (open) {
         throw new AppError(
@@ -130,28 +142,31 @@ export default async function handOverTask({
         .filter(Boolean)
         .join("\n\n");
 
-    const job_id = await enqueueBotJob({
-        user_id,
-        bot_id: bot.id,
-        session_id: Number(session.id),
-        title,
-        instructions: brief,
-        params: { tracker_task_id: Number(task.id) },
-        computer_id: computers[0]?.id || undefined,
-        requested_by_bot_id: requested_by_bot_id || undefined,
-        requested_by_session_id: requested_by_session_id || undefined,
-    });
+    const job_id = start
+        ? await enqueueBotJob({
+              user_id,
+              bot_id: bot.id,
+              session_id: Number(session.id),
+              title,
+              instructions: brief,
+              params: { tracker_task_id: Number(task.id) },
+              computer_id: computers[0]?.id || undefined,
+              requested_by_bot_id: requested_by_bot_id || undefined,
+              requested_by_session_id: requested_by_session_id || undefined,
+          })
+        : null;
+    const status = start ? "doing" : "todo";
 
     await updateTask({
         user_id,
         task_id: task.id!,
-        status: "doing",
+        status,
         updated_by_bot_id: requested_by_bot_id || null,
     });
 
     await addTaskNote({
         task_id: task.id!,
-        text: `${handed_by} handed this over to ${bot.name}.`,
+        text: `${handed_by} handed this over to ${bot.name}${start ? "" : ", to start when the user says so"}.`,
         author: requested_by_bot_id ? "bot" : "user",
         bot_id: requested_by_bot_id || null,
     });
@@ -162,12 +177,12 @@ export default async function handOverTask({
             bot_id: bot.id,
             session_id: Number(session.id),
             workspace_id: run_workspace_id,
-            text: `${handed_by} handed me task #${task.id}: **${title}**`,
+            text: `${handed_by} handed me task #${task.id}: **${title}**${start ? "" : ". It's on my list; I'll start when you say."}`,
         }),
     });
 
     return {
-        task: { ...moved, status: "doing" },
+        task: { ...moved, status },
         job_id,
         bot_name: conversation.bot.name || bot.name || "The bot",
         workspace_id: run_workspace_id,

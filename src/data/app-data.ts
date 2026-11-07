@@ -302,6 +302,17 @@ export const AppData = {
     ChatroomMaxCoordinatorTurns: 6,
     ChatroomMaxDepth: 2,
     ChatroomMaxOpenPerBot: 3,
+    /**
+     * How far back a run is shown the requests its bot made to the crew
+     * from the same place (`grabCrewRequests`), and how many at most.
+     */
+    CrewRequestsRecentMs: 6 * 60 * 60 * 1000,
+    CrewRequestsListed: 8,
+    /**
+     * Files a room's answer may have copied over to the bot that asked
+     * (`shareRoomFiles`); refs past it are left as written.
+     */
+    ChatroomSharedFilesMax: 30,
     ChatroomCoordinatorMaxToolSteps: 6,
     ChatroomRailLimit: 8,
     /**
@@ -466,6 +477,15 @@ export const AppData = {
      */
     HarnessToolMaxImages: 4,
     HarnessToolImagesKept: 3,
+    /**
+     * Steps left when a run is told, once, that it's nearly out, so it
+     * saves its report before the wrap up ends it (two runs in a row once
+     * ran out with the report unwritten). Only in runs of at least
+     * `HarnessStepsLowMinSteps` steps, where the warning still leaves room
+     * to act on it.
+     */
+    HarnessStepsLowWarning: 5,
+    HarnessStepsLowMinSteps: 15,
     /**
      * Upload cap for audio sent to transcription.
      */

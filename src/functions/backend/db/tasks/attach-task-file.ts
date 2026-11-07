@@ -113,7 +113,7 @@ export default async function attachTaskFile({
     const count = (await grabTaskMedia({ task_id: task.id! })).length;
 
     if (count >= AppData.TaskMediaMaxPerTask) {
-        throw new AppError(`Task #${task.id} already carries ${AppData.TaskMediaMaxPerTask} files. Unlink one first.`);
+        throw new AppError(`Task #${task.id} already carries ${AppData.TaskMediaMaxPerTask} files. Unlink one first (update_task with unlink_file_ids, or on the task in the app).`);
     }
 
     const res = await BunSQLite.insert<BUN_SQLITE_COBBLE_TASK_MEDIA, (typeof BunSQLiteTables)[number]>({

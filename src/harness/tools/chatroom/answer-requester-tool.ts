@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_CHATROOMS } from "@/db/types/db";
 import closeChatroom from "@/src/functions/backend/db/chatrooms/close-chatroom";
+import shareRoomFiles from "@/src/functions/backend/db/chatrooms/share-room-files";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -21,7 +22,9 @@ type Args = {
 
 /**
  * The coordinator sends the answer back to the bot that asked, closing the
- * room as answered (`closeChatroom`).
+ * room as answered (`closeChatroom`). Files it names that the asker can't
+ * read are copied to it first and their refs pointed at the copies
+ * (`shareRoomFiles`).
  */
 export default function answerRequesterTool({ chatroom, job_id, onClosed }: Params): HarnessTool<Args> {
     return {
@@ -31,7 +34,8 @@ export default function answerRequesterTool({ chatroom, job_id, onClosed }: Para
             answer: z.string().trim().min(1).max(12000),
         }),
         run: async ({ args }) => {
-            const closed = await closeChatroom({ chatroom_id: chatroom.id!, status: "answered", outcome: args.answer, job_id });
+            const outcome = await shareRoomFiles({ chatroom, answer: args.answer });
+            const closed = await closeChatroom({ chatroom_id: chatroom.id!, status: "answered", outcome, job_id });
 
             if (!closed) {
                 throw new Error(`This room is already closed.`);

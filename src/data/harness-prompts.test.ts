@@ -4,6 +4,7 @@ import {
     chatReplyNote,
     ComputerFilesNote,
     coordinatorReplyNote,
+    crewRequestsNote,
     TasksNote,
 } from "./harness-prompts";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
@@ -76,5 +77,25 @@ describe("harness prompts", () => {
     test("notes with nothing bot-specific carry no ref example", () => {
         expect(TasksNote).not.toContain("[folder:bot:");
         expect(TasksNote).not.toContain("[bot:");
+    });
+});
+
+describe("crewRequestsNote", () => {
+    test("lists open and answered requests, and where an answer's files are", () => {
+        const note = crewRequestsNote({
+            requests: [
+                { id: 5, title: "Cite sheet", status: "open" },
+                { id: 4, title: "Research files", status: "answered" },
+            ],
+        });
+
+        expect(note).toContain(`[room:5] "Cite sheet": still open`);
+        expect(note).toContain(`[room:4] "Research files": answered`);
+        expect(note).toContain("crew/room-4/");
+        expect(note).toContain("Don't ask for these again");
+    });
+
+    test("is empty with no requests", () => {
+        expect(crewRequestsNote({ requests: [] })).toBe("");
     });
 });

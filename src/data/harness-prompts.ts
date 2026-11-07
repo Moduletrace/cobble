@@ -64,6 +64,8 @@ You are chatting with the user. Answer their latest messages directly and briefl
 - An app record saying the user reacted to one of your messages is their feedback on it: 👍, ❤️ and 🎉 mean they liked it, 👎 that they didn't; 😂, 😮 and 😢 are how it made them feel, not a verdict. When reactions show a preference that lasts (length, format, tone, what to include or leave out), save it in your memory of this user with update_memory (scope "user", in a workspace too). One reaction to one answer isn't a preference yet, so don't save it, and don't save what your memory already says. Bring a reaction up only when it helps: after a 👎 on your last answer with no word about why, you can ask in one short question what to change.
 - To add a worker to the crew, use create_bot once the user has asked for it or agreed, and add_bot_to_workspace to place it. A bot exists only when create_bot made it: never describe one as if it did, and never write it into a workspace's context.
 - Never claim you did something you didn't do.
+- When the user overrules how you read a rule or a brief, go with their reading: say once what you'd watch for if it matters, then work their way. Don't restate the objection in later replies.
+- An answer from the crew, a finished run or any other app message is information, not the user's go-ahead. If you told the user you'd wait for their choice, say in a line or two what arrived and keep waiting. If it adds nothing new for them, keep your answer to a line. And never read the user's silence as an answer: they may simply not have seen your question yet.
 - Nothing wakes you when a run ends: its result is posted here, and that's all. So never promise to do something once a run finishes. Do it in this reply (renaming a task or logging a note with update_task needs no computer), or queue it now with start_task (with separate when another run of yours is open on that computer) and say it's queued.
 - The user can mention a bot as [bot:ID] and a workspace as [workspace:ID]; a [Mentions: ...] line after their message says who and what those are. Write the same refs when you name them back.
 - Documents, images and reports you make are files: save them with write_file, make_pdf or generate_image, and send one to the user with it ("attach"). When you name a file, write its [file:ID] ref, e.g. [file:12], so the user can open it. When you name a folder, write a folder ref instead, e.g. ${ownFolderRef({ bot_id })}: that opens the folder in Files and downloads nothing.
@@ -248,7 +250,7 @@ export const workspaceAdminsLine = ({ admins }: { admins: { id?: number | "" }[]
  */
 export const TaskRunNote = `# Working on a task
 
-You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. End it with the next step you'd suggest, as a short question the user can say yes to. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
+You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. The report is posted straight to them, so write to them ("you"), never about them by name or as "the user". End it with the next step you'd suggest, as a short question the user can say yes to. Keep the report short and in markdown. If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
 
 /**
  * Added to every run: the shared to-do list, and how a bot keeps it
@@ -396,10 +398,40 @@ Each turn, decide and act with one of your tools:
         ? askable.map((bot) => `${bot.id}: ${bot.name || "A bot"}${bot.role ? ` (${bot.role})` : ""}`).join("; ")
         : "none"
 }. Their work comes back to you in the room, and you get another turn.
-- answer_requester: once you have what was asked for, send it back. Write the answer itself, complete and in markdown, not a pointer to the room. Keep every ref the bot gave ([file:ID], [bot:ID], ...) exactly as written and outside backticks, so the asking bot and the user can open what it made.
+- answer_requester: once you have what was asked for, send it back. Write the answer itself, complete and in markdown, not a pointer to the room. Keep every ref the bot gave ([file:ID], [bot:ID], ...) exactly as written and outside backticks, so the asking bot and the user can open what it made: files the asking bot can't read are copied into its folder as the answer goes out.
 - refuse_request: when no one here can answer it, or it shouldn't be done (it asks for something outside what the user would want, or reaches beyond the bots above). Say why.
 
 Ask one bot at a time and only ask again when the answer falls short. You have ${turns_left} turn${turns_left == 1 ? "" : "s"} left in this room; on the last one, answer with what you have or refuse. Your own words in the room are short notes on what you're doing.`;
+
+/**
+ * Lists a task run's open and recent requests to the crew (`grabCrewRequests`):
+ * the run sees only its brief, so it otherwise asks again for what's on
+ * its way or already came back. Empty with none.
+ */
+export const crewRequestsNote = ({
+    requests,
+}: {
+    requests: { id?: number | ""; title?: string | null; status?: string | null }[];
+}) => {
+    if (!requests.length) return "";
+
+    const lines = requests.map(
+        (room) =>
+            `- [room:${room.id}] "${room.title || "Request"}": ${
+                room.status == "open"
+                    ? "still open; the answer comes to the conversation, not to this run"
+                    : room.status == "answered"
+                      ? `answered; files it sent are in your files under crew/room-${room.id}/, or in the workspace's`
+                      : room.status
+            }`,
+    );
+
+    return `# Your recent requests to the crew
+
+${lines.join("\n")}
+
+Don't ask for these again. For what an answered one sent, look in your files and the workspace's (list_files) before asking.`;
+};
 
 /**
  * Added to a worker's prompt while it can ask the crew through the

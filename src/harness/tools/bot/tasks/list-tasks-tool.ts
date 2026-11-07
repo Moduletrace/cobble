@@ -6,6 +6,7 @@ import { type TaskStatus, TaskStatusValues } from "@/src/dict/task-dict";
 import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
 import grabTaskNotes from "@/src/functions/backend/db/tasks/grab-task-notes";
 import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
+import grabTaskMedia from "@/src/functions/backend/db/tasks/grab-task-media";
 import describeTaskLog from "./describe-task-log";
 import type { HarnessTool } from "../../../types";
 
@@ -61,7 +62,12 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
             if (args.task_id) {
                 const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
 
-                return describeTaskLog({ task, notes: await grabTaskNotes({ task_id: task.id! }), bot_id });
+                return describeTaskLog({
+                    task,
+                    notes: await grabTaskNotes({ task_id: task.id! }),
+                    files: await grabTaskMedia({ task_id: task.id! }),
+                    bot_id,
+                });
             }
 
             const scope = args.scope || "all";

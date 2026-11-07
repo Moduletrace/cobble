@@ -6,6 +6,10 @@ import { useEffect, useState, type RefObject } from "react";
 export type MessageSelection = {
     text: string;
     rect: DOMRect;
+    /**
+     * A copy of the selected range, for the quote's text (`quotableText`).
+     */
+    range: Range;
 };
 
 /**
@@ -45,7 +49,7 @@ export default function useMessageSelection({ ref }: Params) {
                 return;
             }
 
-            setSelection({ text, rect: range.getBoundingClientRect() });
+            setSelection({ text, rect: range.getBoundingClientRect(), range: range.cloneRange() });
         };
 
         /**
