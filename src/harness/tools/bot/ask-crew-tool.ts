@@ -42,7 +42,7 @@ type Args = {
 export default function askCrewTool({ user_id, bot_id, session_id, workspace_id, onChatroom }: Params): HarnessTool<Args> {
     return {
         name: "ask_crew",
-        description: `Ask another bot for something you need (what it knows, a file it has, work in its line) through the coordinator. The coordinator reads your request, asks the bot best placed to answer and sends the answer back here as a message, which wakes you to act on it: don't wait or check on it. Write the request as a full brief: what you need, why, and what a good answer looks like. Name a bot with bot_id if you know who can help; the coordinator decides. ${
+        description: `Ask another bot for something you need (what it knows, a file it has, work in its line) through the coordinator. The coordinator reads your request, asks the bot best placed to answer and sends the answer back here as a message, which wakes you to act on it: don't wait or check on it. If a task you'd start needs the answer, don't start it in the same reply: it would run without it, so start it once the answer wakes you. Write the request as a full brief: what you need, why, and what a good answer looks like. Name a bot with bot_id if you know who can help; the coordinator decides. ${
             workspace_id ? "You're in a workspace, so only its members can be asked." : "Any bot the user works with can be asked."
         } The request and everything said about it is kept in a chatroom the user can read.`,
         schema: z.object({

@@ -152,7 +152,7 @@ export default async function completeBotJob({
                 face: "needs-you",
                 status_line: BotNeedsYouStatusLine,
             })
-          : (await countOpenBotJobs({ bot_id: job.bot_id, user_id }))
+          : (await countOpenBotJobs({ bot_id: job.bot_id, user_id, conversations_only: true }))
             ? await restoreRunningFace({ bot_id: job.bot_id, user_id })
             : await setBotFace({
                   bot_id: job.bot_id,

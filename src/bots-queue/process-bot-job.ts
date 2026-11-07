@@ -168,7 +168,7 @@ export default async function processBotJob({
          * The face changes once the job really starts, after any wait for
          * its computer.
          */
-        const run = async () => {
+        const run = async ({ computer_shared }: { computer_shared?: boolean } = {}) => {
             await setFace({
                 face: "working",
                 status_line:
@@ -194,6 +194,7 @@ export default async function processBotJob({
                         job,
                         params,
                         checkpoint: parseJobJson({ text: job.checkpoint }),
+                        computer_shared,
                         signal: run_signal,
                         update,
                         report,
@@ -203,19 +204,25 @@ export default async function processBotJob({
 
         /**
          * A task whose computer is busy says so while it waits, so the
-         * user doesn't see silence.
+         * user doesn't see silence. A chatroom job doesn't wait: the bot
+         * that asked is often the one holding the computer, with a run of
+         * up to an hour, and the room would sit silent until it ends. It
+         * works beside it with the shell and files only (`computer_shared`),
+         * which is all most answers need.
          */
         const runOnComputer = async (computer_id: number) => {
             if (computer_lock.busy({ key: computer_id })) {
+                if (params.chatroom_id) return await run({ computer_shared: true });
+
                 await setFace({ face: "asleep", status_line: BotComputerBusyStatusLine });
             }
 
-            return await computer_lock.run({ key: computer_id, task: run });
+            return await computer_lock.run({ key: computer_id, task: () => run() });
         };
 
         const outcome =
             job.kind == "reply"
-                ? await reply_lock.run({ key: job.session_id || `bot-${bot_id}`, task: run })
+                ? await reply_lock.run({ key: job.session_id || `bot-${bot_id}`, task: () => run() })
                 : job.computer_id
                   ? await runOnComputer(job.computer_id)
                   : await run();

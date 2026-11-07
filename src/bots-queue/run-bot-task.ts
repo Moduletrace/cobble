@@ -79,6 +79,7 @@ export default async function runBotTask({
     user_id,
     job,
     params,
+    computer_shared,
     signal,
     report,
 }: Params): Promise<BotJobOutcome> {
@@ -97,6 +98,7 @@ export default async function runBotTask({
     const computer = job.computer_id
         ? await openComputerTools({
               computer_id: job.computer_id,
+              browser: !computer_shared,
               bot_id: bot.id,
               user_id,
               workspace_id,
@@ -358,7 +360,9 @@ export default async function runBotTask({
                     ? ""
                     : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
                 powers.is_coordinator || hooked ? "" : AskCrewNote,
-                computer
+                computer && computer_shared
+                    ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files and code runners) while another run uses it, so you have its shell and files but not its browser. If the answer needs the browser, say so in your report instead of waiting.`
+                    : computer
                     ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything.${hooked ? "" : " When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over."}`
                     : workspace_id
                       ? `You have no computer for this task: this workspace has none. If the task needs one, stop and say so in the report; the user can add a computer to the workspace.`

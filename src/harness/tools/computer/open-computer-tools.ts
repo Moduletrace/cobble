@@ -47,6 +47,13 @@ type Params = {
      * Without it, or without a user, the bot can't capture secrets.
      */
     onSecretRef?: (params: { ref: string }) => void;
+    /**
+     * False for a run sharing the computer with the one that holds it
+     * (`processBotJob`): only its shell and files, since the browser is
+     * one Chrome and two runs driving it would take each other's tabs.
+     * Defaults to true.
+     */
+    browser?: boolean;
     signal?: AbortSignal;
 };
 
@@ -83,6 +90,7 @@ export default async function openComputerTools({
     workspace_id,
     dirs,
     onSecretRef,
+    browser = true,
     signal,
 }: Params): Promise<OpenComputer> {
     const target = await grabComputerMcpUrl({ computer_id });
@@ -117,16 +125,20 @@ export default async function openComputerTools({
     const secrets: { key: string; value: string }[] = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
 
-    const client = await connectMcpServer({ url: target.url, headers: { authorization: `Bearer ${target.token}` }, signal });
+    const client = browser
+        ? await connectMcpServer({ url: target.url, headers: { authorization: `Bearer ${target.token}` }, signal })
+        : null;
     const context: ComputerToolContext = { computer: target, dirs, shell_path: paths.shell_path, redact };
 
     try {
-        const browser_tools = await grabMcpTools({
-            client,
-            exclude: ComputerMcpExcludedTools,
-            redact,
-            image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
-        });
+        const browser_tools = client
+            ? await grabMcpTools({
+                  client,
+                  exclude: ComputerMcpExcludedTools,
+                  redact,
+                  image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
+              })
+            : [];
 
         return {
             name: target.name,
@@ -160,10 +172,12 @@ export default async function openComputerTools({
             ],
             envs: envs.map((env) => ({ key: env.key, description: env.description })),
             redact,
-            close: () => client.close().catch(() => {}),
+            close: async () => {
+                await client?.close().catch(() => {});
+            },
         };
     } catch (error) {
-        await client.close().catch(() => {});
+        await client?.close().catch(() => {});
         throw error;
     }
 }

@@ -10,6 +10,12 @@ export type BotJobContext = {
      */
     checkpoint: Record<string, unknown> | null;
     /**
+     * The job runs on its computer beside another job that holds it (a
+     * chatroom job, which never waits for a busy computer): it gets the
+     * computer's shell and files, never its browser.
+     */
+    computer_shared?: boolean;
+    /**
      * Aborted when the job is cancelled or lost to another handler. Stop
      * work and return; the result is discarded.
      */
