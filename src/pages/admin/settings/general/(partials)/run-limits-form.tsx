@@ -17,6 +17,7 @@ type Values = {
     unattended_steps: string;
     run_tokens: string;
     context_tokens: string;
+    model_rest_seconds: string;
 };
 
 const valuesOf = (limits?: RunLimitsOverview | null): Values => ({
@@ -25,6 +26,7 @@ const valuesOf = (limits?: RunLimitsOverview | null): Values => ({
     unattended_steps: String(limits?.unattended_steps ?? ""),
     run_tokens: String(limits?.run_tokens ?? ""),
     context_tokens: String(limits?.context_tokens ?? ""),
+    model_rest_seconds: String(limits?.model_rest_seconds ?? ""),
 });
 
 const count = (value?: number) => (value ?? 0).toLocaleString("en-US");
@@ -32,7 +34,7 @@ const count = (value?: number) => (value ?? 0).toLocaleString("en-US");
 /**
  * How long a bot may work on one run (model turns per task, reply and
  * routine or hook call, the prompt tokens one run may spend) and how much
- * of its work it resends per turn, saved on its own without a reload. Zero
+ * of its work it resends per turn, and how long a failed model rests, saved on its own without a reload. Zero
  * puts the code's default back for that one.
  */
 export default function RunLimitsForm({ limits }: Props) {
@@ -74,6 +76,7 @@ export default function RunLimitsForm({ limits }: Props) {
                     unattended_steps: Number(values.unattended_steps) || 0,
                     run_tokens: Number(values.run_tokens) || 0,
                     context_tokens: Number(values.context_tokens) || 0,
+                    model_rest_seconds: Number(values.model_rest_seconds) || 0,
                 },
             },
         ).catch(() => null);
@@ -153,6 +156,14 @@ export default function RunLimitsForm({ limits }: Props) {
                     suffix="tokens"
                     onChange={change("context_tokens")}
                     info={`How much a run sends per turn (its prompt, its tools and what it has done so far) before the oldest tool output is cut, whatever the model's window. Smaller costs less per turn; larger lets a bot keep more of what it read. Between ${count(overview?.context_tokens_min)} and ${count(overview?.context_tokens_max)}; 0 uses the default (${count(overview?.context_tokens_default)}).`}
+                />
+                <RunLimitInput
+                    label="Model rest after a failure"
+                    value={values.model_rest_seconds}
+                    max={overview?.model_rest_max}
+                    suffix="seconds"
+                    onChange={change("model_rest_seconds")}
+                    info={`When a model errors or is rate limited, it is passed over for this long and the next model in line answers (its fallback models, then the free picks). Shorter goes back to your pick sooner. Between ${overview?.model_rest_min ?? ""} and ${count(overview?.model_rest_max)}; 0 uses the default (${overview?.model_rest_default ?? ""}).`}
                 />
             </Stack>
             <SettingsSaveBar

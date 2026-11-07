@@ -32,6 +32,7 @@ function isSame({ a, b }: { a: HarnessFormValue; b?: HarnessFormValue }) {
         a.enabled == b!.enabled &&
         (a.voice || "") == (b!.voice || "") &&
         Boolean(a.sees_images) == Boolean(b!.sees_images) &&
+        (a.fallback_model_ids || []).join(",") == (b!.fallback_model_ids || []).join(",") &&
         paramsKey({ params: a.params }) == paramsKey({ params: b!.params })
     );
 }

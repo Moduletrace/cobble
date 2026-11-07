@@ -32,9 +32,10 @@ export type HarnessUsageScope = {
  */
 export type HarnessCallSettings = {
     /**
-     * `pinned`: the model picked in the setting. `auto`: an automatic pick.
+     * `pinned`: the model picked in the setting. `fallback`: one of its
+     * fallback models. `auto`: an automatic pick.
      */
-    model_source: "pinned" | "auto";
+    model_source: "pinned" | "fallback" | "auto";
     /**
      * Whose setting the call used: the workspace's, the bot's own or the
      * install's default. Left out when the call overrode it.
@@ -55,6 +56,11 @@ export type HarnessCallSettings = {
      * answered, in the order they were tried.
      */
     fell_back_from?: string[];
+    /**
+     * The candidates ahead of this one passed over because they were
+     * resting after an earlier failure, in order.
+     */
+    resting?: string[];
 };
 
 export type HarnessUsageCall = {
@@ -94,4 +100,11 @@ export type TokenUsageSummary = {
      * How many model calls it took.
      */
     calls: number;
+    /**
+     * Messages only: a model that answered text calls in place of the one
+     * ahead of it (it failed or was resting), and how many calls it
+     * answered so. Left out when every text call ran on the first choice.
+     */
+    fallback_model?: string;
+    fallback_calls?: number;
 };

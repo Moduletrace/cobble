@@ -5,7 +5,7 @@ import grabHarnessOverview from "@/src/functions/backend/db/harness/grab-harness
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
 import saveHarnessSetting from "@/src/functions/backend/db/harness/save-harness-setting";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
-import { withHarnessParameters } from "@/src/dict/harness-parameter-dict";
+import buildHarnessSettingOptions from "@/src/functions/backend/db/harness/build-harness-setting-options";
 import { SaveHarnessSettingsRequestSchema } from "@/src/schemas/harness-schema";
 import type { HarnessOverviewPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
@@ -42,7 +42,6 @@ export const handler: BunextAPIRouteHandler<
 
         for (const setting of settings) {
             const existing = await grabHarnessSetting({ harness: setting.harness });
-            const { voice, sees_images, ...options } = existing.options;
 
             await saveHarnessSetting({
                 harness: setting.harness,
@@ -50,13 +49,14 @@ export const handler: BunextAPIRouteHandler<
                 provider_id: setting.provider_id,
                 fallback: setting.fallback,
                 enabled: setting.enabled,
-                options: withHarnessParameters({
-                    options: {
-                        ...options,
-                        ...(setting.voice ? { voice: setting.voice } : {}),
-                        ...(setting.harness == "text" && setting.sees_images ? { sees_images: true } : {}),
-                    },
-                    params: setting.params || {},
+                options: await buildHarnessSettingOptions({
+                    harness: setting.harness,
+                    existing: existing.options,
+                    model_id: setting.model_id,
+                    voice: setting.voice,
+                    sees_images: setting.sees_images,
+                    fallback_model_ids: setting.fallback_model_ids,
+                    params: setting.params,
                 }),
             });
         }

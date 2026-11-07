@@ -10,11 +10,15 @@ type Params = {
      * whose they were. The model's source and the fallback are filled in
      * here.
      */
-    settings?: Omit<HarnessCallSettings, "model_source" | "fell_back_from">;
+    settings?: Omit<HarnessCallSettings, "model_source" | "fell_back_from" | "resting">;
     /**
      * The candidates that failed before this one (`withCandidates`).
      */
     failed?: string[];
+    /**
+     * The candidates ahead of it passed over while resting.
+     */
+    resting?: string[];
 };
 
 /**
@@ -23,7 +27,7 @@ type Params = {
  * still get a row (no tokens), so a call is never invisible. Its settings
  * say how it was made, for a message's details.
  */
-export default function buildUsageCall({ harness, candidate, usage, settings, failed }: Params): HarnessUsageCall {
+export default function buildUsageCall({ harness, candidate, usage, settings, failed, resting }: Params): HarnessUsageCall {
     return {
         harness,
         provider_id: candidate.provider.id,
@@ -38,6 +42,7 @@ export default function buildUsageCall({ harness, candidate, usage, settings, fa
             model_source: candidate.source,
             ...settings,
             ...(failed?.length ? { fell_back_from: failed } : {}),
+            ...(resting?.length ? { resting } : {}),
         },
     };
 }

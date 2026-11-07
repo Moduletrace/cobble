@@ -589,7 +589,7 @@ export type HarnessOverview = {
     /**
      * The first model it would try now, if any.
      */
-    current?: HarnessModelOption & { source: "pinned" | "auto" };
+    current?: HarnessModelOption & { source: "pinned" | "fallback" | "auto" };
     /**
      * How many models it would try in all.
      */
@@ -621,6 +621,11 @@ export type HarnessFormValue = {
      * instead of the media reading harness (`textSeesImages`).
      */
     sees_images?: boolean;
+    /**
+     * Text only: models tried in order after the pick, before the
+     * automatic picks, on any provider.
+     */
+    fallback_model_ids?: number[];
     /**
      * Generation settings (temperature, reasoning effort, ...), only the
      * ones the picked model takes.
@@ -1293,6 +1298,14 @@ export type RunLimitsOverview = {
     run_tokens_max: number;
     context_tokens_min: number;
     context_tokens_max: number;
+    /**
+     * How long a failed model rests right now, in seconds, its default and
+     * the range the settings page accepts.
+     */
+    model_rest_seconds: number;
+    model_rest_default: number;
+    model_rest_min: number;
+    model_rest_max: number;
 };
 
 export type SkillLimitsOverview = {

@@ -96,13 +96,14 @@ export default async function generateText({
         harness: "text",
         candidates: resolved,
         prefer_key,
-        on_success: async ({ candidate: answered, result: answer, failed }): Promise<void> =>
+        on_success: async ({ candidate: answered, result: answer, failed, resting }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "text",
                     candidate: answered,
                     usage: answer.usage,
                     failed,
+                    resting,
                     settings: {
                         ...(saved_params ? { settings_source: saved_params.source } : {}),
                         params: flattenSentParams({ params: answer.sent_params }),

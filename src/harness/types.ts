@@ -175,9 +175,11 @@ export type HarnessCandidate = {
     provider: HarnessProviderConfig;
     model: HarnessModelInfo;
     /**
-     * `pinned`: the super admin's pick. `auto`: an automatic free pick.
+     * `pinned`: the setting's pick. `fallback`: one of the setting's
+     * fallback models, tried in order after it. `auto`: an automatic free
+     * pick.
      */
-    source: "pinned" | "auto";
+    source: "pinned" | "fallback" | "auto";
 };
 
 export type HarnessUsage = {

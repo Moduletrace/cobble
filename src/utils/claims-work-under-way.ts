@@ -15,6 +15,12 @@ const UnderWayPatterns = [
     /\b(?:report|results?|details|update)\s+(?:follows|will follow|to follow|coming)\b/i,
     /\bin (?:my|the|a) (?:next|following) message\b/i,
     /\b(?:when|once) (?:it|that|the (?:run|scan|search|check))(?:'|’)?s? (?:back|done|finished|complete)\b/i,
+    /**
+     * "I'll drive the browser to ideogram.ai directly and see what's
+     * there." A dot inside a word (a domain, a file name) doesn't end the
+     * sentence.
+     */
+    /\bI(?:'|’)ll\s+(?:now\s+|go\s+ahead\s+and\s+)?(?:drive|open|go|head|browse|navigate|check|look|run|start|search|scan|dig|pull|grab|fetch|try|use)\b(?:[^.!?\n]|\.(?=\S)){0,160}\b(?:and see|see what|right away|straight away|directly|now)\b/i,
 ];
 
 /**

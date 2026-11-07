@@ -4,7 +4,7 @@ import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
 import saveBotHarnessSetting from "@/src/functions/backend/db/harness/save-bot-harness-setting";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
-import { withHarnessParameters } from "@/src/dict/harness-parameter-dict";
+import buildHarnessSettingOptions from "@/src/functions/backend/db/harness/build-harness-setting-options";
 import { SaveBotHarnessSettingsRequestSchema } from "@/src/schemas/harness-schema";
 import type { BotHarnessOverviewPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
@@ -62,7 +62,6 @@ export const handler: BunextAPIRouteHandler<
 
         for (const setting of settings) {
             const existing = await grabHarnessSetting({ harness: setting.harness, bot_id: bot.id });
-            const { voice, sees_images, ...options } = existing.source == "bot" ? existing.options : {};
 
             await saveBotHarnessSetting({
                 bot_id: bot.id,
@@ -72,13 +71,14 @@ export const handler: BunextAPIRouteHandler<
                 provider_id: setting.provider_id,
                 fallback: setting.fallback,
                 enabled: setting.enabled,
-                options: withHarnessParameters({
-                    options: {
-                        ...options,
-                        ...(setting.voice ? { voice: setting.voice } : {}),
-                        ...(setting.harness == "text" && setting.sees_images ? { sees_images: true } : {}),
-                    },
-                    params: setting.params || {},
+                options: await buildHarnessSettingOptions({
+                    harness: setting.harness,
+                    existing: existing.source == "bot" ? existing.options : {},
+                    model_id: setting.model_id,
+                    voice: setting.voice,
+                    sees_images: setting.sees_images,
+                    fallback_model_ids: setting.inherit ? [] : setting.fallback_model_ids,
+                    params: setting.params,
                 }),
             });
         }

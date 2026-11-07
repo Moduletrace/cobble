@@ -62,4 +62,15 @@ describe("changedHarnessSettings", () => {
             }),
         ).toEqual([]);
     });
+    test("lists a change to the fallback models, in order", () => {
+        const with_fallbacks = { ...saved, text: { ...saved.text, model_id: 9, fallback_model_ids: [3, 5] } };
+
+        expect(changedHarnessSettings({ form: structuredClone(with_fallbacks), saved: with_fallbacks })).toEqual([]);
+        expect(
+            changedHarnessSettings({
+                form: { ...with_fallbacks, text: { ...with_fallbacks.text, fallback_model_ids: [5, 3] } },
+                saved: with_fallbacks,
+            }).map((setting) => setting.harness),
+        ).toEqual(["text"]);
+    });
 });

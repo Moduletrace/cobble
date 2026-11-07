@@ -17,7 +17,11 @@ export default function HarnessCurrentModel({ harness }: Props) {
             : "Turned off."
         : harness.current
           ? `Now using ${harness.current.name} on ${harness.current.provider_name}${
-                harness.current.source == "auto" ? ", picked automatically" : ""
+                harness.current.source == "auto"
+                    ? ", picked automatically"
+                    : harness.current.source == "fallback"
+                      ? ", a fallback model (the pick isn't available)"
+                      : ""
             }.${
                 harness.candidate_count > 1
                     ? ` ${harness.candidate_count - 1} more to fall back on.`

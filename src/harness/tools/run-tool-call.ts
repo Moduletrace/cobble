@@ -5,6 +5,7 @@ import TaskTimeoutError from "@/src/utils/task-timeout-error";
 import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
 import unknownToolArgs from "./unknown-tool-args";
+import unknownToolMessage from "./unknown-tool-message";
 import type { HarnessTool, HarnessToolCall, HarnessToolImage } from "../types";
 
 type Params = {
@@ -47,7 +48,7 @@ async function runTool({ call, tools, signal }: Params) {
     const tool = tools.find((t) => t.name == call.name);
 
     if (!tool) {
-        return `Error: There is no tool called "${call.name}". Available: ${tools.map((t) => t.name).join(", ") || "none"}.`;
+        return unknownToolMessage({ name: call.name, tools });
     }
 
     let raw: unknown;

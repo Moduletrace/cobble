@@ -126,6 +126,12 @@ export const RunMaxPromptTokensSettingKey = "run_max_prompt_tokens";
 export const HarnessContextBudgetSettingKey = "harness_context_budget_tokens";
 
 /**
+ * The `app_settings` key holding how long a failed model rests, in
+ * seconds. Unset means `AppData.HarnessModelRestMs`.
+ */
+export const HarnessModelRestSettingKey = "harness_model_rest_seconds";
+
+/**
  * Vendors preferred for automatic picks, best first. Free models from any
  * other vendor come after these, and only if they look competent.
  */

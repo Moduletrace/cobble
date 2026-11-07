@@ -7,6 +7,12 @@ const SettingsSources: Record<NonNullable<HarnessCallSettings["settings_source"]
     workspace: "The workspace's",
 };
 
+const ModelSources: Record<HarnessCallSettings["model_source"], string> = {
+    pinned: "Picked in the settings",
+    fallback: "A fallback model from the settings",
+    auto: "Automatic",
+};
+
 type Params = {
     settings: HarnessCallSettings;
     /**
@@ -19,12 +25,13 @@ type Params = {
  * A call's settings as label and value pairs, in the order Settings,
  * under Models, lists them: the model's pick, whose settings they were,
  * every generation setting sent (by its title), then the token limit, the
- * voice and any models that failed before it.
+ * voice, any models that failed before it and any passed over while
+ * resting.
  */
 export default function describeCallSettings({ settings, harness }: Params) {
     const chat = (HarnessParameterHarnesses as readonly string[]).includes(harness);
     const rows: { label: string; value: string }[] = [
-        { label: "Model pick", value: settings.model_source == "pinned" ? "Picked in the settings" : "Automatic" },
+        { label: "Model pick", value: ModelSources[settings.model_source] },
     ];
 
     if (settings.settings_source) {
@@ -49,9 +56,17 @@ export default function describeCallSettings({ settings, harness }: Params) {
     if (settings.fell_back_from?.length) {
         rows.push({
             label: "Fell back from",
-            value: settings.fell_back_from.map((key) => key.slice(key.indexOf(":") + 1)).join(", "),
+            value: settings.fell_back_from.map(slugOfKey).join(", "),
         });
     }
 
+    if (settings.resting?.length) {
+        rows.push({ label: "Passed over (resting)", value: settings.resting.map(slugOfKey).join(", ") });
+    }
+
     return rows;
+}
+
+function slugOfKey(key: string) {
+    return key.slice(key.indexOf(":") + 1);
 }

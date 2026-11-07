@@ -387,10 +387,10 @@ export const AppData = {
     HarnessAutoMinScore: 12,
     HarnessAutoMinSizeB: 20,
     /**
-     * Models tried per harness call before giving up (pinned plus
-     * automatic fallbacks).
+     * Models tried per harness call before giving up (the pick, its
+     * fallback models, then automatic picks).
      */
-    HarnessMaxCandidates: 5,
+    HarnessMaxCandidates: 6,
     HarnessRequestTimeoutMs: 3 * 60 * 1000,
     /**
      * One tool call gives up after this long, whatever the tool is (bot
@@ -405,6 +405,22 @@ export const AppData = {
      */
     HarnessCooldownMs: 60 * 1000,
     HarnessMaxCooldownMs: 24 * 60 * 60 * 1000,
+    /**
+     * How long a model (or a provider, for a bad key or no credits) that
+     * failed is passed over before it is tried again, provider's
+     * `Retry-After` included. The install may save its own
+     * (`harness_model_rest_seconds`, Settings > General), read through
+     * `grabModelRestMs`. One failure once benched the pinned model for an
+     * hour and every reply ran on a weak free model meanwhile.
+     */
+    HarnessModelRestMs: 2 * 60 * 1000,
+    HarnessModelRestMinSeconds: 10,
+    HarnessModelRestMaxSeconds: 60 * 60,
+    /**
+     * Models the text harness tries, in order, after its pick and before
+     * the automatic free picks (`fallback_model_ids` in its options).
+     */
+    HarnessTextFallbackModelsMax: 3,
     /**
      * Model turns in one text run before it must stop and report. The
      * install may save its own limit (the `harness_max_tool_steps` setting,

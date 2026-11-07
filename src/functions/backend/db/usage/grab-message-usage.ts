@@ -10,9 +10,18 @@ type Params = {
 };
 
 /**
+ * A text call that a model answered in place of one ahead of it: one
+ * failed during the call, or was passed over while resting.
+ */
+const FellBackSql = `(harness = 'text' AND (
+    COALESCE(json_array_length(json_extract(settings, '$.fell_back_from')), 0) > 0
+    OR COALESCE(json_array_length(json_extract(settings, '$.resting')), 0) > 0))`;
+
+/**
  * What each of these messages cost, summed over every model call it took
- * (chat turns, media readings, image generations). This is what a
- * message's token line shows.
+ * (chat turns, media readings, image generations), and the fallback model
+ * that answered for it, if one did. This is what a message's token line
+ * shows.
  */
 export default async function grabMessageUsage({ message_ids }: Params) {
     const totals = new Map<number, TokenUsageSummary>();
@@ -26,12 +35,16 @@ export default async function grabMessageUsage({ message_ids }: Params) {
         completion_tokens: number | null;
         cost: number | null;
         calls: number;
+        fallback_model: string | null;
+        fallback_calls: number | null;
     }>({
         sql: `SELECT message_id,
                 SUM(prompt_tokens) AS prompt_tokens,
                 SUM(completion_tokens) AS completion_tokens,
                 SUM(cost) AS cost,
-                COUNT(*) AS calls
+                COUNT(*) AS calls,
+                MAX(CASE WHEN ${FellBackSql} THEN model_slug END) AS fallback_model,
+                SUM(CASE WHEN ${FellBackSql} THEN 1 ELSE 0 END) AS fallback_calls
             FROM token_usages
             WHERE message_id IN (${ids.map(() => "?").join(", ")})
             GROUP BY message_id`,
@@ -49,6 +62,9 @@ export default async function grabMessageUsage({ message_ids }: Params) {
             total_tokens: prompt_tokens + completion_tokens,
             ...(Number.isFinite(cost) && cost > 0 ? { cost } : {}),
             calls: Number(row.calls) || 0,
+            ...(row.fallback_model
+                ? { fallback_model: row.fallback_model, fallback_calls: Number(row.fallback_calls) || 1 }
+                : {}),
         });
     }
 

@@ -53,13 +53,14 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
     }>({
         harness: "vision",
         candidates,
-        on_success: async ({ candidate, result: answer, failed }): Promise<void> =>
+        on_success: async ({ candidate, result: answer, failed, resting }): Promise<void> =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "vision",
                     candidate,
                     usage: answer.usage,
                     failed,
+                    resting,
                     settings: {
                         settings_source: saved_params.source,
                         params: flattenSentParams({ params: answer.sent_params }),

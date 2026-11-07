@@ -36,7 +36,7 @@ export default function parseCallSettings({ json }: Params): HarnessCallSettings
     ) as Record<string, number | string>;
 
     return {
-        model_source: value.model_source == "pinned" ? "pinned" : "auto",
+        model_source: value.model_source == "pinned" ? "pinned" : value.model_source == "fallback" ? "fallback" : "auto",
         ...(SettingsSources.includes(value.settings_source as SettingsSource)
             ? { settings_source: value.settings_source as SettingsSource }
             : {}),
@@ -45,6 +45,9 @@ export default function parseCallSettings({ json }: Params): HarnessCallSettings
         ...(typeof value.voice == "string" && value.voice ? { voice: value.voice } : {}),
         ...(Array.isArray(value.fell_back_from)
             ? { fell_back_from: value.fell_back_from.filter((k): k is string => typeof k == "string") }
+            : {}),
+        ...(Array.isArray(value.resting)
+            ? { resting: value.resting.filter((k): k is string => typeof k == "string") }
             : {}),
     };
 }

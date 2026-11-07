@@ -8,6 +8,7 @@ import { BotReplyMaxToolStepsSettingKey } from "@/src/dict/bot-dict";
 import {
     HarnessContextBudgetSettingKey,
     HarnessMaxToolStepsSettingKey,
+    HarnessModelRestSettingKey,
     RunMaxPromptTokensSettingKey,
     UnattendedMaxToolStepsSettingKey,
 } from "@/src/dict/harness-dict";
@@ -20,7 +21,7 @@ import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bune
 /**
  * Super admin only: how many model turns a task run, a chat reply and a
  * routine run or hook call may take, the prompt tokens one run may spend
- * and the working context it keeps. Zero puts the code's default back for
+ * the working context it keeps and how long a failed model rests. Zero puts the code's default back for
  * that one.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>> = async ({
@@ -34,7 +35,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>
 
         if (!user?.id) throw new AppError(`Only a super admin can change the run limits.`);
 
-        const { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens } = parseWithSchema({
+        const { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds } = parseWithSchema({
             schema: SaveRunLimitsRequestSchema,
             data: body,
         });
@@ -60,12 +61,17 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>
             value: context_tokens > 0 ? String(context_tokens) : null,
         });
 
+        await saveAppSetting({
+            key: HarnessModelRestSettingKey,
+            value: model_rest_seconds > 0 ? String(model_rest_seconds) : null,
+        });
+
         await logEvent({
             title: "Bot run limits changed",
             category: "system",
             user_id: user.id,
-            plain_text: `User #${user.id} set the tool step limits to ${task_steps || "default"} per task, ${reply_steps || "default"} per chat reply and ${unattended_steps || "default"} per routine or hook call, the tokens per run to ${run_tokens || "default"} and the working context to ${context_tokens || "default"}.`,
-            metadata: { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens },
+            plain_text: `User #${user.id} set the tool step limits to ${task_steps || "default"} per task, ${reply_steps || "default"} per chat reply and ${unattended_steps || "default"} per routine or hook call, the tokens per run to ${run_tokens || "default"}, the working context to ${context_tokens || "default"} and the model rest to ${model_rest_seconds ? `${model_rest_seconds} seconds` : "default"}.`,
+            metadata: { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds },
             ip_address: grabRequestIP(req),
         });
 

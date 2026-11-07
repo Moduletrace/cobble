@@ -4,7 +4,11 @@ import type { HarnessCandidate } from "../types";
 import createCooldowns from "./create-cooldowns";
 import withCandidates from "./with-candidates";
 
-function candidate(slug: string, provider_id = 1): HarnessCandidate {
+function candidate(
+    slug: string,
+    provider_id = 1,
+    source: HarnessCandidate["source"] = "auto",
+): HarnessCandidate {
     return {
         key: `${provider_id}:${slug}`,
         provider: {
@@ -18,7 +22,7 @@ function candidate(slug: string, provider_id = 1): HarnessCandidate {
             output_modalities: ["text"],
             supports_tools: true,
         },
-        source: "auto",
+        source,
     };
 }
 
@@ -172,5 +176,112 @@ describe("withCandidates", () => {
         const bug = new TypeError("oops");
 
         expect(await run(bug)).toBe(bug);
+    });
+
+    test("a failed model rests no longer than the model rest, whatever it was", async () => {
+        const now = 1_000_000;
+        const rest_ms = 120_000;
+
+        for (const error of [
+            new HarnessError({ message: "gone", status: 404 }),
+            new HarnessError({ message: "refused", status: 403 }),
+            rateLimited("1:a", now + 60 * 60 * 1000),
+            new HarnessError({ message: "down", status: 503, retryable: true }),
+        ]) {
+            const cooldowns = createCooldowns();
+            const a = candidate("a", 1, "pinned");
+
+            await withCandidates({
+                harness: "text",
+                candidates: [a, candidate("b")],
+                cooldowns,
+                rest_ms,
+                now: () => now,
+                run: async (c) => {
+                    if (c == a) throw error;
+                },
+            });
+
+            expect(cooldowns.get({ key: a.key, now })).toBe(now + rest_ms);
+        }
+    });
+
+    test("a provider that says to come back sooner rests only that long", async () => {
+        const now = 1_000_000;
+        const cooldowns = createCooldowns();
+        const a = candidate("a");
+
+        await withCandidates({
+            harness: "text",
+            candidates: [a, candidate("b")],
+            cooldowns,
+            rest_ms: 120_000,
+            now: () => now,
+            run: async (c) => {
+                if (c == a) throw rateLimited(a.key, now + 5_000);
+            },
+        });
+
+        expect(cooldowns.get({ key: a.key, now })).toBe(now + 5_000);
+    });
+
+    test("a refused request benches nothing", async () => {
+        const cooldowns = createCooldowns();
+        const a = candidate("a");
+
+        await withCandidates({
+            harness: "text",
+            candidates: [a, candidate("b")],
+            cooldowns,
+            rest_ms: 120_000,
+            run: async (c) => {
+                if (c == a) throw new HarnessError({ message: "bad request", status: 400 });
+            },
+        });
+
+        expect(cooldowns.get({ key: a.key })).toBeUndefined();
+    });
+
+    test("tells the answer which models failed and which were resting", async () => {
+        const cooldowns = createCooldowns();
+        const pinned = candidate("pinned", 1, "pinned");
+        const first = candidate("first", 2, "fallback");
+        const second = candidate("second", 3, "fallback");
+        let seen: { failed: string[]; resting: string[] } | undefined;
+
+        cooldowns.set({ key: pinned.key, at: Date.now() + 60_000 });
+
+        await withCandidates({
+            harness: "text",
+            candidates: [pinned, first, second],
+            cooldowns,
+            rest_ms: 120_000,
+            run: async (c) => {
+                if (c == first) throw rateLimited(first.key);
+            },
+            on_success: ({ failed, resting }) => {
+                seen = { failed: [...failed], resting: [...resting] };
+            },
+        });
+
+        expect(seen).toEqual({ failed: [first.key], resting: [pinned.key] });
+    });
+
+    test("a run on an automatic pick goes back to the pick and its fallbacks once they rested", async () => {
+        const tried: string[] = [];
+
+        await withCandidates({
+            harness: "text",
+            candidates: [candidate("pinned", 1, "pinned"), candidate("fallback", 2, "fallback"), candidate("free-a"), candidate("free-b")],
+            prefer_key: "1:free-b",
+            cooldowns: createCooldowns(),
+            rest_ms: 120_000,
+            run: async (c) => {
+                tried.push(c.model.slug);
+                if (c.source != "auto") throw rateLimited(c.key);
+            },
+        });
+
+        expect(tried).toEqual(["pinned", "fallback", "free-b"]);
     });
 });

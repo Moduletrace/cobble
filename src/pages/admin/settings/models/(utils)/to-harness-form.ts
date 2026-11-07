@@ -1,4 +1,5 @@
 import { harnessParametersFromOptions } from "@/src/dict/harness-parameter-dict";
+import harnessFallbackModelIds from "@/src/utils/harness-fallback-model-ids";
 import textSeesImages from "@/src/utils/text-sees-images";
 import type {
     HarnessOverview,
@@ -29,6 +30,7 @@ export default function toHarnessForm({
                         ? harness.options.voice
                         : undefined,
                 sees_images: textSeesImages({ options: harness.options }),
+                fallback_model_ids: harnessFallbackModelIds({ options: harness.options }),
                 params: harnessParametersFromOptions({
                     options: harness.options,
                 }),

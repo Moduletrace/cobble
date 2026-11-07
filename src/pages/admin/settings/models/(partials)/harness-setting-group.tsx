@@ -4,6 +4,7 @@ import { HarnessParameterHarnesses } from "@/src/dict/harness-parameter-dict";
 import type { HarnessFormValue, HarnessOverview } from "@/src/types";
 import SettingsGroup from "../../(partials)/settings-group";
 import HarnessCurrentModel from "./harness-current-model";
+import HarnessFallbackModels from "./harness-fallback-models";
 import HarnessModelSelect from "./harness-model-select";
 import HarnessParameterModal from "./harness-parameter-modal";
 import HarnessProviderSelect from "./harness-provider-select";
@@ -18,7 +19,7 @@ type Props = {
 
 /**
  * One harness: its provider, then its model (narrowed to that provider),
- * whether it falls back to the automatic picks (for a harness that has
+ * the text harness's fallback models (any provider), whether it falls back to the automatic picks (for a harness that has
  * them), whether it's on, and its voice for speech, with a sample to hear
  * it before saving. On a bot's page the provider select can also use the
  * default, which hides the rest.
@@ -82,6 +83,15 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     onChange={(model_id) => onChange({ ...value, model_id, voice: undefined })}
                 />
             )}
+            {!value.inherit && value.model_id && harness.harness == "text" ? (
+                <HarnessFallbackModels
+                    id={id}
+                    models={harness.models}
+                    model_id={value.model_id}
+                    fallback_model_ids={value.fallback_model_ids || []}
+                    onChange={(fallback_model_ids) => onChange({ ...value, fallback_model_ids })}
+                />
+            ) : null}
             {value.inherit && harness.default ? (
                 <HarnessCurrentModel harness={{ ...harness, ...harness.default }} />
             ) : (
@@ -89,8 +99,8 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
             )}
             {!value.inherit && value.model_id && harness.automatic ? (
                 <Checkbox
-                    title="Fall back to the automatic picks if this model fails"
-                    label={`Fall back to the automatic picks${provider ? ` on ${provider.name}` : ""} if this model fails`}
+                    title="Fall back to the free automatic picks if this model fails"
+                    label={`${harness.harness == "text" ? "Then fall back" : "Fall back"} to the free automatic picks${provider ? ` on ${provider.name}` : ""} if this model fails`}
                     checked={value.fallback}
                     changeHandler={(fallback) => onChange({ ...value, fallback })}
                 />

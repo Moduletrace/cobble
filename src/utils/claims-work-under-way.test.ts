@@ -11,6 +11,9 @@ describe("claimsWorkUnderWay", () => {
             "Creating tasks now. Report follows in the next message.",
             "I'll report back with the links once that run completes.",
             "I’m checking your inbox now.",
+            "I'll drive the browser to ideogram.ai directly and see what's there.",
+            "I'll open the contest page now.",
+            "I'll go ahead and check the tab right away.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(true);
         }
@@ -23,6 +26,9 @@ describe("claimsWorkUnderWay", () => {
             "I'm sorry, that contest isn't open any more.",
             "I checked the board: 3 web design contests are open.",
             "Right now there are 147 open contests.",
+            "I'll keep that in mind going forward.",
+            "Want me to check it now? I'll wait for your go-ahead.",
+            "I'll use the navy palette in the next round.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(false);
         }

@@ -51,6 +51,14 @@ export const SaveHarnessSettingsRequestSchema = z.object({
                  */
                 sees_images: z.boolean().optional(),
                 /**
+                 * Text only: models tried in order after the pick, before
+                 * the automatic picks.
+                 */
+                fallback_model_ids: z
+                    .array(z.coerce.number().int().positive())
+                    .max(AppData.HarnessTextFallbackModelsMax, `Pick at most ${AppData.HarnessTextFallbackModelsMax} fallback models.`)
+                    .optional(),
+                /**
                  * Generation settings (temperature, reasoning effort, ...).
                  * Only the ones in `HarnessParameters` are kept.
                  */
@@ -131,6 +139,21 @@ export const SaveRunLimitsRequestSchema = z.object({
         max: AppData.HarnessContextBudgetMaxTokens,
         label: "Working context",
     }).default(0),
+    /**
+     * Seconds a failed model rests; 0 puts the default back.
+     */
+    model_rest_seconds: z.coerce
+        .number()
+        .int()
+        .refine(
+            (value) =>
+                value == 0 ||
+                (value >= AppData.HarnessModelRestMinSeconds && value <= AppData.HarnessModelRestMaxSeconds),
+            {
+                message: `Model rest must be 0 (the default) or between ${AppData.HarnessModelRestMinSeconds} and ${AppData.HarnessModelRestMaxSeconds} seconds.`,
+            },
+        )
+        .default(0),
 });
 
 export type SaveRunLimitsRequest = z.infer<typeof SaveRunLimitsRequestSchema>;

@@ -3,6 +3,7 @@ import { BotReplyMaxToolStepsSettingKey } from "@/src/dict/bot-dict";
 import {
     HarnessContextBudgetSettingKey,
     HarnessMaxToolStepsSettingKey,
+    HarnessModelRestSettingKey,
     RunMaxPromptTokensSettingKey,
     UnattendedMaxToolStepsSettingKey,
 } from "@/src/dict/harness-dict";
@@ -80,16 +81,31 @@ export async function grabContextBudgetTokens() {
 }
 
 /**
+ * How long a model that failed is passed over, in seconds: the install's
+ * own (`harness_model_rest_seconds`), else `AppData.HarnessModelRestMs`.
+ */
+export async function grabModelRestSeconds() {
+    return readStepLimit({
+        saved: await grabAppSetting({ key: HarnessModelRestSettingKey }),
+        fallback: AppData.HarnessModelRestMs / 1000,
+        min: AppData.HarnessModelRestMinSeconds,
+        max: AppData.HarnessModelRestMaxSeconds,
+    });
+}
+
+/**
  * Every run limit with its default, for the settings page.
  */
 export default async function grabRunLimitsOverview() {
-    const [task_steps, reply_steps, unattended_steps, run_tokens, context_tokens] = await Promise.all([
-        grabHarnessMaxToolSteps(),
-        grabReplyMaxToolSteps(),
-        grabUnattendedMaxToolSteps(),
-        grabRunMaxPromptTokens(),
-        grabContextBudgetTokens(),
-    ]);
+    const [task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds] =
+        await Promise.all([
+            grabHarnessMaxToolSteps(),
+            grabReplyMaxToolSteps(),
+            grabUnattendedMaxToolSteps(),
+            grabRunMaxPromptTokens(),
+            grabContextBudgetTokens(),
+            grabModelRestSeconds(),
+        ]);
 
     const overview: RunLimitsOverview = {
         task_steps,
@@ -97,6 +113,7 @@ export default async function grabRunLimitsOverview() {
         unattended_steps,
         run_tokens,
         context_tokens,
+        model_rest_seconds,
         task_default: AppData.HarnessMaxToolSteps,
         reply_default: AppData.BotReplyMaxToolSteps,
         unattended_default: AppData.UnattendedMaxToolSteps,
@@ -107,6 +124,9 @@ export default async function grabRunLimitsOverview() {
         run_tokens_max: AppData.RunMaxPromptTokensMax,
         context_tokens_min: AppData.HarnessContextBudgetMinTokens,
         context_tokens_max: AppData.HarnessContextBudgetMaxTokens,
+        model_rest_default: AppData.HarnessModelRestMs / 1000,
+        model_rest_min: AppData.HarnessModelRestMinSeconds,
+        model_rest_max: AppData.HarnessModelRestMaxSeconds,
     };
 
     return overview;

@@ -10,6 +10,7 @@ import harnessModelRowToCatalog from "@/src/functions/backend/db/harness/harness
 import resolveProviderConfig from "@/src/functions/backend/db/harness/resolve-provider-config";
 import modelServesHarness from "../catalog/model-serves-harness";
 import rankAutoModels from "../catalog/rank-auto-models";
+import harnessFallbackModelIds from "@/src/utils/harness-fallback-model-ids";
 import HarnessError from "../harness-error";
 import type {
     HarnessCandidate,
@@ -35,12 +36,14 @@ type CatalogEntry = HarnessCatalogModel & {
 };
 
 /**
- * The models a harness call tries, in order: the pick (the bot's own, else
- * the super admin's), then
- * (if it has fallback on, or there is no pick) the automatic free picks.
- * Only enabled providers with a usable key count, and only the setting's
- * provider when it has one. Empty when nothing is
- * set up; throws `unavailable` when the harness is turned off.
+ * The models a harness call tries, in order: the pick (the workspace's,
+ * the bot's own, else the super admin's), then the setting's fallback
+ * models in their order (`fallback_model_ids`, each on its own provider),
+ * then (if it has fallback on, or there is no pick) the automatic free
+ * picks. Only enabled providers with a usable key count, and only the
+ * setting's provider for the pick and automatic picks when it has one.
+ * Empty when nothing is set up; throws `unavailable` when the harness is
+ * turned off.
  */
 export default async function resolveHarnessCandidates({
     harness,
@@ -65,25 +68,32 @@ export default async function resolveHarnessCandidates({
 
     if (!providers.size) return [];
 
+    const fallback_ids = harnessFallbackModelIds({ options: setting.options }).filter(
+        (id) => id != setting.model_id,
+    );
+    const picked_ids = [setting.model_id ?? 0, ...fallback_ids];
+
     const rows =
         (
             await BunSQLite.sql<BUN_SQLITE_COBBLE_HARNESS_MODELS>({
                 sql: `SELECT * FROM harness_models
-                    WHERE available = 1 AND (free = 1 OR id = ?)`,
-                values: [setting.model_id ?? 0],
+                    WHERE available = 1 AND (free = 1 OR id IN (${picked_ids.map(() => "?").join(", ")}))`,
+                values: picked_ids,
             })
         ).payload || [];
 
-    const entries: CatalogEntry[] = rows.flatMap((row) => {
+    const toEntry = ({ row, any_provider }: { row: BUN_SQLITE_COBBLE_HARNESS_MODELS; any_provider: boolean }) => {
         const provider =
-            row.provider_id && (!setting.provider_id || row.provider_id == setting.provider_id)
+            row.provider_id && (any_provider || !setting.provider_id || row.provider_id == setting.provider_id)
                 ? providers.get(row.provider_id)
                 : undefined;
 
         return provider && row.id
             ? [{ ...harnessModelRowToCatalog({ row }), row_id: row.id, provider }]
             : [];
-    });
+    };
+
+    const entries: CatalogEntry[] = rows.flatMap((row) => toEntry({ row, any_provider: false }));
 
     const pinned = entries.find(
         (entry) =>
@@ -91,8 +101,21 @@ export default async function resolveHarnessCandidates({
             modelServesHarness({ model: entry, harness }),
     );
 
+    /**
+     * Each fallback model names its own provider, so the setting's
+     * provider limit doesn't apply to them.
+     */
+    const fallbacks: CatalogEntry[] = fallback_ids.flatMap((id) => {
+        const row = rows.find((r) => r.id == id);
+
+        return row
+            ? toEntry({ row, any_provider: true }).filter((entry) => modelServesHarness({ model: entry, harness }))
+            : [];
+    });
+
     const ordered = [
         ...(pinned ? [{ entry: pinned, source: "pinned" as const }] : []),
+        ...fallbacks.map((entry) => ({ entry, source: "fallback" as const })),
         ...(!pinned || setting.fallback
             ? rankAutoModels({ models: entries, harness }).map((entry) => ({
                   entry,

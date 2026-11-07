@@ -55,13 +55,14 @@ export default async function speakText({
          * completion count to read: the call is recorded as it is, with
          * the text's length standing in for what was spoken.
          */
-        on_success: async ({ candidate, failed }) =>
+        on_success: async ({ candidate, failed, resting }) =>
             await recordHarnessUsage({
                 call: buildUsageCall({
                     harness: "speech",
                     candidate,
                     usage: { prompt_tokens: text.length, completion_tokens: 0 },
                     failed,
+                    resting,
                     settings: {
                         settings_source: setting.source,
                         voice: voiceFor(candidate),
