@@ -23,6 +23,7 @@ type CallRow = {
     model_slug: string | null;
     model_name: string | null;
     prompt_tokens: number | null;
+    cached_tokens: number | null;
     completion_tokens: number | null;
     cost: number | null;
     settings: string | null;
@@ -53,7 +54,7 @@ export default async function grabMessageDetails({ message_id, created_at }: Par
             await BunSQLite.sql<CallRow>({
                 sql: `SELECT t.id, t.created_at, t.harness, t.provider_id, t.provider_name,
                         p.kind AS provider_kind, t.model_slug, m.name AS model_name,
-                        t.prompt_tokens, t.completion_tokens, t.cost, t.settings, t.job_id
+                        t.prompt_tokens, t.cached_tokens, t.completion_tokens, t.cost, t.settings, t.job_id
                     FROM token_usages t
                     LEFT JOIN harness_providers p ON p.id = t.provider_id
                     LEFT JOIN harness_models m ON m.id = t.model_id
@@ -73,6 +74,7 @@ export default async function grabMessageDetails({ message_id, created_at }: Par
         model_slug: row.model_slug || null,
         model_name: row.model_name || null,
         prompt_tokens: Number(row.prompt_tokens) || 0,
+        cached_tokens: Number(row.cached_tokens) || 0,
         completion_tokens: Number(row.completion_tokens) || 0,
         cost: Number.isFinite(Number(row.cost)) && row.cost !== null ? Number(row.cost) : null,
         settings: parseCallSettings({ json: row.settings }),

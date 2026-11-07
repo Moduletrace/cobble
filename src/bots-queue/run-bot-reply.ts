@@ -21,7 +21,7 @@ import {
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import workspaceAdminsNote from "./workspace-admins-note";
 import type { WorkspaceAdminTools } from "@/src/harness/tools/bot/grab-workspace-admin-tools";
-import { grabReplyMaxToolSteps } from "@/src/functions/backend/db/app-settings/grab-run-limits";
+import { grabContextBudgetTokens, grabReplyMaxToolSteps, grabRunMaxPromptTokens } from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
@@ -426,6 +426,8 @@ export default async function runBotReply({
                 ...knowledge.tools,
             ],
             max_steps: await grabReplyMaxToolSteps(),
+            max_prompt_tokens: await grabRunMaxPromptTokens(),
+            context_budget: await grabContextBudgetTokens(),
             bot_id: bot.id,
             workspace_id,
             signal,

@@ -402,9 +402,62 @@ export const AppData = {
      */
     HarnessMaxToolSteps: 200,
     /**
+     * Model turns a routine run or a hook call may take: nobody watches
+     * them, and one routine run once spent 39M tokens checking a site. The
+     * install may save its own (`unattended_max_tool_steps`), read through
+     * `grabUnattendedMaxToolSteps`; a brief's own `max_steps` can only
+     * lower it.
+     */
+    UnattendedMaxToolSteps: 40,
+    /**
+     * Prompt tokens one run may spend in all (every turn resends the
+     * prompt): past it the next turn is the wrap up. A safety net under the
+     * step limit, for runs whose turns are large. The install may save its
+     * own (`run_max_prompt_tokens`), read through `grabRunMaxPromptTokens`.
+     */
+    RunMaxPromptTokens: 4_000_000,
+    /**
+     * The working context: how many tokens (estimated) of system prompt,
+     * tool definitions and transcript a run sends per turn before old tool
+     * output is trimmed, whatever the model's window. Every turn resends
+     * all of it, so a run that only trims at a 1M window pays for its whole
+     * history on every step. The install may save its own
+     * (`harness_context_budget_tokens`), read through
+     * `grabContextBudgetTokens`.
+     */
+    HarnessContextBudgetTokens: 80_000,
+    /**
+     * The least a saved working context may be: below it a run would trim
+     * the output it is reading right now.
+     */
+    HarnessContextBudgetMinTokens: 20_000,
+    HarnessContextBudgetMaxTokens: 1_000_000,
+    /**
+     * Run token budgets the settings page accepts.
+     */
+    RunMaxPromptTokensMin: 100_000,
+    RunMaxPromptTokensMax: 100_000_000,
+    /**
      * Longest tool result handed back to the model.
      */
     HarnessToolResultMaxChars: 20000,
+    /**
+     * Longest result of a browser tool (`browser_*`, the computer's or a
+     * user's own browser): page snapshots and `browser_evaluate` output
+     * were the heaviest results a run kept resending.
+     */
+    HarnessBrowserResultMaxChars: 12000,
+    /**
+     * Extension tools (MCP servers, a user's browsers) are listed by name
+     * and loaded with `load_tools` only when their definitions together
+     * pass this many characters; below it they're simply all given.
+     */
+    HarnessDeferToolsMinChars: 6000,
+    /**
+     * How much of a deferred tool's description its line in the list
+     * shows.
+     */
+    HarnessDeferredToolLineChars: 140,
     /**
      * Images one tool call may hand back (the rest are dropped), and how
      * many of the newest tool images stay in a run's transcript: every

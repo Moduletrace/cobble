@@ -101,6 +101,12 @@ export type HarnessTool<Args = any> = {
     description: string;
     schema?: z.ZodType<Args>;
     parameters?: Record<string, unknown>;
+    /**
+     * Listed by name only until the model loads it with `load_tools`
+     * (`runTextLoop`): an extension's or a user browser's tools, whose
+     * definitions would otherwise ride along on every turn.
+     */
+    deferred?: boolean;
     run: (params: { args: Args; signal: AbortSignal }) => Promise<HarnessToolOutput>;
 };
 
@@ -176,6 +182,11 @@ export type HarnessCandidate = {
 
 export type HarnessUsage = {
     prompt_tokens?: number;
+    /**
+     * Of the prompt tokens, how many the provider served from its cache
+     * (billed lower), when it says.
+     */
+    cached_tokens?: number;
     completion_tokens?: number;
     /**
      * In the provider's currency (USD for OpenRouter), when reported.

@@ -18,7 +18,12 @@ import {
     AskCrewNote,
     WorkspaceLearningNote,
 } from "@/src/data/harness-prompts";
-import { grabHarnessMaxToolSteps } from "@/src/functions/backend/db/app-settings/grab-run-limits";
+import {
+    grabContextBudgetTokens,
+    grabHarnessMaxToolSteps,
+    grabRunMaxPromptTokens,
+    grabUnattendedMaxToolSteps,
+} from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
@@ -326,9 +331,13 @@ export default async function runBotTask({
 
         /**
          * The install's limit, or less when the brief's writer set a
-         * budget (`start_task` `max_steps`).
+         * budget (`start_task` `max_steps`). A routine run or a hook call,
+         * which nobody watches, gets the smaller unattended limit (never
+         * more than a task's).
          */
-        const install_steps = await grabHarnessMaxToolSteps();
+        const task_steps = await grabHarnessMaxToolSteps();
+        const install_steps =
+            scheduled || hooked ? Math.min(task_steps, await grabUnattendedMaxToolSteps()) : task_steps;
         const budget = Math.floor(Number(params.max_steps) || 0);
         const max_steps = budget > 0 ? Math.min(budget, install_steps) : install_steps;
 
@@ -337,8 +346,8 @@ export default async function runBotTask({
                 prompt,
                 carry_over,
                 TaskRunNote,
-                budget > 0
-                    ? `This run has at most ${max_steps} steps (model turns), set when it was queued. Plan for that: save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`
+                budget > 0 || scheduled || hooked
+                    ? `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`
                     : "",
                 scheduled ? ScheduledRunNote : "",
                 hooked ? HookRunNote : "",
@@ -398,6 +407,8 @@ export default async function runBotTask({
             ],
             tools: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools, ...knowledge.tools],
             max_steps,
+            max_prompt_tokens: await grabRunMaxPromptTokens(),
+            context_budget: await grabContextBudgetTokens(),
             bot_id: bot.id,
             workspace_id,
             signal,

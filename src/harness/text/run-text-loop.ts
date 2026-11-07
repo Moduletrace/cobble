@@ -1,6 +1,7 @@
 import { AppData } from "@/src/data/app-data";
 import HarnessError from "../harness-error";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
+import loadToolsTool from "../tools/load-tools-tool";
 import runToolCall from "../tools/run-tool-call";
 import toolDefinition from "../tools/tool-definition";
 import type {
@@ -12,11 +13,13 @@ import type {
     HarnessToolUse,
     HarnessUsage,
 } from "../types";
+import deferredToolsNote from "./deferred-tools-note";
 import describeToolUses from "./describe-tool-uses";
 import dropOldToolImages from "./drop-old-tool-images";
 import fitTranscriptToContext from "./fit-transcript-to-context";
 import generateText from "./generate-text";
 import pushUserTurn from "./push-user-turn";
+import supersedeToolOutputs from "./supersede-tool-outputs";
 import toolImagesTurn from "./tool-images-turn";
 
 export type TextLoopStep = {
@@ -35,8 +38,25 @@ type Params = {
      * The conversation so far, ending with what to do now.
      */
     messages: HarnessMessage[];
+    /**
+     * The run's tools. Deferred ones (`HarnessTool.deferred`) are listed
+     * by name and loaded with `load_tools`, when together they're large
+     * enough to be worth it (`AppData.HarnessDeferToolsMinChars`).
+     */
     tools?: HarnessTool[];
     max_steps?: number;
+    /**
+     * Prompt tokens the run may spend in all (`grabRunMaxPromptTokens`):
+     * once its turns have sent this many, the next one is the wrap up.
+     * Left out, only `max_steps` ends it.
+     */
+    max_prompt_tokens?: number;
+    /**
+     * The working context (`grabContextBudgetTokens`): the most each turn
+     * sends before old tool output is trimmed, whatever the model's
+     * window. Left out, the window decides.
+     */
+    context_budget?: number;
     signal?: AbortSignal;
     /**
      * Called after each model turn, before its tools run. Use it for
@@ -91,10 +111,11 @@ export type TextLoopResult = {
 /**
  * Told on the last step, with the app's record of the tools the run
  * called (`describeToolUses`): out of steps, a model tends to report the
- * work it planned as done.
+ * work it planned as done. `tokens` when the run's token budget ended it
+ * rather than its steps.
  */
-export const wrapUpPrompt = ({ uses }: { uses: HarnessToolUse[] }) =>
-    `You've used every step this run allows. Don't call any more tools. Report what you did, what is left, and anything you need from the user.
+export const wrapUpPrompt = ({ uses, reason = "steps" }: { uses: HarnessToolUse[]; reason?: "steps" | "tokens" }) =>
+    `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} Don't call any more tools. Report what you did, what is left, and anything you need from the user.
 
 The tools you actually called this run: ${describeToolUses({ uses })}. Nothing else happened. Don't say you saved, created, changed or sent anything this list doesn't show; what you meant to do and didn't is still left, so say so.`;
 
@@ -121,14 +142,23 @@ Don't repeat tool calls you have already made.`;
  * The text harness at work: the model answers or calls tools, tool results
  * go back to it, and so on until it answers without calling a tool. Tools
  * run one at a time, in order; images they return follow their results. Stays on one model unless it fails. After
- * `max_steps` turns the model is asked to wrap up without tools. An answer
- * `review` finds fault with is written again once.
+ * `max_steps` turns, or once the run has sent `max_prompt_tokens`, the
+ * model is asked to wrap up without tools. An answer `review` finds fault
+ * with is written again once.
+ *
+ * Every turn resends everything, so the run keeps it small: only the
+ * newest page snapshot of each browser stays (`supersedeToolOutputs`),
+ * old tool output is trimmed to the working context
+ * (`fitTranscriptToContext`), and deferred tools are listed by name until
+ * loaded.
  */
 export default async function runTextLoop({
     system,
     messages,
     tools = [],
     max_steps = AppData.HarnessMaxToolSteps,
+    max_prompt_tokens,
+    context_budget,
     signal = new AbortController().signal,
     onStep,
     incoming,
@@ -139,10 +169,39 @@ export default async function runTextLoop({
     resolveCandidates = () => resolveHarnessCandidates({ harness: "text", bot_id, workspace_id }),
 }: Params): Promise<TextLoopResult> {
     const candidates = await resolveCandidates();
-    const definitions = tools.map((tool) => toolDefinition({ tool }));
+    /**
+     * Deferred tools wait to be loaded only when their definitions
+     * together are worth keeping out of every turn.
+     */
+    const deferrable = tools.filter((tool) => tool.deferred);
+    const defer =
+        deferrable.reduce((sum, tool) => sum + JSON.stringify(toolDefinition({ tool })).length, 0) >=
+        AppData.HarnessDeferToolsMinChars;
+    /**
+     * Loaded deferred tools, in the order they were loaded: their
+     * definitions go after the others, so the start of the list (and of
+     * the prompt, which providers cache) stays the same.
+     */
+    const loaded: string[] = [];
+    const run_tools: HarnessTool[] = defer
+        ? [
+              ...tools,
+              loadToolsTool({
+                  deferred: deferrable,
+                  isLoaded: (name) => loaded.includes(name),
+                  onLoad: (names) => loaded.push(...names),
+              }),
+          ]
+        : tools;
+    const all_definitions = new Map(run_tools.map((tool) => [tool.name, toolDefinition({ tool })]));
+    const definitionsNow = () => [
+        ...run_tools.filter((tool) => !defer || !tool.deferred).map((tool) => all_definitions.get(tool.name)!),
+        ...loaded.map((name) => all_definitions.get(name)!),
+    ];
+    const run_system = defer ? `${system}\n\n${deferredToolsNote({ tools: deferrable })}` : system;
     const media_cache = new Map<string, string>();
     const transcript: HarnessMessage[] = [...messages];
-    const usage: Required<HarnessUsage> = {
+    const usage: Required<Omit<HarnessUsage, "cached_tokens">> = {
         prompt_tokens: 0,
         completion_tokens: 0,
         cost: 0,
@@ -156,11 +215,17 @@ export default async function runTextLoop({
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
         }
 
-        const wrap_up = index == max_steps;
+        const out_of_tokens = Boolean(max_prompt_tokens && max_prompt_tokens > 0 && usage.prompt_tokens >= max_prompt_tokens);
+        const wrap_up = index == max_steps || out_of_tokens;
 
         if (wrap_up) {
-            pushUserTurn({ transcript, content: wrapUpPrompt({ uses: tool_uses }) });
+            pushUserTurn({
+                transcript,
+                content: wrapUpPrompt({ uses: tool_uses, reason: index == max_steps ? "steps" : "tokens" }),
+            });
         }
+
+        const definitions = definitionsNow();
 
         /**
          * Sized for the model the run is on (or will start on). A fallback
@@ -169,13 +234,15 @@ export default async function runTextLoop({
         const model = (candidates.find((c) => c.key == prefer_key) || candidates[0])?.model;
 
         fitTranscriptToContext({
-            system,
+            system: run_system,
             transcript,
             context_length: model?.context_length || AppData.HarnessAutoMinContext,
+            budget_tokens: context_budget,
+            tools_chars: wrap_up ? 0 : JSON.stringify(definitions).length,
         });
 
         const answer = await generate({
-            messages: [{ role: "system", content: system }, ...transcript],
+            messages: [{ role: "system", content: run_system }, ...transcript],
             tools: wrap_up || !definitions.length ? undefined : definitions,
             candidates,
             prefer_key,
@@ -240,7 +307,15 @@ export default async function runTextLoop({
         const shown: { tool_name: string; images: HarnessToolImage[] }[] = [];
 
         for (const call of tool_calls) {
-            const { text: content, images } = await runToolCall({ call, tools, signal });
+            const { text: content, images } = await runToolCall({ call, tools: run_tools, signal });
+
+            /**
+             * A deferred tool called without loading it ran all the same;
+             * it stays loaded from here on.
+             */
+            if (defer && deferrable.some((tool) => tool.name == call.name) && !loaded.includes(call.name)) {
+                loaded.push(call.name);
+            }
 
             tool_uses.push({ name: call.name, ok: !content.startsWith("Error:") });
             transcript.push({ role: "tool", tool_call_id: call.id, content });
@@ -254,6 +329,8 @@ export default async function runTextLoop({
          * setting allows it (`textSeesImages`); otherwise `generateText`
          * has them read first.
          */
+        supersedeToolOutputs({ transcript });
+
         if (shown.length) {
             pushUserTurn({ transcript, content: toolImagesTurn({ shown }) });
             dropOldToolImages({

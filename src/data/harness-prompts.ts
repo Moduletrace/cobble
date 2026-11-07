@@ -34,6 +34,12 @@ export const ToolImagesNote = `The images the tool calls above returned (screens
 export const DroppedToolImageNote = `[An earlier image from a tool, no longer shown to save space. Take it again if you still need it.]`;
 
 /**
+ * Stands in for a page snapshot a newer snapshot of the same browser
+ * replaced (`supersedeToolOutputs`): the page it showed is gone.
+ */
+export const SupersededSnapshotNote = `[An older page snapshot, replaced by the newer one further down. Take another if you need the page again.]`;
+
+/**
  * The folder-ref example a note shows, always over the running bot's own
  * folder: a literal owner id in the prompt teaches the bot to name another
  * bot's folder as if it were its own.

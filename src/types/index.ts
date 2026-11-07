@@ -1249,6 +1249,52 @@ export type LogRetentionOverview = {
 /**
  * The install's skill limits (Settings > General, `grab-skill-limits.ts`).
  */
+/**
+ * Every run limit with the code's defaults and the ranges the settings
+ * page accepts (`grabRunLimitsOverview`).
+ */
+export type RunLimitsOverview = {
+    /**
+     * The limit a task run uses right now.
+     */
+    task_steps: number;
+    /**
+     * The limit a chat reply uses right now.
+     */
+    reply_steps: number;
+    /**
+     * The limit a routine run or hook call uses right now.
+     */
+    unattended_steps: number;
+    /**
+     * The prompt tokens one run may spend right now.
+     */
+    run_tokens: number;
+    /**
+     * The working context a run keeps right now, in tokens.
+     */
+    context_tokens: number;
+    /**
+     * What each uses when the install saved nothing.
+     */
+    task_default: number;
+    reply_default: number;
+    unattended_default: number;
+    run_tokens_default: number;
+    context_tokens_default: number;
+    /**
+     * The most steps the settings page accepts.
+     */
+    max: number;
+    /**
+     * The range the settings page accepts for each token figure.
+     */
+    run_tokens_min: number;
+    run_tokens_max: number;
+    context_tokens_min: number;
+    context_tokens_max: number;
+};
+
 export type SkillLimitsOverview = {
     /**
      * The longest runbook a skill may save right now.
@@ -1690,6 +1736,10 @@ export type MessageDetailsCall = {
      */
     model_name: string | null;
     prompt_tokens: number;
+    /**
+     * Of the prompt tokens, how many the provider served from its cache.
+     */
+    cached_tokens: number;
     completion_tokens: number;
     cost: number | null;
     /**
@@ -2033,16 +2083,11 @@ export type PagePropsType = {
         text: string;
     } | null;
     /**
-     * Model turns a task run and a chat reply may take, with the code's
-     * defaults (the General settings page).
+     * Model turns a task, a chat reply and a routine or hook call may take,
+     * the prompt tokens one run may spend and the working context it keeps,
+     * with the code's defaults (the General settings page).
      */
-    run_limits?: {
-        task_steps: number;
-        reply_steps: number;
-        task_default: number;
-        reply_default: number;
-        max: number;
-    } | null;
+    run_limits?: RunLimitsOverview | null;
     /**
      * The longest runbook a skill may save and how much of it a bot reads
      * at once, with the code's defaults (the General settings page).

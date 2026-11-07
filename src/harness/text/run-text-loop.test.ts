@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
-import { DroppedToolImageNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
@@ -442,5 +442,106 @@ describe("runTextLoop", () => {
 
         expect(result.text).toBe("Out of steps.");
         expect(reviews).toBe(0);
+    });
+
+    test("wraps up once the run has spent its token budget", async () => {
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+            usage: { prompt_tokens: 600, completion_tokens: 1 },
+        };
+        const { generate, seen } = scripted([loop_call, loop_call, { text: "Stopping here.", ...loop_call }]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_prompt_tokens: 1000,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen).toHaveLength(3);
+        expect(seen[2]!.tools).toBe(undefined);
+        expect(seen[2]!.messages.at(-1)!.content).toContain("This run has used all the tokens it may spend.");
+        expect(result.text).toBe("Stopping here.");
+    });
+
+    test("keeps only the newest page snapshot in the transcript", async () => {
+        let page = 0;
+        const snapshot: HarnessTool = {
+            name: "browser_snapshot",
+            description: "Reads the page.",
+            schema: z.object({}),
+            run: async () => `page ${++page}`,
+        };
+        const snap = (id: string) => ({ tool_calls: [{ id, name: "browser_snapshot", arguments: "{}" }] });
+        const { generate, seen } = scripted([snap("a"), snap("b")]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Look." }],
+            tools: [snapshot],
+            generate,
+            resolveCandidates,
+        });
+
+        const tool_turns = seen[2]!.messages.filter((message) => message.role == "tool");
+
+        expect(tool_turns.map((message) => message.content)).toEqual([SupersededSnapshotNote, "page 2"]);
+    });
+
+    test("lists deferred tools by name and gives their definitions once loaded", async () => {
+        const big = "Does a thing. ".repeat(Math.ceil(AppData.HarnessDeferToolsMinChars / 14));
+        const used: string[] = [];
+        const extension = (name: string): HarnessTool => ({
+            name,
+            description: big,
+            parameters: { type: "object", properties: {} },
+            deferred: true,
+            run: async () => {
+                used.push(name);
+                return "done";
+            },
+        });
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "1", name: "load_tools", arguments: `{"names":["srv__a"]}` }] },
+            { tool_calls: [{ id: "2", name: "srv__a", arguments: "{}" }] },
+            { tool_calls: [{ id: "3", name: "srv__b", arguments: "{}" }] },
+            { text: "Done." },
+        ]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember, extension("srv__a"), extension("srv__b")],
+            generate,
+            resolveCandidates,
+        });
+
+        const names = (index: number) => seen[index]!.tools!.map((tool) => tool.name);
+
+        expect(names(0)).toEqual(["remember", "load_tools"]);
+        expect(String(seen[0]!.messages[0]!.content)).toContain("Tools you can load");
+        expect(String(seen[0]!.messages[0]!.content)).toContain("- srv__a: Does a thing.");
+        expect(names(1)).toEqual(["remember", "load_tools", "srv__a"]);
+        expect(seen[1]!.messages.at(-1)!.content).toContain("Loaded: srv__a.");
+        expect(names(3)).toEqual(["remember", "load_tools", "srv__a", "srv__b"]);
+        expect(used).toEqual(["srv__a", "srv__b"]);
+    });
+
+    test("gives small deferred tools straight away", async () => {
+        const small: HarnessTool = { ...remember, name: "srv__small", deferred: true };
+        const { generate, seen } = scripted([{ text: "Hi." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember, small],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen[0]!.tools!.map((tool) => tool.name)).toEqual(["remember", "srv__small"]);
+        expect(String(seen[0]!.messages[0]!.content)).not.toContain("Tools you can load");
     });
 });

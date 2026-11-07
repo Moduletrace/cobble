@@ -108,6 +108,24 @@ export function harnessFallbackTitle({ harness }: { harness: HarnessKind }) {
 export const HarnessMaxToolStepsSettingKey = "harness_max_tool_steps";
 
 /**
+ * The `app_settings` key holding the install's limit on model turns in a
+ * routine run or a hook call. Unset means `AppData.UnattendedMaxToolSteps`.
+ */
+export const UnattendedMaxToolStepsSettingKey = "unattended_max_tool_steps";
+
+/**
+ * The `app_settings` key holding the prompt tokens one run may spend.
+ * Unset means `AppData.RunMaxPromptTokens`.
+ */
+export const RunMaxPromptTokensSettingKey = "run_max_prompt_tokens";
+
+/**
+ * The `app_settings` key holding the working context a run keeps, in
+ * tokens. Unset means `AppData.HarnessContextBudgetTokens`.
+ */
+export const HarnessContextBudgetSettingKey = "harness_context_budget_tokens";
+
+/**
  * Vendors preferred for automatic picks, best first. Free models from any
  * other vendor come after these, and only if they look competent.
  */

@@ -50,6 +50,7 @@ export default async function recordHarnessUsage({ scope, call }: Params) {
         model_id: call.model_id,
         model_slug: call.model_slug,
         prompt_tokens: Math.max(0, Math.round(call.prompt_tokens || 0)),
+        cached_tokens: Math.max(0, Math.round(call.cached_tokens || 0)),
         completion_tokens: Math.max(0, Math.round(call.completion_tokens || 0)),
         cost: typeof call.cost == "number" && Number.isFinite(call.cost) ? call.cost : undefined,
         settings: call.settings ? JSON.stringify(call.settings) : undefined,

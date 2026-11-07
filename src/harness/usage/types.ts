@@ -64,6 +64,10 @@ export type HarnessUsageCall = {
     model_id?: number;
     model_slug?: string;
     prompt_tokens: number;
+    /**
+     * Of the prompt tokens, how many the provider served from its cache.
+     */
+    cached_tokens?: number;
     completion_tokens: number;
     cost?: number;
     settings?: HarnessCallSettings;
@@ -75,6 +79,11 @@ export type HarnessUsageCall = {
  */
 export type TokenUsageSummary = {
     prompt_tokens: number;
+    /**
+     * Of the prompt tokens, how many the providers served from their
+     * cache. Left out when none were (or none said).
+     */
+    cached_tokens?: number;
     completion_tokens: number;
     total_tokens: number;
     /**

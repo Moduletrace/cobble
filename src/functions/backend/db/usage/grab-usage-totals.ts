@@ -12,6 +12,10 @@ type Params = {
 type UsageRow = {
     calls: number | null;
     prompt_tokens: number | null;
+    /**
+     * Left out by the queries that don't sum it.
+     */
+    cached_tokens?: number | null;
     completion_tokens: number | null;
     cost: number | null;
 };
@@ -34,6 +38,7 @@ export default async function grabUsageTotals({ start, end }: Params): Promise<U
         sql: `SELECT harness,
                 COUNT(*) AS calls,
                 SUM(prompt_tokens) AS prompt_tokens,
+                SUM(cached_tokens) AS cached_tokens,
                 SUM(completion_tokens) AS completion_tokens,
                 SUM(cost) AS cost
             FROM token_usages
@@ -59,12 +64,14 @@ export default async function grabUsageTotals({ start, end }: Params): Promise<U
  */
 export function sumSummary({ summaries }: { summaries: TokenUsageSummary[] }): TokenUsageSummary {
     let prompt_tokens = 0;
+    let cached_tokens = 0;
     let completion_tokens = 0;
     let cost = 0;
     let calls = 0;
 
     for (const summary of summaries) {
         prompt_tokens += summary.prompt_tokens;
+        cached_tokens += summary.cached_tokens || 0;
         completion_tokens += summary.completion_tokens;
         cost += summary.cost || 0;
         calls += summary.calls;
@@ -72,6 +79,7 @@ export function sumSummary({ summaries }: { summaries: TokenUsageSummary[] }): T
 
     return {
         prompt_tokens,
+        ...(cached_tokens > 0 ? { cached_tokens } : {}),
         completion_tokens,
         total_tokens: prompt_tokens + completion_tokens,
         ...(cost > 0 ? { cost } : {}),
@@ -84,11 +92,13 @@ export function sumSummary({ summaries }: { summaries: TokenUsageSummary[] }): T
  */
 export function toSummary({ row }: { row: UsageRow }): TokenUsageSummary {
     const prompt_tokens = Number(row.prompt_tokens) || 0;
+    const cached_tokens = Number(row.cached_tokens) || 0;
     const completion_tokens = Number(row.completion_tokens) || 0;
     const cost = Number(row.cost);
 
     return {
         prompt_tokens,
+        ...(cached_tokens > 0 ? { cached_tokens } : {}),
         completion_tokens,
         total_tokens: prompt_tokens + completion_tokens,
         ...(Number.isFinite(cost) && cost > 0 ? { cost } : {}),

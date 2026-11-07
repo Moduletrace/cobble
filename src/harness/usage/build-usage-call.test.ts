@@ -42,10 +42,21 @@ describe("buildUsageCall", () => {
             model_id: 41,
             model_slug: "deepseek/deepseek-chat",
             prompt_tokens: 1200,
+            cached_tokens: 0,
             completion_tokens: 340,
             cost: 0.0042,
             settings: { model_source: "auto" },
         });
+    });
+
+    test("keeps how much of the prompt the provider served from its cache", () => {
+        const call = buildUsageCall({
+            harness: "text",
+            candidate: candidate(),
+            usage: { prompt_tokens: 1200, cached_tokens: 900, completion_tokens: 340 },
+        });
+
+        expect(call.cached_tokens).toBe(900);
     });
 
     test("keeps the settings sent and the models that failed first", () => {

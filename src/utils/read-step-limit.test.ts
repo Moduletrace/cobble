@@ -33,4 +33,9 @@ describe("readStepLimit", () => {
         expect(readStepLimit({ fallback: 8, max: 50, saved: "51" })).toBe(8);
         expect(readStepLimit({ fallback: 8, max: 50, saved: "50" })).toBe(50);
     });
+
+    test("falls back under the floor when one is given", () => {
+        expect(readStepLimit({ fallback: 80000, max: 1000000, min: 20000, saved: "19999" })).toBe(80000);
+        expect(readStepLimit({ fallback: 80000, max: 1000000, min: 20000, saved: "20000" })).toBe(20000);
+    });
 });

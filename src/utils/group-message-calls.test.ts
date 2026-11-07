@@ -13,6 +13,7 @@ function call(overrides: Partial<MessageDetailsCall>): MessageDetailsCall {
         model_slug: "deepseek/deepseek-v4",
         model_name: "DeepSeek V4",
         prompt_tokens: 100,
+        cached_tokens: 0,
         completion_tokens: 10,
         cost: null,
         settings: null,

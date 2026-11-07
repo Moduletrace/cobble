@@ -42,6 +42,7 @@ export default async function grabUsageModels({ start, end, limit }: Params): Pr
         harness: string | null;
         calls: number | null;
         prompt_tokens: number | null;
+        cached_tokens: number | null;
         completion_tokens: number | null;
         cost: number | null;
     }>({
@@ -52,6 +53,7 @@ export default async function grabUsageModels({ start, end, limit }: Params): Pr
                 u.harness,
                 COUNT(*) AS calls,
                 SUM(u.prompt_tokens) AS prompt_tokens,
+                SUM(u.cached_tokens) AS cached_tokens,
                 SUM(u.completion_tokens) AS completion_tokens,
                 SUM(u.cost) AS cost
             FROM token_usages u

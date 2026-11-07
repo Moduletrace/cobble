@@ -2639,6 +2639,10 @@ export type BUN_SQLITE_COBBLE_TOKEN_USAGES = {
      */
     prompt_tokens?: number | "";
     /** 
+     * Of the prompt tokens, how many the provider served from its prompt cache (billed lower), when it reports it
+     */
+    cached_tokens?: number | "";
+    /** 
      * Tokens written back: the answer, its tool calls and its reasoning
      */
     completion_tokens?: number | "";

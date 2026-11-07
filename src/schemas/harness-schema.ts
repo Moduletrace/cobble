@@ -105,9 +105,32 @@ export type SaveBotHarnessSettingsRequest = z.infer<
  * The General settings' run limits: model turns a task run and a chat reply
  * may take. Zero puts the code's default back.
  */
+/**
+ * A token figure on the run limits form: 0 puts the default back, anything
+ * else must sit inside its range.
+ */
+const tokenLimit = ({ min, max, label }: { min: number; max: number; label: string }) =>
+    z.coerce
+        .number()
+        .int()
+        .refine((value) => value == 0 || (value >= min && value <= max), {
+            message: `${label} must be 0 (the default) or between ${min.toLocaleString("en-US")} and ${max.toLocaleString("en-US")} tokens.`,
+        });
+
 export const SaveRunLimitsRequestSchema = z.object({
     task_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax),
     reply_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax),
+    unattended_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax).default(0),
+    run_tokens: tokenLimit({
+        min: AppData.RunMaxPromptTokensMin,
+        max: AppData.RunMaxPromptTokensMax,
+        label: "Tokens per run",
+    }).default(0),
+    context_tokens: tokenLimit({
+        min: AppData.HarnessContextBudgetMinTokens,
+        max: AppData.HarnessContextBudgetMaxTokens,
+        label: "Working context",
+    }).default(0),
 });
 
 export type SaveRunLimitsRequest = z.infer<typeof SaveRunLimitsRequestSchema>;

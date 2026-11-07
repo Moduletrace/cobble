@@ -16,7 +16,7 @@ export default function RunLimitsSection() {
     return (
         <SettingsGroup
             title="Run limits"
-            description="How many turns a bot may take with its tools before it must stop and report. A task may take far more than a chat reply, since it does the long work."
+            description="How long a bot may work on one run before it must stop and report, and how much of its work it sends the model each turn. A task may take far more than a chat reply, since it does the long work."
             id="run-limits"
         >
             <RunLimitsForm limits={pageProps?.run_limits} />

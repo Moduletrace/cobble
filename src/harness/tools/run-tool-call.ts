@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
+import isBrowserTool from "@/src/utils/browser-tool-name";
 import TaskTimeoutError from "@/src/utils/task-timeout-error";
 import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
@@ -35,7 +36,7 @@ export default async function runToolCall({ call, tools, signal }: Params): Prom
     if (typeof text == "string") return { text, images: [] };
 
     return {
-        text: truncate({ text: text.text }),
+        text: truncate({ text: text.text, name: call.name }),
         images: text.images
             .slice(0, AppData.HarnessToolMaxImages)
             .map((image) => ({ ...image, from_tool: true })),
@@ -85,7 +86,7 @@ async function runTool({ call, tools, signal }: Params) {
                 }),
         });
 
-        return typeof output == "string" ? truncate({ text: output }) : output;
+        return typeof output == "string" ? truncate({ text: output, name: call.name }) : output;
     } catch (error: unknown) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
@@ -99,10 +100,16 @@ async function runTool({ call, tools, signal }: Params) {
     }
 }
 
-function truncate({ text }: { text: string }) {
-    const max = AppData.HarnessToolResultMaxChars;
+/**
+ * A result past its tool's cap is cut there. Browser tools get the
+ * smaller cap: a page snapshot or an evaluate over a whole page was the
+ * heaviest thing a run kept resending.
+ */
+function truncate({ text, name }: { text: string; name: string }) {
+    const browser = isBrowserTool({ name });
+    const max = browser ? AppData.HarnessBrowserResultMaxChars : AppData.HarnessToolResultMaxChars;
 
     if (text.length <= max) return text;
 
-    return `${text.slice(0, max)}\n[Cut: ${text.length - max} more characters.]`;
+    return `${text.slice(0, max)}\n[Cut: ${text.length - max} more characters.${browser ? " Narrow the call (a selector, an element ref, a smaller evaluate) to see the rest." : ""}]`;
 }

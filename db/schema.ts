@@ -4290,6 +4290,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     defaultValue: 0,
                 },
                 {
+                    fieldName: "cached_tokens",
+                    fieldDescription: `Of the prompt tokens, how many the provider served from its prompt cache (billed lower), when it reports it`,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
                     fieldName: "completion_tokens",
                     fieldDescription: `Tokens written back: the answer, its tool calls and its reasoning`,
                     dataType: "INTEGER",

@@ -39,7 +39,10 @@ export default function UsageModelRow({ row }: Props) {
             <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
                 {formatTokens({ tokens: row.calls })}
             </Span>
-            <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">
+            <Span
+                className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate"
+                title={row.cached_tokens ? `${row.cached_tokens.toLocaleString()} of them from the provider's cache` : undefined}
+            >
                 {formatTokens({ tokens: row.prompt_tokens })}
             </Span>
             <Span className="text-[12px] leading-4 text-ink-secondary tabular-nums text-right truncate">

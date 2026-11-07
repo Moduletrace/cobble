@@ -56,7 +56,8 @@ export type OpenBotExtensions = {
 /**
  * The MCP servers' and custom tools' tools a bot gets on one run
  * (`grabBotExtensions`), as harness tools. MCP tools are built from each
- * server's last listing (`<slug>__<tool>`) and connect on their first call,
+ * server's last listing (`<slug>__<tool>`), deferred until the run loads
+ * them (`HarnessTool.deferred`), and connect on their first call,
  * so a run that doesn't use them never waits on them. Secret env values are
  * blanked out of every result. Call `close` when the run ends.
  */
@@ -106,15 +107,21 @@ export default async function openBotExtensions({
         const open = openMcpServer({ server, envs, signal });
         opened.push(open);
 
+        /**
+         * Deferred: listed by name until the run loads them (`load_tools`).
+         * One server's definitions alone ran to 30,000 characters, sent
+         * with every turn of every run.
+         */
         for (const tool of listed) {
-            add(
-                mcpHarnessTool({
+            add({
+                ...mcpHarnessTool({
                     name: mcpToolName({ slug: server.slug, name: tool.name }),
                     tool: { ...tool, description: `${server.name}: ${tool.description}` },
                     client: open.client,
                     redact,
                 }),
-            );
+                deferred: true,
+            });
         }
     }
 

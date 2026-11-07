@@ -121,6 +121,7 @@ export const JobStepToolLabels: Record<string, string> = {
     update_memory: "Updating memory",
     update_instructions: "Updating instructions",
     load_skill: "Reading a skill",
+    load_tools: "Loading tools",
     send_message: "Sending a message",
     create_graphic: "Drawing a graphic",
     update_graphic: "Redrawing a graphic",

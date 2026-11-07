@@ -114,15 +114,21 @@ export default async function openBotBrowsers({
             if (names.has(name)) continue;
 
             names.add(name);
-            tools.push(
-                mcpHarnessTool({
+            /**
+             * Deferred: listed by name until the run loads them
+             * (`load_tools`), so a turn that doesn't browse doesn't carry
+             * every browser tool's definition.
+             */
+            tools.push({
+                ...mcpHarnessTool({
                     name,
                     tool: { ...tool, description: `${browser.name}: ${tool.description}` },
                     client,
                     redact,
                     image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
                 }),
-            );
+                deferred: true,
+            });
         }
     }
 

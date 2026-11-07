@@ -22,7 +22,7 @@ export default function UsageTotals({ usage }: Props) {
             <UsageStat
                 label="Tokens"
                 value={formatTokens({ tokens: totals.total_tokens })}
-                hint={`${formatTokens({ tokens: totals.prompt_tokens })} in, ${formatTokens({ tokens: totals.completion_tokens })} out`}
+                hint={`${formatTokens({ tokens: totals.prompt_tokens })} in${cachedShare({ cached: totals.cached_tokens, prompt: totals.prompt_tokens })}, ${formatTokens({ tokens: totals.completion_tokens })} out`}
             />
             <UsageStat
                 label="Model calls"
@@ -41,6 +41,16 @@ export default function UsageTotals({ usage }: Props) {
             />
         </Row>
     );
+}
+
+/**
+ * How much of what was sent the providers served from their cache, when
+ * they said: " (40% cached)".
+ */
+function cachedShare({ cached, prompt }: { cached?: number; prompt: number }) {
+    if (!cached || !prompt) return "";
+
+    return ` (${Math.round((cached / prompt) * 100)}% cached)`;
 }
 
 /**

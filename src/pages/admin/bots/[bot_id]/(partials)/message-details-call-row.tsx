@@ -49,7 +49,7 @@ export default function MessageDetailsCallRow({ call, index, first_at }: Props) 
             </Span>
             <Span
                 className="shrink-0 text-[12px] leading-4 text-ink-secondary tabular-nums"
-                title={`${call.prompt_tokens.toLocaleString()} in, ${call.completion_tokens.toLocaleString()} out · ${costLabel({ cost: call.cost })}`}
+                title={`${call.prompt_tokens.toLocaleString()} in${call.cached_tokens ? ` (${call.cached_tokens.toLocaleString()} cached)` : ""}, ${call.completion_tokens.toLocaleString()} out · ${costLabel({ cost: call.cost })}`}
             >
                 {`${formatTokens({ tokens: call.prompt_tokens })} / ${formatTokens({ tokens: call.completion_tokens })}`}
             </Span>

@@ -31,6 +31,7 @@ export default function buildUsageCall({ harness, candidate, usage, settings, fa
         model_id: modelIdOf(candidate),
         model_slug: candidate.model.slug,
         prompt_tokens: Number(usage?.prompt_tokens) || 0,
+        cached_tokens: Number(usage?.cached_tokens) || 0,
         completion_tokens: Number(usage?.completion_tokens) || 0,
         cost: typeof usage?.cost == "number" && Number.isFinite(usage.cost) ? usage.cost : undefined,
         settings: {

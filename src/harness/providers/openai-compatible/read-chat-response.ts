@@ -77,6 +77,13 @@ export default function readChatResponse({
         usage: json.usage
             ? {
                   prompt_tokens: json.usage.prompt_tokens,
+                  /**
+                   * OpenAI's and OpenRouter's spelling; some providers
+                   * (DeepSeek's own API) say `prompt_cache_hit_tokens`.
+                   */
+                  cached_tokens:
+                      Number(json.usage.prompt_tokens_details?.cached_tokens ?? json.usage.prompt_cache_hit_tokens) ||
+                      undefined,
                   completion_tokens: json.usage.completion_tokens,
                   cost: json.usage.cost,
               }

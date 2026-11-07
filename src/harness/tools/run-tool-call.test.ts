@@ -65,6 +65,19 @@ describe("runToolCall", () => {
         expect(result).toEndWith("[Cut: 5 more characters.]");
     });
 
+    test("cuts a browser tool's result sooner, saying how to see the rest", async () => {
+        const browser: HarnessTool<{ text: string }> = { ...echo, name: "pc__browser_evaluate" };
+        const long = "x".repeat(AppData.HarnessBrowserResultMaxChars + 7);
+        const { text } = await runToolCall({
+            call: { id: "1", name: browser.name, arguments: JSON.stringify({ text: long }) },
+            tools: [browser],
+            signal,
+        });
+
+        expect(text).toStartWith("x".repeat(AppData.HarnessBrowserResultMaxChars) + "\n[Cut: 7 more characters.");
+        expect(text).toContain("Narrow the call");
+    });
+
     test("passes images on, capped and marked as a tool's", async () => {
         const result = await run("shot", "{}");
 

@@ -51,6 +51,15 @@ describe("readChatResponse", () => {
         });
     });
 
+    test("reads the cached prompt tokens, in either spelling", () => {
+        const answer = (usage: Record<string, unknown>) =>
+            read({ choices: [{ message: { content: "Hi." } }], usage: { prompt_tokens: 100, completion_tokens: 2, ...usage } }).usage;
+
+        expect(answer({ prompt_tokens_details: { cached_tokens: 80 } })?.cached_tokens).toBe(80);
+        expect(answer({ prompt_cache_hit_tokens: 60 })?.cached_tokens).toBe(60);
+        expect(answer({})?.cached_tokens).toBe(undefined);
+    });
+
     test("joins content parts and treats empty text as none", () => {
         expect(
             read({

@@ -12,23 +12,27 @@ type Params = {
      * The most a saved limit may ask for.
      */
     max: number;
+    /**
+     * The least it may ask for (1 unless given).
+     */
+    min?: number;
 };
 
 /**
  * Reads a tool-step limit saved in the settings, falling back to the code's
  * default when it is missing, not a whole number, below one, or above the
- * ceiling. The settings page and the saved row are both untrusted input:
+ * ceiling (or under the floor). The settings page and the saved row are both untrusted input:
  * without this a typo (or a zero) would stop every run before its first
  * turn, and a huge number would let one run alone run for hours.
  */
-export default function readStepLimit({ saved, fallback, max }: Params) {
+export default function readStepLimit({ saved, fallback, max, min = 1 }: Params) {
     const text = String(saved ?? "").trim();
 
     if (!text) return fallback;
 
     const value = Number(text);
 
-    if (!Number.isInteger(value) || value < 1 || value > max) return fallback;
+    if (!Number.isInteger(value) || value < Math.max(1, min) || value > max) return fallback;
 
     return value;
 }
