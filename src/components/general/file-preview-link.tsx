@@ -10,6 +10,10 @@ type Props = {
     media_type?: string | null;
     size?: number;
     /**
+     * Where the file sits (`bots/3/reports/q3.md`), for the preview.
+     */
+    full_path?: string;
+    /**
      * The images it sits among (`imagePreviewGallery`), for Previous and
      * Next in the preview.
      */
@@ -24,7 +28,17 @@ type Props = {
  * plain click. It stays a real link to the bytes, so a middle click or
  * Ctrl/Cmd click still opens the file in a new tab.
  */
-export default function FilePreviewLink({ name, url, media_type, size, gallery, title, className, children }: Props) {
+export default function FilePreviewLink({
+    name,
+    url,
+    media_type,
+    size,
+    full_path,
+    gallery,
+    title,
+    className,
+    children,
+}: Props) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -50,6 +64,7 @@ export default function FilePreviewLink({ name, url, media_type, size, gallery, 
                     url={url}
                     media_type={media_type}
                     size={size}
+                    full_path={full_path}
                     gallery={gallery}
                     onClose={() => setOpen(false)}
                 />

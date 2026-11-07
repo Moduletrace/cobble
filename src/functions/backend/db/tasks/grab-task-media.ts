@@ -1,5 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { TaskFile } from "@/src/types";
+import mediaFilePlace from "@/src/functions/backend/media/media-file-place";
 
 type Params = {
     task_id: number | string;
@@ -7,13 +8,13 @@ type Params = {
 
 /**
  * A task's files with what a row shows: the `media` row's type, mime and
- * size, and whether that row is still there (a failed cleanup or a
+ * size, where the file sits on the data volume, and whether that row is still there (a failed cleanup or a
  * deleted file leaves the link behind, listed as missing rather than
  * hiding it).
  */
 export default async function grabTaskMedia({ task_id }: Params): Promise<TaskFile[]> {
-    const res = await BunSQLite.sql<TaskFile>({
-        sql: `SELECT tm.*, m.media_type, m.mime_type, m.title AS media_title
+    const res = await BunSQLite.sql<TaskFile & { media_write_path?: string | null }>({
+        sql: `SELECT tm.*, m.media_type, m.mime_type, m.title AS media_title, m.media_write_path
             FROM task_media tm
             LEFT JOIN media m ON m.id = tm.media_id
             WHERE tm.task_id = ?
@@ -21,9 +22,10 @@ export default async function grabTaskMedia({ task_id }: Params): Promise<TaskFi
         values: [Number(task_id)],
     });
 
-    return (res.payload || []).map((file) => ({
+    return (res.payload || []).map(({ media_write_path, ...file }) => ({
         ...file,
         name: file.name || file.media_title || `File ${file.media_id}`,
         missing: !file.media_type,
+        ...mediaFilePlace({ write_path: media_write_path }),
     }));
 }

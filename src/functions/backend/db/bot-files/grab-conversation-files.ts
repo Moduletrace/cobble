@@ -4,6 +4,7 @@ import grabMediaURL from "../../media/grab-media-url";
 import grabBotFileQuotaBytes, { grabBotFileQuotaMb } from "./grab-bot-file-quota-bytes";
 import grabStorageUsage from "./grab-storage-usage";
 import listBotFiles from "./list-bot-files";
+import botFileFullPath from "@/src/utils/bot-file-full-path";
 
 type Params = {
     bot_id: number;
@@ -55,6 +56,7 @@ export default async function grabConversationFiles({
                 owner_id: Number(file.owner_id) || 0,
                 created_at: Number(file.created_at) || 0,
                 url: media_url || "",
+                full_path: botFileFullPath({ scope: file.scope, owner_id: file.owner_id, path: file.path }),
             };
         }),
         folders: [],

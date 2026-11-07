@@ -11,9 +11,9 @@ import usePreloadImages from "@/src/hooks/use-preload-images";
 import useTopModalEscape from "@/src/hooks/use-top-modal-escape";
 import type { FilePreviewItem } from "@/src/types";
 import filePreviewKind from "@/src/utils/file-preview-kind";
-import formatBytes from "@/src/utils/format-bytes";
 import galleryIndex from "@/src/utils/gallery-index";
 import FilePreviewBody from "./file-preview-body";
+import FilePreviewDetails from "./file-preview-details";
 import FilePreviewStepper from "./file-preview-stepper";
 
 type Props = {
@@ -21,6 +21,10 @@ type Props = {
     url: string;
     media_type?: string | null;
     size?: number;
+    /**
+     * Where the file sits (`bots/3/reports/q3.md`), shown beside its size.
+     */
+    full_path?: string;
     /**
      * The images it was opened among (a folder's, a message's). When the
      * file is one of them, Previous and Next (and the arrow keys) step
@@ -34,7 +38,7 @@ const ActionClassName =
     "shrink-0 inline-flex items-center gap-1.5 px-2 py-1.5 text-[13px] leading-[18px] text-ink-secondary hover:text-ink rounded-default hover:bg-sunken no-underline";
 
 /**
- * A file over the page: markdown rendered, a CSV as a table, an image,
+ * A file over the page, its full path beside its size: markdown rendered, a CSV as a table, an image,
  * PDF, audio or video in place, other text as code, with ways to download
  * it or open it in a new tab. A file it can't show offers those only.
  * Opened from a gallery, it steps through its images; each one opens fresh
@@ -44,7 +48,7 @@ export default function FilePreviewModal({ gallery, onClose, ...opened }: Props)
     const [index, set_index] = useState(() => galleryIndex({ gallery, url: opened.url }));
     const stepping = Boolean(gallery && index >= 0 && gallery.length > 1);
     const shown: FilePreviewItem = (stepping && gallery?.[index]) || opened;
-    const { name, url, media_type, size } = shown;
+    const { name, url, media_type, size, full_path } = shown;
     const kind = filePreviewKind({ name, media_type });
     const base_name = name.split("/").pop() || name;
     const count = gallery?.length || 0;
@@ -77,11 +81,7 @@ export default function FilePreviewModal({ gallery, onClose, ...opened }: Props)
                     >
                         {base_name}
                     </H2>
-                    {size ? (
-                        <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                            {formatBytes({ bytes: size })}
-                        </Span>
-                    ) : null}
+                    <FilePreviewDetails size={size} full_path={full_path} />
                 </Stack>
                 {stepping ? (
                     <FilePreviewStepper

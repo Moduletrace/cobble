@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_FILES, BUN_SQLITE_COBBLE_MEDIA } from "@/db/types/db";
 import grabMediaURL from "@/src/functions/backend/media/grab-media-url";
+import mediaFilePlace from "@/src/functions/backend/media/media-file-place";
 import type { BotMessageAttachment, MediaType } from "@/src/types";
 
 type Params = {
@@ -14,7 +15,8 @@ type Params = {
 
 /**
  * A `media` row as a chat attachment: its original name (`title`), type
- * and the private URLs it's served at. A file saved in a bot's folder
+ * and the private URLs it's served at, with where it sits on the data
+ * volume and its size for the preview. A file saved in a bot's folder
  * carries its `file_id`, so the chip can open the file's page.
  */
 export default function mediaToAttachment({ media, file_id }: Params): BotMessageAttachment {
@@ -27,6 +29,7 @@ export default function mediaToAttachment({ media, file_id }: Params): BotMessag
         url: media_url || "",
         thumbnail_url: media_thumbnail_url,
         file_id: file_id || undefined,
+        ...mediaFilePlace({ write_path: media.media_write_path }),
     };
 }
 

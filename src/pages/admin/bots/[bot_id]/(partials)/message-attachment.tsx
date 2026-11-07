@@ -14,11 +14,22 @@ export default function MessageAttachment({
     media_type,
     url,
     thumbnail_url,
+    size,
+    full_path,
     gallery,
 }: BotMessageAttachment & { gallery?: FilePreviewItem[] }) {
     if (media_type == "image") {
         return (
-            <FilePreviewLink name={name} url={url} media_type={media_type} gallery={gallery} title={name} className="block">
+            <FilePreviewLink
+                name={name}
+                url={url}
+                media_type={media_type}
+                size={size}
+                full_path={full_path}
+                gallery={gallery}
+                title={name}
+                className="block"
+            >
                 <Img
                     src={thumbnail_url || url}
                     alt={name}
@@ -33,6 +44,8 @@ export default function MessageAttachment({
             name={name}
             url={url}
             media_type={media_type}
+            size={size}
+            full_path={full_path}
             title={name}
             className="flex max-w-64 items-center gap-2 rounded-default-lg border border-solid border-hairline bg-surface px-3 py-2 text-[13px] leading-[18px] text-ink no-underline hover:border-hairline-strong"
         >

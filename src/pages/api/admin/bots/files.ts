@@ -14,6 +14,7 @@ import type { BotFileScopesPayload } from "@/src/types";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { BotFileScope } from "@/src/dict/bot-file-dict";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
+import botFileFullPath from "@/src/utils/bot-file-full-path";
 
 /**
  * A conversation's files: the bot's own, or a workspace's shared ones.
@@ -134,6 +135,7 @@ function toPublicFile({ file }: { file: BotFileWithMediaLite }) {
         owner_id: Number(file.owner_id) || 0,
         created_at: Number(file.created_at) || 0,
         url: media_url || "",
+        full_path: botFileFullPath({ scope: file.scope, owner_id: file.owner_id, path: file.path }),
     };
 }
 

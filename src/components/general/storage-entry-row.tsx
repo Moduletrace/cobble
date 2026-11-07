@@ -61,6 +61,7 @@ export default function StorageEntryRow({ entry, selected, gallery, onOpenFolder
                         url={entry.url || ""}
                         media_type={entry.media_type}
                         size={entry.size}
+                        full_path={entry.full_path}
                         gallery={gallery}
                         className="text-[13px] font-bold leading-5 text-ink break-words hover:opacity-80"
                     >

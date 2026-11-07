@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
 import { AppData } from "@/src/data/app-data";
 import FilePreviewBody from "./file-preview-body";
+import FilePreviewDetails from "./file-preview-details";
 import FilePreviewLink from "./file-preview-link";
 import FilePreviewMarkdown from "./file-preview-markdown";
 import FilePreviewTable from "./file-preview-table";
@@ -85,4 +86,13 @@ test("a gallery's stepper says where the image stands and stops at the ends", ()
     expect(last).toContain("3 of 3");
     expect((first.match(/disabled=""/g) || []).length).toBe(1);
     expect((last.match(/disabled=""/g) || []).length).toBe(1);
+});
+
+test("the preview names the file's full path beside its size", () => {
+    const html = renderToString(<FilePreviewDetails size={2048} full_path="bots/3/reports/q3.md" />);
+
+    expect(html).toContain("2.0 KB");
+    expect(html).toContain("bots/3/reports/q3.md");
+    expect(renderToString(<FilePreviewDetails full_path="media/1/a.pdf" />)).toContain("media/1/a.pdf");
+    expect(renderToString(<FilePreviewDetails />)).toBe("");
 });

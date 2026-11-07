@@ -43,6 +43,8 @@ export default function TaskFileRow({ file, onDetach, busy }: Props) {
                 name={file.name || `File ${file.media_id}`}
                 url={`/media/${file.media_id}`}
                 media_type={file.media_type}
+                size={file.size}
+                full_path={file.full_path}
                 className="grow min-w-0 text-[13px] leading-[18px] text-ink truncate hover:underline"
             >
                 {file.name || `File ${file.media_id}`}

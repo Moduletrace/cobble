@@ -8,6 +8,8 @@ import computerFolderLabel from "@/src/utils/computer-folder-label";
 import computerPathAllowed from "@/src/utils/computer-path-allowed";
 import { isInsideRoot } from "./resolve-storage-path";
 import type { ResolvedStorageSpec } from "./resolve-storage-spec";
+import type { StorageEntry } from "@/src/types";
+import dataVolumePath from "@/src/utils/data-volume-path";
 import {
     storageSpecHref,
     type StorageSpec,
@@ -34,32 +36,7 @@ type Params = {
     offset?: number;
 };
 
-export type StorageEntry = {
-    name: string;
-    /**
-     * Where it is, inside the volume's root, e.g. `seo/coderank/raw`.
-     */
-    path: string;
-    kind: "file" | "folder";
-    size: number;
-    modified_at: number;
-    media_type?: string;
-    /**
-     * The `bot_files` row, when one of the bot's own files is that path, so
-     * it keeps opening through its own media record.
-     */
-    file_id?: number;
-    /**
-     * Where to open it: a `bot_files` row's media URL, else the volume
-     * browser's own streaming route.
-     */
-    url?: string;
-    /**
-     * What an id folder in a computer's workspace is: the bot's, user's or
-     * workspace's name.
-     */
-    label?: string;
-};
+export type { StorageEntry };
 
 /**
  * One directory on the data volume, for the files browser: its entries
@@ -150,6 +127,7 @@ export default async function listStorageEntries({
             media_type: file?.media_type || undefined,
             file_id: file?.id ? Number(file.id) : undefined,
             url: media_url || fileUrl({ spec: resolved.spec, path: entry_path }),
+            full_path: dataVolumePath({ absolute: entry_absolute }),
         });
     }
 

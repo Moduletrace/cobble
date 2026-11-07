@@ -92,6 +92,7 @@ export default function FileRefChip({ file_id }: Props) {
             url={file.url}
             media_type={file.media_type}
             size={file.size}
+            full_path={file.full_path}
             className="inline-flex h-6 max-w-full gap-1.5 items-center px-1.5 align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink hover:opacity-80"
         >
             <AttachmentIcon media_type={file.media_type as MediaType} />

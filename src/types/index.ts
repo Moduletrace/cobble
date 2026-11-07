@@ -235,6 +235,12 @@ export type TaskFile = BUN_SQLITE_COBBLE_TASK_MEDIA & {
      * Whether the `media` row is still there.
      */
     missing?: boolean;
+    /**
+     * Where it sits on the data volume, and its size in bytes, when the
+     * file is on disk.
+     */
+    full_path?: string;
+    size?: number;
 };
 
 /**
@@ -1470,6 +1476,11 @@ export type PublicBotFile = {
      * Where the bytes are served (`/media/<media id>`, private).
      */
     url: string;
+    /**
+     * Where it sits on the data volume (`bots/3/reports/q3.md`), shown in
+     * the file preview.
+     */
+    full_path: string;
 };
 
 /**
@@ -1496,6 +1507,12 @@ export type FilePreviewItem = {
     url: string;
     media_type?: string | null;
     size?: number;
+    /**
+     * Where the file sits on the data volume (`bots/3/reports/q3.md`), or
+     * its absolute path when it lives outside it. The preview shows it
+     * beside the size.
+     */
+    full_path?: string;
 };
 
 export type StorageEntry = {
@@ -1523,6 +1540,11 @@ export type StorageEntry = {
      * workspace's name.
      */
     label?: string;
+    /**
+     * Where it sits on the data volume (`computers/2/bots/5/notes.md`), or
+     * its absolute path when the volume's root is elsewhere.
+     */
+    full_path?: string;
 };
 
 /**
@@ -1694,6 +1716,14 @@ export type BotMessageAttachment = {
      * The bot file it is, when it was saved in one of the bot's folders.
      */
     file_id?: number;
+    /**
+     * Where it sits on the data volume (`media/1/1793027689070.pdf`).
+     */
+    full_path?: string;
+    /**
+     * Its size in bytes, when the file is on disk.
+     */
+    size?: number;
 };
 
 /**

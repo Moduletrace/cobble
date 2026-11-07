@@ -38,6 +38,7 @@ export default function FileRow({ file, can_manage, busy, gallery, onDelete }: P
                     url={file.url}
                     media_type={file.media_type}
                     size={file.size}
+                    full_path={file.full_path}
                     gallery={gallery}
                     className="text-[13px] font-bold leading-5 text-ink break-words hover:opacity-80"
                 >
