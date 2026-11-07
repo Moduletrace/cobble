@@ -11,8 +11,9 @@ import type { BunextPageServerFn } from "@moduletrace/bunext/types";
  * A bot's conversation inside a workspace: the bot works with the
  * workspace's context, computers and models. Only the coordinator and the
  * workspace's bots have one; anyone else goes back to the workspace
- * settings (managers) or their bots. Rendering it records the bot in the
- * last-visited cookie, so `/admin/bots` opens its own chat again.
+ * settings (managers) or their bots. Rendering it records the bot and the
+ * workspace in the last-visited cookie, so `/admin/bots` opens the bot's
+ * own chat again and the rail on settings leads back here.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const query: PageQueryObject = params.query;
@@ -39,6 +40,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     }
 
     const bot_id = props.bot.id;
+    const workspace_id = props.workspace?.id || null;
 
     await recordBotVisit({ user_id: user.id, bot_id });
 
@@ -49,7 +51,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     return {
         props,
         res_transform(res) {
-            return withLastVisitedBotCookies({ req: params.req, res, bot_id });
+            return withLastVisitedBotCookies({ req: params.req, res, bot_id, workspace_id });
         },
     };
 };

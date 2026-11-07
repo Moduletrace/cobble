@@ -8,6 +8,8 @@ import isUnknownSettingsPath from "../utils/is-unknown-settings-path";
 import { SettingsDefaultPath } from "../dict/settings-pages-dict";
 import grabInstallName from "../functions/backend/db/app-settings/grab-install-name";
 import grabInstallIcon from "../functions/backend/db/app-settings/grab-install-icon";
+import grabLastConversation from "../functions/backend/db/bot-sessions/grab-last-conversation";
+import isPagesRailPath from "../utils/is-pages-rail-path";
 
 /**
  * Routing for a local install. There are no public pages:
@@ -17,6 +19,9 @@ import grabInstallIcon from "../functions/backend/db/app-settings/grab-install-i
  * - an unknown `/admin/settings/*` page: `/admin/settings/general`
  * - `/admin/*` logged out: `/auth/login`
  * - `/auth/*` logged in (except logout): `/admin/bots`
+ *
+ * Settings and the rail pages also get the conversation this browser was
+ * last in (`last_conversation`), for their rail's way back.
  */
 const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
     const { user, user_types } = await userAuth({ req });
@@ -84,6 +89,12 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
             user_types,
             install_name: await grabInstallName().catch(() => ""),
             install_icon: await grabInstallIcon().catch(() => null),
+            last_conversation:
+                user?.id && isPagesRailPath({ pathname: url.pathname })
+                    ? await grabLastConversation({ user_id: user.id, req }).catch(
+                          () => null,
+                      )
+                    : null,
         },
     };
 };

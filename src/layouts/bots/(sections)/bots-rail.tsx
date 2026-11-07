@@ -8,6 +8,7 @@ import useLiveWorkspaces from "../(hooks)/use-live-workspaces";
 import { RailPages } from "@/src/dict/rail-pages-dict";
 import { RailDrawerContext } from "../(data)/rail-drawer-context";
 import RailHeader from "../(partials)/rail-header";
+import RailLastConversation from "../(partials)/rail-last-conversation";
 import RailPagesList from "../(partials)/rail-pages-list";
 import RailCrewList from "../(partials)/rail-crew-list";
 import RailSettingsAside from "../(partials)/rail-settings-aside";
@@ -17,9 +18,10 @@ import RailWorkspaceList from "../(partials)/rail-workspace-list";
 /**
  * Left rail: wordmark and Add, then the crew (pinned coordinator first,
  * the latest bots, the workspaces). Inside a workspace it lists that
- * workspace's crew instead; on `/admin/settings/*` a back link and the
- * settings sub pages, and on routines, activity and help a back link and
- * those pages (`RailPages`). Below `md` it is a slide-over drawer from the
+ * workspace's crew instead; on `/admin/settings/*` the settings sub pages,
+ * and on routines, files, usage, activity and help those pages
+ * (`RailPages`), both under a way back to the last conversation
+ * (`last_conversation`, the bot's own chat or a workspace's). Below `md` it is a slide-over drawer from the
  * pane header's menu button; from `md` it is a 64px icon rail, and from
  * `lg` the full 260px rail. Its own width, not the viewport's, decides
  * whether it shows names (a container query), so the drawer opens full.
@@ -77,6 +79,9 @@ export default function BotsRail() {
                 }
             >
                 <RailHeader show_add={!is_settings_page && !is_rail_page} />
+                {(is_settings_page || is_rail_page) && pageProps?.last_conversation ? (
+                    <RailLastConversation conversation={pageProps.last_conversation} />
+                ) : null}
                 <Stack className="grow min-h-0 overflow-y-auto gap-0! items-stretch px-2 @rail:px-3 pt-1 pb-3">
                     {is_settings_page ? (
                         <RailSettingsAside pathname={pathname} />

@@ -21,10 +21,22 @@ function requestWithCookies(): Request {
 
 describe("last visited bot cookies", () => {
     test("round-trip a bot", () => {
-        expect(readLastVisitedBot({ req: requestWithCookies() })).toEqual({ bot_id: 4 });
+        expect(readLastVisitedBot({ req: requestWithCookies() })).toEqual({ bot_id: 4, workspace_id: null });
     });
 
-    test("only the bot cookie is written, never a workspace one", () => {
+    test("round-trip a workspace conversation in the same cookie", () => {
+        const res = new Response();
+        setCookies(res, lastVisitedBotCookies({ bot_id: 4, workspace_id: 9, secure: false }));
+        const headers = res.headers.getSetCookie();
+        const req = new Request("http://localhost/admin/settings", {
+            headers: { Cookie: headers.map((header) => header.split(";")[0]).join("; ") },
+        });
+
+        expect(headers).toHaveLength(1);
+        expect(readLastVisitedBot({ req })).toEqual({ bot_id: 4, workspace_id: 9 });
+    });
+
+    test("only the bot cookie is written, never a second one", () => {
         const res = new Response();
         setCookies(res, lastVisitedBotCookies({ bot_id: 4, secure: false }));
         const [header, ...others] = res.headers.getSetCookie();

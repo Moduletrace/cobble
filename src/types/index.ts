@@ -1985,6 +1985,27 @@ export type PrecacheManifest = {
     files: string[];
 };
 
+/**
+ * A conversation to lead back to from settings and the rail pages: the bot
+ * (as the rail draws it) and, inside a workspace, that workspace.
+ */
+export type LastConversation = {
+    href: string;
+    bot: {
+        id: number;
+        name: string;
+        kind?: string | null;
+        color?: string | null;
+        stone?: string | null;
+        hue?: string | null;
+        image_media_id?: number | null;
+    };
+    workspace: {
+        id: number;
+        name: string;
+    } | null;
+};
+
 export type PagePropsType = {
     user?: User | null;
     user_types?: BUN_SQLITE_COBBLE_USER_TYPES[] | null;
@@ -2136,6 +2157,12 @@ export type PagePropsType = {
      * General, and the root's icon links).
      */
     install_icon?: PwaInstallIcon | null;
+    /**
+     * The conversation this browser was last in, for the rail's way back
+     * on settings and the rail pages. Only on those pages, and only while
+     * the user still reaches it.
+     */
+    last_conversation?: LastConversation | null;
     /**
      * The release the server is running, for the General settings page.
      */
