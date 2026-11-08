@@ -40,8 +40,10 @@ export default function askUserTool({ user_id, bot_id, session_id, workspace_id,
 
     return {
         name: "ask_user",
-        description: `Ask the user multiple-choice questions to be sure what they want before you act, shown as a card in the chat they answer by picking options. Use it when the request is ambiguous or open to more than one reading, when a choice is theirs to make (which target, which items, how far to go), or before something that is hard to undo, costly or visible to others, and you can't tell what they'd pick. Don't ask what they already told you, what you can find out yourself, or what any sensible choice would settle. Put every question in one call (at most one per reply). Their answers arrive as their next message${
-            in_task ? `. In a task, ask, then stop and report that you're waiting for their answers.` : `: after asking, end your reply and wait; don't act on what you asked about until they answer.`
+        description: `Ask the user multiple-choice questions, shown as a card in the chat they answer in a click. Use it whenever what happens next is theirs to decide: when the request is ambiguous or leaves out something that changes the result (which target, which items, how far to go), before something that is hard to undo, costly or visible to others, and to offer the next step once you've answered or reported (the concrete next steps as options, your suggestion first). When you're unsure whether to ask, ask. Don't ask what they already told you, what you can find out yourself, or details that don't change the result. Put every question in one call (at most one per run). Their answers arrive as their next message${
+            in_task
+                ? `. In a task, ask, then stop working on what you asked about and finish your report; the card goes out with it.`
+                : `: after asking, end your reply and wait; don't act on what you asked about until they answer.`
         }`,
         schema: z.object({
             title: z.string().trim().max(120).optional().describe("A short heading for the card, e.g. \"Before I deploy\""),
@@ -73,7 +75,7 @@ export default function askUserTool({ user_id, bot_id, session_id, workspace_id,
 
             return `Asked the user ${count} question${count == 1 ? "" : "s"}: the card is on your message. ${
                 in_task
-                    ? `Stop here and report that you're waiting for their answers.`
+                    ? `Stop working on what you asked about and finish with your report (if you asked to settle something before going on, say you're waiting for their answers).`
                     : `End your reply now with a short line saying what you need settled; their answers arrive as their next message.`
             } Don't repeat the questions or options in your text.`;
         },

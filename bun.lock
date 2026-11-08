@@ -9,7 +9,7 @@
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@moduletrace/bun-sqlite": "^1.3.0",
         "@moduletrace/bunext": "^1.3.5",
-        "@moduletrace/twui": "^0.1.9",
+        "@moduletrace/twui": "^0.1.10",
         "@tiptap/extension-bubble-menu": "3.32.0",
         "@tiptap/extension-mention": "3.32.0",
         "@tiptap/extension-placeholder": "3.32.0",
@@ -279,7 +279,7 @@
 
     "@moduletrace/bunext": ["@moduletrace/bunext@1.3.5", "https://git.tben.me/api/packages/Moduletrace/npm/%40moduletrace%2Fbunext/-/1.3.5/bunext-1.3.5.tgz", { "dependencies": { "@tailwindcss/postcss": "^4.3.3", "@types/bun": "1.3.14", "@types/node": "^24.10.0", "@types/react": "^19.3.0", "@types/react-dom": "^19.3.0", "bun-plugin-tailwind": "^0.1.2", "chalk": "^5.6.2", "chokidar": "^5.0.0", "commander": "^14.0.2", "esbuild": "^0.28.2", "lightningcss-wasm": "^1.32.0", "lodash": "^4.18.1", "ora": "^9.0.0", "postcss": "^8.5.30", "react": "^19.3.0", "react-dom": "^19.3.0", "tailwindcss": "^4.3.3", "typescript": "^5.0.0", "uuid": "^14.0.2" }, "bin": { "bunext": "dist/commands/index.js" } }, "sha512-Es59Dvq3/eF726+SOHPiKtlJ87UFmyJZI4gpeciW/fA/3ZwOWws2Mm3oD6eZnOj9BP/zlBKOWA9DPTl35IP3lg=="],
 
-    "@moduletrace/twui": ["@moduletrace/twui@0.1.9", "https://git.tben.me/api/packages/Moduletrace/npm/%40moduletrace%2Ftwui/-/0.1.9/twui-0.1.9.tgz", { "dependencies": { "lodash": "^4.18.1", "tailwind-merge": "^3.7.0" }, "peerDependencies": { "ace-builds": "^1.40.0", "lucide-react": ">=0.577.0", "next-mdx-remote": "^6.0.0", "openai": ">=6.0.0", "react": ">=18", "react-dom": ">=18", "react-markdown": ">=9.0.0", "rehype-prism-plus": "^2.0.0", "remark-gfm": "^4.0.0", "tailwindcss": "^4" }, "optionalPeers": ["ace-builds", "next-mdx-remote", "openai", "react-markdown", "rehype-prism-plus", "remark-gfm"] }, "sha512-HN/emdqSCxQclzFEojDsaujjgO+dkQy4wC7Rk6gCQH/fK2Hv0CQ5DLOdOB8oDE7nu+m7/0qKo878UeufBbEotg=="],
+    "@moduletrace/twui": ["@moduletrace/twui@0.1.10", "https://git.tben.me/api/packages/Moduletrace/npm/%40moduletrace%2Ftwui/-/0.1.10/twui-0.1.10.tgz", { "dependencies": { "lodash": "^4.18.1", "tailwind-merge": "^3.7.0" }, "peerDependencies": { "ace-builds": "^1.40.0", "lucide-react": ">=0.577.0", "next-mdx-remote": "^6.0.0", "openai": ">=6.0.0", "react": ">=18", "react-dom": ">=18", "react-markdown": ">=9.0.0", "rehype-prism-plus": "^2.0.0", "remark-gfm": "^4.0.0", "tailwindcss": "^4" }, "optionalPeers": ["ace-builds", "next-mdx-remote", "openai", "react-markdown", "rehype-prism-plus", "remark-gfm"] }, "sha512-eShpG6jK7qr2+oG7Pq4PvHnvAOUPkbxMCf9BVfiuJqUdtuaQSo2jqcggGAonGDu4p8Nn/KWTd2KrypE/+W4wTg=="],
 
     "@next/mdx": ["@next/mdx@16.3.0", "", { "dependencies": { "source-map": "^0.7.0" }, "peerDependencies": { "@mdx-js/loader": ">=0.15.0", "@mdx-js/react": ">=0.15.0" }, "optionalPeers": ["@mdx-js/loader", "@mdx-js/react"] }, "sha512-Vpfuf928ACvx4AOdDXWx/cj13Ak6xlvMn3QCkjvfQMmLnQWCesQTeY01CPDbIyZvjY+NOwP7bvbvJ2ghkj/3GA=="],
 
