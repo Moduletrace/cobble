@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { twMerge } from "tailwind-merge";
 import Button from "@moduletrace/twui/layout/Button";
 import Span from "@moduletrace/twui/layout/Span";
 import { ListChecks } from "lucide-react";
@@ -43,7 +44,18 @@ export default function TaskRefChip({ task_id, title: initial_title, status: ini
                 title={deleted ? "This task was deleted" : "Open the task"}
                 disabled={deleted}
                 onClick={() => setOpen(true)}
-                className="inline-flex h-6 max-w-full gap-1.5! flex-nowrap items-center px-1.5! py-0! align-middle rounded-default-xs border-0 bg-sunken text-[13px] font-bold leading-4 text-ink whitespace-nowrap hover:opacity-80 [&_.twui-button-content-wrapper]:min-w-0"
+                className={twMerge(
+                    "inline-flex h-6 max-w-full gap-1.5! flex-nowrap items-center px-1.5! py-0! align-middle rounded-default-xs border-0",
+                    "text-[13px] font-bold leading-4 whitespace-nowrap hover:opacity-80 [&_.twui-button-content-wrapper]:min-w-0",
+                    /**
+                     * The ghost button sets its own dark fill and text
+                     * (\`dark:bg-transparent\`, \`dark:text-primary-dark-text\`),
+                     * so the chip's colours are given for both themes, like
+                     * the link chips beside it.
+                     */
+                    "bg-sunken dark:bg-sunken hover:bg-sunken dark:hover:bg-sunken",
+                    "text-ink dark:text-ink",
+                )}
             >
                 <ListChecks size={13} aria-hidden className="shrink-0" />
                 <Span className="min-w-0 truncate">{deleted ? `Task ${task_id} (deleted)` : label}</Span>
