@@ -1756,6 +1756,21 @@ export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
      * summed. Only on bot messages that took at least one call.
      */
     usage?: TokenUsageSummary | null;
+    /**
+     * The tracker tasks the message is about (\`task_ids\`) that the viewer
+     * reaches, in order, for the chips under it. Only on bot messages that
+     * name one.
+     */
+    tasks?: MessageTask[];
+};
+
+/**
+ * A tracker task linked under a bot message: enough for its chip.
+ */
+export type MessageTask = {
+    id: number;
+    title: string;
+    status: string;
 };
 
 /**

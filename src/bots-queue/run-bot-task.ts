@@ -111,6 +111,10 @@ export default async function runBotTask({
      * changed, whose chips the report always carries.
      */
     const shown: string[] = [];
+    /**
+     * The tracker tasks the run worked on, linked under its report.
+     */
+    const task_ids: number[] = [];
 
     const computer = job.computer_id
         ? await openComputerTools({
@@ -194,7 +198,14 @@ export default async function runBotTask({
          */
         const admin_tools =
             !powers.is_coordinator && workspace_id && powers.is_workspace_admin
-                ? (await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, scopes })).tools
+                ? (await grabWorkspaceAdminTools({
+                      bot,
+                      user_id,
+                      workspace_id,
+                      powers,
+                      scopes,
+                      onTask: ({ task_id }) => task_ids.push(task_id),
+                  })).tools
                 : [];
 
         const tools = [
@@ -208,6 +219,7 @@ export default async function runBotTask({
                 admin_workspace_ids: powers.admin_workspace_ids,
                 scopes,
                 hooked,
+                onTask: ({ task_id }) => task_ids.push(task_id),
             })),
             ...admin_tools,
             ...(powers.is_coordinator
@@ -473,6 +485,7 @@ export default async function runBotTask({
             }),
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
+            task_ids,
         };
     } finally {
         await extensions?.close();

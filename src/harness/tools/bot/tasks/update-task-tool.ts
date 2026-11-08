@@ -26,6 +26,11 @@ type Params = {
      * The run's folders, for linking a deliverable by its `[file:ID]` ref.
      */
     scopes?: StorageScope[];
+    /**
+     * Called with each task the run worked on through this tool, so the
+     * message it posts links to it (\`bot_messages.task_ids\`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 type Args = {
@@ -52,7 +57,7 @@ type Args = {
  * which bot did what and when. The coordinator and a workspace's admin bot
  * can also turn a bot's task there into a workspace-wide one.
  */
-export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids = [], scopes = [] }: Params): HarnessTool<Args> {
+export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids = [], scopes = [], onTask }: Params): HarnessTool<Args> {
     /**
      * Only the coordinator and workspace admins get the switch at all.
      */
@@ -110,6 +115,8 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
         run: async ({ args }) => {
             const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
             const said: string[] = [];
+
+            onTask?.({ task_id: Number(task.id) });
             const workspace_wide = !task.bot_id && Boolean(task.workspace_id);
             /**
              * On a workspace-wide task: what this call did, for the log.

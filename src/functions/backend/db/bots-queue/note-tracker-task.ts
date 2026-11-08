@@ -1,5 +1,4 @@
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
-import parseJobJson from "@/src/bots-queue/parse-job-json";
 import { AppData } from "@/src/data/app-data";
 import { logError } from "@/src/functions/backend/logger";
 import grabBotById from "../bots/grab-bot-by-id";
@@ -7,6 +6,7 @@ import addTaskNote from "../tasks/add-task-note";
 import grabTaskRow, { isOpenTask } from "../tasks/grab-task-scope";
 import updateTask from "../tasks/update-task";
 import grabJobUserId from "./grab-job-user-id";
+import jobTrackerTaskId from "./job-tracker-task-id";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -25,7 +25,7 @@ type Params = {
  * the job's wrap-up.
  */
 export default async function noteTrackerTask({ job, failure }: Params) {
-    const tracker_task_id = Number(parseJobJson({ text: job.params })?.tracker_task_id || 0);
+    const tracker_task_id = jobTrackerTaskId({ job });
 
     if (!tracker_task_id || !job.bot_id) return;
 

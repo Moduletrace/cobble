@@ -5,6 +5,7 @@ import notifyBotMessage from "@/src/push/notify-bot-message";
 import notifyBotFace from "@/src/push/notify-bot-face";
 import pushBotUpdated from "./push-bot-updated";
 import pushToSessionUser from "./push-to-session-user";
+import withSessionMessageTasks from "./with-session-message-tasks";
 import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
 import pushChatroomMessage from "@/src/functions/backend/db/chatrooms/push-chatroom-message";
 import grabSessionHookId from "@/src/functions/backend/db/bot-hooks/grab-session-hook-id";
@@ -66,7 +67,10 @@ async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
     } else if (message && !hook_id) {
         await pushToSessionUser({
             session_id: message.session_id,
-            data: { event: "server:bot-message", data: message },
+            /**
+             * With its task chips, like a loaded message.
+             */
+            data: { event: "server:bot-message", data: await withSessionMessageTasks({ message }) },
         });
 
         /**
@@ -78,7 +82,7 @@ async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
     if (relay) {
         await pushToSessionUser({
             session_id: relay.message.session_id,
-            data: { event: "server:bot-message", data: relay.message },
+            data: { event: "server:bot-message", data: await withSessionMessageTasks({ message: relay.message }) },
         });
 
         if (!quiet_push) void notifyBotMessage({ message: relay.message });

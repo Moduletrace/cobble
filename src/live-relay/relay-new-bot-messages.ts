@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import grabMessagesReplies from "@/src/functions/backend/db/bots/grab-messages-replies";
 import withMessageUsage from "@/src/functions/backend/db/usage/with-message-usage";
+import withMessageTasks from "@/src/functions/backend/db/bots/with-message-tasks";
 import { sendToUser } from "@/src/websocket/(functions)/send-to-user";
 
 type Params = {
@@ -29,9 +30,22 @@ export default async function relayNewBotMessages({ after_id, users }: Params) {
      * With what each one spent, like a loaded message, so the thread shows
      * its tokens without a reload.
      */
-    const rows = await withMessageUsage({
+    const spent = await withMessageUsage({
         messages: read.filter((row) => users.has(String(row.user_id))),
     });
+
+    /**
+     * And the tracker tasks each one is about, as its own user sees them.
+     */
+    const rows = (
+        await Promise.all(
+            [...new Set(spent.map((row) => row.user_id))].map((user_id) =>
+                withMessageTasks({ messages: spent.filter((row) => row.user_id == user_id), user_id }),
+            ),
+        )
+    )
+        .flat()
+        .sort((a, b) => Number(a.id) - Number(b.id));
 
     const replies = await grabMessagesReplies({
         message_ids: rows

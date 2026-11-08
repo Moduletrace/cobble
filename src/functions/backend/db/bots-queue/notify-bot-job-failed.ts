@@ -12,6 +12,7 @@ import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
+import jobTrackerTaskId from "./job-tracker-task-id";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -40,6 +41,11 @@ export default async function notifyBotJobFailed({
         values: [Date.now(), job.id],
     });
 
+    /**
+     * A handed-over task's failed run links to that task.
+     */
+    const task_ids = [jobTrackerTaskId({ job })];
+
     const message = await insertBotMessage({
         bot_id: job.bot_id,
         session_id: await jobSessionId({ job }),
@@ -55,6 +61,7 @@ export default async function notifyBotJobFailed({
                 .filter(Boolean)
                 .join(" "),
         needs_you: true,
+        task_ids,
     });
 
     const user_id = await grabJobUserId({ job });
@@ -84,6 +91,7 @@ export default async function notifyBotJobFailed({
         job,
         text: failure_message || job.last_error || "",
         failed: true,
+        task_ids,
     });
 
     await onChatroomJobEnded({ job, text: failure_message || job.last_error || "", failed: true });

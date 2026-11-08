@@ -413,6 +413,10 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     tool_log?: string;
     /** 
+     * JSON `[id, ...]`: the tracker tasks (`tasks`) the run behind a bot message worked on (created, moved along, read in full or handed over, and the task a handed-over job was started for), shown as chips under the message so the user sees which tasks it's about. Not foreign keys: a deleted task's chip is left out. Null: none
+     */
+    task_ids?: string;
+    /** 
      * Set on the message that brings a chatroom's outcome back into the asking bot's conversation: the room. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key
      */
     from_chatroom_id?: number | "";

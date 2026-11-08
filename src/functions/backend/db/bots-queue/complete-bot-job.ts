@@ -17,6 +17,7 @@ import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
+import jobTrackerTaskId from "./job-tracker-task-id";
 
 type Params = {
     job_id: number | string;
@@ -42,6 +43,10 @@ type Params = {
      * Every tool call the run made, kept on the message.
      */
     tool_log?: HarnessToolUse[];
+    /**
+     * The tracker tasks the run worked on, linked under the message.
+     */
+    task_ids?: number[];
 };
 
 /**
@@ -63,6 +68,7 @@ export default async function completeBotJob({
     silent,
     attachments,
     tool_log,
+    task_ids = [],
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
 
@@ -86,6 +92,11 @@ export default async function completeBotJob({
         values: [result, now, job.id],
     });
 
+    /**
+     * A handed-over task's run is about that task, whatever its tools did.
+     */
+    const message_task_ids = [jobTrackerTaskId({ job }), ...task_ids];
+
     if (job.task_id) {
         await BunSQLite.sql({
             sql: `UPDATE bot_tasks SET status = 'done', updated_at = ? WHERE id = ?`,
@@ -103,6 +114,7 @@ export default async function completeBotJob({
               needs_you,
               media_ids: attachments,
               tool_log,
+              task_ids: message_task_ids,
           });
 
     if (job.id && inserted?.id) {
@@ -164,7 +176,7 @@ export default async function completeBotJob({
 
     await recordHookCallResponse({ job, status: "done", response: result, message_id: inserted?.id });
 
-    const relay = silent ? null : await relayJobToRequester({ job, text: result });
+    const relay = silent ? null : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
 
     await onChatroomJobEnded({ job, text: silent ? "" : result });
 

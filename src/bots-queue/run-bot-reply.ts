@@ -217,6 +217,10 @@ export default async function runBotReply({
      * Files the bot wrote and asked to send with its reply.
      */
     const attachments: number[] = [];
+    /**
+     * The tracker tasks the reply worked on, linked under it.
+     */
+    const task_ids: number[] = [];
 
     /**
      * The files this run reaches: its file tools and the pictures it may
@@ -260,6 +264,7 @@ export default async function runBotReply({
             led = admin;
         },
         onChatroom: ({ ref }) => shown.push(ref),
+        onTask: ({ task_id }) => task_ids.push(task_id),
     });
 
     /**
@@ -451,6 +456,7 @@ export default async function runBotReply({
             }),
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
+            task_ids,
         };
     } finally {
         await extensions.close();

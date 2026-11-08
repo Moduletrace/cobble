@@ -27,6 +27,11 @@ type Params = {
      * routine, a hook call or a chatroom run.
      */
     can_delete?: boolean;
+    /**
+     * Called with each task the run reads in full, adds or moves along, so
+     * the message it posts links to them (\`bot_messages.task_ids\`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 /**
@@ -45,6 +50,7 @@ export default async function grabBotTaskTools({
     admin_workspace_ids = [],
     workspace_id,
     can_delete,
+    onTask,
 }: Params): Promise<HarnessTool[]> {
     let workers: BUN_SQLITE_COBBLE_BOTS[] = [];
     let members: BUN_SQLITE_COBBLE_BOTS[] = [];
@@ -72,7 +78,7 @@ export default async function grabBotTaskTools({
     });
 
     return [
-        listTasksTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id }),
+        listTasksTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id, onTask }),
         createTaskTool({
             user_id,
             bot_id,
@@ -82,8 +88,9 @@ export default async function grabBotTaskTools({
             workspaces,
             admin_workspace_ids,
             members,
+            onTask,
         }),
-        updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes }),
+        updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes, onTask }),
         ...(can_delete ? [deleteTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids })] : []),
     ];
 }

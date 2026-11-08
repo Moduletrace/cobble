@@ -57,6 +57,11 @@ export type BotJobOutcome = {
      * the result message as `tool_log`.
      */
     tool_log?: HarnessToolUse[];
+    /**
+     * The tracker tasks the run worked on (`onTask` from its task tools),
+     * kept on the result message as `task_ids`.
+     */
+    task_ids?: number[];
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

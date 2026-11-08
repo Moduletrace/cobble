@@ -21,6 +21,11 @@ type Params = {
      */
     session_id?: number | string;
     scopes?: StorageScope[];
+    /**
+     * Called with each tracker task the run worked on, so the message it
+     * posts links to it (`bot_messages.task_ids`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 export type WorkspaceAdminTools = {
@@ -46,6 +51,7 @@ export default async function grabWorkspaceAdminTools({
     powers,
     session_id,
     scopes = [],
+    onTask,
 }: Params): Promise<WorkspaceAdminTools> {
     const workspace = await grabUserWorkspace({ workspace_id, user_id });
 
@@ -69,6 +75,7 @@ export default async function grabWorkspaceAdminTools({
                 workers: members,
                 grabTargets,
                 admin_workspace_ids: powers.admin_workspace_ids,
+                onTask,
             }),
             handOverScheduleTool({
                 user_id,

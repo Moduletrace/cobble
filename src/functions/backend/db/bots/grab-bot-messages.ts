@@ -1,10 +1,11 @@
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
-import type { BotMessageWithAttachments } from "@/src/types";
+import type { BotMessageWithAttachments, MessageTask } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import grabMessageUsage from "../usage/grab-message-usage";
 import grabMessagesMedia from "./grab-messages-media";
 import grabMessagesReactions from "./grab-messages-reactions";
 import grabMessagesReplies from "./grab-messages-replies";
+import grabMessagesTasks from "./grab-messages-tasks";
 import mediaToAttachment, { grabAttachmentFileIds } from "./media-to-attachment";
 
 type Params = {
@@ -33,7 +34,8 @@ type Params = {
 /**
  * The latest messages of a session (or the latest before `before_id`),
  * oldest first, with their attachments,
- * what each replies to, and (when `user_id` is given) its reactions.
+ * what each replies to, and (when `user_id` is given) its reactions and
+ * the tracker tasks it's about that the user reaches.
  */
 export default async function grabBotMessages({
     session_id,
@@ -77,13 +79,16 @@ export default async function grabBotMessages({
     const messages = res.payload || [];
     const message_ids = messages.map((message) => Number(message.id));
 
-    const [media, replies, reactions, usage] = await Promise.all([
+    const [media, replies, reactions, usage, tasks] = await Promise.all([
         grabMessagesMedia({ message_ids }),
         grabMessagesReplies({ message_ids }),
         user_id
             ? grabMessagesReactions({ message_ids, user_id })
             : Promise.resolve(new Map()),
         grabMessageUsage({ message_ids }),
+        user_id
+            ? grabMessagesTasks({ messages, user_id })
+            : Promise.resolve(new Map<number, MessageTask[]>()),
     ]);
 
     /**
@@ -100,6 +105,7 @@ export default async function grabBotMessages({
         const reply_to = replies.get(id);
 
         const spent = usage.get(id);
+        const linked = tasks.get(id);
 
         return {
             ...message,
@@ -116,6 +122,7 @@ export default async function grabBotMessages({
             ...(reply_to ? { reply_to } : {}),
             ...(user_id ? { reactions: reactions.get(id) || [] } : {}),
             ...(spent ? { usage: spent } : {}),
+            ...(linked ? { tasks: linked } : {}),
         };
     });
 }

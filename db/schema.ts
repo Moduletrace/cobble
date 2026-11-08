@@ -593,6 +593,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
+                    fieldName: "task_ids",
+                    fieldDescription: `JSON \`[id, ...]\`: the tracker tasks (\`tasks\`) the run behind a bot message worked on (created, moved along, read in full or handed over, and the task a handed-over job was started for), shown as chips under the message so the user sees which tasks it's about. Not foreign keys: a deleted task's chip is left out. Null: none`,
+                    dataType: "TEXT",
+                },
+                {
                     fieldName: "from_chatroom_id",
                     fieldDescription: `Set on the message that brings a chatroom's outcome back into the asking bot's conversation: the room. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key`,
                     dataType: "INTEGER",

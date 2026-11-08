@@ -81,6 +81,11 @@ type Params = {
      * Called with the ref of each chatroom the bot opened (`ask_crew`).
      */
     onChatroom?: (params: { ref: string }) => void;
+    /**
+     * Called with each tracker task the run worked on, so the message it
+     * posts links to it (`bot_messages.task_ids`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 /**
@@ -120,6 +125,7 @@ export default async function grabBotChatTools({
     onPropose,
     onWorkspaceAdmin,
     onChatroom,
+    onTask,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const tools = [
@@ -135,6 +141,7 @@ export default async function grabBotChatTools({
             can_delete_tasks: Boolean(attended),
             onPropose,
             onChatroom,
+            onTask,
         })),
         startTaskTool({
             user_id,
@@ -160,7 +167,7 @@ export default async function grabBotChatTools({
     if (!powers.is_coordinator) {
         if (!workspace_id || !powers.is_workspace_admin) return tools;
 
-        const admin = await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, session_id, scopes });
+        const admin = await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, session_id, scopes, onTask });
 
         onWorkspaceAdmin?.(admin);
         tools.push(...admin.tools);
@@ -195,6 +202,7 @@ export default async function grabBotChatTools({
             requester_name: bot.name || "The coordinator",
             workers,
             is_coordinator: true,
+            onTask,
         }));
         tools.push(handOverScheduleTool({
             user_id,
@@ -236,6 +244,7 @@ export default async function grabBotChatTools({
             workers,
             workspaces,
             is_coordinator: true,
+            onTask,
         }),
         handOverScheduleTool({
             user_id,

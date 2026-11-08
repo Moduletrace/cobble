@@ -53,6 +53,11 @@ type Params = {
      */
     is_coordinator?: boolean;
     admin_workspace_ids?: number[];
+    /**
+     * Called with a task it hands over, so the message the run posts links
+     * to it (`bot_messages.task_ids`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 type Args = {
@@ -98,6 +103,7 @@ export default function delegateTaskTool({
     grabTargets = ({ workspace_id }) => grabCrewWorkers({ workspace_id }),
     is_coordinator = false,
     admin_workspace_ids = [],
+    onTask,
 }: Params): HarnessTool<Args> {
     const crew = workers
         .map((bot) => `${bot.id}: ${bot.name}${bot.role ? ` (${bot.role})` : ""}`)
@@ -194,6 +200,8 @@ export default function delegateTaskTool({
                     requested_by_session_id: session_id,
                     start: args.start !== false,
                 });
+
+                onTask?.({ task_id: Number(task.id) });
 
                 const where = handed.workspace_id ? ` in workspace ${handed.workspace_id}` : " in their own chat";
 

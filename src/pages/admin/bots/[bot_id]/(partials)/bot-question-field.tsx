@@ -34,16 +34,29 @@ const OtherValue = "other";
  * radios (one pick) or checkboxes (several), with "Other" and a field to
  * type into when the bot allows it. Once answered, what the user picked.
  */
-export default function BotQuestionField({ question_id, index, item, draft, answer, open, onChange }: Props) {
+export default function BotQuestionField({
+    question_id,
+    index,
+    item,
+    draft,
+    answer,
+    open,
+    onChange,
+}: Props) {
     const single = item.kind == "single";
     const picked = answer
-        ? [...answer.choices.map((choice) => item.options[choice]), answer.other ? `Other: ${answer.other}` : ""].filter(Boolean)
+        ? [
+              ...answer.choices.map((choice) => item.options[choice]),
+              answer.other ? `Other: ${answer.other}` : "",
+          ].filter(Boolean)
         : [];
 
     return (
         <Stack className="w-full gap-0! items-stretch">
             <MessageDetailsHeading>{`${index + 1}. ${single ? "Pick one" : "Pick any"}`}</MessageDetailsHeading>
-            <Span className="whitespace-pre-wrap text-[13px] leading-5 font-bold text-ink break-words">{item.question}</Span>
+            <Span className="whitespace-pre-wrap text-[13px] leading-5 font-bold text-ink break-words">
+                {item.question}
+            </Span>
 
             {open ? (
                 <Stack className="mt-2 w-full gap-2! items-stretch">
@@ -51,18 +64,37 @@ export default function BotQuestionField({ question_id, index, item, draft, answ
                         <Radios
                             name={`question-${question_id}-${index}`}
                             values={[
-                                ...item.options.map((option, choice) => ({ value: String(choice), title: option })),
-                                ...(item.allow_other ? [{ value: OtherValue, title: "Other" }] : []),
+                                ...item.options.map((option, choice) => ({
+                                    value: String(choice),
+                                    title: option,
+                                })),
+                                ...(item.allow_other
+                                    ? [{ value: OtherValue, title: "Other" }]
+                                    : []),
                             ]}
-                            wrapperProps={{ className: "w-full flex-col items-start gap-2!" }}
-                            labelProps={{ className: "text-[13px] leading-5 text-ink break-words cursor-pointer" }}
+                            wrapperProps={{
+                                className: "w-full flex-col items-start gap-2!",
+                            }}
+                            labelProps={{
+                                className:
+                                    "text-[13px] leading-5 text-ink break-words cursor-pointer",
+                            }}
                             changeHandler={(value) =>
                                 onChange(
                                     value == OtherValue
-                                        ? { ...draft, choices: [], other_on: true }
-                                        : { ...draft, choices: [Number(value)], other_on: false },
+                                        ? {
+                                              ...draft,
+                                              choices: [],
+                                              other_on: true,
+                                          }
+                                        : {
+                                              ...draft,
+                                              choices: [Number(value)],
+                                              other_on: false,
+                                          },
                                 )
                             }
+                            wrap
                         />
                     ) : (
                         <Stack className="w-full gap-2! items-stretch">
@@ -75,8 +107,15 @@ export default function BotQuestionField({ question_id, index, item, draft, answ
                                         onChange({
                                             ...draft,
                                             choices: checked
-                                                ? [...new Set([...draft.choices, choice])]
-                                                : draft.choices.filter((c) => c != choice),
+                                                ? [
+                                                      ...new Set([
+                                                          ...draft.choices,
+                                                          choice,
+                                                      ]),
+                                                  ]
+                                                : draft.choices.filter(
+                                                      (c) => c != choice,
+                                                  ),
                                         })
                                     }
                                 />
@@ -85,7 +124,12 @@ export default function BotQuestionField({ question_id, index, item, draft, answ
                                 <BotQuestionOption
                                     label="Other"
                                     checked={draft.other_on}
-                                    onChange={(checked) => onChange({ ...draft, other_on: checked })}
+                                    onChange={(checked) =>
+                                        onChange({
+                                            ...draft,
+                                            other_on: checked,
+                                        })
+                                    }
                                 />
                             ) : null}
                         </Stack>
@@ -98,7 +142,9 @@ export default function BotQuestionField({ question_id, index, item, draft, answ
                             placeholder="Your own answer"
                             maxLength={AppData.BotQuestionOtherMaxChars}
                             value={draft.other}
-                            onChange={(e) => onChange({ ...draft, other: e.target.value })}
+                            onChange={(e) =>
+                                onChange({ ...draft, other: e.target.value })
+                            }
                         />
                     ) : null}
                 </Stack>

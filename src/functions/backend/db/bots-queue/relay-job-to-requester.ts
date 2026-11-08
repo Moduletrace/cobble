@@ -14,6 +14,10 @@ type Params = {
      */
     text: string;
     failed?: boolean;
+    /**
+     * The tracker tasks the job worked on, linked under the report.
+     */
+    task_ids?: (number | null)[];
 };
 
 /**
@@ -24,7 +28,7 @@ type Params = {
  * failed. Returns the message for the live push, or null when nobody
  * handed the job over.
  */
-export default async function relayJobToRequester({ job, text, failed }: Params) {
+export default async function relayJobToRequester({ job, text, failed, task_ids }: Params) {
     if (!job.requested_by_bot_id || !job.bot_id || job.requested_by_bot_id == job.bot_id) {
         return null;
     }
@@ -70,6 +74,7 @@ export default async function relayJobToRequester({ job, text, failed }: Params)
             ? `${name} couldn't finish **${title}**. ${text}`.trim()
             : `${name} finished **${title}**. Their report:\n\n${text}`,
         needs_you: failed,
+        task_ids,
     });
 
     return { bot_id: requester.id, message };

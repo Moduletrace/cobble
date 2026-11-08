@@ -4,6 +4,7 @@ import type {
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { HarnessToolUse } from "@/src/harness/types";
+import messageTaskIds from "@/src/utils/message-task-ids";
 
 type Params = {
     bot_id: number;
@@ -29,6 +30,11 @@ type Params = {
      */
     tool_log?: HarnessToolUse[];
     /**
+     * The tracker tasks the message is about (the run worked on them),
+     * shown as chips under it.
+     */
+    task_ids?: (number | string | null | undefined)[];
+    /**
      * Opens a session the conversation moved into
      * (`carryOverBotSession`): the session it carries on from.
      */
@@ -48,12 +54,15 @@ export default async function insertBotMessage({
     interim,
     media_ids = [],
     tool_log,
+    task_ids,
     carried_from_session_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
     const needs_you_flag = needs_you ? 1 : 0;
     const interim_flag = interim ? 1 : 0;
     const tool_log_json = tool_log ? JSON.stringify(tool_log) : undefined;
+    const tidy_task_ids = messageTaskIds({ task_ids });
+    const task_ids_json = tidy_task_ids.length ? JSON.stringify(tidy_task_ids) : undefined;
 
     const res = await BunSQLite.insert<
         BUN_SQLITE_COBBLE_BOT_MESSAGES,
@@ -70,6 +79,7 @@ export default async function insertBotMessage({
                 needs_you: needs_you_flag,
                 interim: interim_flag,
                 tool_log: tool_log_json,
+                task_ids: task_ids_json,
                 carried_from_session_id,
             },
         ],
@@ -112,6 +122,7 @@ export default async function insertBotMessage({
         needs_you: needs_you_flag,
         interim: interim_flag,
         tool_log: tool_log_json,
+        task_ids: task_ids_json,
         carried_from_session_id,
         created_at: now,
         updated_at: now,

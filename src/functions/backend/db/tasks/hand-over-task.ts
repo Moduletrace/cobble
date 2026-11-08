@@ -178,6 +178,7 @@ export default async function handOverTask({
             session_id: Number(session.id),
             workspace_id: run_workspace_id,
             text: `${handed_by} handed me task #${task.id}: **${title}**${start ? "" : ". It's on my list; I'll start when you say."}`,
+            task_ids: [Number(task.id)],
         }),
     });
 

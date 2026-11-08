@@ -62,6 +62,11 @@ type Params = {
      * (`ask_crew`), so the reply carries its chip.
      */
     onChatroom?: (params: { ref: string }) => void;
+    /**
+     * Called with each tracker task the run worked on, so the message it
+     * posts links to it (`bot_messages.task_ids`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 /**
@@ -84,6 +89,7 @@ export default async function grabBotTools({
     can_delete_tasks,
     onPropose,
     onChatroom,
+    onTask,
 }: Params): Promise<HarnessTool[]> {
     return [
         setPictureTool({ user_id, bot_id, scopes, is_coordinator }),
@@ -112,6 +118,7 @@ export default async function grabBotTools({
             admin_workspace_ids,
             workspace_id,
             can_delete: Boolean(can_delete_tasks) && !hooked,
+            onTask,
         })),
     ];
 }

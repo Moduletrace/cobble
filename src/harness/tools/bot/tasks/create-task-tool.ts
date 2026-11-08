@@ -32,6 +32,11 @@ type Params = {
      * it may add to.
      */
     members?: BUN_SQLITE_COBBLE_BOTS[];
+    /**
+     * Called with each task the run worked on through this tool, so the
+     * message it posts links to it (\`bot_messages.task_ids\`).
+     */
+    onTask?: (params: { task_id: number }) => void;
 };
 
 type Args = {
@@ -133,6 +138,7 @@ export default function createTaskTool({
     workspaces = [],
     admin_workspace_ids = [],
     members = [],
+    onTask,
 }: Params): HarnessTool<Args> {
     const crew = workers.map((worker) => `${worker.id}: ${worker.name}`).join("; ");
     const places = workspaces.map((workspace) => `${workspace.id}: ${workspace.name}`).join("; ");
@@ -194,6 +200,8 @@ export default function createTaskTool({
             });
 
             if (twin) {
+                onTask?.({ task_id: Number(twin.id) });
+
                 return `Task #${twin.id} "${twin.title}" is already open with that title. Update it with update_task instead of adding a second one for the same work.`;
             }
 
@@ -207,6 +215,8 @@ export default function createTaskTool({
                 status: args.status as never,
                 created_by_bot_id: bot_id,
             });
+
+            onTask?.({ task_id: Number(task.id) });
 
             const where = place.workspace_id
                 ? `in workspace ${place.workspace_id}, ${!place.bot_id ? "workspace-wide (every bot there works on it)" : place.bot_id == Number(bot_id) ? "yours" : `bot ${place.bot_id}'s`}`

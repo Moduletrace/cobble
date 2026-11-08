@@ -14,6 +14,7 @@ import MessageActions from "./message-actions";
 import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
 import MessageNoToolsChip from "./message-no-tools-chip";
+import MessageTaskChips from "./message-task-chips";
 import MessageUsageChip from "./message-usage-chip";
 import NeedsYouChip from "./needs-you-chip";
 import SpeakMessageButton from "./speak-message-button";
@@ -38,8 +39,8 @@ type Props = {
  * One bot message, rendered from markdown (GFM; raw HTML is never
  * rendered). The summary opening a session the bot moved into is
  * headed by a link to the session it carries on from. Computers it names (`computerRef`) show as buttons that
- * switch the bot to them. A quoted reply sits above it, its reactions
- * below, and a row under it replies, reacts, reads it aloud and shows
+ * switch the bot to them. A quoted reply sits above it, the tracker tasks
+ * it's about and its reactions below, and a row under it replies, reacts, reads it aloud and shows
  * why it needs you. Its text can be selected and quoted.
  *
  * Memoized: a message only renders (and parses its markdown) again when
@@ -75,6 +76,7 @@ function BotMessageLine({ message, bot_name, at }: Props) {
                     {linkComputerRefs({ text: message.text || "" })}
                 </Markdown>
             </Stack>
+            <MessageTaskChips tasks={message.tasks} />
             {message.id ? (
                 <MessageReactions
                     message_id={message.id}
