@@ -42,8 +42,9 @@ type Props = {
 };
 
 /**
- * Picks one file and sends it for a restore: shared by the database upload
- * and the data archive upload, which differ only in what they accept.
+ * Picks one file and sends it for a restore: shared by the database upload,
+ * the data archive upload and the restore at first-run setup, which differ
+ * only in what they accept.
  */
 export default function UploadRestoreFields({
     label,

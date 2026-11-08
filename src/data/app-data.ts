@@ -961,6 +961,12 @@ export const AppData = {
     DataBackupNamePrefix: "cobble-data-",
     DataBackupsKept: 5,
     /**
+     * Log entries a restore leaves in `DATA_DIR` for the next boot to
+     * write (`queueBootLog`): written before the restart they would land
+     * in the replaced database, which the process still has open.
+     */
+    PendingBootLogsFile: ".pending-boot-logs.json",
+    /**
      * How often the backups page asks how a whole-data archive or restore
      * is going, and how long it waits for the app to come back after a
      * restore restarted it before it reloads anyway.

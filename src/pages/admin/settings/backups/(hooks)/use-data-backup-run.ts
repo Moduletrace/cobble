@@ -2,12 +2,12 @@ import { useContext, useEffect, useState } from "react";
 import { AppContext } from "@/src/pages/__root";
 import { AppData } from "@/src/data/app-data";
 import adminFetchHandler from "@/src/functions/frontend/admin-fetch-handler";
-import type { DataBackupRun, DataBackupStatus } from "@/src/types";
+import type { DataBackupRun, DataBackupRunKind, DataBackupStatus } from "@/src/types";
 import type { DataBackupRunState } from "../(data)/data-backup-run-context";
 
 /**
- * Follows a whole-data archive or restore, which runs in the background
- * on the server, by polling `data-status` every `AppData.DataBackupPollMs`.
+ * Follows a whole-data archive or restore, or a database snapshot
+ * restore, which run in the background on the server, by polling `data-status` every `AppData.DataBackupPollMs`.
  * An archive reloads the page once it is written. A restore restarts the
  * app, so failed polls are expected and the page reloads once the status
  * comes from a new boot (or after `AppData.DataRestoreWaitMs` anyway).
@@ -20,6 +20,7 @@ export default function useDataBackupRun(): DataBackupRunState {
         initial?.status == "running" ? initial : undefined,
     );
     const [error, setError] = useState<string>();
+    const [error_kind, setErrorKind] = useState<DataBackupRunKind>();
 
     useEffect(() => {
         if (run?.status != "running") return;
@@ -32,6 +33,7 @@ export default function useDataBackupRun(): DataBackupRunState {
 
         const fail = (msg: string) => {
             setError(msg);
+            setErrorKind(active.kind);
             setRun(undefined);
         };
 
@@ -49,14 +51,19 @@ export default function useDataBackupRun(): DataBackupRunState {
                 current && current.boot_id != active.boot_id,
             );
 
-            if (active.kind == "restore") {
+            if (active.kind != "archive") {
                 if (restarted || Date.now() > deadline) {
                     window.location.reload();
                     return;
                 }
 
                 if (current?.status == "failed") {
-                    fail(current.error || `Couldn't restore archive`);
+                    fail(
+                        current.error ||
+                            (active.kind == "db_restore"
+                                ? `Couldn't restore the database`
+                                : `Couldn't restore archive`),
+                    );
                     return;
                 }
             } else if (current) {
@@ -90,10 +97,15 @@ export default function useDataBackupRun(): DataBackupRunState {
     return {
         run,
         error,
+        error_kind,
         track: (next) => {
             setError(undefined);
+            setErrorKind(undefined);
             setRun(next);
         },
-        report: setError,
+        report: (next) => {
+            setError(next);
+            setErrorKind(undefined);
+        },
     };
 }

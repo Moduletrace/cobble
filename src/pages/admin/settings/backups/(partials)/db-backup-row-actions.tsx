@@ -2,11 +2,13 @@ import Button from "@moduletrace/twui/layout/Button";
 import Tag from "@moduletrace/twui/elements/Tag";
 import Row from "@moduletrace/twui/layout/Row";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
-import type { DbBackup } from "@/src/types";
+import type { DataBackupRun, DbBackup } from "@/src/types";
 import restoreBackup from "../(functions)/restore-backup";
 import deleteDbBackup from "../(functions)/delete-db-backup";
 import RowIconButton from "@/src/components/general/row-icon-button";
 import { ArchiveRestore, Download, Trash2 } from "lucide-react";
+import { useContext } from "react";
+import { DataBackupRunContext } from "../(data)/data-backup-run-context";
 
 type Props = {
     backup: DbBackup;
@@ -14,16 +16,27 @@ type Props = {
 
 /**
  * One database snapshot's icon actions: restore, download or delete, with
- * their own one-line status.
+ * their own one-line status. A restore runs in the background and restarts
+ * the app, so its run goes to the page to follow.
  */
 export default function DbBackupRowActions({ backup }: Props) {
     const { loading, setLoading, status, setStatus } = useStatus();
+    const { run: running, track } = useContext(DataBackupRunContext);
+    const busy = loading || Boolean(running);
 
-    const run = async (task: () => Promise<{ success: boolean; msg?: string }>) => {
+    const run = async (
+        task: () => Promise<{ success: boolean; msg?: string; run?: DataBackupRun }>,
+    ) => {
         setStatus(undefined);
         setLoading(true);
 
         const res = await task();
+
+        if (res.success && res.run) {
+            setLoading(false);
+            track(res.run);
+            return;
+        }
 
         if (res.success) {
             window.location.reload();
@@ -43,7 +56,7 @@ export default function DbBackupRowActions({ backup }: Props) {
             <RowIconButton
                 icon={ArchiveRestore}
                 title="Restore this snapshot"
-                disabled={loading}
+                disabled={busy}
                 onClick={() => {
                     run(() => restoreBackup({ backup }));
                 }}
@@ -64,7 +77,7 @@ export default function DbBackupRowActions({ backup }: Props) {
             <RowIconButton
                 icon={Trash2}
                 title="Delete this snapshot"
-                disabled={loading}
+                disabled={busy}
                 onClick={() => {
                     run(() => deleteDbBackup({ backup }));
                 }}

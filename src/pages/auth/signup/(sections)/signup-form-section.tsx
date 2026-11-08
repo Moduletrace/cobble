@@ -4,9 +4,11 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import AuthHero from "@/src/components/general/auth-hero";
 import { SiteData } from "@/src/data/site-data";
 import SignupForm from "../(partials)/signup-form";
+import SignupRestoreOption from "../(partials)/signup-restore-option";
 
 /**
- * First-run setup. Only reachable while no account exists.
+ * First-run setup. Only reachable while no account exists: create the
+ * super admin, or restore another install's backup.
  */
 export default function SignupFormSection() {
     return (
@@ -19,6 +21,7 @@ export default function SignupFormSection() {
                         description={`This is the first account on this ${SiteData["SiteName"]} install. It can add everyone else.`}
                     />
                     <SignupForm />
+                    <SignupRestoreOption />
                 </Stack>
             </Container>
         </Section>

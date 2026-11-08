@@ -1909,7 +1909,12 @@ export type DataBackup = {
     size: number;
 };
 
-export type DataBackupRunKind = "archive" | "restore";
+/**
+ * What a background backup run does: write a whole-data archive, restore
+ * one (`restore`), or restore a database snapshot (`db_restore`). Both
+ * restores end in a restart.
+ */
+export type DataBackupRunKind = "archive" | "restore" | "db_restore";
 
 /**
  * The whole-data archive or restore this process last started
@@ -1933,6 +1938,18 @@ export type DataBackupRun = {
 export type DataBackupStatus = {
     run: DataBackupRun;
     data_backups: DataBackup[];
+};
+
+/**
+ * How a restore started from first-run setup is going (public, so only
+ * this much). `boot_id` changes when the app restarts on the restored
+ * data; once any account exists only that and `has_users` are told.
+ */
+export type BootstrapStatus = {
+    has_users: boolean;
+    boot_id: string;
+    status: DataBackupRun["status"];
+    error?: string;
 };
 
 export type BotVoicePayload = {

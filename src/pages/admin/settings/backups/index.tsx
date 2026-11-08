@@ -2,6 +2,7 @@ import BackupsListSection from "./(sections)/backups-list-section";
 import DataBackupsSection from "./(sections)/data-backups-section";
 import SettingsShell from "../(partials)/settings-shell";
 import settingsPageMeta from "../(functions)/settings-page-meta";
+import BackupRunProvider from "./(partials)/backup-run-provider";
 
 export default function AdminSettingsBackupsPage() {
     return (
@@ -10,8 +11,10 @@ export default function AdminSettingsBackupsPage() {
             description="Database snapshots and whole-data archives: make them, restore from one, and delete them."
             wide
         >
-            <BackupsListSection />
-            <DataBackupsSection />
+            <BackupRunProvider>
+                <BackupsListSection />
+                <DataBackupsSection />
+            </BackupRunProvider>
         </SettingsShell>
     );
 }

@@ -5,10 +5,13 @@ import SettingsGroup from "../../(partials)/settings-group";
 import { AppContext } from "@/src/pages/__root";
 import BackupListActions from "../(partials)/backup-list-actions";
 import BackupsTable from "../(partials)/backups-table";
+import DataBackupRunNotice from "../(partials)/data-backup-run-notice";
 
 /**
  * The database snapshots, newest first. Each row restores, downloads or
- * deletes, and a fresh one can be made or uploaded. These are the
+ * deletes, and a fresh one can be made or uploaded. A restore runs in the
+ * background and restarts the app, followed by the page's
+ * `BackupRunProvider`. These are the
  * bun-sqlite snapshots in `db/.backups`, not the whole-data archives.
  */
 export default function BackupsListSection() {
@@ -26,6 +29,7 @@ export default function BackupsListSection() {
                 </Span>
                 <BackupListActions />
             </Row>
+            <DataBackupRunNotice database />
             {backups[0] ? (
                 <BackupsTable backups={backups} />
             ) : (

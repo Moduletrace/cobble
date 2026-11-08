@@ -1,5 +1,5 @@
 import React from "react";
-import type { DataBackupRun } from "@/src/types";
+import type { DataBackupRun, DataBackupRunKind } from "@/src/types";
 
 export type DataBackupRunState = {
     /**
@@ -11,6 +11,11 @@ export type DataBackupRunState = {
      */
     error?: string;
     /**
+     * What the run that failed was doing, so its section shows why
+     * (none for a run that couldn't start).
+     */
+    error_kind?: DataBackupRunKind;
+    /**
      * Follows a run a request just started until it ends.
      */
     track: (run: DataBackupRun) => void;
@@ -21,9 +26,9 @@ export type DataBackupRunState = {
 };
 
 /**
- * The whole-data run the backups page is waiting on, shared by the list's
- * actions, every archive row and the upload modal, so none of them starts
- * another while one is going.
+ * The background run the backups page is waiting on (an archive, or a
+ * restore of either kind), shared by both lists' actions, every row and
+ * the upload modals, so none of them starts another while one is going.
  */
 export const DataBackupRunContext = React.createContext<DataBackupRunState>({
     track: () => {},

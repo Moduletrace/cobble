@@ -8,5 +8,5 @@ export default function SignupPage() {
 
 export const meta: BunextPageModuleMeta = {
     title: `Set Up | ${SiteData["SiteName"]}`,
-    description: `Create the super admin for this ${SiteData["SiteName"]} install.`,
+    description: `Create the super admin for this ${SiteData["SiteName"]} install, or restore it from a backup.`,
 };

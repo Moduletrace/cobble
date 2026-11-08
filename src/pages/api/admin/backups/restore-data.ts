@@ -2,7 +2,8 @@ import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin
 import restoreDataBackup from "@/src/functions/backend/backups/restore-data-backup";
 import { startDataBackupRun } from "@/src/functions/backend/backups/data-backup-run";
 import restartApp from "@/src/functions/backend/backups/restart-app";
-import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
+import { grabRequestIP, logError } from "@/src/functions/backend/logger";
+import queueBootLog from "@/src/functions/backend/backups/queue-boot-log";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { ApiReqParams, DataBackupRun } from "@/src/types";
 import type {
@@ -13,7 +14,8 @@ import type {
 /**
  * Starts replacing the whole data volume with a saved archive and answers
  * at once. Once it is in, the app restarts so it opens the restored
- * database; the page polls `data-status` until it is back.
+ * database; the page polls `data-status` until it is back. Its log entry
+ * is written by the next boot (`queueBootLog`), into the restored database.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<DataBackupRun>
@@ -37,16 +39,18 @@ export const handler: BunextAPIRouteHandler<
                 try {
                     const result = await restoreDataBackup({ backup_name });
 
-                    await logEvent({
-                        title: "Data restored",
-                        category: "system",
-                        user_id: user.id,
-                        plain_text: `User #${user.id} restored the data volume from archive ${result.restored_name} (safety copy ${result.safety_name}). The app restarted.`,
-                        metadata: {
-                            backup_name: result.restored_name,
-                            safety_name: result.safety_name,
+                    queueBootLog({
+                        entry: {
+                            title: "Data restored",
+                            category: "system",
+                            user_id: user.id,
+                            plain_text: `User #${user.id} restored the data volume from archive ${result.restored_name} (safety copy ${result.safety_name}). The app restarted.`,
+                            metadata: {
+                                backup_name: result.restored_name,
+                                safety_name: result.safety_name,
+                            },
+                            ip_address,
                         },
-                        ip_address,
                     });
 
                     restartApp();

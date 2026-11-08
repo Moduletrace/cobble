@@ -1,4 +1,5 @@
 import withBackupRunLock from "./with-backup-run-lock";
+import spawnBunSQLiteCommand from "./spawn-bun-sqlite-command";
 
 type Params = {
     args: string[];
@@ -11,33 +12,6 @@ type Params = {
  */
 export default async function runBunSQLiteCommand({ args }: Params) {
     return await withBackupRunLock({
-        task: async () => {
-            const proc = Bun.spawn(
-                [process.execPath, "x", "bun-sqlite", ...args],
-                {
-                    cwd: process.cwd(),
-                    env: process.env,
-                    stdin: "ignore",
-                    stdout: "pipe",
-                    stderr: "pipe",
-                },
-            );
-
-            const [stdout, stderr, exit_code] = await Promise.all([
-                new Response(proc.stdout).text(),
-                new Response(proc.stderr).text(),
-                proc.exited,
-            ]);
-
-            if (exit_code !== 0) {
-                throw new Error(
-                    stderr.trim() ||
-                        stdout.trim() ||
-                        `bun-sqlite ${args[0]} failed (exit ${exit_code})`,
-                );
-            }
-
-            return { stdout };
-        },
+        task: () => spawnBunSQLiteCommand({ args }),
     });
 }

@@ -1,5 +1,5 @@
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
-import UploadRestoreFields from "./upload-restore-fields";
+import UploadRestoreFields from "@/src/components/general/upload-restore-fields";
 import uploadRestoreBackup from "../(functions)/upload-restore-backup";
 import uploadRestoreDataBackup from "../(functions)/upload-restore-data-backup";
 import { DataBackupRunContext } from "../(data)/data-backup-run-context";
@@ -10,22 +10,23 @@ type Props = {
     open: boolean;
     onClose: () => void;
     /**
-     * True for an upload listing a data archive, which restarts the app.
+     * True for a data archive upload, false for a database file.
      */
     is_data?: boolean;
 };
 
 /**
  * Uploading a file and restoring it, in a modal over the list it came
- * from. A database file is restored in place; a data archive replaces the
- * whole data volume in the background, so the modal closes and the
- * section follows the run until the app is back from its restart.
+ * from. Either restore runs in the background (a database file replaces
+ * the database, a data archive the whole data volume), so the modal
+ * closes and the page follows the run until the app is back from its
+ * restart.
  */
 export default function UploadRestoreModal({ open, onClose, is_data }: Props) {
     const { track } = useContext(DataBackupRunContext);
 
     const done = ({ run }: { run?: DataBackupRun }) => {
-        if (!is_data || !run) {
+        if (!run) {
             window.location.reload();
             return;
         }
@@ -42,7 +43,7 @@ export default function UploadRestoreModal({ open, onClose, is_data }: Props) {
             description={
                 is_data
                     ? "Upload a whole-data tar.gz archive. It replaces every folder and the database snapshots, a safety archive is made first, and the app restarts."
-                    : "Upload a SQLite database file. It is saved to the snapshots list, then restored."
+                    : "Upload a SQLite database file. It is saved to the snapshots list, then restored, and the app restarts."
             }
         >
             {open ? (

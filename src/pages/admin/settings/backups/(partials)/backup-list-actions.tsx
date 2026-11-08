@@ -5,7 +5,8 @@ import Row from "@moduletrace/twui/layout/Row";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import createBackup from "../(functions)/create-backup";
 import UploadRestoreModal from "../(partials)/upload-restore-modal";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { DataBackupRunContext } from "../(data)/data-backup-run-context";
 
 /**
  * The database snapshot list's two ways in: make a fresh snapshot, or
@@ -14,6 +15,7 @@ import { useState } from "react";
 export default function BackupListActions() {
     const { loading, setLoading, status, setStatus } = useStatus();
     const [uploading, setUploading] = useState(false);
+    const { run } = useContext(DataBackupRunContext);
 
     const create_backup = async () => {
         setStatus(undefined);
@@ -41,6 +43,7 @@ export default function BackupListActions() {
                 variant="outlined"
                 color="gray"
                 beforeIcon={<Upload />}
+                disabled={Boolean(run)}
                 onClick={() => {
                     setUploading(true);
                 }}
@@ -51,6 +54,7 @@ export default function BackupListActions() {
                 title="Create Backup"
                 beforeIcon={<DatabaseBackup />}
                 loading={loading}
+                disabled={Boolean(run)}
                 onClick={() => {
                     create_backup();
                 }}

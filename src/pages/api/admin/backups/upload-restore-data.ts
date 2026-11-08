@@ -4,7 +4,8 @@ import { startDataBackupRun } from "@/src/functions/backend/backups/data-backup-
 import { isBackupRunning } from "@/src/functions/backend/backups/with-backup-run-lock";
 import restartApp from "@/src/functions/backend/backups/restart-app";
 import saveUploadedDataBackup from "@/src/functions/backend/backups/save-uploaded-data-backup";
-import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
+import { grabRequestIP, logError } from "@/src/functions/backend/logger";
+import queueBootLog from "@/src/functions/backend/backups/queue-boot-log";
 import AppError from "@/src/utils/app-error";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { DataBackupRun } from "@/src/types";
@@ -78,17 +79,19 @@ export const handler: BunextAPIRouteHandler<
                         backup_name: saved_name,
                     });
 
-                    await logEvent({
-                        title: "Data restored from upload",
-                        category: "system",
-                        user_id: user.id,
-                        plain_text: `User #${user.id} restored the data volume from uploaded archive ${file_name} (saved as ${result.restored_name}, safety copy ${result.safety_name}). The app restarted.`,
-                        metadata: {
-                            file_name,
-                            backup_name: result.restored_name,
-                            safety_name: result.safety_name,
+                    queueBootLog({
+                        entry: {
+                            title: "Data restored from upload",
+                            category: "system",
+                            user_id: user.id,
+                            plain_text: `User #${user.id} restored the data volume from uploaded archive ${file_name} (saved as ${result.restored_name}, safety copy ${result.safety_name}). The app restarted.`,
+                            metadata: {
+                                file_name,
+                                backup_name: result.restored_name,
+                                safety_name: result.safety_name,
+                            },
+                            ip_address,
                         },
-                        ip_address,
                     });
 
                     restartApp();

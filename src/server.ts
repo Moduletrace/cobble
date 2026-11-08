@@ -13,6 +13,7 @@ import migrateBotTypes from "./functions/backend/db/bot-types/migrate-bot-types"
 import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
 import dropStoredFileText from "./functions/backend/db/stored-text/drop-stored-file-text";
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
+import flushBootLogs from "./functions/backend/backups/flush-boot-logs";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
 import handleGraphicsRequest from "./functions/server/graphics/handle-graphics-request";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
@@ -36,6 +37,7 @@ const development = process.env.NODE_ENV == "development";
 const port = process.env.PORT || 7227;
 
 await enableForeignKeys();
+await flushBootLogs().catch(() => {});
 await migrateBotTypes().catch((error) =>
     logError({ title: "Could not migrate bot types", error }).catch(() => {}),
 );
