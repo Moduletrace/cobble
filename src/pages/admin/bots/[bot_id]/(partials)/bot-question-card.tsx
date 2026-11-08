@@ -9,7 +9,9 @@ import botQuestionAnswersText from "@/src/utils/bot-question-answers-text";
 import checkBotQuestionAnswers from "@/src/utils/check-bot-question-answers";
 import decideBotQuestion from "../(functions)/decide-bot-question";
 import sendBotMessage from "../(functions)/send-bot-message";
-import botQuestionDraftAnswer, { type BotQuestionDraft } from "../(utils)/bot-question-draft-answer";
+import botQuestionDraftAnswer, {
+    type BotQuestionDraft,
+} from "../(utils)/bot-question-draft-answer";
 import BotQuestionField from "./bot-question-field";
 
 type Props = {
@@ -34,29 +36,34 @@ export default function BotQuestionCard({ view, onDecided, onDone }: Props) {
 
     const open = view.status == "pending";
 
-    const setDraft = ({ index, draft }: { index: number; draft: BotQuestionDraft }) => {
+    const setDraft = ({
+        index,
+        draft,
+    }: {
+        index: number;
+        draft: BotQuestionDraft;
+    }) => {
         setError(undefined);
-        setDrafts((current) => current.map((item, i) => (i == index ? draft : item)));
+        setDrafts((current) =>
+            current.map((item, i) => (i == index ? draft : item)),
+        );
     };
 
     const decide = async (decision: "answer" | "skip") => {
-        const answers = drafts.map((draft) => botQuestionDraftAnswer({ draft }));
+        const answers = drafts.map((draft) =>
+            botQuestionDraftAnswer({ draft }),
+        );
 
         if (decision == "answer") {
             try {
                 checkBotQuestionAnswers({ questions: view.questions, answers });
             } catch (e: unknown) {
-                setError(e instanceof Error ? e.message : `Answer every question.`);
+                setError(
+                    e instanceof Error ? e.message : `Answer every question.`,
+                );
                 return;
             }
         }
-
-        const question =
-            decision == "answer"
-                ? `Send your answers to ${view.bot_name}?`
-                : `Skip these questions? ${view.bot_name} is told you didn't answer them.`;
-
-        if (!window.confirm(question)) return;
 
         setBusy(decision);
         setError(undefined);
@@ -68,7 +75,10 @@ export default function BotQuestionCard({ view, onDecided, onDone }: Props) {
 
         if (!res?.success || !res.singleRes) {
             setBusy(undefined);
-            setError(res?.msg || `Couldn't ${decision == "answer" ? "send your answers" : "skip them"}.`);
+            setError(
+                res?.msg ||
+                    `Couldn't ${decision == "answer" ? "send your answers" : "skip them"}.`,
+            );
             return;
         }
 
@@ -101,10 +111,16 @@ export default function BotQuestionCard({ view, onDecided, onDone }: Props) {
             ))}
 
             {view.status == "skipped" ? (
-                <Span className="mt-4 text-[13px] leading-5 text-ink">Skipped. Nothing was answered.</Span>
+                <Span className="mt-4 text-[13px] leading-5 text-ink">
+                    Skipped. Nothing was answered.
+                </Span>
             ) : null}
 
-            {error ? <Span className="mt-3 text-[13px] leading-5 text-ink">{error}</Span> : null}
+            {error ? (
+                <Span className="mt-3 text-[13px] leading-5 text-ink">
+                    {error}
+                </Span>
+            ) : null}
 
             {open ? (
                 <Row className="mt-5 w-full gap-2! justify-end">
