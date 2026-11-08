@@ -6,14 +6,19 @@ import Span from "@moduletrace/twui/layout/Span";
 import Button from "@moduletrace/twui/layout/Button";
 import Dropdown from "@moduletrace/twui/elements/Dropdown";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
-import { CpuAi, EllipsisVertical, Monitor } from "lucide-react";
+import { EllipsisVertical, Monitor } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import type { BotTextModel, BotWithLastMessage } from "@/src/types";
+import type {
+    BotTextModel,
+    BotWithLastMessage,
+    HarnessOverview,
+} from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotProfileModal from "./bot-profile-modal";
+import BotModelsModal from "./bot-models-modal";
 import ConversationHeaderMenu from "./conversation-header-menu";
 import HeaderMetaItem from "./header-meta-item";
 import BackButton from "@/src/components/general/back-button";
@@ -68,6 +73,20 @@ export default function ConversationHeader({
 
     const is_workspace = pageProps?.url?.pathname.includes(`/workspaces/`);
 
+    /**
+     * A save from either models modal (the model line or the menu's row)
+     * shows under the name at once.
+     */
+    function handleModelSaved(harnesses: HarnessOverview[]) {
+        const current = harnesses.find((h) => h.harness == "text")?.current;
+
+        onModelChange(
+            current
+                ? { name: current.name, provider_name: current.provider_name }
+                : null,
+        );
+    }
+
     return (
         <Row className="h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3 md:px-6 border-0 border-b border-solid border-hairline">
             <RailDrawerButton />
@@ -100,14 +119,16 @@ export default function ConversationHeader({
                     ) : null}
 
                     <Row className="min-w-0 gap-x-1! md:gap-x-3! gap-y-0! flex-nowrap grow">
-                        <HeaderMetaItem
-                            icon={CpuAi}
-                            label="Model"
-                            text={
+                        <BotModelsModal
+                            key={bot.id}
+                            bot={bot}
+                            workspace={workspace}
+                            meta_text={
                                 model
                                     ? `${model.name} · ${model.provider_name}`
                                     : "No model set up"
                             }
+                            onSaved={handleModelSaved}
                         />
                         {computer_name ? (
                             <HeaderMetaItem
@@ -145,20 +166,7 @@ export default function ConversationHeader({
                         has_other_unread={has_other_unread}
                         computer_name={computer_name}
                         model_name={model?.name}
-                        on_model_saved={(harnesses) => {
-                            const current = harnesses.find(
-                                (h) => h.harness == "text",
-                            )?.current;
-
-                            onModelChange(
-                                current
-                                    ? {
-                                          name: current.name,
-                                          provider_name: current.provider_name,
-                                      }
-                                    : null,
-                            );
-                        }}
+                        on_model_saved={handleModelSaved}
                         on_open={() => set_open_menu(false)}
                         is_admin={is_admin}
                         on_admin_changed={setIsAdmin}

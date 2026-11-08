@@ -13,6 +13,8 @@ import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import BotHarnessForm from "@/src/pages/admin/settings/(partials)/bot-harness-form";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
 import HeaderMenuItem from "./header-menu-item";
+import HeaderMetaItem from "./header-meta-item";
+import { twMerge } from "tailwind-merge";
 import useHarnessOverview from "../(hooks)/use-harness-overview";
 
 type Props = {
@@ -33,11 +35,17 @@ type Props = {
      * A menu row closing the menu as it opens the modal.
      */
     on_open?: () => void;
+    /**
+     * The model line under the bot's name in the conversation header (its
+     * text) instead of an icon: clicking it opens the modal.
+     */
+    meta_text?: string;
     onSaved: (harnesses: HarnessOverview[]) => void;
 };
 
 /**
- * The header's model icon (or its menu row): opens every model the bot uses
+ * The header's model icon (or its menu row, or the model line under the
+ * bot's name): opens every model the bot uses
  * (text, media reading, transcription, speech, images) in the Models
  * settings form. On the coordinator that form is the defaults, for super
  * admins only; a worker's (or a workspace's) models are for super admins
@@ -53,6 +61,7 @@ export default function BotModelsModal({
     menu,
     menu_hint,
     on_open,
+    meta_text,
     onSaved,
 }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -106,7 +115,15 @@ export default function BotModelsModal({
           ? `${name} uses the default models. A super admin can change them in Settings, under Models.`
           : `An admin can change the models ${name} uses.`;
 
-    const target = menu ? (
+    const target = meta_text ? (
+        <HeaderMetaItem
+            icon={CpuAi}
+            label="Model"
+            text={meta_text}
+            title={can_edit ? title : `Model: ${meta_text}. ${title}`}
+            button={can_edit}
+        />
+    ) : menu ? (
         <HeaderMenuItem
             icon={CpuAi}
             title="Models"
@@ -124,7 +141,11 @@ export default function BotModelsModal({
         <Modal
             target={target}
             targetWrapperProps={{
-                className: menu ? "w-full" : "shrink-0",
+                className: twMerge(
+                    !menu && !meta_text && "shrink-0",
+                    menu && "w-full",
+                    meta_text && "min-w-0 grow overflow-hidden",
+                ),
                 onPointerEnter: () => setWarm(true),
                 onFocus: () => setWarm(true),
             }}
