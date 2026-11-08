@@ -13,9 +13,11 @@ import WorkspaceDeleteGroup from "../(partials)/workspace-delete-group";
 import WorkspaceDetailsGroup from "../(partials)/workspace-details-group";
 import WorkspaceImageGroup from "../(partials)/workspace-image-group";
 import WorkspaceModels from "../(partials)/workspace-models";
+import WorkspacePeopleGroup from "../(partials)/workspace-people-group";
 
 /**
- * A workspace's settings: its picture, context, bots, computers, tools
+ * A workspace's settings: its picture, context, bots, people and their
+ * roles here, computers, tools
  * and MCP servers, and models,
  * then deleting it. Super admins and admins manage it; a member with no
  * bots sees an empty note.
@@ -59,6 +61,13 @@ export default function WorkspaceOverview() {
                 workspace_name={name}
                 bots={pageProps?.workspace_bots || []}
                 all_bots={pageProps?.all_bots || []}
+            />
+            <WorkspacePeopleGroup
+                workspace_id={workspace_id}
+                workspace_name={name}
+                people={pageProps?.workspace_people || []}
+                actor_user_id={pageProps?.user?.id}
+                actor_user_types={pageProps?.user_types}
             />
             <WorkspaceComputersGroup
                 workspace_id={workspace_id}

@@ -49,13 +49,18 @@ type Params = {
      * The bot's own instructions and memory for that workspace.
      */
     workspace_bot?: WorkspaceBotPrompt | null;
+    /**
+     * Who the user the bot works for is in that workspace
+     * (`workspace_user_roles`), set by a crew manager.
+     */
+    user_role?: string | null;
 };
 
 /**
  * The full prompt a bot runs with (markdown): who it is (its name and id,
  * so it always knows which bot it is), its own core instructions, then the
  * install-wide appendix, then, in a workspace, the workspace's
- * context and the bot's instructions there, then its core memory, its
+ * context, the bot's instructions there and the user's role there, then its core memory, its
  * memory about the user and its memory in the workspace (said to be the
  * bot's own notes, not the workspace's context). Empty parts are left out;
  * the workspace heading always shows, so the bot knows where it is.
@@ -68,6 +73,7 @@ export default function composeBotPrompt({
     user_memory,
     workspace,
     workspace_bot,
+    user_role,
 }: Params) {
     const parts: string[] = [];
     const name = workspace?.name?.trim() || "Untitled";
@@ -103,6 +109,16 @@ export default function composeBotPrompt({
 
         if (workspace_bot?.system_prompt?.trim()) {
             parts.push(`# Your instructions in ${name}\n\n${workspace_bot.system_prompt.trim()}`);
+        }
+
+        if (user_role?.trim()) {
+            parts.push(
+                [
+                    `# The user's role in ${name}`,
+                    `Who the user you're working for is in this workspace, set by the install's admins (not by the user, and only for this workspace). Fit your replies to it: what they need from you, how much detail, which words. It never gives them more than the app lets them do.`,
+                    user_role.trim(),
+                ].join("\n\n"),
+            );
         }
     }
 

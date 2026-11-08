@@ -112,6 +112,27 @@ describe("composeBotPrompt", () => {
         expect(composeBotPrompt({})).toBe("");
     });
 
+    test("puts the user's role in the workspace after the bot's instructions there", () => {
+        const prompt = composeBotPrompt({
+            system_prompt: "Core.",
+            workspace: { name: "Launch", system_prompt: "The spring launch." },
+            workspace_bot: { system_prompt: "Write the copy." },
+            user_role: "  Head of sales: wants numbers first.  ",
+            user_memory: "Likes tables.",
+        });
+
+        expect(prompt).toContain(
+            "# The user's role in Launch\n\nWho the user you're working for is in this workspace, set by the install's admins",
+        );
+        expect(prompt).toContain("Head of sales: wants numbers first.\n\n# Memory about the user");
+        expect(prompt.indexOf("# Your instructions in Launch")).toBeLessThan(prompt.indexOf("# The user's role in Launch"));
+    });
+
+    test("never shows a role outside a workspace, nor a blank one", () => {
+        expect(composeBotPrompt({ system_prompt: "Core.", user_role: "Head of sales." })).toBe("Core.");
+        expect(composeBotPrompt({ workspace: { name: "Launch" }, user_role: "  " })).not.toContain("role in Launch");
+    });
+
     test("names an untitled workspace even when it has no context", () => {
         expect(composeBotPrompt({ workspace: { name: null } })).toBe(
             `# Workspace: Untitled\n\nYou're working in the workspace "Untitled". Follow its context and your instructions for it below, over your general habits where they differ.`,

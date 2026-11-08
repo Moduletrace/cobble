@@ -112,7 +112,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 
 ### Prompt and memory
 
-`composeBotPrompt` (`src/utils/compose-bot-prompt.ts`, via `grab-bot-prompt`): core `system_prompt`, install-wide append (`bot_system_prompt_append`), then in a workspace its context and the bot's instructions there, then core `memory`, per-user memory (`bot_user_memories`), workspace memory (`workspace_bots.memory`). Core memory is never about one user. `update_memory` defaults to `user` (`workspace` in a workspace); core only for what holds for everyone. Whole-text replace, capped at `AppData.PromptMaxLength`.
+`composeBotPrompt` (`src/utils/compose-bot-prompt.ts`, via `grab-bot-prompt`): core `system_prompt`, install-wide append (`bot_system_prompt_append`), then in a workspace its context, the bot's instructions there and the run's user's role there (`workspace_user_roles`), then core `memory`, per-user memory (`bot_user_memories`), workspace memory (`workspace_bots.memory`). Core memory is never about one user. `update_memory` defaults to `user` (`workspace` in a workspace); core only for what holds for everyone. Whole-text replace, capped at `AppData.PromptMaxLength`.
 
 ### Queue (`bots_queue`)
 
@@ -133,7 +133,7 @@ A worker reaches another worker **only through the coordinator**: `ask_crew` (ev
 
 ### Workspaces
 
-`workspaces` (`description`, shared `system_prompt`, default `computer_id` (not an FK), `archived`), `workspace_bots` (per-bot instructions and memory there; coordinator is an implicit member), `workspace_computers`. First computer linked becomes the default. Workspace models win over a bot's own, then the defaults. A bot's instructions and memory there (`WorkspaceBotModal`/`WorkspaceBotForm`, crew managers) open from the workspace's settings, the bot's settings and the conversation menu's "Instructions here" (loaded on open). Helpers in `src/functions/backend/db/workspaces/` are access-checked; structural ones are crew-manager only.
+`workspaces` (`description`, shared `system_prompt`, default `computer_id` (not an FK), `archived`), `workspace_bots` (per-bot instructions and memory there; coordinator is an implicit member), `workspace_computers`. First computer linked becomes the default. Workspace models win over a bot's own, then the defaults. **A user's role in a workspace** (`workspace_user_roles`, plain text, one per user and workspace) tells every bot there who it's working for; it's not their bio, the user never sees or sets it, and only crew managers set it, an admin never a super admin's (`canSetWorkspaceUserRole`, checked in `setWorkspaceUserRole`). Set from the workspace's settings (People, everyone who works there: `workspacePeopleSql`), the user's settings (Roles in workspaces) and by the coordinator (`list_workspace_people`/`set_user_workspace_role`, replies and tasks, saved as the run's user so the same rule holds). It stays when access is taken away, shown and used only while they work there. A bot's instructions and memory there (`WorkspaceBotModal`/`WorkspaceBotForm`, crew managers) open from the workspace's settings, the bot's settings and the conversation menu's "Instructions here" (loaded on open). Helpers in `src/functions/backend/db/workspaces/` are access-checked; structural ones are crew-manager only.
 
 ### Computers
 

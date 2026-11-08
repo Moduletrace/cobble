@@ -39,6 +39,22 @@ export const UpdateWorkspaceBotRequestSchema = WorkspaceBotRequestSchema.extend(
 
 export type UpdateWorkspaceBotRequest = z.infer<typeof UpdateWorkspaceBotRequestSchema>;
 
+/**
+ * Who a user is in one workspace (`workspaces/set-user-role`). An empty
+ * role clears it.
+ */
+export const SetWorkspaceUserRoleRequestSchema = z.object({
+    workspace_id: WorkspaceId,
+    user_id: z.coerce.number().int().positive("Pick a user"),
+    role: z
+        .string()
+        .trim()
+        .max(AppData.WorkspaceUserRoleMaxLength, `Keep it under ${AppData.WorkspaceUserRoleMaxLength} characters`)
+        .default(""),
+});
+
+export type SetWorkspaceUserRoleRequest = z.infer<typeof SetWorkspaceUserRoleRequestSchema>;
+
 export const WorkspaceComputerRequestSchema = z.object({
     workspace_id: WorkspaceId,
     computer_id: z.coerce.number().int().positive("Pick a computer"),

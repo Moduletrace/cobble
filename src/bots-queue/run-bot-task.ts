@@ -43,6 +43,8 @@ import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
+import listWorkspacePeopleTool from "@/src/harness/tools/bot/list-workspace-people-tool";
+import setUserWorkspaceRoleTool from "@/src/harness/tools/bot/set-user-workspace-role-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
 import importFileTool from "@/src/harness/tools/computer/import-file-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
@@ -232,6 +234,12 @@ export default async function runBotTask({
                                     workspaces: coordinator_workspaces,
                                     workspace_id,
                                     scopes,
+                                }),
+                                listWorkspacePeopleTool({ workspaces: coordinator_workspaces, workspace_id }),
+                                setUserWorkspaceRoleTool({
+                                    user_id,
+                                    workspaces: coordinator_workspaces,
+                                    workspace_id,
                                 }),
                             ]
                           : []),

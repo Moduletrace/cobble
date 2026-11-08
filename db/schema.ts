@@ -2197,6 +2197,60 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "workspace_user_roles",
+            tableDescription: `Who a user is in one workspace (plain text), set by a super admin or admin, never by the user: every bot working there reads it in its prompt when it works for that user. Not their bio, and only in that workspace. An admin never sets a super admin's`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_user_role_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "users",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_user_role_user_fk",
+                    },
+                },
+                {
+                    fieldName: "role",
+                    fieldDescription: `Their role there and anything bots should know about them in that workspace`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "updated_by",
+                    fieldDescription: `The user who last set it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_role_per_workspace_user",
+                    constraintName: "A user has one role per workspace",
+                    constraintTableFields: [
+                        { value: "workspace_id" },
+                        { value: "user_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_user_roles_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
             tableName: "bot_user_memories",
             tableDescription: `What a bot remembers about one user (markdown). Only that user's runs see it, the way a workspace's memory stays in the workspace`,
             fields: [

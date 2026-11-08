@@ -4,13 +4,14 @@ import { SettingsDefaultPath } from "@/src/dict/settings-pages-dict";
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabCrewOptions from "@/src/functions/backend/db/access/grab-crew-options";
 import grabUsers from "@/src/functions/backend/db/users/grab-users";
+import grabUserWorkspaceRoles from "@/src/functions/backend/db/workspaces/grab-user-workspace-roles";
 import sanitizeUserBio from "@/src/functions/backend/db/users/sanitize-user-bio";
 import canListUsers from "@/src/utils/rbac/can-list-users";
 import grabSettingsServerProps from "../../(functions)/grab-settings-server-props";
 
 /**
  * One user's settings, for those who may list users (`canListUsers`):
- * their profile, user types, access and danger zone.
+ * their profile, user types, access, roles in workspaces and danger zone.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const settings = await grabSettingsServerProps(params);
@@ -37,6 +38,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             ...settings.props,
             target_person: sanitizeUserBio({ user: target_person }),
             ...(await grabCrewOptions()),
+            target_workspace_roles: await grabUserWorkspaceRoles({ user_id: target_person.id }),
         },
     };
 };

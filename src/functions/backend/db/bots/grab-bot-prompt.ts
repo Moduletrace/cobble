@@ -2,6 +2,7 @@ import composeBotPrompt from "@/src/utils/compose-bot-prompt";
 import AppError from "@/src/utils/app-error";
 import grabSystemPromptAppend from "../app-settings/grab-system-prompt-append";
 import grabWorkspaceBot from "../workspaces/grab-workspace-bot";
+import grabWorkspaceUserRole from "../workspaces/grab-workspace-user-role";
 import grabBotUserMemory from "./grab-bot-user-memory";
 import grabUserBot from "./grab-user-bot";
 
@@ -12,8 +13,9 @@ type Params = {
      */
     user_id: number | string;
     /**
-     * The workspace the bot is working in. Its context and the bot's
-     * instructions and memory there join the prompt.
+     * The workspace the bot is working in. Its context, the bot's
+     * instructions and memory there and the user's role there join the
+     * prompt.
      */
     workspace_id?: number | string | null;
 };
@@ -22,7 +24,7 @@ type Params = {
  * The full prompt for one of the user's bots (`composeBotPrompt`): who it
  * is (its name and id), its core instructions, the install-wide appendix,
  * its memory, what it remembers about this user, and in a workspace that
- * workspace's context and what the bot has for it.
+ * workspace's context, what the bot has for it and who this user is there.
  */
 export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });
@@ -47,5 +49,6 @@ export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: P
         user_memory: await grabBotUserMemory({ bot_id: bot.id, user_id }),
         workspace: found?.workspace,
         workspace_bot: found?.membership,
+        user_role: found ? await grabWorkspaceUserRole({ workspace_id: found.workspace.id!, user_id }) : null,
     });
 }

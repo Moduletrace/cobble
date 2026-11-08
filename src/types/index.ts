@@ -320,6 +320,30 @@ export type WorkspaceBot = BotWithLastMessage & {
 };
 
 /**
+ * Someone who works in a workspace (`grabWorkspacePeople`), with their
+ * role there (`workspace_user_roles`), which bots read when they work for
+ * them there.
+ */
+export type WorkspacePerson = {
+    id: number;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+    /**
+     * Comma separated, as `grabUsers` gives them.
+     */
+    user_types?: string | null;
+    profile_media_id?: number | null;
+    role?: string | null;
+};
+
+/**
+ * A user's roles in workspaces, keyed by workspace id
+ * (`grabUserWorkspaceRoles`).
+ */
+export type WorkspaceUserRoles = Record<string, string>;
+
+/**
  * A bot's instructions and memory for one workspace, as its editor loads
  * them (`api/admin/workspaces/workspace-bot`).
  */
@@ -2127,6 +2151,11 @@ export type PagePropsType = {
      */
     crew_bots?: BUN_SQLITE_COBBLE_BOTS[] | null;
     crew_workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] | null;
+    /**
+     * On a user's settings page: their roles in workspaces, keyed by
+     * workspace id (`grabUserWorkspaceRoles`).
+     */
+    target_workspace_roles?: WorkspaceUserRoles | null;
     bots?: BotWithLastMessage[] | null;
     bot?: BotWithLastMessage | null;
     /**
@@ -2142,6 +2171,11 @@ export type PagePropsType = {
      * every computer the user has, and its models.
      */
     workspace_bots?: WorkspaceBot[] | null;
+    /**
+     * On a workspace's settings page: everyone who works in it, with their
+     * role there (`grabWorkspacePeople`).
+     */
+    workspace_people?: WorkspacePerson[] | null;
     /**
      * Every bot the user has, for adding one to a workspace.
      */

@@ -21,6 +21,8 @@ import grabBotTools from "./grab-bot-tools";
 import removeBotFromWorkspaceTool from "./remove-bot-from-workspace-tool";
 import updateBotTool from "./update-bot-tool";
 import updateWorkspaceTool from "./update-workspace-tool";
+import listWorkspacePeopleTool from "./list-workspace-people-tool";
+import setUserWorkspaceRoleTool from "./set-user-workspace-role-tool";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
 import startTaskTool from "./start-task-tool";
@@ -185,6 +187,8 @@ export default async function grabBotChatTools({
     tools.push(
         createWorkspaceTool({ user_id, workspaces }),
         updateWorkspaceTool({ user_id, workspaces, workspace_id, scopes }),
+        listWorkspacePeopleTool({ workspaces, workspace_id }),
+        setUserWorkspaceRoleTool({ user_id, workspaces, workspace_id }),
     );
 
     tools.push(createBotTool({ user_id, workspaces, workspace_id }));

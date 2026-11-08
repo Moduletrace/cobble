@@ -8,10 +8,11 @@ import UserAccessGroups from "../(partials)/user-access-groups";
 import UserDangerGroup from "../(partials)/user-danger-group";
 import UserEditGroup from "../(partials)/user-edit-group";
 import UserOverviewGroup from "../(partials)/user-overview-group";
+import UserWorkspaceRolesGroup from "../(partials)/user-workspace-roles-group";
 
 /**
  * One user's settings: overview, the form that edits them, the bots and
- * workspaces they reach, and revoking
+ * workspaces they reach, their roles in workspaces, and revoking
  * or deleting them where the actor may.
  */
 export default function UserSettingsSection() {
@@ -52,6 +53,12 @@ export default function UserSettingsSection() {
                 crew_bots={pageProps?.crew_bots || []}
                 crew_workspaces={pageProps?.crew_workspaces || []}
                 onUpdated={setPerson}
+            />
+            <UserWorkspaceRolesGroup
+                person={person}
+                crew_workspaces={pageProps?.crew_workspaces || []}
+                roles={pageProps?.target_workspace_roles || {}}
+                actor_user_types={pageProps?.user_types}
             />
             <UserDangerGroup
                 person={person}

@@ -10,13 +10,15 @@ import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabWorkspaceBots from "@/src/functions/backend/db/workspaces/grab-workspace-bots";
 import grabWorkspaceComputers from "@/src/functions/backend/db/workspaces/grab-workspace-computers";
+import grabWorkspacePeople from "@/src/functions/backend/db/workspaces/grab-workspace-people";
 import grabCrewSettingsServerProps from "../../(functions)/grab-crew-settings-server-props";
 import railBots from "@/src/utils/rail-bots";
 import railWorkspaces from "@/src/utils/rail-workspaces";
 
 /**
- * One workspace's settings: its picture, details, bots, computers, tools
- * and MCP servers, and models. For super admins and admins.
+ * One workspace's settings: its picture, details, bots, the people who
+ * work in it and their roles there, computers, tools and MCP servers, and
+ * models. For super admins and admins.
  */
 export const server: BunextPageServerFn<PagePropsType> = async (params) => {
     const settings = await grabCrewSettingsServerProps(params);
@@ -49,6 +51,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         workspace_harness_overview,
         workspace_extensions,
         workspace_envs,
+        workspace_people,
     ] = await Promise.all([
         grabWorkspaceBots({ user_id, workspace_id }),
         grabBots({ user_id }),
@@ -64,6 +67,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
                 user_types: (await userAuth({ req: params.req })).user_types,
             }),
         }),
+        grabWorkspacePeople({ workspace_id }),
     ]);
 
     const crew = railBots({ bots: workspace_bots });
@@ -81,6 +85,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspace_harness_overview,
             workspace_extensions,
             workspace_envs,
+            workspace_people,
         },
     };
 };

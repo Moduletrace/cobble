@@ -118,6 +118,8 @@ export const JobStepToolLabels: Record<string, string> = {
     delete_hook: "Deleting a hook",
     assign_computer: "Changing computer access",
     list_workspace_bots: "Looking through a workspace's crew",
+    list_workspace_people: "Looking through a workspace's people",
+    set_user_workspace_role: "Setting someone's role in a workspace",
     update_memory: "Updating memory",
     update_instructions: "Updating instructions",
     load_skill: "Reading a skill",

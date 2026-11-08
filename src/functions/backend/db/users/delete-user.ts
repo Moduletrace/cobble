@@ -22,7 +22,7 @@ type Params = {
 
 /**
  * Deletes a user with everything that's theirs (their conversations,
- * routines, browsers, access, what bots remember about them, personal secrets, user
+ * routines, browsers, access, their roles in workspaces, what bots remember about them, personal secrets, user
  * types, password, media and its files). Bots, workspaces and computers belong to the
  * install and stay, pictures they uploaded for them too. Their audit log
  * entries stay as well. The super admin can't be deleted, and nobody
@@ -79,6 +79,7 @@ export default async function deleteUser({ actor_user_id, actor_user_types, user
     }
 
     await BunSQLite.sql({ sql: `DELETE FROM workspace_user_visits WHERE user_id = ?`, values: [user.id] });
+    await BunSQLite.sql({ sql: `DELETE FROM workspace_user_roles WHERE user_id = ?`, values: [user.id] });
     await BunSQLite.sql({ sql: `DELETE FROM bot_user_visits WHERE user_id = ?`, values: [user.id] });
 
     /**

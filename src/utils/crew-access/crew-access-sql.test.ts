@@ -5,6 +5,7 @@ import computersSql from "./computers-sql";
 import reachableBotsSql from "./reachable-bots-sql";
 import workspaceBotsSql from "./workspace-bots-sql";
 import workspacesSql from "./workspaces-sql";
+import workspacePeopleSql from "./workspace-people-sql";
 import type { SqlCondition } from "./types";
 
 const db = new Database(":memory:");
@@ -26,6 +27,13 @@ beforeAll(() => {
     db.run(`INSERT INTO computers VALUES (20), (21), (22), (23)`);
     db.run(`INSERT INTO workspace_computers VALUES (11, 21), (10, 23)`);
     db.run(`INSERT INTO bot_computers VALUES (1, 20), (2, 22)`);
+    db.run(`CREATE TABLE users (id INTEGER PRIMARY KEY)`);
+    db.run(`CREATE TABLE user_types (user_id INTEGER, user_type TEXT)`);
+    db.run(`INSERT INTO users VALUES (1), (5), (7), (8), (9), (12)`);
+    db.run(
+        `INSERT INTO user_types VALUES (1, 'super_admin'), (5, 'admin'), (7, 'member'), (8, 'member'), (9, 'member'), (12, 'member'), (12, 'revoked')`,
+    );
+    db.run(`INSERT INTO workspace_users VALUES (11, 12)`);
 });
 
 function ids({ table, alias, condition }: { table: string; alias: string; condition: SqlCondition }) {
@@ -89,5 +97,16 @@ describe("computersSql", () => {
 
     test("a member sees the computers of the workspaces their assigned workers are in", () => {
         expect(ids({ table: "computers", alias: "c", condition: computersSql({ role: "member", user_id: 9 }) })).toEqual([21]);
+    });
+});
+
+describe("workspacePeopleSql", () => {
+    test("managers work in every workspace, members only where they were added", () => {
+        expect(ids({ table: "users", alias: "u", condition: workspacePeopleSql({ workspace_id: 11 }) })).toEqual([1, 5, 7]);
+        expect(ids({ table: "users", alias: "u", condition: workspacePeopleSql({ workspace_id: 10 }) })).toEqual([1, 5]);
+    });
+
+    test("a revoked user is left out, even when still added", () => {
+        expect(ids({ table: "users", alias: "u", condition: workspacePeopleSql({ workspace_id: 11 }) })).not.toContain(12);
     });
 });

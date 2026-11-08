@@ -256,6 +256,11 @@ export const AppData = {
      */
     PromptMaxLength: 20000,
     /**
+     * Cap on a user's role in one workspace (`workspace_user_roles`), which
+     * joins every prompt there when a bot works for them.
+     */
+    WorkspaceUserRoleMaxLength: 2000,
+    /**
      * `bots_queue` (bun-sqlite `isQueue`). A job that hasn't sent an update
      * within the lock timeout is presumed lost and goes back to the queue,
      * so long computer jobs must call `updateBotJob` more often than this.
