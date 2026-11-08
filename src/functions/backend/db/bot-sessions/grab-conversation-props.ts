@@ -7,6 +7,7 @@ import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overvie
 import grabConversationFiles from "../bot-files/grab-conversation-files";
 import grabBotComputers from "../computers/grab-bot-computers";
 import userHasBrowsers from "../browsers/user-has-browsers";
+import { grabBotMessageMaxChars } from "../app-settings/grab-bot-message-max-chars";
 import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import grabUserWorkspaces from "../workspaces/grab-user-workspaces";
 import grabUserConversation from "./grab-user-conversation";
@@ -26,7 +27,8 @@ type Params = {
  * in a workspace) and workspaces, the bot, the text model it runs on, its
  * computers, tools, MCP servers and files there, and whether its mic and
  * read-aloud have a model to run on, and whether the user has a browser
- * of their own (the composer's Browser button). The history (its session,
+ * of their own (the composer's Browser button), and the longest message
+ * the composer may send. The history (its session,
  * messages and active task) is left to the client (`grabConversationHistory`,
  * `api/admin/bots/conversation-history`), so a page the back button
  * restores never shows an old thread. The full model settings are left to
@@ -61,7 +63,7 @@ export default async function grabConversationProps({
     /** Loading its history marks the open session read. */
     bot.unread = 0;
 
-    const [bot_text_model, bot_computers, bot_extensions, bot_files, transcription, speech, has_browsers] = await Promise.all([
+    const [bot_text_model, bot_computers, bot_extensions, bot_files, transcription, speech, has_browsers, message_max_chars] = await Promise.all([
         grabTextModel({ bot_id: bot.id, workspace_id: scope }),
         grabBotComputers({ bot_id: bot.id, workspace_id: scope }),
         grabBotExtensionsOverview({ user_id, bot_id: bot.id, workspace_id: scope }),
@@ -69,6 +71,7 @@ export default async function grabConversationProps({
         hasHarnessModel({ harness: "transcription", bot_id: bot.id, workspace_id: scope }),
         hasHarnessModel({ harness: "speech", bot_id: bot.id, workspace_id: scope }),
         userHasBrowsers({ user_id }).catch(() => false),
+        grabBotMessageMaxChars(),
     ]);
 
     return {
@@ -82,6 +85,7 @@ export default async function grabConversationProps({
         bot_files,
         bot_voice: { transcription, speech },
         has_browsers,
+        message_max_chars,
     };
 }
 

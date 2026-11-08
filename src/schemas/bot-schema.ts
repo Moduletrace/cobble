@@ -32,10 +32,29 @@ export const SaveSessionLengthRequestSchema = z.object({
     max_messages: z.coerce.number().int().min(0).max(AppData.BotSessionMaxMessagesMax),
 });
 
+/**
+ * The longest chat message a user may send (Settings > General). Zero puts
+ * the code's default back.
+ */
+export const SaveMessageLengthRequestSchema = z.object({
+    max_chars: z.coerce.number().int().min(0).max(AppData.BotMessageMaxCharsMax),
+});
+
 export const SendBotMessageRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot to message"),
     workspace_id: WorkspaceIdField,
-    text: z.string().trim().max(4000, "Keep messages under 4000 characters").default(""),
+    /**
+     * Held to the install's own limit by the route (`grabBotMessageMaxChars`);
+     * this is only the ceiling any saved limit may allow.
+     */
+    text: z
+        .string()
+        .trim()
+        .max(
+            AppData.BotMessageMaxCharsMax,
+            `Keep messages under ${AppData.BotMessageMaxCharsMax.toLocaleString("en")} characters`,
+        )
+        .default(""),
     media_ids: z
         .array(z.coerce.number().int().positive())
         .max(AppData.BotAttachmentMaxFiles, `Attach up to ${AppData.BotAttachmentMaxFiles} files`)

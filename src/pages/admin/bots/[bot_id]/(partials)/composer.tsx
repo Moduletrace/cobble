@@ -25,6 +25,8 @@ import useComposerDraft from "../(hooks)/use-composer-draft";
 import useComposerEditor from "../(hooks)/use-composer-editor";
 import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
+import { AppData } from "@/src/data/app-data";
+import messageTooLongMessage from "@/src/utils/message-too-long-message";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerEditor from "./composer-editor";
@@ -62,6 +64,11 @@ type Props = {
      * The Browser button shows only when the user has a browser of their own.
      */
     has_browsers?: boolean;
+    /**
+     * The longest message the install takes, in characters; checked here
+     * before anything is sent, and again by the server.
+     */
+    max_chars?: number | null;
     /**
      * The message the next one quotes, if the user picked one.
      */
@@ -101,6 +108,7 @@ export default function Composer({
     extensions,
     voice,
     has_browsers,
+    max_chars,
     reply_to,
     onCancelReply,
     onSendStart,
@@ -229,6 +237,18 @@ export default function Composer({
 
         setError(undefined);
 
+        /**
+         * A message over the limit stays in the input, untouched, with the
+         * reason under it, instead of flashing into the thread and back.
+         */
+        const limit = max_chars || AppData.BotMessageMaxChars;
+        const length = text.trim().length;
+
+        if (length > limit) {
+            setError(messageTooLongMessage({ length, max_chars: limit }));
+            return;
+        }
+
         temp_id.current -= 1;
 
         const client_id = temp_id.current;
@@ -287,6 +307,12 @@ export default function Composer({
     }
 
     send_ref.current = send;
+
+    /**
+     * Why the last send didn't go, else why dictation stopped. The editor's
+     * red edge alone never said why.
+     */
+    const notice = error || recorder.error;
 
     return (
         <Stack
@@ -354,12 +380,12 @@ export default function Composer({
                         onClick={send}
                     />
                 </Row>
-                {recorder.error ? (
+                {notice ? (
                     <P
                         role="alert"
                         className="w-full max-w-container mx-auto px-3 md:px-6 -mt-5 pb-3 text-xs text-ink-secondary"
                     >
-                        {recorder.error}
+                        {notice}
                     </P>
                 ) : null}
                 <ComposerTools

@@ -454,6 +454,7 @@ export default function Conversation() {
                                     extensions={pageProps?.bot_extensions}
                                     voice={pageProps?.bot_voice}
                                     has_browsers={Boolean(pageProps?.has_browsers)}
+                                    max_chars={pageProps?.message_max_chars}
                                     reply_to={reply_to}
                                     onCancelReply={() => setReplyTo(null)}
                                     onSendStart={({ message }) =>

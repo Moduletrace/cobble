@@ -1202,6 +1202,16 @@ export type SessionLengthOverview = {
 };
 
 /**
+ * The longest chat message a user may send (Settings > General,
+ * `grab-bot-message-max-chars.ts`).
+ */
+export type MessageLengthOverview = {
+    max_chars: number;
+    default_chars: number;
+    max: number;
+};
+
+/**
  * How long hook calls are kept (Settings > General,
  * `grab-hook-events-keep-days.ts`).
  */
@@ -2210,6 +2220,11 @@ export type PagePropsType = {
      */
     session_length?: SessionLengthOverview | null;
     /**
+     * The longest chat message a user may send, with the code's default
+     * (the General settings page).
+     */
+    message_length?: MessageLengthOverview | null;
+    /**
      * The name the install goes by as an installed app (Settings >
      * General, and the root's head tags). Empty when never named.
      */
@@ -2271,6 +2286,11 @@ export type PagePropsType = {
      * Browser button shows only then.
      */
     has_browsers?: boolean | null;
+    /**
+     * The longest message the open conversation's composer may send, in
+     * characters (`grabBotMessageMaxChars`).
+     */
+    message_max_chars?: number | null;
     /**
      * The open conversation's text model (its header). The full model
      * settings load when the models modal opens.

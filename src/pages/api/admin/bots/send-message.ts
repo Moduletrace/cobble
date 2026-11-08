@@ -13,6 +13,8 @@ import parseWithSchema from "@/src/utils/parse-with-schema";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import AppError from "@/src/utils/app-error";
+import { grabBotMessageMaxChars } from "@/src/functions/backend/db/app-settings/grab-bot-message-max-chars";
+import messageTooLongMessage from "@/src/utils/message-too-long-message";
 import type {
     APIResponseObject,
     BunextAPIRouteHandler,
@@ -53,6 +55,12 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             schema: SendBotMessageRequestSchema,
             data: body,
         });
+
+        const max_chars = await grabBotMessageMaxChars();
+
+        if (text.length > max_chars) {
+            throw new AppError(messageTooLongMessage({ length: text.length, max_chars }));
+        }
 
         const conversation = await grabUserConversation({ user_id: user.id, bot_id, workspace_id });
         const bot = conversation.bot;

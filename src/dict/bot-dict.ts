@@ -124,6 +124,12 @@ export const BotReplyMaxToolStepsSettingKey = "bot_reply_max_tool_steps";
 export const BotSessionMaxMessagesSettingKey = "bot_session_max_messages";
 
 /**
+ * The `app_settings` key holding the longest chat message a user may
+ * send, in characters. Unset means `AppData.BotMessageMaxChars`.
+ */
+export const BotMessageMaxCharsSettingKey = "bot_message_max_chars";
+
+/**
  * A bot's face is its status. There are no badges or spinners.
  */
 export const BotFaces = [

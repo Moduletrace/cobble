@@ -674,6 +674,17 @@ export const AppData = {
      */
     BotSessionMaxMessagesMax: 2000,
     /**
+     * The longest chat message a user may send, in characters of the
+     * composer's markdown (formatting and `[bot:ID]` refs count). The
+     * install may save its own number (the `bot_message_max_chars`
+     * setting, Settings > General), read through `grabBotMessageMaxChars`.
+     */
+    BotMessageMaxChars: 20000,
+    /**
+     * The most characters a saved message length may allow.
+     */
+    BotMessageMaxCharsMax: 200000,
+    /**
      * How much of a closed session the bot reads to summarize it, and how
      * long the summary may be.
      */

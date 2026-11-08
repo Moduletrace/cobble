@@ -11,6 +11,7 @@ import grabHookCallRetentionOverview from "@/src/functions/backend/db/app-settin
 import grabLogRetentionOverview from "@/src/functions/backend/db/app-settings/grab-logs-keep-days";
 import grabChatroomRetentionOverview from "@/src/functions/backend/db/app-settings/grab-chatroom-retention";
 import grabSessionLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-session-max-messages";
+import grabMessageLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-message-max-chars";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
 import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
 import runningVersion from "@/src/utils/running-version";
@@ -57,6 +58,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             log_retention: await grabLogRetentionOverview().catch(() => null),
             chatroom_retention: await grabChatroomRetentionOverview().catch(() => null),
             session_length: await grabSessionLengthOverview().catch(() => null),
+            message_length: await grabMessageLengthOverview().catch(() => null),
             running_version: runningVersion({ env: process.env }),
         },
     };

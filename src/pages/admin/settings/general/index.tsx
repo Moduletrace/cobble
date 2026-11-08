@@ -5,6 +5,7 @@ import HookCallRetentionSection from "./(sections)/hook-call-retention-section";
 import InstallIconSection from "./(sections)/install-icon-section";
 import InstallNameSection from "./(sections)/install-name-section";
 import LogRetentionSection from "./(sections)/log-retention-section";
+import MessageLengthSection from "./(sections)/message-length-section";
 import NotificationsSection from "./(sections)/notifications-section";
 import PromptSection from "./(sections)/prompt-section";
 import RunLimitsSection from "./(sections)/run-limits-section";
@@ -28,6 +29,7 @@ export default function AdminSettingsGeneralPage() {
             <PromptSection />
             <RunLimitsSection />
             <SessionLengthSection />
+            <MessageLengthSection />
             <SkillLimitsSection />
             <HookCallRetentionSection />
             <ChatroomRetentionSection />
