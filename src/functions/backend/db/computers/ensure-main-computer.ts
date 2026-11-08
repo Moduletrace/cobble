@@ -56,7 +56,7 @@ export default async function ensureMainComputer({
     ).payload?.[0];
 
     let computer_id = existing?.id ? Number(existing.id) : 0;
-    let provisioning: Promise<void> = Promise.resolve();
+    let provisioning: Promise<unknown> = Promise.resolve();
 
     if (!computer_id) {
         const created = await createComputer({ user_id, name: MainComputerName, kind: "main" });

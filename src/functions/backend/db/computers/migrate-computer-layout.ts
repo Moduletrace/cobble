@@ -19,15 +19,19 @@ type Params = {
  * current image with only its workspace and browser profile mounted.
  * `provisionComputer` moves an old home aside (`prepareComputerDataDir`)
  * and records the layout, so this runs once per computer. Waits for a
- * later sync while a job works on it. Returns whether it did.
+ * later sync while a job works on it, and for `AppData.ComputerMigrateRetryMs`
+ * after a try that failed while the old container kept running
+ * (`metadata.setup_failed_at`). Returns whether it did.
  */
 export default async function migrateComputerLayout({ computer_id, metadata }: Params) {
-    const layout = parseJobJson({ text: metadata || "" })?.layout;
+    const parsed = parseJobJson({ text: metadata || "" });
+    const failed_at = Number(parsed?.setup_failed_at) || 0;
 
-    if (layout == AppData.ComputerWorkspaceLayout) return false;
+    if (parsed?.layout == AppData.ComputerWorkspaceLayout) return false;
+    if (Date.now() - failed_at < AppData.ComputerMigrateRetryMs) return false;
     if (await isComputerBusy({ computer_id })) return false;
 
-    await provisionComputer({ computer_id });
+    if (!(await provisionComputer({ computer_id }))) return true;
 
     await logEvent({
         title: `Computer #${computer_id} moved to the current computer image`,

@@ -27,7 +27,9 @@ type Args = {
  * Makes an image with the image generation harness (image editing when it
  * passes reference images: files the run reaches or the user's uploads)
  * and saves it in the bot's files, so it can be sent, shown again later or
- * used by another run. The bytes stay in the app's storage, never on a
+ * used by another run. It rides on the reply unless the bot says
+ * otherwise: a coordinator made three versions, attached none, then asked
+ * the user to pick a fix for pictures they had never seen. The bytes stay in the app's storage, never on a
  * computer.
  */
 export default function generateImageTool(context: StorageToolContext): HarnessTool<Args> {
@@ -35,7 +37,7 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
 
     return {
         name: "generate_image",
-        description: `Make an image from a description and save it in your files. Describe what should be in it, in one clear prompt. To work from existing images (a logo to rework, a style or palette to follow, a photo to change), pass them as "references" ([file:ID] refs from list_files) or "reference_media_ids" (images the user uploaded), up to ${AppData.ImageReferenceMaxCount}, and say in the prompt what to take from each. The image is saved (so you can send it now and show it later) and can ride on this reply with "attach". To only crop, resize, rotate or adjust an image you have, use transform_image instead: it needs no model and keeps the picture exactly as it is.`,
+        description: `Make an image from a description and save it in your files. Describe what should be in it, in one clear prompt. To work from existing images (a logo to rework, a style or palette to follow, a photo to change), pass them as "references" ([file:ID] refs from list_files) or "reference_media_ids" (images the user uploaded), up to ${AppData.ImageReferenceMaxCount}, and say in the prompt what to take from each. The image is saved (so you can show it again later) and rides on this reply, so the user sees what you made; pass "attach": false only for a draft you'll replace before you answer. Never ask the user to judge an image they haven't been sent. To only crop, resize, rotate or adjust an image you have, use transform_image instead: it needs no model and keeps the picture exactly as it is.`,
         schema: z.object({
             prompt: z.string().min(3).max(4000),
             references: z
@@ -58,7 +60,10 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                 .max(20)
                 .optional()
                 .describe(`e.g. "1024x1024", when the model takes one`),
-            attach: z.boolean().optional().describe(`Send it to the user with this reply`),
+            attach: z
+                .boolean()
+                .optional()
+                .describe(`Send it to the user with this reply (the default); false only for a draft you'll replace`),
             scope: z.string().optional().describe(`"bot:<id>" or "workspace:<id>"`),
         }),
         run: async ({ args, signal }) => {
@@ -72,6 +77,7 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                     .join(", ")}.`;
             }
 
+            const attach = args.attach !== false;
             const file_ids = (args.references || []).map((ref) => parseFileRef({ ref }));
 
             if (file_ids.some((id) => !id)) {
@@ -128,7 +134,7 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                     user_id: context.user_id,
                 });
 
-                if (args.attach && file.media_id) {
+                if (attach && file.media_id) {
                     context.onAttach?.({ media_id: Number(file.media_id), name: file.name || "" });
                 }
 
@@ -138,7 +144,9 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
             }
 
             return `Made and saved ${saved.length} image(s) in ${describeScope(named)}:\n${saved.join("\n")}${
-                args.attach ? "" : "\n\nIt isn't attached to this reply; the user sees it in your files."
+                attach
+                    ? "\n\nIt's attached to this reply."
+                    : "\n\nIt isn't attached to this reply, so the user hasn't seen it: write its [file:ID] ref in your answer if you ask them about it."
             }`;
         },
     };

@@ -4,6 +4,9 @@ import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import countComputerTaskJobs from "@/src/functions/backend/db/bots-queue/count-computer-task-jobs";
 import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
+import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
+import isComputerDown from "@/src/utils/computer-down";
 import type { HarnessTool } from "../../types";
 
 type Params = {
@@ -44,7 +47,9 @@ type Args = {
  * done I'll start the next one" never did. `max_steps` caps the run's
  * model turns below the install's limit (`params.max_steps`, read by
  * `runBotTask`): a bot told to "keep it to ~20 steps" only wrote it in
- * its brief, and the run searched on for 40 minutes.
+ * its brief, and the run searched on for 40 minutes. A computer that's
+ * down (`isComputerDown`) is refused: the run would only fail, after the
+ * bot had told the user it was working on it.
  */
 export default function startTaskTool({
     user_id,
@@ -98,6 +103,14 @@ export default function startTaskTool({
             if (open) {
                 throw new Error(
                     `Run #${open.id} "${open.title || "Task"}" is still ${open.status == "pending" ? "queued" : "under way"} here on that computer. If this is the same work, don't start it again: its result will be posted here (the user can Stop it to start over). It's shown what the user writes here between its steps, so a correction or addition to that work reaches it and never calls for another run. If it's different work, call start_task again now with separate: true; it's queued and starts as soon as run #${open.id} ends. Nothing starts it later but you, now, so never tell the user you'll start it once run #${open.id} is done.`,
+                );
+            }
+
+            const target = computer_id ? await grabComputerMcpUrl({ computer_id }) : null;
+
+            if (target && !target.ready && isComputerDown({ status: target.status })) {
+                throw new Error(
+                    `${computerNotReadyMessage(target)} Nothing was queued: a run there would only fail. Tell the user the computer is down and what you'd do once it's back, and don't say the work is under way.`,
                 );
             }
 

@@ -6,6 +6,7 @@ import logEvent from "@/src/functions/backend/logger";
 import migrateComputerLayout from "@/src/functions/backend/db/computers/migrate-computer-layout";
 import provisionComputer from "@/src/functions/backend/db/computers/provision-computer";
 import refreshComputerContainer from "@/src/functions/backend/db/computers/refresh-computer-container";
+import reviveFailedComputer from "@/src/functions/backend/db/computers/revive-failed-computer";
 import syncComputerBrowserPolicy from "@/src/functions/backend/db/computers/sync-computer-browser-policy";
 
 type Row = Pick<
@@ -16,7 +17,8 @@ type Row = Pick<
 /**
  * Reads every computer container's state from docker and records it
  * (`refreshComputerContainer`), telling owners about changes. Containers
- * still being set up, or that failed, are left alone. A container that
+ * still being set up are left alone, and failed ones unless docker runs
+ * them anyway (`reviveFailedComputer`). A container that
  * still mounts its computer's whole home is recreated with only the
  * workspace (`migrateComputerLayout`, once per computer). A running one
  * gets the browser policy it lacks (`syncComputerBrowserPolicy`), so
@@ -33,13 +35,18 @@ export default async function syncComputers() {
             await BunSQLite.sql<Row>({
                 sql: `SELECT co.id, co.docker_id, co.status, co.ip_address, co.metadata, c.id AS computer_id
                     FROM containers co JOIN computers c ON c.container_id = co.id
-                    WHERE co.docker_id IS NOT NULL AND co.status NOT IN ('creating', 'failed')`,
+                    WHERE co.docker_id IS NOT NULL AND co.status != 'creating'`,
             })
         ).payload || [];
 
     let changed = 0;
 
     for (const { computer_id, metadata, ...container } of rows) {
+        if (container.status == "failed") {
+            await reviveFailedComputer({ computer_id, container });
+            continue;
+        }
+
         if (await migrateComputerLayout({ computer_id, metadata })) continue;
 
         const refreshed = await refreshComputerContainer({

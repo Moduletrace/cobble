@@ -9,6 +9,7 @@ import computerToken from "@/src/utils/computer-token";
 import grabEnv from "../envs/grab-env";
 import pickReachableAddress from "./pick-reachable-address";
 import refreshComputerContainer from "./refresh-computer-container";
+import reviveFailedComputer from "./revive-failed-computer";
 
 type Params = {
     computer_id: number | string;
@@ -31,7 +32,8 @@ export type ComputerAddress =
  * agent asks of every request (`computerToken`). Only a
  * computer whose health check passed (`running`) is reached; any other
  * state is read again from docker first, since it may have come back
- * since the last sync, and returned as `ready: false`. Null when the
+ * since the last sync (a failed one only when docker runs it,
+ * `reviveFailedComputer`), and returned as `ready: false`. Null when the
  * computer has no container.
  */
 export default async function grabComputerMcpUrl({ computer_id }: Params): Promise<ComputerAddress | null> {
@@ -60,7 +62,11 @@ export default async function grabComputerMcpUrl({ computer_id }: Params): Promi
     let status = (row.status || "unknown") as ContainerStatus;
     let ip_address: string | null | undefined = row.ip_address;
 
-    if (status != "running" && status != "creating" && status != "failed") {
+    const revived = status == "failed" ? await reviveFailedComputer({ computer_id, container: row }) : null;
+
+    if (revived) {
+        ({ status, ip_address } = revived);
+    } else if (status != "running" && status != "creating" && status != "failed") {
         const refreshed = await refreshComputerContainer({ computer_id, container: row });
 
         if (refreshed) ({ status, ip_address } = refreshed);

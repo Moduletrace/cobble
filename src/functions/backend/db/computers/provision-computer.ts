@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_COMPUTERS, BUN_SQLITE_COBBLE_CONTAINERS } from "
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import { AppData } from "@/src/data/app-data";
 import createComputerContainer from "@/src/functions/backend/docker/create-computer-container";
+import inspectDockerContainer from "@/src/functions/backend/docker/inspect-docker-container";
 import { logError } from "@/src/functions/backend/logger";
 import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import prepareComputerDataDir from "./prepare-computer-data-dir";
@@ -31,13 +32,17 @@ type Params = {
  * (`cpus`, `memory_mb`, else the `AppData` defaults) and its browser
  * settings (`browser_settings`, `computerBrowserEnv`), then records it (`containers`:
  * docker id, state, and its IP address on the network). A failure is
- * recorded as `failed` with its reason, which the computer lists show. The
+ * recorded as `failed` with its reason, which the computer lists show,
+ * unless the old container is still running (the new image couldn't be
+ * pulled): then it keeps that state and the old layout, with the reason
+ * and `setup_failed_at` in its metadata. The
  * owner's tabs hear about it either way. Its browser gets its policy
  * (`syncComputerBrowserPolicy`). The metadata's `layout` says the
  * container runs the current image and mounts (`syncComputers` recreates
  * one that doesn't). While it runs it keeps the row touched
  * (`keepComputerSetupAlive`), so a setup the app lost to a restart is told
- * apart and started again. Never throws.
+ * apart and started again. Never throws; returns whether the new container
+ * is up.
  */
 export default async function provisionComputer({ computer_id, fresh, pull }: Params) {
     const row = (
@@ -49,10 +54,11 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
         })
     ).payload?.[0];
 
-    if (!row?.id || !row.name) return;
+    if (!row?.id || !row.name) return false;
 
     const metadata = parseJobJson({ text: row.metadata }) || {};
     const stopHeartbeat = keepComputerSetupAlive({ container_id: Number(row.id) });
+    let done = false;
 
     try {
         await BunSQLite.sql({
@@ -76,7 +82,7 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
             pull,
         });
 
-        const { error: _error, mcp_url: _mcp_url, ...kept } = metadata;
+        const { error: _error, mcp_url: _mcp_url, setup_failed_at: _setup_failed_at, ...kept } = metadata;
 
         await BunSQLite.sql({
             sql: `UPDATE containers SET docker_id = ?, image = ?, network = ?, hostname = ?, ip_address = ?,
@@ -104,13 +110,36 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
         });
 
         await syncComputerBrowserPolicy({ computer_id, docker_id: created.docker_id });
+        done = true;
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        /**
+         * A setup that failed before the old container was replaced (the
+         * image couldn't be pulled) leaves that container running: the
+         * computer stays usable on it, keeping its old layout.
+         */
+        const old = row.docker_id
+            ? await inspectDockerContainer({ container: row.docker_id }).catch(() => null)
+            : null;
 
-        await BunSQLite.sql({
-            sql: `UPDATE containers SET status = 'failed', metadata = ?, updated_at = ? WHERE id = ?`,
-            values: [JSON.stringify({ ...metadata, error: message }), Date.now(), row.id],
-        }).catch(() => {});
+        if (old?.status == "running") {
+            await BunSQLite.sql({
+                sql: `UPDATE containers SET status = ?, ip_address = ?, metadata = ?, last_seen_at = ?, updated_at = ? WHERE id = ?`,
+                values: [
+                    old.status,
+                    old.ip_address || row.ip_address || null,
+                    JSON.stringify({ ...metadata, error: message, setup_failed_at: Date.now() }),
+                    Date.now(),
+                    Date.now(),
+                    row.id,
+                ],
+            }).catch(() => {});
+        } else {
+            await BunSQLite.sql({
+                sql: `UPDATE containers SET status = 'failed', metadata = ?, updated_at = ? WHERE id = ?`,
+                values: [JSON.stringify({ ...metadata, error: message }), Date.now(), row.id],
+            }).catch(() => {});
+        }
 
         await logError({ title: `Computer #${computer_id} couldn't be set up`, error }).catch(() => {});
     } finally {
@@ -118,4 +147,6 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
     }
 
     await pushComputerUpdate({ computer_id }).catch(() => {});
+
+    return done;
 }

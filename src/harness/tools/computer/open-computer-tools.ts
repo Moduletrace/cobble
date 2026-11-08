@@ -5,6 +5,8 @@ import writeComputerEnv from "@/src/functions/backend/computers/write-computer-e
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
+import isComputerDown from "@/src/utils/computer-down";
+import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
@@ -81,7 +83,8 @@ export type OpenComputer = {
  * Every tool is kept in the run's folders (`withComputerDirs`, and the
  * shell and file tools themselves), which are created first. Screenshots
  * come back as images for the run. Call `close` when the run ends. Throws
- * when the computer can't be reached, which the queue retries.
+ * when the computer can't be reached, which the queue retries, unless it's
+ * down (`isComputerDown`): retrying can't bring it back, so it fails once.
  */
 export default async function openComputerTools({
     computer_id,
@@ -100,7 +103,9 @@ export default async function openComputerTools({
     }
 
     if (!target.ready) {
-        throw new Error(computerNotReadyMessage(target));
+        const message = computerNotReadyMessage(target);
+
+        throw isComputerDown({ status: target.status }) ? new BotJobFatalError(message) : new Error(message);
     }
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });

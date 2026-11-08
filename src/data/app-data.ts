@@ -224,6 +224,13 @@ export const AppData = {
     ComputerSetupHeartbeatMs: 30 * 1000,
     ComputerSetupStaleMs: 3 * 60 * 1000,
     /**
+     * A layout migration (`migrateComputerLayout`) whose setup failed
+     * while the old container kept running (an image that couldn't be
+     * pulled) waits this long before it tries again
+     * (`metadata.setup_failed_at`), instead of on every sync.
+     */
+    ComputerMigrateRetryMs: 60 * 60 * 1000,
+    /**
      * How long docker gives a computer's container to stop before it is
      * killed, when it is removed or recreated.
      */
