@@ -1,6 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { AppData } from "@/src/data/app-data";
-import type { MessageDetails, MessageDetailsCall, MessageDetailsJob } from "@/src/types";
+import type { MessageDetails, MessageDetailsCall, MessageDetailsFailure, MessageDetailsJob } from "@/src/types";
 import groupMessageCalls from "@/src/utils/group-message-calls";
 import parseCallSettings from "@/src/utils/parse-call-settings";
 import grabMessageUsage from "./grab-message-usage";
@@ -30,6 +30,21 @@ type CallRow = {
     job_id: number | null;
 };
 
+type FailureRow = {
+    id: number;
+    created_at: number;
+    harness: string | null;
+    provider_name: string | null;
+    provider_kind: string | null;
+    model_slug: string | null;
+    model_name: string | null;
+    source: string | null;
+    status: number | null;
+    error: string | null;
+    rests_until: number | null;
+    job_id: number | null;
+};
+
 type JobRow = {
     id: number;
     kind: string | null;
@@ -43,8 +58,9 @@ type JobRow = {
 
 /**
  * How one message was generated: every model call it took (`token_usages`)
- * with the provider and model that answered, summed per model, and the
- * queued job that ran it, while it is kept. The provider's kind and the
+ * with the provider and model that answered, summed per model, the calls
+ * that failed and why (`harness_call_failures`), and the queued job that
+ * ran it, while it is kept. The provider's kind and the
  * model's display name come from their live rows, so a deleted provider
  * or an unlisted model still reads by the name it was called with.
  */
@@ -80,6 +96,34 @@ export default async function grabMessageDetails({ message_id, created_at }: Par
         settings: parseCallSettings({ json: row.settings }),
     }));
 
+    const failure_rows =
+        (
+            await BunSQLite.sql<FailureRow>({
+                sql: `SELECT f.id, f.created_at, f.harness, f.provider_name, p.kind AS provider_kind,
+                        f.model_slug, m.name AS model_name, f.source, f.status, f.error, f.rests_until, f.job_id
+                    FROM harness_call_failures f
+                    LEFT JOIN harness_providers p ON p.id = f.provider_id
+                    LEFT JOIN harness_models m ON m.id = f.model_id
+                    WHERE f.message_id = ?
+                    ORDER BY f.created_at ASC, f.id ASC`,
+                values: [message_id],
+            })
+        ).payload || [];
+
+    const failures: MessageDetailsFailure[] = failure_rows.map((row) => ({
+        id: Number(row.id),
+        created_at: Number(row.created_at) || 0,
+        harness: row.harness || "text",
+        provider_name: row.provider_name || null,
+        provider_kind: row.provider_kind || null,
+        model_slug: row.model_slug || null,
+        model_name: row.model_name || null,
+        source: row.source == "pinned" || row.source == "fallback" || row.source == "auto" ? row.source : null,
+        status: Number(row.status) || null,
+        error: row.error || "Unknown error",
+        rests_until: Number(row.rests_until) || null,
+    }));
+
     const totals = (await grabMessageUsage({ message_ids: [message_id] })).get(message_id) || {
         prompt_tokens: 0,
         completion_tokens: 0,
@@ -89,9 +133,12 @@ export default async function grabMessageDetails({ message_id, created_at }: Par
 
     /**
      * The job is the one its calls ran for: the latest, since reading a
-     * message aloud later is a call without one.
+     * message aloud later is a call without one. A failure notice may
+     * have only failed calls.
      */
-    const job_id = [...rows].reverse().find((row) => row.job_id)?.job_id;
+    const job_id =
+        [...rows].reverse().find((row) => row.job_id)?.job_id ||
+        [...failure_rows].reverse().find((row) => row.job_id)?.job_id;
 
     return {
         message_id,
@@ -99,6 +146,8 @@ export default async function grabMessageDetails({ message_id, created_at }: Par
         totals,
         models: groupMessageCalls({ calls }),
         calls: calls.slice(0, AppData.MessageDetailsMaxCalls),
+        failures: failures.slice(0, AppData.MessageDetailsMaxCalls),
+        failed_calls: failures.length,
         job: job_id ? await grabJob({ job_id: Number(job_id) }) : null,
     };
 }

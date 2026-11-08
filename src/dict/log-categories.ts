@@ -16,6 +16,10 @@ export const LogCategories = [
         value: "hook",
     },
     {
+        title: "LLM",
+        value: "llm",
+    },
+    {
         title: "System",
         value: "system",
     },

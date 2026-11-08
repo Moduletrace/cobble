@@ -27,7 +27,7 @@ export default async function logCandidateFailure({ harness, candidate, error, r
     try {
         await logEvent({
             title: "Model failed",
-            category: "system",
+            category: "llm",
             plain_text: `${candidate.model.slug} on ${provider} failed a ${harness} call (${candidate.source} pick): ${error.message}.${rest}`,
             details: [
                 { label: "Model", value: candidate.model.slug },

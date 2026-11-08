@@ -1866,7 +1866,40 @@ export type MessageDetails = {
      * `AppData.MessageDetailsMaxCalls`; `totals.calls` counts them all.
      */
     calls: MessageDetailsCall[];
+    /**
+     * The model calls that failed, in order, up to
+     * `AppData.MessageDetailsMaxCalls`; `failed_calls` counts them all.
+     */
+    failures: MessageDetailsFailure[];
+    failed_calls: number;
     job: MessageDetailsJob | null;
+};
+
+/**
+ * One model call that failed (`harness_call_failures`): which model, how
+ * it was picked and what the provider said.
+ */
+export type MessageDetailsFailure = {
+    id: number;
+    created_at: number;
+    harness: string;
+    provider_name: string | null;
+    /**
+     * The provider's kind, while the provider still exists.
+     */
+    provider_kind: string | null;
+    model_slug: string | null;
+    /**
+     * The catalog's display name, while the model is still in it.
+     */
+    model_name: string | null;
+    source: "pinned" | "fallback" | "auto" | null;
+    status: number | null;
+    error: string;
+    /**
+     * Unix ms the failure benched the model (or its provider) until.
+     */
+    rests_until: number | null;
 };
 
 /**

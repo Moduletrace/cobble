@@ -1,4 +1,5 @@
 import type { HarnessCandidate, HarnessUsage } from "../types";
+import candidateModelId from "./candidate-model-id";
 import type { HarnessCallSettings, HarnessUsageCall } from "./types";
 
 type Params = {
@@ -32,7 +33,7 @@ export default function buildUsageCall({ harness, candidate, usage, settings, fa
         harness,
         provider_id: candidate.provider.id,
         provider_name: candidate.provider.name || candidate.provider.kind,
-        model_id: modelIdOf(candidate),
+        model_id: candidateModelId({ candidate }),
         model_slug: candidate.model.slug,
         prompt_tokens: Number(usage?.prompt_tokens) || 0,
         cached_tokens: Number(usage?.cached_tokens) || 0,
@@ -45,15 +46,4 @@ export default function buildUsageCall({ harness, candidate, usage, settings, fa
             ...(resting?.length ? { resting } : {}),
         },
     };
-}
-
-/**
- * The `harness_models` row id, when the candidate carries the catalog row
- * it was resolved from (`withCandidates` doesn't drop it; a candidate made
- * by hand may not have one).
- */
-function modelIdOf(candidate: HarnessCandidate) {
-    const row_id = (candidate.model as { row_id?: number }).row_id;
-
-    return typeof row_id == "number" ? row_id : undefined;
 }

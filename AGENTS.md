@@ -60,7 +60,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 - **Passwords:** bcrypt in `user_passwords` (never in `users`; blocked from CRUD via `src/dict/private-tables.ts`).
 - **User types** (`src/dict/user-types-dict.ts`, the only definition): `super_admin` (user #1), `admin` (only the super admin grants it), `member` (default), `read_only` (non-GET CRUD blocked), `revoked`. A user needs at least one type to sign in.
 - **RBAC:** `src/utils/check-user-access.ts` plus the matrix engine in `src/utils/rbac/` (`userTypeAssignment` over `UserTypeAssignmentMatrix`/`UserTypeDeletionMatrix`).
-- **Audit:** `src/functions/backend/logger.ts` (`logEvent`/`logError` -> `logs`). Auth events, cron runs, every unexpected API error (`safeErrorMessage` -> `logUnexpectedError`, not for `AppError`), every failed or lost bot job. WebSocket connects are not logged. Kept for the app setting `logs_keep_days` (default `AppData.LogsKeepDays`), deleted by the daily `prune-logs`.
+- **Audit:** `src/functions/backend/logger.ts` (`logEvent`/`logError` -> `logs`). Auth events, cron runs, every unexpected API error (`safeErrorMessage` -> `logUnexpectedError`, not for `AppError`), every failed or lost bot job, every failed model call (category `llm`, `logCandidateFailure`; older `system` rows moved at boot by `migrateLlmLogs`). WebSocket connects are not logged. Kept for the app setting `logs_keep_days` (default `AppData.LogsKeepDays`), deleted by the daily `prune-logs`.
 
 ### WebSocket
 
@@ -225,7 +225,8 @@ Read-only browser of every volume (`src/utils/storage-volumes.ts`: bots, workspa
 
 - Every model call writes a `token_usages` row via `record-harness-usage.ts` (never throws) in `withCandidates`'s `on_success`, with the provider/model that actually answered and the call's settings (`HarnessCallSettings`).
 - Attribution through an `AsyncLocalStorage` scope (`src/harness/usage/harness-usage-scope.ts`) entered once in `run-bot-job.ts`; merged, not replaced; `null` clears a field. `withUsageScope` / `runWithFallbackScope` for calls outside a run. No owner, no row.
-- `complete-bot-job.ts` back-fills `message_id` for the job's calls. Messages show `MessageUsageChip` and a details modal (`grabMessageDetails`).
+- Every failed model call also writes a `harness_call_failures` row (`recordHarnessFailure`, beside the log in `withCandidates`: model, pick, HTTP status, the provider's reason, rest), same attribution, no foreign keys, pruned with the logs' retention by `prune-logs`.
+- `attachJobCallsToMessage` back-fills `message_id` for the job's calls and failures, from `complete-bot-job.ts` and `notify-bot-job-failed.ts` (so a failure notice shows why). Messages show `MessageUsageChip` and a details modal (`grabMessageDetails`, failed calls listed with their reasons).
 - `/admin/usage` (crew managers). **Days are local, not UTC:** group with `date(created_at / 1000, 'unixepoch', 'localtime')`; never name a local day with `toISOString().slice(0, 10)` (`bucket-usage-days.test.ts` pins this). Bars use static `h-*` classes from `(data)/usage-bar-heights.ts`.
 
 ### Installer and release

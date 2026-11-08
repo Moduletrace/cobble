@@ -9,6 +9,7 @@ import costLabel from "../(utils)/cost-label";
 import providerLabel from "../(utils)/provider-label";
 import MessageDetailRow from "./message-detail-row";
 import MessageDetailsCallRow from "./message-details-call-row";
+import MessageDetailsFailureRow from "./message-details-failure-row";
 import MessageDetailsHeading from "./message-details-heading";
 import MessageDetailsModelRow from "./message-details-model-row";
 
@@ -18,23 +19,26 @@ type Props = {
 
 /**
  * How a message was generated: the provider and model that answered and
- * what it spent, then the job that ran it, every model it used and every
- * call in order.
+ * what it spent, then the job that ran it, every model it used, every
+ * call in order and every call that failed, with why.
  */
 export default function MessageDetailsBody({ details }: Props) {
-    const { totals, models, calls, job } = details;
+    const { totals, models, calls, failures, failed_calls, job } = details;
     const providers = [
         ...new Set(models.map((m) => providerLabel({ name: m.provider_name, kind: m.provider_kind }))),
     ];
     const model_names = [...new Set(models.map((m) => m.model_name || m.model_slug || "Unknown model"))];
-    const first_at = calls[0]?.created_at || 0;
+    const first_at = Math.min(
+        ...[calls[0]?.created_at, failures[0]?.created_at].filter((at): at is number => Boolean(at)),
+        Number.MAX_SAFE_INTEGER,
+    );
     const job_kind = BotJobKinds.find((k) => k.value == job?.kind)?.title || job?.kind;
     const job_took =
         job?.started_at && job.finished_at ? formatDuration({ ms: job.finished_at - job.started_at }) : "";
 
     return (
         <Stack className="w-full gap-0! items-stretch">
-            {totals.calls ? null : (
+            {totals.calls || failed_calls ? null : (
                 <Span className="mb-2 text-[13px] leading-[18px] text-ink-secondary">
                     No model calls were recorded for this message. It was written by the app itself (a stop, a
                     failure notice), or before usage was recorded.
@@ -50,6 +54,7 @@ export default function MessageDetailsBody({ details }: Props) {
             />
             <MessageDetailRow label="Cost" value={costLabel({ cost: totals.cost })} />
             <MessageDetailRow label="Model calls" value={String(totals.calls)} />
+            {failed_calls ? <MessageDetailRow label="Failed calls" value={String(failed_calls)} /> : null}
             {details.created_at ? (
                 <MessageDetailRow
                     label="Written"
@@ -91,6 +96,25 @@ export default function MessageDetailsBody({ details }: Props) {
                     {totals.calls > calls.length ? (
                         <Span className="mt-1 text-[12px] leading-4 text-ink-secondary">
                             {`Showing the first ${calls.length} of ${totals.calls} calls. The totals count every one.`}
+                        </Span>
+                    ) : null}
+                </>
+            ) : null}
+
+            {failures.length ? (
+                <>
+                    <MessageDetailsHeading>{failures.length > 1 ? "Failed calls" : "Failed call"}</MessageDetailsHeading>
+                    {failures.map((failure, index) => (
+                        <MessageDetailsFailureRow
+                            key={failure.id}
+                            failure={failure}
+                            index={index}
+                            first_at={first_at}
+                        />
+                    ))}
+                    {failed_calls > failures.length ? (
+                        <Span className="mt-1 text-[12px] leading-4 text-ink-secondary">
+                            {`Showing the first ${failures.length} of ${failed_calls} failed calls.`}
                         </Span>
                     ) : null}
                 </>

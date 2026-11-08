@@ -71,6 +71,7 @@ export default async function recordHarnessUsage({ scope, call }: Params) {
     } catch (error: unknown) {
         await logError({
             title: "Model usage not recorded",
+            category: "llm",
             error,
             metadata: {
                 harness: call.harness,

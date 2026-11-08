@@ -5,6 +5,7 @@ import type { HarnessCandidate } from "../types";
 import type { HarnessCooldowns } from "./create-cooldowns";
 import grabModelRestMs from "./grab-model-rest-ms";
 import DefaultCooldowns from "./harness-cooldowns";
+import recordHarnessFailure from "../usage/record-harness-failure";
 import logCandidateFailure from "./log-candidate-failure";
 
 type Params<T> = {
@@ -43,8 +44,10 @@ type Params<T> = {
      */
     rest_ms?: number;
     /**
-     * Writes each failure to the activity log (`logCandidateFailure`). On
-     * by default for the process-wide cooldowns, i.e. real calls.
+     * Writes each failure to the activity log (`logCandidateFailure`) and
+     * to the run's failed calls (`recordHarnessFailure`, shown in its
+     * message's details). On by default for the process-wide cooldowns,
+     * i.e. real calls.
      */
     log_failures?: boolean;
     now?: () => number;
@@ -138,6 +141,7 @@ export default async function withCandidates<T>({
 
             if (log_failures) {
                 await logCandidateFailure({ harness, candidate, error, rests_until });
+                await recordHarnessFailure({ harness, candidate, error, rests_until });
             }
         }
     }

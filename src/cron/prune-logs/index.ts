@@ -3,10 +3,17 @@ import { grabLogsKeepDays } from "@/src/functions/backend/db/app-settings/grab-l
 
 /**
  * Deletes logs older than the install's retention (`grabLogsKeepDays`).
- * Nothing points at a log, so no children go with them.
+ * Nothing points at a log, so no children go with them. Failed model calls
+ * (`harness_call_failures`, shown in a message's details) go with the same
+ * retention.
  */
 export default async function pruneLogs() {
     const cutoff = Date.now() - (await grabLogsKeepDays()) * 24 * 60 * 60 * 1000;
+
+    await BunSQLite.sql({
+        sql: `DELETE FROM harness_call_failures WHERE created_at < ?`,
+        values: [cutoff],
+    });
 
     return await BunSQLite.sql({
         sql: `DELETE FROM logs WHERE created_at < ? RETURNING id`,

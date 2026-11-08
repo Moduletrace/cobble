@@ -671,6 +671,11 @@ export const AppData = {
      */
     MessageDetailsMaxCalls: 200,
     /**
+     * The most characters of a provider's error kept on a failed model
+     * call (`harness_call_failures.error`), shown in the message's details.
+     */
+    HarnessFailureErrorMaxChars: 2000,
+    /**
      * Days of usage the usage page totals by default, and the most it will
      * total at once.
      */

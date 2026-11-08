@@ -12,6 +12,7 @@ import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
 import grabRunningBotJobFace from "./grab-running-bot-job-face";
 import withMessageUsage from "../usage/with-message-usage";
+import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
 import type { HarnessToolUse } from "@/src/harness/types";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
@@ -118,15 +119,7 @@ export default async function completeBotJob({
           });
 
     if (job.id && inserted?.id) {
-        /**
-         * The job's model calls were written down as they happened, before
-         * its message existed. Now that it does, they belong to it, so the
-         * thread can show what the answer cost.
-         */
-        await BunSQLite.sql({
-            sql: `UPDATE token_usages SET message_id = ? WHERE job_id = ? AND message_id IS NULL`,
-            values: [inserted.id, job.id],
-        }).catch(() => {});
+        await attachJobCallsToMessage({ job_id: job.id, message_id: inserted.id });
 
         /**
          * Graphics the run made belong to the message it posted.

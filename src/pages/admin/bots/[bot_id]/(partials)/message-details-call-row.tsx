@@ -23,7 +23,7 @@ type Props = {
  * call's settings.
  */
 export default function MessageDetailsCallRow({ call, index, first_at }: Props) {
-    const offset = index ? `+${formatDuration({ ms: call.created_at - first_at })}` : "start";
+    const offset = call.created_at > first_at ? `+${formatDuration({ ms: call.created_at - first_at })}` : "start";
     const model = call.model_name || call.model_slug || "Unknown model";
     const settings = call.settings
         ? describeCallSettings({ settings: call.settings, harness: call.harness })

@@ -11,6 +11,7 @@ export const LogCategoryStyles: Record<
     websocket: { title: "WebSocket", color: "accent" },
     cron: { title: "Cron", color: "success" },
     hook: { title: "Hook", color: "secondary" },
+    llm: { title: "LLM", color: "warning" },
     system: { title: "System", color: "gray" },
     error: { title: "Error", color: "error" },
 };

@@ -4341,6 +4341,103 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "harness_call_failures",
+            tableDescription: `One model call that failed: which model and provider, what the provider said and how long the model rested, for whom and for what. Attached to the message its job posted (an answer or the failure notice), so the message's details show the models that failed and why. No foreign keys: rows outlive what they point at and go with the logs' retention (\`logs_keep_days\`)`,
+            fields: [
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Whose work it was: the user whose conversation the call ran for. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot it was for, when it was for one. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The workspace the call was in; null for a bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it was in. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "message_id",
+                    fieldDescription: `The message its job posted, filled when the job ends (completed or failed). Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "job_id",
+                    fieldDescription: `The queued job it ran for, when it ran for one. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "harness",
+                    fieldDescription: `What the model was used for`,
+                    dataType: "TEXT",
+                    options: Harnesses.map((h) => h.value),
+                },
+                {
+                    fieldName: "provider_id",
+                    fieldDescription: `The provider it was sent to`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "provider_name",
+                    fieldDescription: `The provider's name as it was, so a deleted provider still reads`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "model_id",
+                    fieldDescription: `The catalog row of the model`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "model_slug",
+                    fieldDescription: `The provider's model id, as it was called`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "source",
+                    fieldDescription: `How the model was chosen: the setting's pick, one of its fallback models or an automatic pick`,
+                    dataType: "TEXT",
+                    options: ["pinned", "fallback", "auto"],
+                },
+                {
+                    fieldName: "status",
+                    fieldDescription: `The provider's HTTP status, when there was one`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "error",
+                    fieldDescription: `Why it failed: the provider's error as the harness read it, cut at \`AppData.HarnessFailureErrorMaxChars\``,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "rests_until",
+                    fieldDescription: `Unix ms the model (or its provider) could be tried again, when the failure benched it`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_harness_call_failures_created_at",
+                    indexTableFields: ["created_at"],
+                },
+                {
+                    indexName: "idx_harness_call_failures_message_id",
+                    indexTableFields: ["message_id"],
+                },
+                {
+                    indexName: "idx_harness_call_failures_job_id",
+                    indexTableFields: ["job_id"],
+                },
+            ],
+        },
+        {
             tableName: "file_ingest_queue",
             tableDescription: `Knowledgebase documents waiting to have their text chunked and embedded (bot files are never indexed). A queue, so a restart never strands a document and an upload never waits on a model. A finished job is deleted: \`knowledgebase_documents.ingested_at\` and \`ingest_error\` keep the outcome`,
             isQueue: {

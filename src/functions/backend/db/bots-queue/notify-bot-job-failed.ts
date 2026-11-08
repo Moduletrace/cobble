@@ -13,6 +13,7 @@ import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import jobTrackerTaskId from "./job-tracker-task-id";
+import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -63,6 +64,14 @@ export default async function notifyBotJobFailed({
         needs_you: true,
         task_ids,
     });
+
+    /**
+     * The notice's details show the run's model calls, the failed ones
+     * with why, so "I couldn't reply" can be explained.
+     */
+    if (message?.id) {
+        await attachJobCallsToMessage({ job_id: job.id, message_id: Number(message.id) });
+    }
 
     const user_id = await grabJobUserId({ job });
     const in_room =
