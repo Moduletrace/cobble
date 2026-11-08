@@ -9,6 +9,8 @@ import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputerOption from "./bot-computer-option";
 import HeaderIconButton from "@/src/components/general/header-icon-button";
 import HeaderMenuItem from "./header-menu-item";
+import HeaderMetaItem from "./header-meta-item";
+import { twMerge } from "tailwind-merge";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -29,10 +31,16 @@ type Props = {
      * A menu row closing the menu as it opens the modal.
      */
     on_open?: () => void;
+    /**
+     * The computer line under the bot's name in the conversation header
+     * (its text) instead of an icon: clicking it opens the modal.
+     */
+    meta_text?: string;
 };
 
 /**
- * The header's computer icon (or its menu row): opens what the bot's
+ * The header's computer icon (or its menu row, or the computer line under
+ * the bot's name): opens what the bot's
  * computers are, the one it's on checked, and with more than one,
  * switches it. Each can be opened in the viewer.
  */
@@ -42,6 +50,7 @@ export default function BotComputersModal({
     menu,
     menu_hint,
     on_open,
+    meta_text,
 }: Props) {
     const { computers, switching_id, error, switchComputer, openComputer } =
         useContext(BotComputersContext);
@@ -65,7 +74,15 @@ export default function BotComputersModal({
     return (
         <Modal
             target={
-                menu ? (
+                meta_text ? (
+                    <HeaderMetaItem
+                        icon={Monitor}
+                        label="Computer"
+                        text={meta_text}
+                        title={title}
+                        button
+                    />
+                ) : menu ? (
                     <HeaderMenuItem
                         icon={Monitor}
                         title="Computer"
@@ -85,7 +102,13 @@ export default function BotComputersModal({
                     />
                 )
             }
-            targetWrapperProps={{ className: menu ? "w-full" : "shrink-0" }}
+            targetWrapperProps={{
+                className: twMerge(
+                    !menu && !meta_text && "shrink-0",
+                    menu && "w-full",
+                    meta_text && "min-w-0 grow overflow-hidden",
+                ),
+            }}
             open={open}
             setOpen={setOpen}
             className="max-w-lg bg-paper p-6"

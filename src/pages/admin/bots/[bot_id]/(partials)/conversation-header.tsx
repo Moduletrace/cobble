@@ -6,7 +6,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Button from "@moduletrace/twui/layout/Button";
 import Dropdown from "@moduletrace/twui/elements/Dropdown";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
-import { EllipsisVertical, Monitor } from "lucide-react";
+import { EllipsisVertical } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import type {
     BotTextModel,
@@ -19,8 +19,8 @@ import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotProfileModal from "./bot-profile-modal";
 import BotModelsModal from "./bot-models-modal";
+import BotComputersModal from "./bot-computers-modal";
 import ConversationHeaderMenu from "./conversation-header-menu";
-import HeaderMetaItem from "./header-meta-item";
 import BackButton from "@/src/components/general/back-button";
 import AdminShield from "@/src/components/general/admin-shield";
 
@@ -131,10 +131,14 @@ export default function ConversationHeader({
                             onSaved={handleModelSaved}
                         />
                         {computer_name ? (
-                            <HeaderMetaItem
-                                icon={Monitor}
-                                label="Computer"
-                                text={computer_name}
+                            <BotComputersModal
+                                bot={bot}
+                                workspace_name={
+                                    workspace?.id
+                                        ? workspace.name || "This workspace"
+                                        : null
+                                }
+                                meta_text={computer_name}
                             />
                         ) : null}
                     </Row>
