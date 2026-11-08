@@ -1,9 +1,11 @@
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
+import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import transformImageTool from "./transform-image-tool";
 import generateImageTool from "./generate-image-tool";
+import generateVideoTool from "./generate-video-tool";
 import grabStorageTools from "./grab-storage-tools";
 import makePdfTool from "./make-pdf-tool";
 import storageToolContext from "./storage-tool-context";
@@ -31,6 +33,9 @@ type Params = {
  * its own directory and, in a workspace or as the coordinator, the shared
  * ones, plus making images and PDFs into them and editing images. Every run gets them, so a
  * chat reply, a task and a scheduled run all work with the same files.
+ * Making videos (`generate_video`) comes only while a video model is set
+ * up for the bot there (`canMakeVideos`): no model is free, so most
+ * installs have none, and the tool would only fail.
  */
 export default async function grabBotFileTools({
     bot,
@@ -49,10 +54,35 @@ export default async function grabBotFileTools({
         onAttach,
     });
 
+    const videos = await canMakeVideos({ bot_id: bot.id, workspace_id });
+
     return [
         ...grabStorageTools(context),
         generateImageTool(context),
+        ...(videos ? [generateVideoTool(context)] : []),
         transformImageTool(context),
         makePdfTool(context),
     ];
+}
+
+/**
+ * Whether video generation or video editing is on and has a model for the
+ * bot there.
+ */
+async function canMakeVideos({
+    bot_id,
+    workspace_id,
+}: {
+    bot_id?: number | string;
+    workspace_id?: number | string | null;
+}) {
+    for (const harness of ["video", "video_edit"] as const) {
+        const candidates = await resolveHarnessCandidates({ harness, bot_id, workspace_id }).catch(
+            () => [],
+        );
+
+        if (candidates.length) return true;
+    }
+
+    return false;
 }

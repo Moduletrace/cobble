@@ -12,6 +12,11 @@
  * - `image_edit_path`: where images made from reference images go. OpenRouter
  *   takes them on `image_path` (`input_references`); the others take a
  *   multipart upload at `/images/edits`
+ * - `video_path`: where video jobs are asked for and checked on
+ *   (`<video_path>/<id>`, its bytes at `<video_path>/<id>/content`).
+ *   OpenRouter's takes JSON with images and videos to work from; the
+ *   others are called the way OpenAI's (Sora) is: a multipart form with at
+ *   most one image to start from and no videos
  */
 export const HarnessProviderKinds = [
     {
@@ -24,6 +29,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images",
         image_edit_path: "/images",
+        video_path: "/videos",
     },
     {
         title: "OpenAI",
@@ -35,6 +41,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "Anthropic",
@@ -46,6 +53,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "Google Gemini",
@@ -57,6 +65,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "DeepSeek",
@@ -68,6 +77,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "Groq",
@@ -79,6 +89,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "Mistral",
@@ -90,6 +101,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "xAI",
@@ -101,6 +113,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "Ollama",
@@ -112,6 +125,7 @@ export const HarnessProviderKinds = [
         local: true,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
     {
         title: "Other (OpenAI-compatible)",
@@ -123,6 +137,7 @@ export const HarnessProviderKinds = [
         local: false,
         image_path: "/images/generations",
         image_edit_path: "/images/edits",
+        video_path: "/videos",
     },
 ] as const;
 

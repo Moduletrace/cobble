@@ -9,5 +9,7 @@ export const UsageHarnessTitles: Record<string, string> = {
     speech: "Speech",
     image: "Image generation",
     image_edit: "Image editing",
+    video: "Video generation",
+    video_edit: "Video editing",
     embedding: "Embeddings",
 };

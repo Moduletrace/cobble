@@ -207,6 +207,8 @@ export type HarnessUsageKind =
     | "speech"
     | "image"
     | "image_edit"
+    | "video"
+    | "video_edit"
     | "embedding";
 
 export type HarnessChatParams = {
@@ -284,6 +286,50 @@ export type HarnessImageOutput = {
     media_type: string;
 };
 
+/**
+ * A still image a video starts or ends on (`first_frame`, `last_frame`),
+ * or one it only follows for its look and content (`reference`).
+ */
+export type HarnessVideoImage = {
+    /**
+     * An https or `data:` URL.
+     */
+    url: string;
+    role: "first_frame" | "last_frame" | "reference";
+};
+
+export type HarnessVideoParams = {
+    candidate: HarnessCandidate;
+    prompt: string;
+    /**
+     * Seconds, when the model takes one.
+     */
+    duration?: number;
+    /**
+     * e.g. `720p`, `1080p`.
+     */
+    resolution?: string;
+    /**
+     * e.g. `16:9`, `9:16`.
+     */
+    aspect_ratio?: string;
+    images?: HarnessVideoImage[];
+    /**
+     * Videos to change: https or `data:` URLs.
+     */
+    videos?: string[];
+    /**
+     * Whether the video gets sound, for models that make it.
+     */
+    audio?: boolean;
+    signal: AbortSignal;
+};
+
+export type HarnessVideoOutput = {
+    data: Uint8Array;
+    media_type: string;
+};
+
 export type HarnessEmbedParams = {
     candidate: HarnessCandidate;
     /**
@@ -325,6 +371,14 @@ export type HarnessAdapter = {
     generateImage: (
         params: HarnessImageParams,
     ) => Promise<{ images: HarnessImageOutput[]; usage?: HarnessUsage }>;
+    /**
+     * A video is a job at the provider: asked for, waited on, downloaded.
+     * Video models bill per second of video, so `usage` is only the cost
+     * a provider reports.
+     */
+    generateVideo: (
+        params: HarnessVideoParams,
+    ) => Promise<{ videos: HarnessVideoOutput[]; usage?: HarnessUsage }>;
     embed: (params: HarnessEmbedParams) => Promise<HarnessEmbedResult>;
     listModels: (params: {
         provider: HarnessProviderConfig;

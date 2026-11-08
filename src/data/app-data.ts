@@ -513,6 +513,22 @@ export const AppData = {
     ImageReferenceMaxCount: 4,
     ImageReferenceMaxBytes: 10 * 1024 * 1024,
     /**
+     * `generate_video`: the still images one call passes on (first and
+     * last frame, or references to follow), the videos it passes to change
+     * and the largest each video may be (sent inline, as a `data:` URL).
+     */
+    VideoImageMaxCount: 4,
+    VideoSourceMaxCount: 2,
+    VideoSourceMaxBytes: 30 * 1024 * 1024,
+    /**
+     * A video is made as a job at the provider: asked for, then checked on
+     * every `VideoPollIntervalMs` until it's done, for at most
+     * `VideoMaxWaitMs` (below `HarnessToolTimeoutMs`, so the tool call
+     * gets to say what happened).
+     */
+    VideoPollIntervalMs: 10 * 1000,
+    VideoMaxWaitMs: 8 * 60 * 1000,
+    /**
      * `transform_image`: the largest source file and source (in pixels) it
      * opens, the longest side a result may have, the steps one call takes,
      * and the longest side of the preview the bot looks at afterwards.

@@ -64,7 +64,7 @@ export type HarnessCallSettings = {
 };
 
 export type HarnessUsageCall = {
-    harness: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "embedding";
+    harness: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "video" | "video_edit" | "embedding";
     provider_id?: number;
     provider_name?: string;
     model_id?: number;

@@ -1683,7 +1683,7 @@ export type BUN_SQLITE_COBBLE_HARNESS_SETTINGS = {
      * The time when the record was updated. (Unix Timestamp)
      */
     updated_at?: number | "";
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "embedding" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "video" | "video_edit" | "embedding" | "";
     /** 
      * harness_models row picked by a super admin. Null picks automatically. Not a foreign key, so removing a provider leaves the setting
      */
@@ -1723,7 +1723,7 @@ export type BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS = {
      * The worker bot that overrides the default. The coordinator always uses the defaults
      */
     bot_id?: number | "";
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "embedding" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "video" | "video_edit" | "embedding" | "";
     /** 
      * harness_models row picked for this bot. Null picks automatically. Not a foreign key, like harness_settings
      */
@@ -1763,7 +1763,7 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS = {
      * The workspace
      */
     workspace_id?: number | "";
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "embedding" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "video" | "video_edit" | "embedding" | "";
     /** 
      * harness_models row picked for this workspace. Null picks automatically. Not a foreign key, like harness_settings
      */
@@ -2572,9 +2572,9 @@ export type BUN_SQLITE_COBBLE_BOT_FILES = {
      */
     size?: number | "";
     /** 
-     * What it is for: an upload, something the bot wrote, a generated image or PDF
+     * What it is for: an upload, something the bot wrote, a generated image, video or PDF
      */
-    purpose?: "upload" | "writing" | "image" | "pdf" | "artifact" | "";
+    purpose?: "upload" | "writing" | "image" | "video" | "pdf" | "artifact" | "";
     /** 
      * How it got here: the user attached it to a message, the bot wrote it, or a tool made it
      */
@@ -2619,9 +2619,9 @@ export type BUN_SQLITE_COBBLE_TOKEN_USAGES = {
      */
     job_id?: number | "";
     /** 
-     * What the model was used for: a chat turn, reading media, transcribing, speaking, making an image, embedding
+     * What the model was used for: a chat turn, reading media, transcribing, speaking, making an image or a video, embedding
      */
-    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "embedding" | "";
+    harness?: "text" | "vision" | "transcription" | "speech" | "image" | "image_edit" | "video" | "video_edit" | "embedding" | "";
     /** 
      * The provider that served it. Not a foreign key: it stays readable after the provider is deleted
      */

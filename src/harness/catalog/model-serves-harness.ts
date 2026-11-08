@@ -18,6 +18,8 @@ type Params = {
  * - speech: a text-to-speech model
  * - image: makes images
  * - image_edit: makes images from reference images (takes and makes them)
+ * - video: makes videos
+ * - video_edit: changes videos (takes and makes them)
  * - embedding: turns text into vectors (never a chat model)
  */
 export default function modelServesHarness({ model, harness }: Params) {
@@ -44,6 +46,12 @@ export default function modelServesHarness({ model, harness }: Params) {
 
         case "image_edit":
             return input.has("image") && output.has("image");
+
+        case "video":
+            return output.has("video");
+
+        case "video_edit":
+            return input.has("video") && output.has("video");
 
         case "embedding":
             return output.has("embeddings");

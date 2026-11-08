@@ -12,6 +12,15 @@ type Guess = Pick<
 const Transcription = /whisper|transcri|(?:^|[-_/])(stt|asr)(?=$|[-_:.])|scribe/i;
 const Speech = /(?:^|[-_/])tts(?=$|[-_:.])|speech|voice/i;
 const ImageOut = /dall-e|gpt-image|imagen|flux|stable-diffusion|sdxl|image-gen|qwen-image|kontext|seedream|image-edit/i;
+/**
+ * Video models. Checked before images: some share a family name
+ * (`grok-imagine-video`, `flux-video-edit`).
+ */
+const VideoOut = /sora|(?:^|[-_/])veo(?=$|[-_:.\d])|kling|seedance|hailuo|(?:^|[-_/])wan-?\d|runway|aleph|video/i;
+/**
+ * Video models that take a video to change.
+ */
+const VideoIn = /video-?edit|aleph|seedance-?2|wan-?3|(?:^|[-_/])v2v(?=$|[-_:.])/i;
 const Embedding = /embed/i;
 /**
  * Chat families that read images.
@@ -21,8 +30,8 @@ const ImageIn =
 
 /**
  * What a model takes and makes, guessed from its id, for providers whose
- * model list only has ids. Anything that isn't plainly a speech, image or
- * embedding model is taken for a chat model that can call tools.
+ * model list only has ids. Anything that isn't plainly a speech, video,
+ * image or embedding model is taken for a chat model that can call tools.
  */
 export default function guessModelModalities({ slug }: Params): Guess {
     if (Transcription.test(slug)) {
@@ -37,6 +46,14 @@ export default function guessModelModalities({ slug }: Params): Guess {
         return {
             input_modalities: ["text"],
             output_modalities: ["speech"],
+            supports_tools: false,
+        };
+    }
+
+    if (VideoOut.test(slug)) {
+        return {
+            input_modalities: VideoIn.test(slug) ? ["text", "image", "video"] : ["text", "image"],
+            output_modalities: ["video"],
             supports_tools: false,
         };
     }

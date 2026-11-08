@@ -46,7 +46,7 @@ export default function replyClaimProblems({
 
     if (missing_file_ids.length) {
         problems.push(
-            `It names ${missing_file_ids.map((id) => `[file:${id}]`).join(", ")}, but no such file exists. A file exists only once write_file, make_pdf, generate_image or import_file saved it; list_files shows what's there.`,
+            `It names ${missing_file_ids.map((id) => `[file:${id}]`).join(", ")}, but no such file exists. A file exists only once write_file, make_pdf, generate_image, generate_video or import_file saved it; list_files shows what's there.`,
         );
     }
 

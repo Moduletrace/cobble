@@ -34,6 +34,10 @@ export const BotFilePurposes = [
         value: "image",
     },
     {
+        title: "Video",
+        value: "video",
+    },
+    {
         title: "PDF",
         value: "pdf",
     },

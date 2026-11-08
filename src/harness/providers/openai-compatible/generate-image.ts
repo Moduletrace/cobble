@@ -1,9 +1,9 @@
 import { AppData } from "@/src/data/app-data";
-import bufferFromBase64 from "@/src/utils/buffer-from-base-64";
 import HarnessError from "../../harness-error";
 import type { HarnessAdapter, HarnessImageOutput } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
 import providerRequest from "./provider-request";
+import referenceBlob from "./reference-blob";
 
 /**
  * Image generation at the provider's `image_path` (`/images` on
@@ -148,28 +148,4 @@ async function editForm({ model, prompt, n, size, references, signal }: EditForm
     }
 
     return form;
-}
-
-/**
- * A reference's bytes: decoded from a `data:` URL, downloaded otherwise.
- */
-async function referenceBlob({ url, signal }: { url: string; signal: AbortSignal }) {
-    if (url.startsWith("data:")) {
-        const { buffer, ext } = await bufferFromBase64(url);
-        const type = url.slice(5, url.indexOf(";")) || "image/png";
-
-        return { blob: new Blob([new Uint8Array(buffer)], { type }), ext };
-    }
-
-    const download = await fetch(url, {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(AppData.HarnessRequestTimeoutMs)]),
-    });
-
-    if (!download.ok) {
-        throw new HarnessError({ message: `A reference image couldn't be downloaded.` });
-    }
-
-    const type = download.headers.get("content-type")?.split(";")[0] || "image/png";
-
-    return { blob: new Blob([await download.arrayBuffer()], { type }), ext: type.split("/")[1] || "png" };
 }

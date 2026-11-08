@@ -87,4 +87,18 @@ describe("modelServesHarness", () => {
             }),
         ).toBe(true);
     });
+
+    test("video generation makes videos; video editing takes them too", () => {
+        const video = { ...chat, input_modalities: ["text", "image"], output_modalities: ["video"] };
+
+        expect(modelServesHarness({ model: video, harness: "video" })).toBe(true);
+        expect(modelServesHarness({ model: video, harness: "video_edit" })).toBe(false);
+        expect(modelServesHarness({ model: video, harness: "image" })).toBe(false);
+        expect(
+            modelServesHarness({
+                model: { ...video, input_modalities: ["text", "video"] },
+                harness: "video_edit",
+            }),
+        ).toBe(true);
+    });
 });

@@ -127,6 +127,7 @@ export const JobStepToolLabels: Record<string, string> = {
     update_graphic: "Redrawing a graphic",
     read_graphic: "Reading a graphic",
     list_graphics: "Looking through graphics",
+    generate_video: "Making a video",
 };
 
 /**

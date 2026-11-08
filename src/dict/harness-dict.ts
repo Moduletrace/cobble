@@ -3,8 +3,8 @@
  * setting (`harness_settings`). Text is the brain and can't be turned off;
  * the others are helpers it calls on. `automatic` ones pick a free model
  * themselves when none is picked; the rest (transcription, speech,
- * embeddings) are not available until one is, since free picks there
- * rarely work. `install_wide` ones take only the default setting (Settings
+ * video, embeddings) are not available until one is, since free picks
+ * there rarely work (and no video model is free). `install_wide` ones take only the default setting (Settings
  * > Models): no bot or workspace can pick its own, since every vector they
  * write must come from the same model to be compared.
  */
@@ -58,6 +58,22 @@ export const Harnesses = [
         install_wide: false,
     },
     {
+        title: "Video generation",
+        value: "video",
+        automatic: false,
+        description: `Makes short videos when a bot is asked for one, from a description and, for models that take them, still images to start from or follow.`,
+        required: false,
+        install_wide: false,
+    },
+    {
+        title: "Video editing",
+        value: "video_edit",
+        automatic: false,
+        description: `Changes videos a bot passes on: swap a scene, restyle a clip, add or remove what's in it. Until a model is picked here (or while it's off), video generation models that take videos do it.`,
+        required: false,
+        install_wide: false,
+    },
+    {
         title: "Embeddings",
         value: "embedding",
         automatic: false,
@@ -78,11 +94,13 @@ export function isInstallWideHarness({ harness }: { harness: HarnessKind }) {
 
 /**
  * Harnesses that hand their work to another one instead of picking
- * models automatically: image editing goes to image generation while it
- * has no model (or is off), and after its model fails when fallback is on.
+ * models automatically: image editing goes to image generation (video
+ * editing to video generation) while it has no model (or is off), and
+ * after its model fails when fallback is on.
  */
 export const HarnessFallbacks: Partial<Record<HarnessKind, HarnessKind>> = {
     image_edit: "image",
+    video_edit: "video",
 };
 
 /**

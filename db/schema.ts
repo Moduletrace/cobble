@@ -4151,7 +4151,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "purpose",
-                    fieldDescription: `What it is for: an upload, something the bot wrote, a generated image or PDF`,
+                    fieldDescription: `What it is for: an upload, something the bot wrote, a generated image, video or PDF`,
                     dataType: "TEXT",
                     options: BotFilePurposes.map((p) => p.value),
                     defaultValue: "writing",
@@ -4264,7 +4264,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "harness",
-                    fieldDescription: `What the model was used for: a chat turn, reading media, transcribing, speaking, making an image, embedding`,
+                    fieldDescription: `What the model was used for: a chat turn, reading media, transcribing, speaking, making an image or a video, embedding`,
                     dataType: "TEXT",
                     options: Harnesses.map((h) => h.value),
                 },
