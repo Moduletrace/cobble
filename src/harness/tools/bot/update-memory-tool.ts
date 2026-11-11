@@ -28,7 +28,7 @@ const UserScopeNote = `what you remember about this user, under "# Memory about 
 
 const CoreScopeNote = `scope "core" is your core memory, under "# Memory", shared with every user you work for: only general knowledge about your job that holds for anyone, never anything about a particular user.`;
 
-const WorkspaceScopeNote = `scope "workspace" (the default) is your own memory for this workspace, under "# Memory in ...": what holds for the work here. It is yours, not the workspace's description or context, which the user sets and which you never change from here.`;
+const WorkspaceScopeNote = `scope "workspace" (the default) is your own memory for this workspace, under "# Memory in ...": what holds for the work here. It is yours, not the workspace's description or context, which the user sets and which you never change from here. Keep it concise with lasting rules and architecture; never put database dumps, row counts, file contents or full query output in memory (save those to files).`;
 
 const ReplaceNote = `Anything you leave out is forgotten, so include the parts that still matter.`;
 

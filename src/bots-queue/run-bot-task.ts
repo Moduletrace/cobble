@@ -405,9 +405,7 @@ export default async function runBotTask({
                 prompt,
                 carry_over,
                 TaskRunNote,
-                budget > 0 || scheduled || hooked
-                    ? `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`
-                    : "",
+                `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: pace yourself, save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`,
                 scheduled ? ScheduledRunNote : "",
                 hooked ? HookRunNote : "",
                 install_request_id ? InstallRequestNote : "",
