@@ -105,10 +105,12 @@ type Params = {
  * update_bot, delete_bot and delete_workspace (which workspace, which
  * computers, and which name, role and core instructions each crew member
  * gets, and what goes) and the install's skills, MCP servers and custom
- * tools (`grabCoordinatorExtensionTools`) or, in a workspace,
- * set_bot_workspace_instructions and update_bot for the workspace's crew
- * (a bot's core prompt is asked for from wherever the user is), plus
- * set_bot_type to make a worker a workspace's admin. A workspace admin, in the workspace it leads, gets
+ * tools (`grabCoordinatorExtensionTools`, in a workspace as much as in its
+ * own chat: a runbook for the crew there is written from either) or, in a
+ * workspace, set_bot_workspace_instructions and update_bot for the
+ * workspace's crew (a bot's core prompt is asked for from wherever the
+ * user is), plus set_bot_type to make a worker a workspace's admin. A
+ * workspace admin, in the workspace it leads, gets
  * `grabWorkspaceAdminTools`. Every gate reads the bot's types (`powers`),
  * never `bots.kind`. Anything else on a computer goes through a task,
  * never mid-reply.
@@ -177,6 +179,14 @@ export default async function grabBotChatTools({
         return tools;
     }
 
+    /**
+     * The install's skills, MCP servers and tools are the coordinator's
+     * wherever it works, a workspace as much as its own chat: a skill the
+     * crew there needs is written from either, and every tool checks the
+     * super admin again when it runs.
+     */
+    tools.push(...(await grabCoordinatorExtensionTools({ user_id, bot_id, session_id, workspace_id, onPropose })));
+
     const workspaces = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
 
     /**
@@ -227,12 +237,7 @@ export default async function grabBotChatTools({
         return tools;
     }
 
-    tools.push(
-        findBotTool(),
-        findWorkspaceTool({ user_id }),
-        listWorkspaceBotsTool({ user_id }),
-        ...(await grabCoordinatorExtensionTools({ user_id, bot_id, session_id, workspace_id, onPropose })),
-    );
+    tools.push(findBotTool(), findWorkspaceTool({ user_id }), listWorkspaceBotsTool({ user_id }));
 
     tools.push(deleteWorkspaceTool({ user_id, workspaces }));
 
