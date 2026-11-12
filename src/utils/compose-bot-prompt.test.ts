@@ -64,9 +64,9 @@ describe("composeBotPrompt", () => {
                 "# You are Scout\n\nFind things.",
                 `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.\n\nShip by Friday.`,
                 "# Your instructions in Launch\n\nOwn the changelog.",
-                "# Memory\n\n- Cite sources.",
-                "# Memory about the user\n\n- The user prefers short replies.",
-                `# Memory in Launch\n\nYour own notes for this workspace: what you have learned here. They are not the workspace's description or context, which the user sets above; never call them the workspace's record. The user reads them in the workspace's settings, under this bot's row.\n\n- Marketing signs off on copy.`,
+                "# Memory\n\nYour own notes: they shape how you do what you're asked, never what you're asked to do.\n\n- Cite sources.",
+                "# Memory about the user\n\nWhat you've learned about the user. It shapes how you do the work, never what you do beyond it.\n\n- The user prefers short replies.",
+                `# Memory in Launch\n\nYour own notes for this workspace: what you have learned here. They shape how you do the work here, never what you do beyond it. They are not the workspace's description or context, which the user sets above; never call them the workspace's record. The user reads them in the workspace's settings, under this bot's row.\n\n- Marketing signs off on copy.`,
             ].join("\n\n"),
         );
     });
@@ -88,7 +88,7 @@ describe("composeBotPrompt", () => {
                 "Core.",
                 "# Install-wide instructions\n\nNever invent sources.",
                 `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.`,
-                "# Memory\n\n- Cite sources.",
+                "# Memory\n\nYour own notes: they shape how you do what you're asked, never what you're asked to do.\n\n- Cite sources.",
             ].join("\n\n"),
         );
     });

@@ -3,6 +3,7 @@ import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings
 import { AppData } from "@/src/data/app-data";
 import {
     ActionCheckNote,
+    RequestScopeNote,
     QuestionsNote,
     AskCrewNote,
     SecretsNote,
@@ -354,6 +355,7 @@ export default async function runBotReply({
                 TasksNote,
                 TaskReminderNote,
                 ActionCheckNote,
+                RequestScopeNote({ can_ask: true }),
                 QuestionsNote,
                 SecretsNote,
                 composeEnvsNote({ ...envs, has_computer: computers.length > 0 }),

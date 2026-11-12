@@ -6,6 +6,7 @@ import {
     coordinatorReplyNote,
     crewRequestsNote,
     openRunsNote,
+    RequestScopeNote,
     TaskIncomingNote,
     TaskRedraftNote,
     TaskWrapUpIncomingNote,
@@ -101,6 +102,29 @@ describe("openRunsNote", () => {
 
     test("is empty with no open runs", () => {
         expect(openRunsNote({ runs: [] })).toBe("");
+    });
+});
+
+describe("RequestScopeNote", () => {
+    test("sends crew changes and handed-out work through one ask_user card", () => {
+        const note = RequestScopeNote({ can_ask: true });
+
+        expect(note).toContain("not permission to put them in a workspace, assign them computers or give them work");
+        expect(note).toContain("a standing preference is not a standing instruction");
+        expect(note).toContain("the same ask_user card");
+        expect(note).toContain("delegating a task");
+        expect(note).toContain("don't offer it again in this conversation");
+        expect(note).not.toContain("the brief is what you may do");
+        expect(note).not.toContain("\u2014");
+    });
+
+    test("proposes instead of asking when nobody is watching", () => {
+        const note = RequestScopeNote({ can_ask: false });
+
+        expect(note).toContain("the brief is what you may do");
+        expect(note).toContain("Say in your report what you would propose");
+        expect(note).not.toContain("ask_user");
+        expect(note).not.toContain("\u2014");
     });
 });
 

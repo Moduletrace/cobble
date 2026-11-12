@@ -6,6 +6,7 @@ import workspaceAdminsNote from "./workspace-admins-note";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import {
     ActionCheckNote,
+    RequestScopeNote,
     QuestionsNote,
     SecretsNote,
     GraphicsNote,
@@ -413,6 +414,7 @@ export default async function runBotTask({
                 ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
                 TasksNote,
                 ActionCheckNote,
+                RequestScopeNote({ can_ask }),
                 can_ask ? QuestionsNote : "",
                 SecretsNote,
                 GraphicsNote,

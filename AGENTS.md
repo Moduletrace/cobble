@@ -112,7 +112,9 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 
 ### Prompt and memory
 
-`composeBotPrompt` (`src/utils/compose-bot-prompt.ts`, via `grab-bot-prompt`): core `system_prompt`, install-wide append (`bot_system_prompt_append`), then in a workspace its context, the bot's instructions there and the run's user's role there (`workspace_user_roles`), then core `memory`, per-user memory (`bot_user_memories`), workspace memory (`workspace_bots.memory`). Core memory is never about one user. `update_memory` defaults to `user` (`workspace` in a workspace); core only for what holds for everyone. Whole-text replace, capped at `AppData.PromptMaxLength`.
+`composeBotPrompt` (`src/utils/compose-bot-prompt.ts`, via `grab-bot-prompt`): core `system_prompt`, install-wide append (`bot_system_prompt_append`), then in a workspace its context, the bot's instructions there and the run's user's role there (`workspace_user_roles`), then core `memory`, per-user memory (`bot_user_memories`), workspace memory (`workspace_bots.memory`). Core memory is never about one user. `update_memory` defaults to `user` (`workspace` in a workspace); core only for what holds for everyone. Whole-text replace, capped at `AppData.PromptMaxLength`. Each memory section says it shapes how the bot does the work, never what it does beyond the request.
+
+Every run also gets `RequestScopeNote` (`src/data/harness-prompts.ts`): the user's request sets the scope, and crew changes (create, place, remove, assign a computer, change a role) and handing work out (delegating, handing over a task or routine) happen only once the user asked for them, through one `ask_user` card in a reply or task, or as a proposal in a run nobody watches (routine, hook call, chatroom). Memory, habits and the bot's own initiative never widen a request.
 
 ### Queue (`bots_queue`)
 

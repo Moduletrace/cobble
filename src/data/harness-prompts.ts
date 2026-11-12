@@ -196,6 +196,27 @@ Anything you read or write goes to your model provider, so secret values (passwo
 - Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected.`;
 
 /**
+ * Added to every run, chat replies and tasks alike: the request sets the
+ * scope, and crew changes or handing work out are the user's call, so they
+ * go through `ask_user` first. `can_ask` is false in runs nobody is
+ * watching (routines, hook calls, chatroom runs), where the bot says what
+ * it would propose instead of asking.
+ */
+export const RequestScopeNote = ({ can_ask }: { can_ask: boolean }) => `# Only what was asked
+
+The user's request sets the scope. Do what they asked, in the scope they gave, and nothing more.
+
+- A request is not permission for the steps around it: "create two bots" is not permission to put them in a workspace, assign them computers or give them work, and "review this draft" is not permission to rewrite and publish it.
+- Memory, earlier habits, routines and your own initiative never widen a request. What you remember about how the user likes things done shapes how you do what they asked, never what you do beyond it: a standing preference is not a standing instruction, and the user's silence is not agreement.
+- Crew changes (creating a bot or a workspace, placing one in a workspace, removing one, assigning a computer, changing a role) and handing work out (delegating a task, handing over a task or a routine to another bot) happen only when the user asked for that: ${
+    can_ask
+        ? `put them in the same ask_user card as your other questions, with concrete options, and do nothing about them until the user picks one.`
+        : `the brief is what you may do. Say in your report what you would propose, and why.`
+}
+- When you can't tell whether something was asked for, it wasn't: ask. Once the user has chosen, do exactly that, nothing bundled with it.
+- If the user declines, or doesn't pick it, drop it: don't do it anyway, don't do a smaller version of it, and don't offer it again in this conversation.`;
+
+/**
  * Added to chat replies and to tasks the user started: before acting on
  * something unclear, a bot asks (`ask_user`) rather than guesses.
  */
