@@ -7,6 +7,7 @@ import type { HarnessContentPart } from "@/src/harness/types";
 import type { BotMessageWithAttachments } from "@/src/types";
 import extractBotFileText from "@/src/functions/backend/db/bot-files/extract-bot-file-text";
 import describeAttachment from "./describe-attachment";
+import liveAttachmentMessages from "./live-attachment-messages";
 
 type Params = {
     /**
@@ -17,18 +18,13 @@ type Params = {
 
 /**
  * The files of the latest few messages that have any
- * (`AppData.BotReplyAttachmentMessages`), as model input by message id:
- * images and audio as themselves (a model that can't take them gets them
- * read first), documents as their text, videos as a note. Older files are
- * only named (`botMessagesToHarness`).
+ * (`liveAttachmentMessages`), as model input by message id: images and
+ * audio as themselves (a model that can't take them gets them read
+ * first), documents as their text, videos as a note. Older files are only
+ * named (`botMessagesToHarness`).
  */
 export default async function loadAttachmentParts({ messages }: Params) {
-    const recent = messages
-        .filter((message) => message.attachments?.length)
-        .slice(-AppData.BotReplyAttachmentMessages)
-        .map((message) => Number(message.id));
-
-    const media = await grabMessagesMedia({ message_ids: recent });
+    const media = await grabMessagesMedia({ message_ids: liveAttachmentMessages({ messages }) });
     const parts = new Map<number, HarnessContentPart[]>();
 
     for (const [message_id, files] of media) {

@@ -1,7 +1,9 @@
 import { MediaReadNote } from "@/src/data/harness-prompts";
 import transcribeAudio from "../audio/transcribe-audio";
 import HarnessError from "../harness-error";
+import type { ReadingCache } from "../media/create-reading-cache";
 import imageReadingKey from "../media/image-reading-key";
+import MediaReadings from "../media/media-readings";
 import readImage from "../media/read-image";
 import type {
     HarnessContentPart,
@@ -23,6 +25,13 @@ type Params = {
      * read twice.
      */
     cache: Map<string, string>;
+    /**
+     * Readings kept across runs (`MediaReadings`), so an image the
+     * conversation carries is read once rather than once per reply. An
+     * image with a `redact` is never written here: a secret's reading must
+     * not outlive the run that asked for it.
+     */
+    readings?: ReadingCache;
     signal: AbortSignal;
     /**
      * Reads media with this bot's models when it has its own.
@@ -50,6 +59,7 @@ export default async function prepareMessagesForModel({
     model,
     sees_images = false,
     cache,
+    readings = MediaReadings,
     signal,
     bot_id,
     workspace_id,
@@ -71,6 +81,8 @@ export default async function prepareMessagesForModel({
                     key: imageReadingKey({ url: part.url, focus: part.focus }),
                     label: `Image${part.name ? ` "${part.name}"` : ""}`,
                     cache,
+                    readings,
+                    share: !part.redact,
                     signal,
                     read: async () => {
                         const reading = await read_image({
@@ -95,6 +107,8 @@ export default async function prepareMessagesForModel({
                     key: `audio:${Bun.hash(part.data)}`,
                     label: `Audio${part.name ? ` "${part.name}"` : ""}, transcribed`,
                     cache,
+                    readings,
+                    share: true,
                     signal,
                     read: () =>
                         transcribe({
@@ -148,22 +162,34 @@ async function readOnce({
     key,
     label,
     cache,
+    readings,
+    share,
     signal,
     read,
 }: {
     key: string;
     label: string;
     cache: Map<string, string>;
+    readings: ReadingCache;
+    /**
+     * Whether the reading may be kept across runs. Not for an image read
+     * so a secret can be cut out of it: that reading belongs to this run.
+     */
+    share: boolean;
     signal: AbortSignal;
     read: () => Promise<string>;
 }) {
-    const cached = cache.get(key);
+    const cached = cache.get(key) ?? (share ? readings.get({ key }) : undefined);
 
-    if (cached !== undefined) return cached;
+    if (cached !== undefined) {
+        cache.set(key, cached);
+        return cached;
+    }
 
     try {
         const text = `[${label}: ${await read()}]`;
         cache.set(key, text);
+        if (share) readings.set({ key, text });
         return text;
     } catch (error: unknown) {
         if (signal.aborted || (error instanceof HarnessError && error.code == "aborted")) {

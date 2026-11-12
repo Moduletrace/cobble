@@ -1,5 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { MediaReadNote } from "@/src/data/harness-prompts";
+import createReadingCache from "../media/create-reading-cache";
+import MediaReadings from "../media/media-readings";
 import type { HarnessMessage } from "../types";
 import prepareMessagesForModel from "./prepare-messages-for-model";
 
@@ -18,6 +20,10 @@ const messages: HarnessMessage[] = [
 const signal = new AbortController().signal;
 
 describe("prepareMessagesForModel", () => {
+    // Readings are kept across runs in one process-wide cache, so a test that
+    // expects an image to be read must start without another test's reading.
+    beforeEach(() => MediaReadings.clear());
+
     test("keeps media the model can take", async () => {
         const fitted = await prepareMessagesForModel({
             messages,
@@ -142,6 +148,73 @@ describe("prepareMessagesForModel", () => {
         });
 
         expect(fitted[0]).toEqual({ role: "user", content: [image] });
+    });
+
+    test("a reading is kept across runs, so the same image isn't read twice", async () => {
+        const readings = createReadingCache({ max: 4 });
+        let reads = 0;
+        const run = () =>
+            prepareMessagesForModel({
+                messages: [
+                    { role: "user", content: [{ type: "image", url: "data:image/png;base64,CCCC" }] },
+                ],
+                model: { input_modalities: ["text"] },
+                cache: new Map(),
+                readings,
+                signal,
+                read_image: async () => {
+                    reads++;
+                    return "A cat.";
+                },
+            });
+
+        await run();
+        const second = await run();
+
+        expect(reads).toBe(1);
+        expect(readings.size()).toBe(1);
+        expect(second[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: A cat.]" }],
+        });
+    });
+
+    test("a reading made to redact secrets is not kept across runs", async () => {
+        const readings = createReadingCache({ max: 4 });
+        let reads = 0;
+        const run = () =>
+            prepareMessagesForModel({
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "image",
+                                url: "data:image/png;base64,DDDD",
+                                redact: (text) => text.replaceAll("hunter2", "[secret]"),
+                            },
+                        ],
+                    },
+                ],
+                model: { input_modalities: ["text"] },
+                cache: new Map(),
+                readings,
+                signal,
+                read_image: async () => {
+                    reads++;
+                    return "hunter2";
+                },
+            });
+
+        const first = await run();
+        await run();
+
+        expect(first[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: [secret]]" }],
+        });
+        expect(reads).toBe(2);
+        expect(readings.size()).toBe(0);
     });
 
     test("reads images for a model that sees when the setting is off", async () => {

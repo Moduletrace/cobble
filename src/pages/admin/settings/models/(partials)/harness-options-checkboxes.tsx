@@ -1,10 +1,20 @@
 import Checkbox from "@moduletrace/twui/form/Checkbox";
-import type { HarnessOverview, HarnessFormValue, HarnessProviderChoice } from "@/src/types";
+import type {
+    HarnessOverview,
+    HarnessFormValue,
+    HarnessModelOption,
+    HarnessProviderChoice,
+} from "@/src/types";
+import HarnessSeesImagesNote from "./harness-sees-images-note";
 
 type Props = {
     harness: HarnessOverview;
     value: HarnessFormValue;
     provider?: HarnessProviderChoice;
+    /**
+     * The model the setting runs on (the pick, else what it runs on now).
+     */
+    model?: HarnessModelOption;
     falls_back_title?: string;
     onChange: (value: HarnessFormValue) => void;
 };
@@ -16,6 +26,7 @@ export default function HarnessOptionsCheckboxes({
     harness,
     value,
     provider,
+    model,
     falls_back_title,
     onChange,
 }: Props) {
@@ -40,13 +51,16 @@ export default function HarnessOptionsCheckboxes({
                 />
             ) : null}
             {harness.harness == "text" ? (
-                <Checkbox
-                    title="Use the model's own media reading"
-                    label="Use the model's own media reading"
-                    info="It looks at images and screenshots itself when it takes image input. Otherwise the media reading model reads them."
-                    checked={Boolean(value.sees_images)}
-                    changeHandler={(sees_images) => onChange({ ...value, sees_images })}
-                />
+                <>
+                    <Checkbox
+                        title="Use the model's own media reading"
+                        label="Use the model's own media reading"
+                        info="It looks at images and screenshots itself when it takes image input. Otherwise the media reading model reads them."
+                        checked={Boolean(value.sees_images)}
+                        changeHandler={(sees_images) => onChange({ ...value, sees_images })}
+                    />
+                    {value.sees_images ? <HarnessSeesImagesNote model={model} /> : null}
+                </>
             ) : null}
             {harness.required ? null : (
                 <Checkbox

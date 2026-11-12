@@ -73,6 +73,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                 harness={harness}
                 value={value}
                 provider={provider}
+                model={value.inherit ? harness.default?.current : picked || harness.current}
                 falls_back_title={falls_back_title}
                 onChange={onChange}
             />

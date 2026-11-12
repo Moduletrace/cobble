@@ -576,6 +576,12 @@ export type HarnessModelOption = {
     free: boolean;
     voices?: string[];
     /**
+     * What the model takes, from the catalog. A provider that lists only
+     * ids gets these guessed, so a model it names in a way the guesser
+     * doesn't know is text only.
+     */
+    input_modalities?: string[];
+    /**
      * The generation settings the model takes; undefined: all of them.
      */
     supported_parameters?: string[];

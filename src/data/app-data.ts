@@ -515,6 +515,11 @@ export const AppData = {
     HarnessStepsLowWarning: 5,
     HarnessStepsLowMinSteps: 15,
     /**
+     * Image readings kept across runs: one upload read once, not once per
+     * reply (`media-readings`).
+     */
+    HarnessMediaReadingsCached: 100,
+    /**
      * Upload cap for audio sent to transcription.
      */
     HarnessMaxAudioBytes: 25 * 1024 * 1024,
@@ -819,6 +824,13 @@ export const AppData = {
      * themselves to a reply; older ones are named.
      */
     BotReplyAttachmentMessages: 4,
+    /**
+     * And only while they're within this many of the conversation's latest
+     * messages: a file from far back is named, not re-attached, so one old
+     * document isn't read from disk and resent in full on every reply of a
+     * long session (images are cheap now: `MediaReadings` reads each once).
+     */
+    BotReplyAttachmentMaxAgeMessages: 20,
     /**
      * Longest HTML document a bot graphic (`bot_graphics`) may be.
      */
