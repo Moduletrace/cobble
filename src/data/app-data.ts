@@ -676,6 +676,13 @@ export const AppData = {
      */
     MessageDetailsMaxCalls: 200,
     /**
+     * The most model calls and failed calls a message's details report
+     * lists one by one when it's copied (the Details modal's icon): a
+     * whole report for a bug report, not only the first calls the modal
+     * shows. The totals count every call either way.
+     */
+    MessageDetailsCopyMaxCalls: 2000,
+    /**
      * The most characters of a provider's error kept on a failed model
      * call (`harness_call_failures.error`), shown in the message's details.
      */

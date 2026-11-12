@@ -1,12 +1,10 @@
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { BotJobKinds } from "@/src/dict/bot-queue-dict";
 import type { MessageDetails } from "@/src/types";
-import formatDuration from "@/src/utils/format-duration";
 import formatTokens from "@/src/utils/format-tokens";
 import relativeTime from "@/src/utils/relative-time";
 import costLabel from "../(utils)/cost-label";
-import providerLabel from "../(utils)/provider-label";
+import messageDetailsFacts from "../(utils)/message-details-facts";
 import MessageDetailRow from "./message-detail-row";
 import MessageDetailsCallRow from "./message-details-call-row";
 import MessageDetailsFailureRow from "./message-details-failure-row";
@@ -24,17 +22,7 @@ type Props = {
  */
 export default function MessageDetailsBody({ details }: Props) {
     const { totals, models, calls, failures, failed_calls, job } = details;
-    const providers = [
-        ...new Set(models.map((m) => providerLabel({ name: m.provider_name, kind: m.provider_kind }))),
-    ];
-    const model_names = [...new Set(models.map((m) => m.model_name || m.model_slug || "Unknown model"))];
-    const first_at = Math.min(
-        ...[calls[0]?.created_at, failures[0]?.created_at].filter((at): at is number => Boolean(at)),
-        Number.MAX_SAFE_INTEGER,
-    );
-    const job_kind = BotJobKinds.find((k) => k.value == job?.kind)?.title || job?.kind;
-    const job_took =
-        job?.started_at && job.finished_at ? formatDuration({ ms: job.finished_at - job.started_at }) : "";
+    const { providers, model_names, first_at, job_kind, job_took } = messageDetailsFacts({ details });
 
     return (
         <Stack className="w-full gap-0! items-stretch">

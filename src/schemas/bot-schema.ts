@@ -220,6 +220,14 @@ export type SpeakBotMessageRequest = z.infer<typeof SpeakBotMessageRequestSchema
 
 export const MessageDetailsRequestSchema = z.object({
     message_id: z.coerce.number().int().positive("Pick a message"),
+    /**
+     * `1` lists every call and failure the message took, for its copied
+     * report, instead of the modal's first `MessageDetailsMaxCalls`.
+     */
+    full: z
+        .union([z.literal("1"), z.literal("true"), z.literal("0"), z.literal("false"), z.boolean()])
+        .optional()
+        .transform((value) => value === "1" || value === "true" || value === true),
 });
 
 export type MessageDetailsRequest = z.infer<typeof MessageDetailsRequestSchema>;

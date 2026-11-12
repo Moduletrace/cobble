@@ -1,7 +1,6 @@
-import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
-import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { useCallback, useEffect, useState } from "react";
 import type { MessageDetails } from "@/src/types";
+import fetchMessageDetails from "../(functions)/fetch-message-details";
 
 type Params = {
     message_id: number;
@@ -24,10 +23,7 @@ export default function useMessageDetails({ message_id, enabled = true }: Params
         setLoading(true);
         setError(undefined);
 
-        const res = await fetchApi<{}, APIResponseObject<MessageDetails>>(
-            `/api/admin/bots/message-details?message_id=${message_id}`,
-            { method: "GET" },
-        ).catch(() => null);
+        const res = await fetchMessageDetails({ message_id }).catch(() => null);
 
         setLoading(false);
 

@@ -3,6 +3,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { MessageDetailsFailure } from "@/src/types";
 import formatDuration from "@/src/utils/format-duration";
+import failureSourceLabel from "../(utils)/failure-source-label";
 import harnessLabel from "../(utils)/harness-label";
 import providerLabel from "../(utils)/provider-label";
 
@@ -14,12 +15,6 @@ type Props = {
      * offset from it.
      */
     first_at: number;
-};
-
-const SourceLabels: Record<NonNullable<MessageDetailsFailure["source"]>, string> = {
-    pinned: "the pick",
-    fallback: "a fallback model",
-    auto: "an automatic pick",
 };
 
 /**
@@ -46,7 +41,7 @@ export default function MessageDetailsFailureRow({ failure, index, first_at }: P
                     className="grow min-w-0 text-[12px] leading-4 text-ink truncate"
                     title={[
                         `${model}${failure.model_slug ? ` (${failure.model_slug})` : ""} on ${provider}`,
-                        `${harnessLabel({ harness: failure.harness })}${failure.source ? `, ${SourceLabels[failure.source]}` : ""}`,
+                        `${harnessLabel({ harness: failure.harness })}${failure.source ? `, ${failureSourceLabel({ source: failure.source })}` : ""}`,
                     ].join("\n")}
                 >
                     {model}

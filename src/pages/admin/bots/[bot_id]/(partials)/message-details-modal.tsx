@@ -1,10 +1,12 @@
 import { useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
+import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { Info } from "lucide-react";
 import useMessageDetails from "../(hooks)/use-message-details";
+import CopyMessageDetailsButton from "./copy-message-details-button";
 import MessageActionButton from "./message-action-button";
 import MessageDetailsBody from "./message-details-body";
 
@@ -34,7 +36,10 @@ export default function MessageDetailsModal({ message_id }: Props) {
             className="max-w-xl bg-paper p-6"
         >
             <Stack className="w-full gap-1! items-stretch">
-                <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">Message details</H2>
+                <Row className="w-full gap-2! flex-nowrap items-center">
+                    <H2 className="grow text-lg! leading-6! tracking-normal! font-bold text-ink">Message details</H2>
+                    <CopyMessageDetailsButton message_id={message_id} />
+                </Row>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     How this answer was generated: the provider and model behind it, the settings they were called with, and what it spent.
                 </Span>

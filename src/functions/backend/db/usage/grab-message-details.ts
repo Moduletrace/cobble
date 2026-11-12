@@ -11,6 +11,12 @@ type Params = {
      */
     message_id: number;
     created_at?: number | null;
+    /**
+     * The most calls and failures listed one by one; the totals count
+     * every one either way. The modal shows `AppData.MessageDetailsMaxCalls`
+     * of them, its copied report far more.
+     */
+    max_calls?: number;
 };
 
 type CallRow = {
@@ -64,7 +70,11 @@ type JobRow = {
  * model's display name come from their live rows, so a deleted provider
  * or an unlisted model still reads by the name it was called with.
  */
-export default async function grabMessageDetails({ message_id, created_at }: Params): Promise<MessageDetails> {
+export default async function grabMessageDetails({
+    message_id,
+    created_at,
+    max_calls = AppData.MessageDetailsMaxCalls,
+}: Params): Promise<MessageDetails> {
     const rows =
         (
             await BunSQLite.sql<CallRow>({
@@ -145,8 +155,8 @@ export default async function grabMessageDetails({ message_id, created_at }: Par
         created_at: created_at || null,
         totals,
         models: groupMessageCalls({ calls }),
-        calls: calls.slice(0, AppData.MessageDetailsMaxCalls),
-        failures: failures.slice(0, AppData.MessageDetailsMaxCalls),
+        calls: calls.slice(0, max_calls),
+        failures: failures.slice(0, max_calls),
         failed_calls: failures.length,
         job: job_id ? await grabJob({ job_id: Number(job_id) }) : null,
     };
