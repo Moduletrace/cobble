@@ -12,6 +12,8 @@ const RegenerableProfileDirs = [
     "ShaderCache",
     "GrShaderCache",
     "GPUCache",
+    "GPUPersistentCache",
+    "GraphiteDawnCache",
     "DawnGraphiteCache",
     "DawnWebGPUCache",
     "component_crx_cache",
@@ -21,16 +23,20 @@ const RegenerableProfileDirs = [
 
 /**
  * The same, in each profile's own folder (`Default`, `Profile 1`, ...).
+ * Never `Local Storage`, `IndexedDB` or `Storage/ext`: those are what the
+ * extensions a computer keeps (Cookie-Editor among them) hold their own
+ * state in, which is not rebuilt by downloading anything.
  */
 const RegenerableBrowserDirs = [
     "Cache",
     "Code Cache",
     "GPUCache",
+    "GPUPersistentCache",
+    "GraphiteDawnCache",
     "DawnGraphiteCache",
     "DawnWebGPUCache",
     "Service Worker/CacheStorage",
     "Service Worker/ScriptCache",
-    "Storage/ext",
 ];
 
 /**

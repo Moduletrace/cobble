@@ -571,13 +571,49 @@ wait_for_health() {
 # otherwise: over a gigabyte each, so a year of updates can hold tens of
 # gigabytes that nothing runs. Once the new container is healthy, the image
 # the previous one ran is removed (the registry still has it) along with the
-# layers nobody uses any more.
+# layers nobody uses any more, and so is every older tag of the app's image
+# and of the computer's, which the app pulls again when it needs one.
+
+# MARK:old-image-tags
+# The tags of one image repository in a `docker image ls --format
+# '{{.Repository}} {{.Tag}}'` listing, except the tag being installed (an
+# empty `keep` keeps none) and anything docker couldn't name.
+old_image_tags() {
+    local listing="$1"
+    local repo="$2"
+    local keep="$3"
+
+    printf '%s\n' "$listing" | awk -v repo="$repo" -v keep="$keep" '
+        $1 == repo && $2 != "" && $2 != "<none>" && $2 != keep { print $2 }
+    '
+}
+# END:old-image-tags
+
 prune_old_images() {
     local previous="$1"
     if [ -n "$previous" ] && [ "$previous" != "$IMAGE:$VERSION" ]; then
         say "Removing the previous image ${previous}"
         docker rmi "$previous" >/dev/null 2>&1 || true
     fi
+
+    # Releases keep stacking up: an install updated twice a month holds
+    # every tag it ever ran. Docker refuses any image a container still
+    # uses, stopped ones included, so only what nothing runs goes.
+    local listing repo tag
+    listing="$(docker image ls --format '{{.Repository}} {{.Tag}}' 2>/dev/null || true)"
+    repo="$(printf '%s' "$IMAGE" | sed -E 's|:[^/:]+$||')"
+
+    for name in "$repo" "$repo-computer"; do
+        local keep=""
+        [ "$name" = "$repo" ] && keep="$VERSION"
+
+        while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            say "Removing the older image ${name}:${tag}"
+            docker rmi "${name}:${tag}" >/dev/null 2>&1 || true
+        done <<< "$(old_image_tags "$listing" "$name" "$keep")"
+    done
+
     docker image prune -f >/dev/null 2>&1 || true
 }
 

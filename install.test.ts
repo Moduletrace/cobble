@@ -182,6 +182,64 @@ describe("install.sh mount specs", () => {
     }
 });
 
+describe("install.sh image pruning", () => {
+    const LISTING = [
+        "ghcr.io/moduletrace/cobble 0.18.2",
+        "ghcr.io/moduletrace/cobble 0.18.3",
+        "ghcr.io/moduletrace/cobble 0.18.4",
+        "ghcr.io/moduletrace/cobble-computer 1.3.0",
+        "ghcr.io/moduletrace/cobble-computer 1.4.0",
+        "ghcr.io/moduletrace/cobble-tools 9.9.9",
+        "<none> <none>",
+    ].join("\n");
+
+    async function oldImageTags({ repo, keep }: { repo: string; keep: string }) {
+        const block = await readMarkedBlock({ name: "old-image-tags" });
+        const script = [block, `old_image_tags "$LISTING" "$repo" "$keep"`].join("\n");
+        const proc = Bun.spawn({
+            cmd: ["bash", "-c", script],
+            env: { ...process.env, LISTING, repo, keep },
+            stdout: "pipe",
+            stderr: "pipe",
+        });
+        const [stdout, , code] = await Promise.all([
+            new Response(proc.stdout).text(),
+            new Response(proc.stderr).text(),
+            proc.exited,
+        ]);
+
+        expect(code).toBe(0);
+
+        return stdout.trim().split("\n").filter(Boolean);
+    }
+
+    test("removes every older version of the app, keeping the one installed", async () => {
+        expect(
+            await oldImageTags({ repo: "ghcr.io/moduletrace/cobble", keep: "0.18.4" }),
+        ).toEqual(["0.18.2", "0.18.3"]);
+    });
+
+    test("removes every computer image tag, since the app pulls one again", async () => {
+        expect(
+            await oldImageTags({ repo: "ghcr.io/moduletrace/cobble-computer", keep: "" }),
+        ).toEqual(["1.3.0", "1.4.0"]);
+    });
+
+    test("never touches another repository's images", async () => {
+        // `cobble-tools` shares the prefix: a prefix match would take a
+        // project the installer knows nothing about.
+        const tags = await oldImageTags({
+            repo: "ghcr.io/moduletrace/cobble-tools",
+            keep: "",
+        });
+
+        expect(tags).toEqual(["9.9.9"]);
+        expect(
+            await oldImageTags({ repo: "ghcr.io/moduletrace/cobble", keep: "" }),
+        ).not.toContain("9.9.9");
+    });
+});
+
 describe("install.sh data rescue", () => {
     test("rescues the container's data before replacing it", async () => {
         const source = await Bun.file(INSTALL_SCRIPT).text();

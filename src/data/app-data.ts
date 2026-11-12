@@ -201,9 +201,13 @@ export const AppData = {
      * container gets `NET_ADMIN` to keep them off its services);
      * `cobble-computer-homes` has workers work in their own home
      * (`/home/cb-<bot>/workspace`, a link the agent keeps to their folder),
-     * which an older agent would make a folder that isn't kept.
+     * which an older agent would make a folder that isn't kept;
+     * `cobble-computer-caches` is the image whose agent reports its
+     * workspace (`/api/usage`), keeps run caches out of it and clears its
+     * browser profile's caches at each start, so a computer still running
+     * an older one is recreated onto it once.
      */
-    ComputerWorkspaceLayout: "cobble-computer-homes",
+    ComputerWorkspaceLayout: "cobble-computer-caches",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
     /**
