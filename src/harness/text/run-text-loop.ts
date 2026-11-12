@@ -117,20 +117,56 @@ export type TextLoopResult = {
 };
 
 /**
+ * The only tools the wrap up may still call: saving the work. A run that
+ * spent every step measuring can write the report the user waits for
+ * rather than throw its findings away (`write_file`, and `import_file`
+ * for what it pulled off a computer).
+ */
+export const WrapUpToolNames = ["write_file", "import_file"];
+
+/**
+ * Saving turns a wrap up may take: the first, and one more when it reached
+ * for a tool it no longer has. After them the run answers with no tools.
+ */
+export const WrapUpSavingTurns = 2;
+
+/**
  * Told on the last step, with the app's record of the tools the run
  * called (`describeToolUses`): out of steps, a model tends to report the
  * work it planned as done. `tokens` when the run's token budget ended it
- * rather than its steps.
+ * rather than its steps. `saving` names the tools it may still call, if
+ * any: its one saving round, after which it answers with none.
  */
-export const wrapUpPrompt = ({ uses, reason = "steps" }: { uses: HarnessToolUse[]; reason?: "steps" | "tokens" }) =>
-    `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} Don't call any more tools. Report what you did, what is left, and anything you need from the user.
+export const wrapUpPrompt = ({
+    uses,
+    reason = "steps",
+    saving = [],
+}: {
+    uses: HarnessToolUse[];
+    reason?: "steps" | "tokens";
+    saving?: string[];
+}) =>
+    `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} ${
+        saving.length
+            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable) and nothing else, then report. After this turn no tool is left, so anything unsaved is lost.`
+            : `Don't call any more tools.`
+    } Report what you did, what is left, and anything you need from the user.
 
 The tools you actually called this run: ${describeToolUses({ uses })}. Nothing else happened. Don't say you saved, created, changed or sent anything this list doesn't show; what you meant to do and didn't is still left, so say so.`;
 
 /**
- * Told once, `AppData.HarnessStepsLowWarning` steps before the wrap up,
- * while the run can still save what it has: the wrap up has no tools, so a
- * report not written by then is lost.
+ * Steps left when a run is warned, once, to save: a share of the run for
+ * long ones, since 5 steps is the whole budget of a short one and no time
+ * at all to write a report on a 200 step run (two runs in a row measured
+ * to their last step with the report unwritten). Never below
+ * `AppData.HarnessStepsLowWarning`.
+ */
+export const stepsLowWarningLeft = ({ max_steps }: { max_steps: number }) =>
+    Math.max(AppData.HarnessStepsLowWarning, Math.ceil(max_steps * AppData.HarnessStepsLowWarnShare));
+
+/**
+ * Told once, `stepsLowWarningLeft` steps before the wrap up, while the run
+ * can still save what it has.
  */
 export const stepsLowNote = ({ left }: { left: number }) =>
     `You have ${left} step${left == 1 ? "" : "s"} left in this run. Save what the user will want now (the report or deliverable, with write_file or import_file) before anything else, then finish. What isn't saved when the steps run out is lost.`;
@@ -159,7 +195,8 @@ Don't repeat tool calls you have already made.`;
  * go back to it, and so on until it answers without calling a tool. Tools
  * run one at a time, in order; images they return follow their results. Stays on one model unless it fails. After
  * `max_steps` turns, or once the run has sent `max_prompt_tokens`, the
- * model is asked to wrap up without tools. An answer `review` finds fault
+ * model is asked to wrap up: one turn with only the saving tools
+ * (`WrapUpToolNames`), then one with none. An answer `review` finds fault
  * with is written again once.
  *
  * Every turn resends everything, so the run keeps it small: only the
@@ -224,28 +261,60 @@ export default async function runTextLoop({
         cost: 0,
     };
     const tool_uses: HarnessToolUse[] = [];
+    /**
+     * The tools a wrap up may still call: only the ones that save the work.
+     * A run that spent every step measuring can then still write the report
+     * the user is waiting for, which is what two runs in a row failed to do
+     * (they measured to the last step and had no tool left to save with).
+     */
+    const save_tools = run_tools.filter((tool) => WrapUpToolNames.includes(tool.name));
+    const save_definitions = save_tools.map((tool) => all_definitions.get(tool.name)!);
+    const warn_at = stepsLowWarningLeft({ max_steps });
     let prefer_key: string | undefined;
     let reviewed = false;
     let warned_steps = max_steps < AppData.HarnessStepsLowMinSteps;
+    /**
+     * The wrap up is announced once, and may save until it has: a run told
+     * to stop with its report unwritten gets a turn to write it (at most
+     * `WrapUpSavingTurns`, so it always ends).
+     */
+    let wrap_up_announced = false;
+    let saving_turns = 0;
+    let saved = false;
 
-    for (let index = 0; index <= max_steps; index++) {
+    for (let index = 0; index <= max_steps + 1 + WrapUpSavingTurns; index++) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
         }
 
+        const out_of_steps = index >= max_steps;
         const out_of_tokens = Boolean(max_prompt_tokens && max_prompt_tokens > 0 && usage.prompt_tokens >= max_prompt_tokens);
-        const wrap_up = index == max_steps || out_of_tokens;
+        const wrap_up = out_of_steps || out_of_tokens;
+        /**
+         * The saving turn: only the tools that save the work. Without one
+         * of them, or once it saved, the wrap up is the old one, with no
+         * tools at all, so the run always ends.
+         */
+        const wrap_up_saving = wrap_up && !saved && saving_turns < WrapUpSavingTurns && save_tools.length > 0;
 
-        if (wrap_up) {
+        if (wrap_up && !wrap_up_announced) {
+            wrap_up_announced = true;
+
             if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up });
 
             pushUserTurn({
                 transcript,
-                content: wrapUpPrompt({ uses: tool_uses, reason: index == max_steps ? "steps" : "tokens" }),
+                content: wrapUpPrompt({
+                    uses: tool_uses,
+                    reason: out_of_steps ? "steps" : "tokens",
+                    saving: wrap_up_saving ? save_tools.map((tool) => tool.name) : [],
+                }),
             });
         }
 
-        const definitions = definitionsNow();
+        if (wrap_up_saving) saving_turns++;
+
+        const definitions = wrap_up_saving ? save_definitions : wrap_up ? [] : definitionsNow();
 
         /**
          * Sized for the model the run is on (or will start on). A fallback
@@ -258,12 +327,12 @@ export default async function runTextLoop({
             transcript,
             context_length: model?.context_length || AppData.HarnessAutoMinContext,
             budget_tokens: context_budget,
-            tools_chars: wrap_up ? 0 : JSON.stringify(definitions).length,
+            tools_chars: JSON.stringify(definitions).length,
         });
 
         const answer = await generate({
             messages: [{ role: "system", content: run_system }, ...transcript],
-            tools: wrap_up || !definitions.length ? undefined : definitions,
+            tools: definitions.length ? definitions : undefined,
             candidates,
             prefer_key,
             signal,
@@ -277,7 +346,26 @@ export default async function runTextLoop({
         usage.completion_tokens += answer.usage?.completion_tokens || 0;
         usage.cost += answer.usage?.cost || 0;
 
-        const tool_calls = wrap_up ? [] : answer.tool_calls;
+        /**
+         * Only the tools this turn offered: at the wrap up that is the
+         * saving ones, and the last turn offers none.
+         */
+        const tool_calls = (wrap_up ? (wrap_up_saving ? answer.tool_calls : []) : answer.tool_calls).filter(
+            (call) => !wrap_up || save_tools.some((tool) => tool.name == call.name),
+        );
+
+        /**
+         * A saving turn that reached for anything else is told what it has
+         * left, and gets that one round again (never more, so the run
+         * ends).
+         */
+        if (wrap_up_saving && answer.tool_calls.length && !tool_calls.length) {
+            pushUserTurn({
+                transcript,
+                content: `Only ${save_tools.map((tool) => tool.name).join(" and ")} can still be called in this run. Nothing else you call will run. Save the report or deliverable with one of them, or answer with what you have.`,
+            });
+            continue;
+        }
 
         transcript.push({
             role: "assistant",
@@ -324,6 +412,8 @@ export default async function runTextLoop({
             };
         }
 
+        if (wrap_up_saving) saved = true;
+
         const shown: { tool_name: string; images: HarnessToolImage[] }[] = [];
 
         for (const call of tool_calls) {
@@ -367,7 +457,7 @@ export default async function runTextLoop({
          */
         const left = max_steps - (index + 1);
 
-        if (!warned_steps && left <= AppData.HarnessStepsLowWarning) {
+        if (!warned_steps && left <= warn_at) {
             warned_steps = true;
             pushUserTurn({ transcript, content: stepsLowNote({ left }) });
         }

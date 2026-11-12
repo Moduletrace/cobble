@@ -5,7 +5,12 @@ import { DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
-import runTextLoop, { IncomingMessagesNote, RedraftNote, stepsLowNote } from "./run-text-loop";
+import runTextLoop, {
+    IncomingMessagesNote,
+    RedraftNote,
+    stepsLowNote,
+    stepsLowWarningLeft,
+} from "./run-text-loop";
 
 const candidate: HarnessCandidate = {
     key: "1:m",
@@ -173,6 +178,7 @@ describe("runTextLoop", () => {
             loop_call,
             loop_call,
             { text: "Ran out of room; here's where I got to.", ...loop_call },
+            { text: "Ran out of room; here's where I got to.", ...loop_call },
         ]);
 
         const result = await runTextLoop({
@@ -201,6 +207,85 @@ describe("runTextLoop", () => {
         });
     });
 
+    test("at the wrap up, offers only the tools that save, then answers without any", async () => {
+        const save: HarnessTool<{ path: string }> = {
+            name: "write_file",
+            description: "Saves a file.",
+            schema: z.object({ path: z.string() }),
+            run: async ({ args }) => `Saved ${args.path}.`,
+        };
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([
+            loop_call,
+            {
+                text: "Writing the report.",
+                tool_calls: [{ id: "w", name: "write_file", arguments: `{"path":"report.md"}` }],
+                usage: { prompt_tokens: 10, completion_tokens: 1 },
+            },
+            { text: "Report saved; here's what I found." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "audit the disk" }],
+            tools: [remember, save],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen).toHaveLength(3);
+        expect(seen[1]!.tools!.map((tool) => tool.name)).toEqual(["write_file"]);
+        expect(seen[1]!.messages.at(-1)!.content).toContain("one turn to save what the user needs: write_file");
+        expect(seen[2]!.tools).toBe(undefined);
+        expect(result.tool_uses).toEqual([
+            { name: "remember", ok: true },
+            { name: "write_file", ok: true },
+        ]);
+        expect(result.text).toBe("Report saved; here's what I found.");
+    });
+
+    test("tells a saving turn that reaches for another tool what it may still call", async () => {
+        const save: HarnessTool<{ path: string }> = {
+            name: "write_file",
+            description: "Saves a file.",
+            schema: z.object({ path: z.string() }),
+            run: async ({ args }) => `Saved ${args.path}.`,
+        };
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([
+            loop_call,
+            { tool_calls: [{ id: "r", name: "remember", arguments: `{"note":"more"}` }] },
+            {
+                tool_calls: [{ id: "w", name: "write_file", arguments: `{"path":"report.md"}` }],
+            },
+            { text: "Report saved." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "audit the disk" }],
+            tools: [remember, save],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen[2]!.messages.at(-1)!.content).toContain(
+            "Only write_file can still be called in this run.",
+        );
+        expect(seen[3]!.tools).toBe(undefined);
+        expect(result.tool_uses).toEqual([
+            { name: "remember", ok: true },
+            { name: "write_file", ok: true },
+        ]);
+        expect(result.text).toBe("Report saved.");
+    });
+
     test("warns once, a few steps before the wrap up, in a long enough run", async () => {
         const max_steps = AppData.HarnessStepsLowMinSteps;
         const loop_call = {
@@ -217,14 +302,26 @@ describe("runTextLoop", () => {
             resolveCandidates,
         });
 
-        const warned_at = max_steps - AppData.HarnessStepsLowWarning;
-        const note = stepsLowNote({ left: AppData.HarnessStepsLowWarning });
+        const left = stepsLowWarningLeft({ max_steps });
+        const warned_at = max_steps - left;
+        const note = stepsLowNote({ left });
         const warnings = seen.map((call) => call.messages.filter((m) => m.role == "user" && String(m.content).includes(note)).length);
 
         expect(warnings[warned_at - 1]).toBe(0);
         expect(warnings[warned_at]).toBe(1);
         expect(seen[warned_at]!.messages.at(-1)).toEqual({ role: "user", content: note });
         expect(warnings.at(-1)).toBe(1);
+    });
+
+    test("warns a long run early enough to write its report", () => {
+        /**
+         * A 200 step audit once measured to its last step with the report
+         * unwritten: the warning has to reach it with real room left.
+         */
+        expect(stepsLowWarningLeft({ max_steps: AppData.HarnessMaxToolSteps })).toBe(
+            Math.ceil(AppData.HarnessMaxToolSteps * AppData.HarnessStepsLowWarnShare),
+        );
+        expect(stepsLowWarningLeft({ max_steps: 20 })).toBe(AppData.HarnessStepsLowWarning);
     });
 
     test("doesn't warn a short run", async () => {

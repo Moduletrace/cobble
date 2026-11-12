@@ -510,10 +510,17 @@ export const AppData = {
      * saves its report before the wrap up ends it (two runs in a row once
      * ran out with the report unwritten). Only in runs of at least
      * `HarnessStepsLowMinSteps` steps, where the warning still leaves room
-     * to act on it.
+     * to act on it. Long runs are warned earlier, a share of their budget
+     * (`HarnessStepsLowWarnShare`) in, never below this many steps.
      */
     HarnessStepsLowWarning: 5,
     HarnessStepsLowMinSteps: 15,
+    /**
+     * Share of a run's steps it is warned to save with: a tenth of a 200
+     * step run (20) rather than the 5 a short reply gets, so a long audit
+     * has room to write its report after measuring.
+     */
+    HarnessStepsLowWarnShare: 0.1,
     /**
      * Image readings kept across runs: one upload read once, not once per
      * reply (`media-readings`).
@@ -575,8 +582,11 @@ export const AppData = {
      * past `ComputerReadFileMaxLineChars`, files up to
      * `ComputerReadFileMaxBytes`. `computer_write_file` and
      * `computer_edit_file` take files up to `ComputerWriteFileMaxChars`.
+     * Never above `HarnessToolResultMaxChars`: the harness cuts there too,
+     * and a larger cap only meant the tool's own head-and-tail note was
+     * thrown away by the second cut.
      */
-    ComputerCommandMaxOutputChars: 40_000,
+    ComputerCommandMaxOutputChars: 20_000,
     ComputerReadFileMaxLines: 2000,
     ComputerReadFileMaxLineChars: 2000,
     ComputerReadFileMaxBytes: 10 * 1024 * 1024,

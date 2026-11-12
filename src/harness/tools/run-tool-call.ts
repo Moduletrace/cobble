@@ -8,6 +8,11 @@ import unknownToolArgs from "./unknown-tool-args";
 import unknownToolMessage from "./unknown-tool-message";
 import type { HarnessTool, HarnessToolCall, HarnessToolImage } from "../types";
 
+/**
+ * Share of a cut result given to its start; the rest keeps its end.
+ */
+const TruncateHeadShare = 0.5;
+
 type Params = {
     call: HarnessToolCall;
     tools: HarnessTool[];
@@ -102,9 +107,13 @@ async function runTool({ call, tools, signal }: Params) {
 }
 
 /**
- * A result past its tool's cap is cut there. Browser tools get the
- * smaller cap: a page snapshot or an evaluate over a whole page was the
- * heaviest thing a run kept resending.
+ * A result past its tool's cap is cut there, keeping its start and its
+ * end: a command's answer and the totals or error it ends with are the
+ * parts worth reading, and a head-only cut once threw away the end of
+ * every long `du`/`find` sweep, so runs re-ran the command to see it. The
+ * note between them says what was left out. Browser tools get the smaller
+ * cap: a page snapshot or an evaluate over a whole page was the heaviest
+ * thing a run kept resending.
  */
 function truncate({ text, name }: { text: string; name: string }) {
     const browser = isBrowserTool({ name });
@@ -112,5 +121,15 @@ function truncate({ text, name }: { text: string; name: string }) {
 
     if (text.length <= max) return text;
 
-    return `${text.slice(0, max)}\n[Cut: ${text.length - max} more characters.${browser ? " Narrow the call (a selector, an element ref, a smaller evaluate) to see the rest." : ""}]`;
+    const hint = browser ? " Narrow the call (a selector, an element ref, a smaller evaluate) to see the rest." : "";
+    /**
+     * Sized before the two ends are cut, so the whole result stays inside
+     * the cap instead of the note pushing it over.
+     */
+    const note = `\n\n[... ${text.length - max} characters left out. ...]${hint}\n\n`;
+    const room = Math.max(0, max - note.length);
+    const head = Math.floor(room * TruncateHeadShare);
+    const tail = room - head;
+
+    return `${text.slice(0, head)}${note}${text.slice(-tail)}`;
 }

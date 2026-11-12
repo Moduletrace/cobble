@@ -58,11 +58,27 @@ describe("runToolCall", () => {
         expect(await call("fail", "")).toBe("Error: disk full");
     });
 
-    test("cuts long results", async () => {
+    test("cuts long results, keeping their start and their end", async () => {
         const long = "x".repeat(AppData.HarnessToolResultMaxChars + 5);
         const result = await call("echo", JSON.stringify({ text: long }));
 
-        expect(result).toEndWith("[Cut: 5 more characters.]");
+        expect(result).toContain("[... 5 characters left out. ...]");
+        expect(result).toStartWith("x".repeat(100));
+        expect(result).toEndWith("x".repeat(100));
+        expect(result.length).toBeLessThanOrEqual(AppData.HarnessToolResultMaxChars);
+    });
+
+    test("keeps the end of a long command's output, where its totals are", async () => {
+        /**
+         * A `du`/`find` sweep: the biggest entries and the sum are on the
+         * last lines, so a head-only cut made each run re-run it.
+         */
+        const sweep = `${"4.0K\t/usr/lib/x\n".repeat(4000)}112G\t/home/gem/workspace\n`;
+        const result = await call("echo", JSON.stringify({ text: sweep }));
+
+        expect(result).toStartWith("4.0K");
+        expect(result).toContain("characters left out");
+        expect(result).toEndWith("112G\t/home/gem/workspace\n");
     });
 
     test("cuts a browser tool's result sooner, saying how to see the rest", async () => {
@@ -74,14 +90,16 @@ describe("runToolCall", () => {
             signal,
         });
 
-        expect(text).toStartWith("x".repeat(AppData.HarnessBrowserResultMaxChars) + "\n[Cut: 7 more characters.");
+        expect(text).toStartWith("x".repeat(100));
+        expect(text).toContain("[... 7 characters left out. ...]");
         expect(text).toContain("Narrow the call");
+        expect(text).toEndWith("x".repeat(100));
     });
 
     test("passes images on, capped and marked as a tool's", async () => {
         const result = await run("shot", "{}");
 
-        expect(result.text).toEndWith("[Cut: 5 more characters.]");
+        expect(result.text).toContain("[... 5 characters left out. ...]");
         expect(result.images).toHaveLength(AppData.HarnessToolMaxImages);
         expect(result.images[0]).toEqual({
             url: "data:image/png;base64,0",
