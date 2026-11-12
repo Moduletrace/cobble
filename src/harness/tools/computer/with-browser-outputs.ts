@@ -5,6 +5,7 @@ import type { ComputerApi } from "@/src/functions/backend/computers/computer-fet
 import browserOutputText from "@/src/utils/browser-output-text";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import type { HarnessTool } from "../../types";
+import { computerWorkspaceFullWarning } from "./computer-workspace-room";
 
 type Params = {
     tool: HarnessTool;
@@ -20,6 +21,11 @@ type Params = {
  * downloading (`AppData.ComputerBrowserDownloadsDir`) are moved into the
  * run's `downloads` folder, so `import_file` and the shell reach them, and
  * the result says where; one still downloading is named, for a later call.
+ *
+ * A call that wrote into those folders (a screenshot saved by name, a
+ * download) also says when the computer's workspace has passed its limit
+ * (`computerWorkspaceFullWarning`): browser output is where most of a
+ * computer's disk goes, and nothing refuses it on the way in.
  */
 export default function withBrowserOutputs({ tool, computer, dirs }: Params): HarnessTool {
     const output_dir = AppData.ComputerBrowserOutputDir;
@@ -38,7 +44,17 @@ export default function withBrowserOutputs({ tool, computer, dirs }: Params): Ha
                 ...moved.map(({ name, path }) => `- Downloaded file ${name} to "${path}"`),
                 ...pending.map((name) => `- Still downloading ${name}: it will be moved to ${downloads_dir} after a later browser call`),
             ];
-            const next = lines.length ? `${text}\n### Downloads\n${lines.join("\n")}` : text;
+            const wrote =
+                moved.length > 0 ||
+                (typeof args.filename == "string" && Boolean(args.filename.trim()));
+            const full = wrote
+                ? await computerWorkspaceFullWarning({ computer, dirs, signal }).catch(() => null)
+                : null;
+            const parts = [lines.length ? `${text}\n### Downloads\n${lines.join("\n")}` : text];
+
+            if (full) parts.push(full);
+
+            const next = parts.join("\n\n");
 
             return typeof output == "string" ? next : { ...output, text: next };
         },

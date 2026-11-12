@@ -1,4 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
+import deleteUnlinkedAttachmentMedia from "../media/delete-unlinked-attachment-media";
 
 type Params = {
     /**
@@ -33,7 +34,18 @@ export default async function deleteHookSessionRows({ hook_id }: Params) {
     await BunSQLite.sql({ sql: `DELETE FROM bots_queue WHERE session_id IN (${list})` });
     await BunSQLite.sql({ sql: `DELETE FROM bot_tasks WHERE session_id IN (${list})` });
     await BunSQLite.sql({ sql: `DELETE FROM bot_message_reactions WHERE message_id IN (${messages})` });
+
+    /**
+     * An upload's bytes are its `media` row, which the message's link was
+     * the only way to reach.
+     */
+    const uploads = await BunSQLite.sql<{ media_id: number }>({
+        sql: `SELECT media_id FROM bot_message_media WHERE message_id IN (${messages})`,
+    });
+
     await BunSQLite.sql({ sql: `DELETE FROM bot_message_media WHERE message_id IN (${messages})` });
+
+    await deleteUnlinkedAttachmentMedia({ media_ids: (uploads.payload || []).map((row) => Number(row.media_id)) }).catch(() => []);
     await BunSQLite.sql({ sql: `DELETE FROM bot_messages WHERE session_id IN (${list})` });
     await BunSQLite.sql({ sql: `DELETE FROM bot_sessions WHERE id IN (${list})` });
 }

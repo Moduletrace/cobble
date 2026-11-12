@@ -5,6 +5,7 @@ import writeComputerFile from "@/src/functions/backend/computers/write-computer-
 import { resolveComputerPath } from "@/src/utils/computer-work-dirs";
 import type { HarnessTool } from "../../types";
 import type { ComputerToolContext } from "./computer-tool-context";
+import computerWorkspaceRoomError from "./computer-workspace-room";
 import replaceInText from "./replace-in-text";
 
 type Args = {
@@ -59,8 +60,16 @@ export default function computerEditFileTool({ computer, dirs }: ComputerToolCon
                     : `old_text is in ${path} ${edit.count} times. Include more of the lines around it, or pass replace_all.`;
             }
 
-            await writeComputerFile({ computer, path, content: edit.text, run_as: dirs.run_as, signal });
+            const too_big = await computerWorkspaceRoomError({
+                computer,
+                dirs,
+                incoming_bytes: Buffer.byteLength(edit.text, "utf8") - download.bytes.length,
+                signal,
+            });
 
+            if (too_big) return too_big;
+
+            await writeComputerFile({ computer, path, content: edit.text, run_as: dirs.run_as, signal });
             return `Edited ${path} (${edit.count} replacement${edit.count == 1 ? "" : "s"}).`;
         },
     };

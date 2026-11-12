@@ -565,6 +565,22 @@ wait_for_health() {
     fail "Cobble did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s"
 }
 
+# ---------------------------------------------------------------- images
+
+# Every release is a new image tag, and a host keeps every one of them
+# otherwise: over a gigabyte each, so a year of updates can hold tens of
+# gigabytes that nothing runs. Once the new container is healthy, the image
+# the previous one ran is removed (the registry still has it) along with the
+# layers nobody uses any more.
+prune_old_images() {
+    local previous="$1"
+    if [ -n "$previous" ] && [ "$previous" != "$IMAGE:$VERSION" ]; then
+        say "Removing the previous image ${previous}"
+        docker rmi "$previous" >/dev/null 2>&1 || true
+    fi
+    docker image prune -f >/dev/null 2>&1 || true
+}
+
 backup_database() {
     local data_source="$DATA_DIR"
     if container_exists; then
@@ -909,6 +925,7 @@ if container_exists; then
     # own layer, so lift it out before anything replaces the container.
     rescue_container_data
     backup_database
+    PREVIOUS_IMAGE_TAG="$(docker inspect -f '{{.Config.Image}}' "$CONTAINER" 2>/dev/null || true)"
     say "Replacing the Cobble container"
     docker stop -t 30 "$CONTAINER" >/dev/null 2>&1 || true
     docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
@@ -919,6 +936,8 @@ run_container
 connect_extra_network
 
 wait_for_health
+
+prune_old_images "${PREVIOUS_IMAGE_TAG:-}"
 
 ok "Cobble is running"
 printf '\n'

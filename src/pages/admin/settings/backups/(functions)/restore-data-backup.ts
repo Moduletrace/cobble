@@ -12,7 +12,7 @@ type Params = {
  * background, so this hands back the run for the page to follow.
  */
 export default async function restoreDataBackup({ backup }: Params) {
-    const confirm_msg = `Restore the data volume from the archive of ${dayjs(backup.created_at).format("MMM D, YYYY HH:mm:ss")}?\n\nEvery bot, workspace, computer home, file, media item and database snapshot is replaced by the archive's, and the app restarts. A safety archive of the current data is made first.`;
+    const confirm_msg = `Restore the data volume from the archive of ${dayjs(backup.created_at).format("MMM D, YYYY HH:mm:ss")}?\n\nEvery bot, workspace, file, media item and database snapshot is replaced by the archive's (a computer's own folder stays as it is), and the app restarts. A safety archive of the current data is made first.`;
 
     if (!window.confirm(confirm_msg)) {
         return { success: false, cancelled: true };

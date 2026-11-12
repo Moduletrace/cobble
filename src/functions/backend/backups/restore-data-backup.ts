@@ -49,16 +49,19 @@ function findArchiveRoot({ staging_dir }: RootParams) {
 }
 
 /**
- * Replaces the whole `DATA_DIR` with the contents of a data archive:
- * the database, media, computer homes, bot and workspace files, and the
- * database snapshots in `db/.backups` (which the archive's own overwrite,
- * so the restore is one consistent set).
+ * Replaces the install's data with the contents of a data archive: the
+ * database, media, bot and workspace files (which the archive's own
+ * database snapshots come with, so the restore is one consistent set).
  *
  * The archive is read into a temporary directory on the same volume
  * first, must hold one root folder with a database in it, and nothing on
  * disk is touched before that passes. A fresh archive of the current data
  * is taken as a safety copy, then the data directory is emptied (the
  * database snapshots included) and filled from the archive.
+ *
+ * A computer's folders (`AppData.ComputerDataDir`) are neither emptied nor
+ * copied: the archive doesn't hold them, and a computer's workspace is the
+ * computer's own state, so a restore leaves it as it is.
  *
  * Runs only inside `startDataBackupRun`, which holds the backup run lock
  * for it (taking it again here would refuse every restore).
@@ -118,9 +121,29 @@ export default async function restoreDataBackup({
         // current ones, so the safety copy is taken before them.
         const safety = await writeDataBackupArchive();
 
-        // Everything goes, the snapshots in `db/.backups` included:
-        // the archive's own set replaces them.
+        /**
+         * The database snapshots are their own feature (Settings >
+         * Backups > Database) and no data archive carries them
+         * (`listArchiveExclusions`), so wiping the volume would lose
+         * them for good. Held aside and put back under the restored
+         * database.
+         */
+        const snapshots_dir = path.join(DATA_DIR, "db", ".backups");
+        const kept_snapshots = path.join(staging_dir, "kept-snapshots");
+        const has_snapshots = fs.existsSync(snapshots_dir);
+
+        if (has_snapshots) {
+            fs.cpSync(snapshots_dir, kept_snapshots, {
+                recursive: true,
+                force: true,
+            });
+        }
+
+        // Everything goes, the snapshots included (put back below). A
+        // computer's folders stay, live and unarchived.
         for (const entry of fs.readdirSync(DATA_DIR)) {
+            if (entry == AppData.ComputerDataDir) continue;
+
             fs.rmSync(path.join(DATA_DIR, entry), {
                 recursive: true,
                 force: true,
@@ -128,11 +151,21 @@ export default async function restoreDataBackup({
         }
 
         for (const entry of fs.readdirSync(source_dir)) {
+            if (entry == AppData.ComputerDataDir) continue;
+
             fs.cpSync(
                 path.join(source_dir, entry),
                 path.join(DATA_DIR, entry),
                 { recursive: true, force: true },
             );
+        }
+
+        if (has_snapshots) {
+            fs.mkdirSync(path.join(DATA_DIR, "db"), { recursive: true });
+            fs.cpSync(kept_snapshots, snapshots_dir, {
+                recursive: true,
+                force: true,
+            });
         }
 
         return {

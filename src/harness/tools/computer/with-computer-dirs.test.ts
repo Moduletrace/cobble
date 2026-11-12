@@ -62,16 +62,19 @@ describe("withComputerDirs", () => {
     });
 });
 
+const workerCaches = `XDG_CACHE_HOME='/home/cb-3/.cache' npm_config_cache='/home/cb-3/.cache/npm' PIP_CACHE_DIR='/home/cb-3/.cache/pip' BUN_INSTALL_CACHE_DIR='/home/cb-3/.cache/bun' PYTHONPYCACHEPREFIX='/home/cb-3/.cache/pycache'`;
+const coordinatorCaches = `XDG_CACHE_HOME='/home/gem/.cache' npm_config_cache='/home/gem/.cache/npm' PIP_CACHE_DIR='/home/gem/.cache/pip' BUN_INSTALL_CACHE_DIR='/home/gem/.cache/bun' PYTHONPYCACHEPREFIX='/home/gem/.cache/pycache'`;
+
 describe("computerDirsShell", () => {
     test("a worker's: its umask, the shared link put back, its folder, moved in, installs into its home", () => {
         expect(computerDirsShell({ dirs })).toBe(
-            `umask 007 && { [ -e '${shared}' ] || [ -L '${shared}' ] || { mkdir -p '/home/cb-3/workspace/workspaces' && ln -s '/home/gem/workspace/workspaces/2' '${shared}'; }; } && mkdir -p '${cwd}' && cd '${cwd}' && export HOME='${cwd}' && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
+            `umask 007 && { [ -e '${shared}' ] || [ -L '${shared}' ] || { mkdir -p '/home/cb-3/workspace/workspaces' && ln -s '/home/gem/workspace/workspaces/2' '${shared}'; }; } && mkdir -p '${cwd}' '/home/cb-3/.cache' && cd '${cwd}' && export HOME='${cwd}' ${workerCaches} && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
         );
     });
 
     test("a worker outside a workspace: no shared link", () => {
         expect(computerDirsShell({ dirs: computerRunDirs({ bot_id: 3, user_id: 7 }) })).toBe(
-            `umask 007 && mkdir -p '${cwd}' && cd '${cwd}' && export HOME='${cwd}' && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
+            `umask 007 && mkdir -p '${cwd}' '/home/cb-3/.cache' && cd '${cwd}' && export HOME='${cwd}' ${workerCaches} && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `,
         );
     });
 
@@ -79,7 +82,15 @@ describe("computerDirsShell", () => {
         const coordinator = computerRunDirs({ bot_id: 1, bot_kind: "coordinator", user_id: 7 });
 
         expect(computerDirsShell({ dirs: coordinator })).toBe(
-            `mkdir -p '/home/gem/workspace/bots/1/users/7' && cd '/home/gem/workspace/bots/1/users/7' && export HOME='/home/gem/workspace/bots/1/users/7'; `,
+            `mkdir -p '/home/gem/workspace/bots/1/users/7' '/home/gem/.cache' && cd '/home/gem/workspace/bots/1/users/7' && export HOME='/home/gem/workspace/bots/1/users/7' ${coordinatorCaches}; `,
         );
+    });
+
+    test("a run's caches go to the account's own home, never into its folder", () => {
+        const shell = computerDirsShell({ dirs: computerRunDirs({ bot_id: 3, user_id: 7 }) });
+
+        expect(shell).toContain("XDG_CACHE_HOME='/home/cb-3/.cache'");
+        expect(shell).not.toContain(`XDG_CACHE_HOME='${cwd}'`);
+        expect(shell).not.toContain(`PIP_CACHE_DIR='${cwd}'`);
     });
 });

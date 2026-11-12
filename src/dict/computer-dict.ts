@@ -203,3 +203,9 @@ export const ComputerBlockedMcpArgs = [
     "--output-dir",
     "--file-paths",
 ] as const;
+
+/**
+ * The `app_settings` key holding how much a computer's workspace may hold,
+ * in MB (0 sets no limit).
+ */
+export const ComputerWorkspaceQuotaSettingKey = "computer_workspace_quota_mb";

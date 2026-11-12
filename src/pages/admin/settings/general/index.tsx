@@ -1,6 +1,7 @@
 import AppearanceSection from "./(sections)/appearance-section";
 import AppNetworksSection from "./(sections)/app-networks-section";
 import ChatroomRetentionSection from "./(sections)/chatroom-retention-section";
+import ComputerWorkspacesSection from "./(sections)/computer-workspaces-section";
 import HookCallRetentionSection from "./(sections)/hook-call-retention-section";
 import InstallIconSection from "./(sections)/install-icon-section";
 import InstallNameSection from "./(sections)/install-name-section";
@@ -35,6 +36,7 @@ export default function AdminSettingsGeneralPage() {
             <ChatroomRetentionSection />
             <LogRetentionSection />
             <StorageSection />
+            <ComputerWorkspacesSection />
             <AppNetworksSection />
             <VersionSection />
         </SettingsShell>

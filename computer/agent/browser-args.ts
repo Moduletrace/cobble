@@ -22,6 +22,13 @@ type Params = {
 };
 
 /**
+ * Chrome's on-disk HTTP cache, in bytes. Left to itself Chrome grows it to
+a few gigabytes inside the profile, which is mounted and never shrinks;
+what it holds is fetched again on demand.
+ */
+export const DiskCacheMaxBytes = 512 * 1024 * 1024;
+
+/**
  * Chrome's background work a lightweight browser goes without: on-device
  * model and hint downloads, casting, translate prompts, autofill lookups.
  */
@@ -57,6 +64,7 @@ export default function browserArgs({ profile_dir, cdp_port, screen, scale, lang
         // Chrome reads the window size in scaled units: divided by the
         // scale, the window fills the screen exactly.
         `--window-size=${Math.floor(screen.width / scale)},${Math.floor(screen.height / scale)}`,
+        `--disk-cache-size=${DiskCacheMaxBytes}`,
         ...(scale == 1 ? [] : [`--force-device-scale-factor=${scale}`]),
         ...(lightweight ? lightweightArgs() : desktopGpuArgs()),
         /**

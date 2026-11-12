@@ -5,6 +5,7 @@ import handleExec from "./handle-exec";
 import handleFileDownload from "./handle-file-download";
 import handleFileStat from "./handle-file-stat";
 import handleFileWrite from "./handle-file-write";
+import handleUsage from "./handle-usage";
 import isAuthorized from "./is-authorized";
 import isPortAnswering from "./is-port-answering";
 import log from "./log";
@@ -22,6 +23,7 @@ import serveStaticFile from "./serve-static-file";
  * - `GET /api/info`, `POST /api/exec`, `GET /api/files/stat|download`,
  *   `POST /api/files/write`: the app's shell and file access, as gem or
  *   as a worker bot's own account (`run_as`).
+ * - `GET /api/usage`: how much the workspace holds.
  * - `/mcp`: Playwright MCP, driving the computer's browser.
  * - `/desktop/` and its `/desktop/websockify` websocket: the screen
  *   (noVNC over Xvnc), Chrome's whole window.
@@ -139,6 +141,7 @@ async function route({ req, res, parking }: { req: IncomingMessage; res: ServerR
     if (pathname == "/api/files/stat" && req.method == "GET") return handleFileStat({ req, res });
     if (pathname == "/api/files/download" && req.method == "GET") return handleFileDownload({ req, res });
     if (pathname == "/api/files/write" && req.method == "POST") return handleFileWrite({ req, res });
+    if (pathname == "/api/usage" && req.method == "GET") return handleUsage({ req, res });
 
     sendJson({ res, status: 404, body: { error: "Not Found" } });
 }

@@ -22,7 +22,7 @@ export default function DataBackupsSection() {
     return (
         <SettingsGroup
             title="Data archives"
-            description="One tar.gz of the whole data volume, under a single folder named after the archive: the database, media, computer homes, every bot and workspace file, and the database snapshots. They live outside the data volume, and the newest few are kept."
+            description="One tar.gz of the install's data, under a single folder named after the archive: the database, media, every bot and workspace file, and the database snapshots. Computers' own folders are left out, since they are that computer's state and often the largest thing on the volume. The archives live outside the data volume, and the newest few are kept."
         >
             <Row className="w-full items-center justify-between gap-2! flex-wrap">
                 <Span size="small" variant="faded">

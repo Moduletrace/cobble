@@ -2254,6 +2254,14 @@ export type PagePropsType = {
         folders: number;
     } | null;
     /**
+     * The most one computer's workspace may hold (the General settings
+     * page).
+     */
+    computer_workspace_quota?: {
+        setting_key: string;
+        quota_mb: number;
+    } | null;
+    /**
      * The install-wide text appended to every bot's prompt (the General
      * settings page).
      */

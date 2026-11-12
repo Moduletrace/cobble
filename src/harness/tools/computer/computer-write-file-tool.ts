@@ -4,6 +4,7 @@ import writeComputerFile from "@/src/functions/backend/computers/write-computer-
 import { resolveComputerPath } from "@/src/utils/computer-work-dirs";
 import type { HarnessTool } from "../../types";
 import type { ComputerToolContext } from "./computer-tool-context";
+import computerWorkspaceRoomError from "./computer-workspace-room";
 
 type Args = {
     path: string;
@@ -24,6 +25,15 @@ export default function computerWriteFileTool({ computer, dirs }: ComputerToolCo
         }),
         run: async ({ args, signal }) => {
             const path = resolveComputerPath({ path: args.path, dirs });
+            const too_big = await computerWorkspaceRoomError({
+                computer,
+                dirs,
+                incoming_bytes: Buffer.byteLength(args.content, "utf8"),
+                signal,
+            });
+
+            if (too_big) return too_big;
+
             const written = await writeComputerFile({ computer, path, content: args.content, run_as: dirs.run_as, signal });
 
             return `Wrote ${path} (${written.size} bytes).`;

@@ -110,7 +110,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.3.0",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.0",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
@@ -158,6 +158,22 @@ export const AppData = {
     ComputerBrowserDownloadsDir: "/home/gem/Downloads",
     ComputerDownloadsFolder: "downloads",
     /**
+     * The most a computer's workspace (`DATA_DIR/computers/<id>`) may hold,
+     * when the install saves no `computer_workspace_quota_mb` setting. It
+     * is one folder for every bot and user on that computer, mounted from
+     * the data volume, so a run that fills it takes the host's disk with
+     * it: `computer_write_file`, `computer_edit_file` and every
+     * `computer_bash` command that outgrows it are told to free space
+     * first (`computerWorkspaceRoomError`). 0 sets no limit.
+     */
+    ComputerWorkspaceQuotaMb: 10240,
+    /**
+     * How long a media row nothing points at stays before
+     * `prune-orphan-media` deletes it. Long enough that an upload in flight,
+     * or one a delete is still tidying, is never taken with it.
+     */
+    MediaOrphanKeepDays: 30,
+    /**
      * Written at the root of a computer's workspace once it uses that
      * layout, so an older computer's whole home is told apart and moved
      * aside (`prepareComputerDataDir`).
@@ -168,6 +184,14 @@ export const AppData = {
      * `<id><ComputerOldHomeSuffix><timestamp>` and kept, never archived.
      */
     ComputerOldHomeSuffix: "-home-",
+    /**
+     * How long a computer's old home stays after
+     * `prepareComputerDataDir` moved it aside, before
+     * `prune-computer-homes` deletes it. Nothing mounts it again
+     * (backups leave it out), so its only role is a look at what an
+     * earlier layout held.
+     */
+    ComputerOldHomeKeepDays: 45,
     /**
      * Recorded in a container's `metadata.layout`: the image and mounts it
      * was created with. A container with another value is recreated

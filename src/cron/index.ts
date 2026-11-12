@@ -4,6 +4,9 @@ import pruneBotsQueue from "./prune-bots-queue";
 import cronClearJobSteps from "./clear-job-steps";
 import pruneBotHookEvents from "./prune-bot-hook-events";
 import cronPruneChatrooms from "./prune-chatrooms";
+import cronPruneComputerCaches from "./prune-computer-caches";
+import cronPruneComputerHomes from "./prune-computer-homes";
+import cronPruneOrphanMedia from "./prune-orphan-media";
 import pruneLogs from "./prune-logs";
 import syncNotifyWatchers from "./sync-notify-watchers";
 import cronSyncHarnessModels from "./sync-harness-models";
@@ -51,6 +54,24 @@ export default function cron() {
         title: "prune-chatrooms",
         schedule: "@daily",
         task: cronPruneChatrooms,
+    });
+
+    registerCronJob({
+        title: "prune-orphan-media",
+        schedule: "@daily",
+        task: cronPruneOrphanMedia,
+    });
+
+    registerCronJob({
+        title: "prune-computer-caches",
+        schedule: "@daily",
+        task: cronPruneComputerCaches,
+    });
+
+    registerCronJob({
+        title: "prune-computer-homes",
+        schedule: "@daily",
+        task: cronPruneComputerHomes,
     });
 
     registerCronJob({

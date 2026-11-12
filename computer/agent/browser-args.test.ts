@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import browserArgs from "./browser-args";
+import browserArgs, { DiskCacheMaxBytes } from "./browser-args";
 
 const base = {
     profile_dir: "/p",
@@ -22,6 +22,13 @@ describe("browserArgs", () => {
             expect.arrayContaining(["--window-size=1536,864", "--force-device-scale-factor=1.25"]),
         );
         expect(browserArgs({ ...base, screen: { width: 1366, height: 768 }, scale: 1.25 })).toContain("--window-size=1092,614");
+    });
+
+    test("caps the disk cache, so a profile can't grow by gigabytes", () => {
+        const args = browserArgs({ ...base, screen: { width: 1920, height: 1080 }, scale: 1 });
+
+        expect(args).toContain(`--disk-cache-size=${DiskCacheMaxBytes}`);
+        expect(DiskCacheMaxBytes).toBe(512 * 1024 * 1024);
     });
 
     test("keeps WebGL but composites in software", () => {

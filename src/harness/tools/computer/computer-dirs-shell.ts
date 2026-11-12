@@ -1,6 +1,7 @@
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import computerWorkspacePath from "@/src/utils/computer-workspace-path";
 import shellQuote from "@/src/utils/shell-quote";
+import computerCacheEnv from "./computer-cache-env";
 
 /**
  * The shell that puts a command in the run's folder on the computer:
@@ -13,22 +14,30 @@ import shellQuote from "@/src/utils/shell-quote";
  * worker (its own account, no sudo) also gets `umask 007`, so its files
  * stay its workspace group's and nobody else's, and installs into that
  * home that work without root (`pip install --user`, `npm install -g` into
- * `~/.local`, on `PATH`). Ends with `; `, ready to prefix a command.
+ * `~/.local`, on `PATH`). Caches go to the account's own home inside the
+ * container instead (`computerCacheEnv`), so no cache a run makes is kept
+ * on the data volume. Ends with `; `, ready to prefix a command.
  */
 export default function computerDirsShell({ dirs }: { dirs: ComputerRunDirs }) {
     const cwd = shellQuote({ text: dirs.cwd });
+    const cache = computerCacheEnv({ dirs });
+    const cache_dir = shellQuote({ text: cache.cache_home });
 
     if (!dirs.run_as) {
-        const folders = [dirs.cwd, ...(dirs.shared_dir ? [dirs.shared_dir] : [])]
+        const folders = [
+            dirs.cwd,
+            cache.cache_home,
+            ...(dirs.shared_dir ? [dirs.shared_dir] : []),
+        ]
             .map((dir) => shellQuote({ text: dir }))
             .join(" ");
 
-        return `mkdir -p ${folders} && cd ${cwd} && export HOME=${cwd}; `;
+        return `mkdir -p ${folders} && cd ${cwd} && export HOME=${cwd} ${cache.assignments}; `;
     }
 
     const shared = dirs.shared_dir ? sharedLinkShell({ link: dirs.shared_dir }) : "";
 
-    return `umask 007 && ${shared}mkdir -p ${cwd} && cd ${cwd} && export HOME=${cwd} && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `;
+    return `umask 007 && ${shared}mkdir -p ${cwd} ${cache_dir} && cd ${cwd} && export HOME=${cwd} ${cache.assignments} && export PATH="$HOME/.local/bin:$PATH" NPM_CONFIG_PREFIX="$HOME/.local"; `;
 }
 
 function sharedLinkShell({ link }: { link: string }) {

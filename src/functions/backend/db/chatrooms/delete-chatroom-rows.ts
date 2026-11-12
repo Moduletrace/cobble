@@ -1,4 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
+import deleteUnlinkedAttachmentMedia from "../media/delete-unlinked-attachment-media";
 
 type Params = {
     /**
@@ -31,9 +32,21 @@ export default async function deleteChatroomRows({ rooms }: Params) {
     await BunSQLite.sql({
         sql: `DELETE FROM bot_message_reactions WHERE message_id IN (SELECT id FROM bot_messages WHERE session_id IN (${sessions}))`,
     });
+
+    /**
+     * An upload's bytes are its `media` row, which the message's link was
+     * the only way to reach: without this the room's files would stay on
+     * the data volume forever.
+     */
+    const uploads = await BunSQLite.sql<{ media_id: number }>({
+        sql: `SELECT media_id FROM bot_message_media WHERE message_id IN (SELECT id FROM bot_messages WHERE session_id IN (${sessions}))`,
+    });
+
     await BunSQLite.sql({
         sql: `DELETE FROM bot_message_media WHERE message_id IN (SELECT id FROM bot_messages WHERE session_id IN (${sessions}))`,
     });
+
+    await deleteUnlinkedAttachmentMedia({ media_ids: (uploads.payload || []).map((row) => Number(row.media_id)) }).catch(() => []);
     await BunSQLite.sql({ sql: `DELETE FROM bot_messages WHERE session_id IN (${sessions})` });
     await BunSQLite.sql({ sql: `DELETE FROM bot_sessions WHERE chatroom_id IN (${list})` });
     await BunSQLite.sql({ sql: `DELETE FROM chatrooms WHERE id IN (${list})` });

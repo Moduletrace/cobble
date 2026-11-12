@@ -8,6 +8,7 @@ import computerWorkerAccount from "@/src/utils/computer-worker-account";
 import capToolOutput from "./cap-tool-output";
 import computerDirsShell from "./computer-dirs-shell";
 import type { ComputerToolContext } from "./computer-tool-context";
+import { computerWorkspaceFullWarning } from "./computer-workspace-room";
 
 type Args = {
     command: string;
@@ -57,11 +58,19 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
 
             const output = capToolOutput({ text: redact(result.output.replace(/\s+$/, "")), max_chars: AppData.ComputerCommandMaxOutputChars });
 
+            /**
+             * A command writes whatever it likes, past what the agent sees:
+             * say when the workspace has outgrown its limit, so the bot
+             * clears space before its next write is refused.
+             */
+            const full = await computerWorkspaceFullWarning({ computer, dirs }).catch(() => null);
+
             return [
                 `Exit code: ${result.exit_code ?? "unknown"}`,
                 output || "(no output)",
                 result.timed_out ? `[Stopped after ${seconds}s: the command timed out. Run long work in the background and check its log.]` : "",
                 result.truncated ? `[The computer kept only the first part of a very long output.]` : "",
+                full || "",
             ]
                 .filter(Boolean)
                 .join("\n");

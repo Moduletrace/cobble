@@ -13,6 +13,7 @@ import grabChatroomRetentionOverview from "@/src/functions/backend/db/app-settin
 import grabSessionLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-session-max-messages";
 import grabMessageLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-message-max-chars";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
+import grabComputerWorkspaceQuotaOverview from "@/src/functions/backend/db/app-settings/grab-computer-workspace-quota-overview";
 import { grabSystemPromptAppendOverview } from "@/src/functions/backend/db/app-settings/grab-system-prompt-append";
 import runningVersion from "@/src/utils/running-version";
 
@@ -51,6 +52,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             person: sanitizeUserBio({ user: user_res.singleRes }),
             has_password,
             storage_quota: await grabStorageQuotaOverview().catch(() => null),
+            computer_workspace_quota: await grabComputerWorkspaceQuotaOverview().catch(() => null),
             system_prompt_append: await grabSystemPromptAppendOverview().catch(() => null),
             run_limits: await grabRunLimitsOverview().catch(() => null),
             skill_limits: await grabSkillLimitsOverview().catch(() => null),
