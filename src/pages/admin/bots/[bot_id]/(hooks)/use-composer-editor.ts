@@ -6,6 +6,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "@tiptap/markdown";
 import type { SuggestionOptions, SuggestionProps } from "@tiptap/suggestion";
 import type { BotWithLastMessage, WorkspaceWithActivity } from "@/src/types";
+import ComposerOrderedList from "../(data)/composer-ordered-list";
 import {
     ComposerMentionKinds,
     type ComposerMentionChar,
@@ -39,6 +40,11 @@ type Params = {
      * Files pasted or dropped in.
      */
     onFiles: (params: { files: File[] }) => void;
+    /**
+     * An arrow key that may walk the user's previous messages; true when it
+     * did, so the cursor stays where the recalled message left it.
+     */
+    onHistory: (params: { direction: "up" | "down"; empty: boolean }) => boolean;
 };
 
 /**
@@ -49,7 +55,9 @@ type Params = {
  * in a code block or list, where Enter is the editor's and Mod+Enter
  * sends. Enter picks from an open mention menu. Pasted text comes in
  * plain, without another site's styling; pasted or dropped files go to
- * `onFiles`.
+ * `onFiles`. The Up and Down arrows walk the user's previous messages
+ * through `onHistory` (an empty input recalls the newest; an open mention
+ * menu keeps them for itself).
  */
 export default function useComposerEditor({
     placeholder,
@@ -58,9 +66,10 @@ export default function useComposerEditor({
     onChange,
     onSubmit,
     onFiles,
+    onHistory,
 }: Params) {
-    const latest = useRef({ bots, workspaces, onChange, onSubmit, onFiles });
-    latest.current = { bots, workspaces, onChange, onSubmit, onFiles };
+    const latest = useRef({ bots, workspaces, onChange, onSubmit, onFiles, onHistory });
+    latest.current = { bots, workspaces, onChange, onSubmit, onFiles, onHistory };
 
     const [menu, setMenu] = useState<ComposerMentionMenu | null>(null);
     const menu_ref = useRef<ComposerMentionMenu | null>(null);
@@ -134,7 +143,10 @@ export default function useComposerEditor({
                 horizontalRule: false,
                 underline: false,
                 link: { openOnClick: false, autolink: true },
+                orderedList: false,
             }),
+            /** Digits only, so text like "Ok. Do that." stays a paragraph. */
+            ComposerOrderedList,
             Placeholder.configure({ placeholder }),
             Markdown,
             Mention.extend({
@@ -155,7 +167,17 @@ export default function useComposerEditor({
                     const editorOwnsEnter = () =>
                         this.editor.isActive("codeBlock") || this.editor.isActive("listItem");
 
+                    /** A selection, a composing IME or an open menu keep the arrows. */
+                    const walkHistory = (direction: "up" | "down") => {
+                        if (menu_ref.current?.items.length || this.editor.view.composing) return false;
+                        if (!this.editor.state.selection.empty) return false;
+
+                        return latest.current.onHistory({ direction, empty: this.editor.isEmpty });
+                    };
+
                     return {
+                        ArrowUp: () => walkHistory("up"),
+                        ArrowDown: () => walkHistory("down"),
                         Enter: () => {
                             if (menu_ref.current?.items.length || this.editor.view.composing) return false;
                             if (editorOwnsEnter()) return false;

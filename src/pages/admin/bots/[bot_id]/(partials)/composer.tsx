@@ -23,12 +23,15 @@ import transcribeVoice from "../(functions)/transcribe-voice";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
 import useComposerDraft from "../(hooks)/use-composer-draft";
 import useComposerEditor from "../(hooks)/use-composer-editor";
+import useComposerHistory from "../(hooks)/use-composer-history";
 import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
 import { AppData } from "@/src/data/app-data";
 import messageTooLongMessage from "@/src/utils/message-too-long-message";
+import composerHistoryTexts from "../(utils)/composer-history-texts";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
+import ComposerClearButton from "./composer-clear-button";
 import ComposerEditor from "./composer-editor";
 import ComposerMentionList from "./composer-mention-list";
 import ComposerReplyPreview from "./composer-reply-preview";
@@ -75,6 +78,11 @@ type Props = {
      */
     max_chars?: number | null;
     /**
+     * The user's own earlier messages in the thread, oldest first: the Up
+     * and Down arrows walk them.
+     */
+    previous_messages?: BotMessageWithAttachments[];
+    /**
      * The message the next one quotes, if the user picked one.
      */
     reply_to?: BotMessageWithAttachments | null;
@@ -105,7 +113,9 @@ type Props = {
  * are listed under the input. The mic dictates: what's said is written
  * into the input at the cursor, to edit before sending. Sending shows the
  * message in the thread straight away and empties the input, so a slow
- * connection never holds either; a failed send puts both back.
+ * connection never holds either; a failed send puts both back. Up recalls
+ * the message the user sent before (Down comes forward again, back to what
+ * they were typing), and the X button empties the text without sending it.
  */
 export default function Composer({
     bot,
@@ -114,6 +124,7 @@ export default function Composer({
     voice,
     has_browsers,
     max_chars,
+    previous_messages,
     reply_to,
     onCancelReply,
     onSendStart,
@@ -140,15 +151,46 @@ export default function Composer({
 
     latest_text.current = text;
 
+    const history = useComposerHistory({
+        texts: composerHistoryTexts({ messages: previous_messages || [] }),
+    });
+    /**
+     * Assigned once the editor exists, since recalling a message writes
+     * into it; the editor's keys read it through a ref.
+     */
+    const walk_history = useRef<
+        (params: { direction: "up" | "down"; empty: boolean }) => boolean
+    >(() => false);
+
     const input = useComposerEditor({
         placeholder: `Message ${bot.name}`,
         bots,
         workspaces,
-        onChange: ({ markdown }) => setText(markdown),
+        onChange: ({ markdown }) => {
+            history.reset();
+            setText(markdown);
+        },
         onSubmit: () => send_ref.current(),
         onFiles: files.add,
+        onHistory: (params) => walk_history.current(params),
     });
     const editor = input.editor;
+
+    walk_history.current = ({ direction, empty }) => {
+        const next = history.step({
+            direction,
+            draft: latest_text.current,
+            empty,
+        });
+
+        if (!next) return false;
+
+        setText(next.text);
+        input.setMarkdown({ markdown: next.text });
+        editor?.commands.focus("end");
+
+        return true;
+    };
 
     useImperativeHandle(
         handle_ref,
@@ -230,6 +272,17 @@ export default function Composer({
     };
 
     /**
+     * Empties the input's text, without sending it: what was typed is
+     * dropped, the quote and the picked files stay.
+     */
+    function clearText() {
+        setText("");
+        history.reset();
+        input.clear();
+        editor?.commands.focus();
+    }
+
+    /**
      * The bubble and the bot's "getting your message" row show at once, and
      * the input empties, so a slow connection never holds any of it. The
      * response swaps the bubble for the saved message, or takes it back.
@@ -293,6 +346,7 @@ export default function Composer({
         onCancelReply?.();
 
         setText("");
+        history.reset();
         input.clear();
         files.clear();
 
@@ -369,6 +423,11 @@ export default function Composer({
                         editor={editor}
                         invalid={Boolean(error)}
                         title={error}
+                    />
+
+                    <ComposerClearButton
+                        disabled={!text.trim()}
+                        onClick={clearText}
                     />
 
                     {recorder.supported ? (

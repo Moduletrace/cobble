@@ -63,7 +63,8 @@ import requestLiveCrewRefresh from "@/src/functions/frontend/request-live-crew-r
  * when the back button restores the page. Older messages load as the
  * thread scrolls up. `?session_id=` opens another session of the
  * conversation; a closed one shows, in the composer's place, a link to
- * where the conversation went on.
+ * where the conversation went on. Up recalls the last message the user
+ * sent, in the composer.
  */
 export default function Conversation() {
     const { pageProps } = useContext(AppContext);
@@ -469,6 +470,7 @@ export default function Conversation() {
                                     voice={pageProps?.bot_voice}
                                     has_browsers={Boolean(pageProps?.has_browsers)}
                                     max_chars={pageProps?.message_max_chars}
+                                    previous_messages={thread_messages}
                                     reply_to={reply_to}
                                     onCancelReply={() => setReplyTo(null)}
                                     onSendStart={({ message }) =>
