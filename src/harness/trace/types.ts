@@ -33,8 +33,9 @@ export type HarnessToolTrace = {
     images: number;
     duration_ms: number;
     /**
-     * The step whose identical read answered this call, when the loop
-     * skipped it (`alreadyRanToolNote`).
+     * The step this call was answered from instead of being run: the one
+     * whose identical read answered it (`alreadyRanToolNote`), or the one
+     * whose identical failure did (`failedToolCallNote`).
      */
     repeat_of?: number | null;
 };

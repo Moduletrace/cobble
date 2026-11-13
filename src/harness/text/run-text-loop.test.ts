@@ -1097,3 +1097,173 @@ describe("runTextLoop trace", () => {
         expect(result.text).toBe("Done.");
     });
 });
+
+describe("runTextLoop repeated failures", () => {
+    const failing = (id: string) => ({
+        id,
+        name: "computer_bash",
+        arguments: JSON.stringify({ command: "python3 rb.py 22" }),
+    });
+
+    const makeTools = () => {
+        const counts = { commands: 0, writes: 0 };
+
+        const bash: HarnessTool<{ command: string }> = {
+            name: "computer_bash",
+            description: "Runs a command.",
+            schema: z.object({ command: z.string() }),
+            run: async () => {
+                counts.commands++;
+
+                return "Error: Exit code: 1\nFileNotFoundError: plan/0.json";
+            },
+        };
+        const write: HarnessTool<{ path: string }> = {
+            name: "computer_write_file",
+            description: "Writes a file.",
+            schema: z.object({ path: z.string() }),
+            run: async () => {
+                counts.writes++;
+
+                return "Written.";
+            },
+        };
+
+        return { tools: [bash, write], counts };
+    };
+
+    test("answers an identical failing call from its failure, after one retry", async () => {
+        const { tools, counts } = makeTools();
+        const { generate, seen } = scripted([
+            { tool_calls: [failing("c1")] },
+            { tool_calls: [failing("c2")] },
+            { tool_calls: [failing("c3")] },
+            { text: "Blocked: the engine path is wrong." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Run it." }],
+            tools,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(counts.commands).toBe(1 + AppData.HarnessSameFailureRetries);
+        expect(result.text).toBe("Blocked: the engine path is wrong.");
+
+        const results = seen[3]!.messages.filter((message) => message.role == "tool");
+
+        expect(String(results[2]!.content)).toContain("failed the same way each time");
+        expect(result.tool_uses.filter((use) => !use.ok)).toHaveLength(3);
+    });
+
+    test("runs the same call again once something could have changed its answer", async () => {
+        const { tools, counts } = makeTools();
+        const { generate } = scripted([
+            { tool_calls: [failing("c1")] },
+            { tool_calls: [{ id: "c2", name: "computer_write_file", arguments: `{"path":"plan/22.json"}` }] },
+            { tool_calls: [failing("c3")] },
+            { text: "Done." },
+        ]);
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Set the plan up, then run it." }],
+            tools,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(counts.writes).toBe(1);
+        expect(counts.commands).toBe(2);
+    });
+});
+
+describe("runTextLoop token warning", () => {
+    test("says half the token budget is gone, once", async () => {
+        const turn = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+            usage: { prompt_tokens: 300, completion_tokens: 1 },
+        };
+        const { generate, seen } = scripted([turn, turn, turn, turn, { text: "Landing it here." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_prompt_tokens: 1000,
+            generate,
+            resolveCandidates,
+        });
+
+        const warned = ({ turn }: { turn: number }) =>
+            seen[turn]!.messages.filter(
+                (message) =>
+                    message.role == "user" &&
+                    typeof message.content == "string" &&
+                    message.content.includes("prompt tokens left in this run"),
+            ).length;
+
+        expect(warned({ turn: 1 })).toBe(0);
+        expect(warned({ turn: 2 })).toBe(1);
+        expect(warned({ turn: 4 })).toBe(1);
+    });
+});
+
+describe("runTextLoop commit early", () => {
+    const reading = (id: string) => ({
+        tool_calls: [{ id, name: "remember", arguments: `{"note":"x"}` }],
+        usage: { prompt_tokens: 300, completion_tokens: 1 },
+    });
+    const wrote = (id: string) => ({
+        tool_calls: [{ id, name: "write_file", arguments: "{}" }],
+        usage: { prompt_tokens: 300, completion_tokens: 1 },
+    });
+    const write_file: HarnessTool = {
+        name: "write_file",
+        description: "Writes a file.",
+        schema: z.object({}),
+        run: async () => "Written.",
+    };
+    const committed = ({ turn, seen }: { turn: number; seen: GenerateTextParams[] }) =>
+        seen[turn]!.messages.filter(
+            (message) =>
+                message.role == "user" &&
+                typeof message.content == "string" &&
+                message.content.includes("nothing has been produced yet"),
+        ).length;
+
+    test("tells a run that has only been reading to land a piece of the work, once", async () => {
+        const { generate, seen } = scripted([reading("a"), reading("b"), reading("c"), { text: "Done." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_prompt_tokens: 1000,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(committed({ turn: 0, seen })).toBe(0);
+        expect(committed({ turn: 1, seen })).toBe(1);
+        expect(committed({ turn: 3, seen })).toBe(1);
+    });
+
+    test("says nothing to a run that has already written something", async () => {
+        const { generate, seen } = scripted([wrote("a"), wrote("b"), wrote("c"), { text: "Done." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [write_file],
+            max_prompt_tokens: 1000,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(committed({ turn: 1, seen })).toBe(0);
+        expect(committed({ turn: 3, seen })).toBe(0);
+    });
+});

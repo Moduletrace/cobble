@@ -47,6 +47,14 @@ const CharsPerToken = 3;
  */
 const MediaTokens = 1500;
 /**
+ * Characters of a trimmed tool result that are kept at each end. A trimmed
+ * result used to be replaced whole, with a note telling the model to call
+ * the tool again if it still needed it, so it did: the same `SELECT`, the
+ * same `cat`, re-run and resent. Keeping the start and the end (the command
+ * and its totals, as `truncate` does) is usually all the run still needs.
+ */
+const TrimmedKeepChars = 500;
+/**
  * Tool call arguments longer than this (a file written whole) are cut on
  * the second pass, after the tool results.
  */
@@ -90,6 +98,24 @@ export default function fitTranscriptToContext({
         trimmed++;
     };
 
+    /**
+     * A tool result cut down to its two ends and a note: the run works from
+     * what it kept, rather than paying for the call again.
+     */
+    const trimResult = ({ index, content, name }: { index: number; content: string; name: string | undefined }) => {
+        const kept = content.length > TrimmedKeepChars * 4;
+        const head = kept ? content.slice(0, TrimmedKeepChars) : "";
+        const tail = kept ? content.slice(-TrimmedKeepChars) : "";
+        const cut = content.length - head.length - tail.length;
+        const label = name ? `${name} output` : "tool output";
+
+        if (!kept) return `[Trimmed: ${cut} characters of this ${label} to fit the working context.]`;
+
+        const note = `[Trimmed: ${cut} characters of the middle of this ${label} to fit the working context. Its start and end are kept here: work from them, and narrow the call (a smaller range, a filter, one row) rather than repeating it.]`;
+
+        return `${head}\n\n${note}\n\n${tail}`;
+    };
+
     for (let index = 0; index < trimmable && total > target; index++) {
         const message = transcript[index]!;
 
@@ -101,7 +127,7 @@ export default function fitTranscriptToContext({
             index,
             message: {
                 ...message,
-                content: `[Trimmed: ${message.content.length} characters of earlier ${name ? `${name} output` : "tool output"} to fit the working context. Call it again if you still need it.]`,
+                content: trimResult({ index, content: message.content, name }),
             },
         });
     }

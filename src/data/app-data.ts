@@ -527,8 +527,36 @@ export const AppData = {
      * always holds, since step limits are unlimited by default, for runs
      * whose turns are large. The install may save its own
      * (`run_max_prompt_tokens`), read through `grabRunMaxPromptTokens`.
+     *
+     * 4M, not 40M: at 40M a run could spend 195 turns re-reading its own
+     * notes and still be under the ceiling, which is what one task run did
+     * (30M tokens, zero rows written, Nov 2026). A run that needs more than
+     * 4M is a run to split, and an install can raise it to
+     * `RunMaxPromptTokensMax`.
      */
-    RunMaxPromptTokens: 40_000_000,
+    RunMaxPromptTokens: 4_000_000,
+    /**
+     * Share of its token budget a run is told about, once: past half of
+     * it, every further turn costs what the answer costs, so it lands the
+     * work rather than going on gathering (`tokensLowNote`).
+     */
+    HarnessRunTokensWarnShare: 0.5,
+    /**
+     * Share of its token budget a run may spend before it is told, once,
+     * that nothing has been produced yet: a quarter in, it still has room
+     * to land the work, and a run that spends the whole budget measuring
+     * ends with a report of what it found and none of what it was asked for
+     * (`commitEarlyNote`). 0 turns it off.
+     */
+    HarnessRunTokensCommitShare: 0.25,
+    /**
+     * How many times an identical call may fail before the run is answered
+     * from that failure instead of paying for it again: one retry (a
+     * transient error is worth retrying), then the note that the call
+     * itself is wrong. A failing command was once repeated five times in a
+     * row, each repeat resending the whole transcript.
+     */
+    HarnessSameFailureRetries: 1,
     /**
      * The working context: how many tokens (estimated) of system prompt,
      * tool definitions and transcript a run sends per turn before old tool

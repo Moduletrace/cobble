@@ -1,13 +1,15 @@
 import { AppData } from "@/src/data/app-data";
-import { alreadyRanToolNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, commitEarlyNote, failedToolCallNote, tokensLowNote } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
 import HarnessError from "../harness-error";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import loadToolsTool from "../tools/load-tools-tool";
-import repeatToolCallKey from "../tools/repeat-tool-call-key";
+import repeatToolCallKey, { toolCallKey } from "../tools/repeat-tool-call-key";
+import isRepeatableTool from "../tools/repeatable-tool-names";
 import runToolCall from "../tools/run-tool-call";
 import type { ToolCallResult } from "../tools/run-tool-call";
 import toolDefinition from "../tools/tool-definition";
+import isWritingTool from "../tools/writing-tool-names";
 import type { HarnessTrace, HarnessTracer } from "../trace/types";
 import type {
     HarnessCandidate,
@@ -328,6 +330,16 @@ export default async function runTextLoop({
      */
     const repeated_reads = new Map<string, number>();
     /**
+     * The calls that failed, by the call they answer (`toolCallKey`), with
+     * the step the first of them ran on and the error it gave. An identical
+     * call past `AppData.HarnessSameFailureRetries` is answered from here
+     * instead of being run: it fails the same way, and each repeat resends
+     * the whole transcript (one run paid five times for the same
+     * `FileNotFoundError`). Anything that could change the outcome clears
+     * them, so a call retried after the missing piece was put in place runs.
+     */
+    const failed_calls = new Map<string, { step: number; attempts: number; error: string }>();
+    /**
      * The tools a wrap up may still call: what saves the work, and
      * `start_task` for the work it can't finish. A run that spent every
      * step measuring can then still write the report the user is waiting
@@ -359,6 +371,28 @@ export default async function runTextLoop({
     let prefer_key: string | undefined;
     let reviewed = false;
     let warned_steps = isUnlimitedLimit(max_steps) || max_steps < AppData.HarnessStepsLowMinSteps;
+    /**
+     * The prompt tokens past which the run is told to land the work
+     * (`AppData.HarnessRunTokensWarnShare` of its budget), and whether it has
+     * been told. A run with no token budget has none to be near the end of.
+     */
+    const tokens_warn_at =
+        typeof max_prompt_tokens == "number" && max_prompt_tokens > 0
+            ? Math.floor(max_prompt_tokens * AppData.HarnessRunTokensWarnShare)
+            : Infinity;
+    let warned_tokens = tokens_warn_at == Infinity;
+    /**
+     * A quarter of the budget with nothing produced yet: research is not
+     * progress, and a run that spends the whole budget reading lands its
+     * report but none of the work (one task run did exactly that: 195
+     * turns, 30M tokens, zero rows written, Nov 2026). Said once, while
+     * there is still budget to land the rest.
+     */
+    const commits_at =
+        typeof max_prompt_tokens == "number" && max_prompt_tokens > 0
+            ? Math.floor(max_prompt_tokens * AppData.HarnessRunTokensCommitShare)
+            : Infinity;
+    let told_to_commit = commits_at == Infinity;
     /**
      * The wrap up is announced once, and may save until it has: a run told
      * to stop with its report unwritten gets a turn to write it (at most
@@ -563,6 +597,10 @@ export default async function runTextLoop({
         for (const call of tool_calls) {
             const repeat_key = repeatToolCallKey({ call });
             const already_read = repeat_key ? repeated_reads.get(repeat_key) : undefined;
+            const call_key = toolCallKey({ call });
+            const failed_before = call_key ? failed_calls.get(call_key) : undefined;
+            const give_up =
+                failed_before !== undefined && failed_before.attempts > AppData.HarnessSameFailureRetries;
 
             const result: ToolCallResult =
                 already_read !== undefined
@@ -571,9 +609,21 @@ export default async function runTextLoop({
                           images: [],
                           duration_ms: 0,
                       }
-                    : await runToolCall({ call, tools: run_tools, signal });
+                    : give_up
+                      ? {
+                            text: failedToolCallNote({
+                                name: call.name,
+                                step: failed_before.step,
+                                attempts: failed_before.attempts,
+                                error: failed_before.error,
+                            }),
+                            images: [],
+                            duration_ms: 0,
+                        }
+                      : await runToolCall({ call, tools: run_tools, signal });
 
             const { text: content, images } = result;
+            const ok = !give_up && !content.startsWith("Error:");
 
             /**
              * A deferred tool called without loading it ran all the same;
@@ -583,7 +633,7 @@ export default async function runTextLoop({
                 loaded.push(call.name);
             }
 
-            tool_uses.push({ name: call.name, ok: !content.startsWith("Error:") });
+            tool_uses.push({ name: call.name, ok });
 
             await traced({
                 kind: "tool",
@@ -591,10 +641,10 @@ export default async function runTextLoop({
                 name: call.name,
                 arguments: call.arguments,
                 result: content,
-                ok: !content.startsWith("Error:"),
+                ok,
                 images: images.length,
                 duration_ms: result.duration_ms,
-                repeat_of: already_read ?? null,
+                repeat_of: (give_up ? failed_before.step : already_read) ?? null,
             });
 
             if (!repeat_key) {
@@ -602,6 +652,22 @@ export default async function runTextLoop({
             } else if (already_read === undefined) {
                 if (content.startsWith("Error:")) repeated_reads.delete(repeat_key);
                 else repeated_reads.set(repeat_key, index);
+            }
+
+            if (give_up) {
+                failed_calls.set(call_key!, { ...failed_before, attempts: failed_before.attempts + 1 });
+            } else if (content.startsWith("Error:")) {
+                if (call_key) {
+                    const earlier = failed_calls.get(call_key);
+
+                    failed_calls.set(call_key, {
+                        step: earlier?.step ?? index,
+                        attempts: (earlier?.attempts ?? 0) + 1,
+                        error: earlier?.error ?? clipFailure({ text: content }),
+                    });
+                }
+            } else if (!call_key || !isRepeatableTool({ name: call.name })) {
+                failed_calls.clear();
             }
 
             transcript.push({ role: "tool", tool_call_id: call.id, content });
@@ -629,6 +695,31 @@ export default async function runTextLoop({
         await takeIncoming({ note: incoming_notes?.working || IncomingMessagesNote, index });
 
         /**
+         * What this turn spent: past the budget, the wrap up says it better
+         * (`wrapUpPrompt`) than either note below.
+         */
+        const spent_out =
+            typeof max_prompt_tokens == "number" && max_prompt_tokens > 0 && usage.prompt_tokens >= max_prompt_tokens;
+
+        /**
+         * Something produced, or a quarter of the budget gone without it:
+         * said before the steps are nearly out, so a run still has room to
+         * land the work rather than reporting on it. A run that has written
+         * anything at all is left alone; one that landed its work through a
+         * shell says so (`commitEarlyNote`).
+         */
+        if (tool_uses.some((used) => used.ok && isWritingTool({ name: used.name }))) told_to_commit = true;
+
+        if (!told_to_commit && !spent_out && usage.prompt_tokens >= commits_at) {
+            told_to_commit = true;
+
+            const note = commitEarlyNote({ spent: usage.prompt_tokens, of: max_prompt_tokens as number });
+
+            pushUserTurn({ transcript, content: note });
+            await traced({ kind: "event", index, name: "commit_early", text: note });
+        }
+
+        /**
          * Steps left before the wrap up, once the next turn is taken.
          * An unlimited run is never told it's nearly out: it has no budget
          * to be near the end of.
@@ -639,6 +730,21 @@ export default async function runTextLoop({
             warned_steps = true;
             pushUserTurn({ transcript, content: stepsLowNote({ left }) });
             await traced({ kind: "event", index, name: "steps_low", text: stepsLowNote({ left }) });
+        }
+
+        /**
+         * Half the token budget gone, once: every further turn resends this
+         * whole conversation, so what the run does next is paid for out of
+         * the answer. Skipped when the turn just spent the budget out: the
+         * wrap up says it better (`wrapUpPrompt`).
+         */
+        if (!warned_tokens && !spent_out && usage.prompt_tokens >= tokens_warn_at) {
+            warned_tokens = true;
+
+            const tokens_left = (max_prompt_tokens as number) - usage.prompt_tokens;
+
+            pushUserTurn({ transcript, content: tokensLowNote({ left: tokens_left }) });
+            await traced({ kind: "event", index, name: "tokens_low", text: tokensLowNote({ left: tokens_left }) });
         }
     }
 
@@ -673,3 +779,16 @@ export default async function runTextLoop({
         return true;
     }
 }
+
+/**
+ * Characters of a failure a repeated call's note keeps: a failing command
+ * can print a whole traceback, and the note is resent with every turn
+ * after it.
+ */
+const FailureNoteChars = 400;
+
+/**
+ * The error a repeated call's note reuses, cut to `FailureNoteChars`.
+ */
+const clipFailure = ({ text }: { text: string }) =>
+    text.length <= FailureNoteChars ? text : `${text.slice(0, FailureNoteChars)}...`;

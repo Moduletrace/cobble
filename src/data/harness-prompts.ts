@@ -374,6 +374,58 @@ export const alreadyRanToolNote = ({ name, step }: { name: string; step: number 
     `You already called ${name} with these exact arguments on step ${step + 1} of this run, and nothing has changed since. Its output is above: use that instead of calling it again.`;
 
 /**
+ * What a run gets back instead of paying for the same failure again: an
+ * identical call (same tool, same arguments) that failed, retried once
+ * (`AppData.HarnessSameFailureRetries`), fails the same way, and the error
+ * is almost never about luck: it is the call itself. Nothing that could
+ * have changed the outcome has run since, or the memory would have been
+ * dropped.
+ */
+export const failedToolCallNote = ({
+    name,
+    step,
+    attempts,
+    error,
+}: {
+    name: string;
+    step: number;
+    attempts: number;
+    error: string;
+}) =>
+    `You called ${name} with these exact arguments ${attempts} times since step ${step + 1} of this run, and it failed the same way each time: ${error}
+
+Nothing has run since that could change that answer, so calling it once more only buys the same error (and resends this whole conversation). Fix the call itself: change the arguments, do the step it is missing first, or report it as blocked.`;
+
+/**
+ * Told once, when a run has spent `AppData.HarnessRunTokensWarnShare` of
+ * the prompt tokens it may send: every further turn resends everything, so
+ * what it does from here is paid for out of the answer's budget.
+ */
+export const tokensLowNote = ({ left }: { left: number }) =>
+    `You have about ${Math.max(0, Math.round(left)).toLocaleString("en-US")} prompt tokens left in this run, and every further turn resends this whole conversation, so each one costs more than the last. Land the work now: write what you have to a file and finish the rest of the answer from it, or hand the rest on with start_task. Another round of gathering is not worth what is left.`;
+
+/**
+ * Sent once, a quarter of the way into a run's token budget, when nothing
+ * has been produced yet: no file written, no record changed, nothing handed
+ * on. One task run spent 195 turns and 30M tokens reading its own notes and
+ * writing a single row to the database, because nothing ever asked it when
+ * the work would start; the budget was far too large to arrive as a
+ * deadline (`commitEarlyNote` says it while there is still room).
+ *
+ * It says a run already delivered through a shell reports that instead: the
+ * harness can't tell an `UPDATE` from a `SELECT` (`isWritingTool`).
+ */
+export const commitEarlyNote = ({ spent, of }: { spent: number; of: number }) => {
+    const share = Math.round((spent / Math.max(1, of)) * 100);
+
+    return `About ${share}% of this run's prompt-token budget is gone and nothing has been produced yet: no file written, nothing changed, nothing handed on. Reading is not the work.
+
+Land one piece of what was asked for now, all the way through, before you open anything else: the first row, the first file, the first item of the list. Then the next. A run that finishes with everything understood and nothing delivered has failed at the job, however good the notes are.
+
+If part of it has already landed some other way (a command that wrote it, a message that sent it), say plainly what landed and carry on from there.`;
+};
+
+/**
  * Added to a chat reply while the bot has runs open in this conversation
  * that take in what the user writes here: a correction to one reaches it,
  * so the reply never starts another run for it. Empty with none.
