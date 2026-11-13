@@ -5,6 +5,7 @@ import { UnlimitedLimit } from "@/src/utils/run-limit";
 import { alreadyRanToolNote, DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
+import type { HarnessTrace } from "../trace/types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
 import runTextLoop, {
     IncomingMessagesNote,
@@ -984,5 +985,115 @@ describe("runTextLoop repeated reads", () => {
         });
 
         expect(counts.reads).toBe(2);
+    });
+
+    test("traces a read it skipped as the step that answered it", async () => {
+        const { tools, counts } = makeTools();
+        const turns = [
+            {
+                text: null,
+                tool_calls: [
+                    readCall({ id: "c1", path: "a.md" }),
+                    readCall({ id: "c2", path: "a.md" }),
+                ],
+            },
+            { text: "Done.", tool_calls: [] },
+        ];
+        const { generate } = scripted(turns);
+        const traces: HarnessTrace[] = [];
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Read a.md twice." }],
+            tools,
+            generate,
+            resolveCandidates,
+            trace: (entry) => {
+                traces.push(entry);
+            },
+        });
+
+        expect(counts.reads).toBe(1);
+
+        const calls = traces.filter((entry) => entry.kind == "tool");
+
+        expect(calls).toHaveLength(2);
+        expect(calls[1]).toMatchObject({ repeat_of: 0, duration_ms: 0 });
+    });
+});
+
+describe("runTextLoop trace", () => {
+    test("keeps what it did as a trace: turns, tool calls and its own events", async () => {
+        const { generate } = scripted([
+            {
+                text: "Noting that.",
+                reasoning: "They told me what they drink.",
+                tool_calls: [
+                    { id: "c1", name: "remember", arguments: `{"note":"tea"}` },
+                ],
+                usage: { prompt_tokens: 10, completion_tokens: 3 },
+                finish_reason: "tool_calls",
+            },
+            { text: "I'll remember you like tea.", finish_reason: "stop" },
+        ]);
+        const traces: HarnessTrace[] = [];
+
+        const result = await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "I like tea." }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            trace: (entry) => {
+                traces.push(entry);
+            },
+        });
+
+        expect(result.text).toBe("I'll remember you like tea.");
+        expect(traces.map((entry) => entry.kind)).toEqual(["turn", "tool", "turn"]);
+        expect(traces[0]).toMatchObject({
+            kind: "turn",
+            index: 0,
+            text: "Noting that.",
+            reasoning: "They told me what they drink.",
+            model: "m",
+            provider: null,
+            tool_calls: [{ name: "remember", arguments: `{"note":"tea"}` }],
+            usage: { prompt_tokens: 10, completion_tokens: 3 },
+            finish_reason: "tool_calls",
+        });
+        expect(traces[1]).toMatchObject({
+            kind: "tool",
+            index: 0,
+            name: "remember",
+            arguments: `{"note":"tea"}`,
+            result: "Saved.",
+            ok: true,
+            images: 0,
+            repeat_of: null,
+        });
+        expect((traces[1] as { duration_ms: number }).duration_ms).toBeGreaterThanOrEqual(0);
+        expect(traces[2]).toMatchObject({
+            kind: "turn",
+            index: 1,
+            text: "I'll remember you like tea.",
+            finish_reason: "stop",
+        });
+    });
+
+    test("a trace that can't be kept never fails the run", async () => {
+        const { generate } = scripted([{ text: "Done." }]);
+
+        const result = await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Hello." }],
+            generate,
+            resolveCandidates,
+            trace: () => {
+                throw new Error("The database is full.");
+            },
+        });
+
+        expect(result.text).toBe("Done.");
     });
 });

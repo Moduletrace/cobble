@@ -36,6 +36,7 @@ import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
 import useSpeakMessage from "../(hooks)/use-speak-message";
 import useOlderMessages from "../(hooks)/use-older-messages";
 import ConversationHeader from "../(partials)/conversation-header";
+import useDebugOpen from "../(hooks)/use-debug-open";
 import MessageThread from "../(partials)/message-thread";
 import Composer, { type ComposerHandle } from "../(partials)/composer";
 import ComputerViewerModal from "../(partials)/computer-viewer-modal";
@@ -99,6 +100,14 @@ export default function Conversation() {
      */
     const [moved_to_session_id, setMovedToSessionId] = useState<number | null>(null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
+    /**
+     * The debug logs under the thinking row, which its bug button toggles.
+     * Remembered per user, so it stays as they left it in every
+     * conversation (`useDebugOpen`).
+     */
+    const { open: debug_open, setOpen: set_debug_open } = useDebugOpen({
+        user_id: pageProps?.user?.id,
+    });
     /**
      * The text model the bot runs on here; none shows a notice in the
      * thread. A save in the models modal updates it.
@@ -452,6 +461,11 @@ export default function Conversation() {
                                     receiving={pending_messages.length > 0}
                                     has_task={Boolean(progress.task_id)}
                                     moved_on={Boolean(moved_to_session_id)}
+                                    session_id={session_id}
+                                    debug_open={debug_open}
+                                    on_toggle_debug={() =>
+                                        set_debug_open(!debug_open)
+                                    }
                                     no_reply_due={no_reply_due}
                                     notice={
                                         !text_model && !history.loading ? (
@@ -537,8 +551,6 @@ export default function Conversation() {
     );
 
     return (
-        <StopBotContext.Provider value={stop_state}>
-            {thread}
-        </StopBotContext.Provider>
+        <StopBotContext.Provider value={stop_state}>{thread}</StopBotContext.Provider>
     );
 }

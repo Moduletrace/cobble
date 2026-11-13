@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import Button from "@moduletrace/twui/layout/Button";
+import { twMerge } from "tailwind-merge";
 import { CircleStop } from "lucide-react";
 import { BotStopButtonLabel } from "@/src/dict/bot-queue-dict";
 import { StopBotContext } from "../(data)/stop-bot-context";
@@ -56,6 +57,11 @@ export default function StopBotButton({ bot_name, menu, disabled }: Props) {
         );
     }
 
+    /**
+     * In the thinking row it's an icon beside the debug logs toggle, so the
+     * row keeps its width for the line the bot is on; the menu still names
+     * it.
+     */
     return (
         <Button
             title={title}
@@ -67,13 +73,15 @@ export default function StopBotButton({ bot_name, menu, disabled }: Props) {
             disabled={off}
             loading={stopping}
             loadingIconSize="small"
-            beforeIcon={<CircleStop size={14} aria-hidden />}
             onClick={() => {
                 void stop();
             }}
-            className="shrink-0 text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken rounded-default transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
+            className={twMerge(
+                "shrink-0 p-1! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken rounded-default transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink",
+                off && "opacity-40 cursor-not-allowed",
+            )}
         >
-            {BotStopButtonLabel}
+            <CircleStop size={14} aria-hidden />
         </Button>
     );
 }

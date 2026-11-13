@@ -38,6 +38,7 @@ describe("readChatResponse", () => {
             }),
         ).toEqual({
             text: "Checking.",
+            reasoning: null,
             tool_calls: [
                 {
                     id: "a1",

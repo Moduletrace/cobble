@@ -5,6 +5,8 @@ import completeBotJob from "@/src/functions/backend/db/bots-queue/complete-bot-j
 import failBotJob from "@/src/functions/backend/db/bots-queue/fail-bot-job";
 import updateBotJob from "@/src/functions/backend/db/bots-queue/update-bot-job";
 import insertBotJobUpdate from "@/src/functions/backend/db/bots-queue/insert-bot-job-update";
+import insertBotJobTrace from "@/src/functions/backend/db/bots-queue/insert-bot-job-trace";
+import grabReachableEnvs from "@/src/functions/backend/db/envs/grab-reachable-envs";
 import { logError } from "@/src/functions/backend/logger";
 import createKeyLock from "@/src/utils/create-key-lock";
 import withTimeout from "@/src/utils/with-timeout";
@@ -32,6 +34,7 @@ import nameBotSession from "./name-bot-session";
 import pushBotSession from "./push-bot-session";
 import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
 import { registerJobAbort, unregisterJobAbort } from "./job-abort-registry";
+import type { BotTraceData } from "@/src/types";
 import type { BotJobUpdateData } from "@/src/types";
 import type { BotJobContext, BotJobRunner } from "./types";
 
@@ -159,10 +162,64 @@ export default async function processBotJob({
         }
     };
 
+    /**
+     * Every secret the run reaches, blanked out of the trace it keeps: a
+     * tool's arguments and answer carry whatever it handled, and the trace
+     * is read by the user long after the run.
+     */
+    let trace_secrets: { key: string; value: string }[] | undefined;
+    /**
+     * Rows this process wrote for the job, against
+     * `AppData.BotTraceRowsPerJob`: a run that goes on for hours mustn't
+     * fill the database with its details.
+     */
+    let traced_rows = 0;
+
+    const trace: BotJobContext["trace"] = async (entry) => {
+        if (!job.session_id || traced_rows >= AppData.BotTraceRowsPerJob) return;
+
+        try {
+            trace_secrets ??= user_id
+                ? await grabReachableEnvs({
+                      bot_id,
+                      user_id,
+                      workspace_id: job.workspace_id,
+                      computer_id: job.computer_id,
+                  }).then((envs) =>
+                      [...envs.on_computer, ...envs.tools_only].map(({ key, value }) => ({ key, value })),
+                  )
+                : [];
+
+            const row = await insertBotJobTrace({
+                job_id,
+                bot_id,
+                session_id: Number(job.session_id) || null,
+                trace: entry,
+                secrets: trace_secrets,
+            });
+
+            traced_rows++;
+
+            /**
+             * The entry itself stays out of the push: the open drawer
+             * reads it from the API, so a long tool result never crosses
+             * a socket to a phone that isn't looking.
+             */
+            await pushToSessionUser({
+                session_id: job.session_id,
+                data: {
+                    event: "server:bot-trace",
+                    data: { job_id, session_id: row.session_id ? Number(row.session_id) : null } satisfies BotTraceData,
+                },
+            });
+        } catch (error) {
+            await logError({ title: `Bot job #${job_id} trace not saved`, error }).catch(() => {});
+        }
+    };
+
     const heartbeat = setInterval(() => {
         update({}).catch(() => {});
     }, HEARTBEAT_MS);
-
     try {
         /**
          * The face changes once the job really starts, after any wait for
@@ -201,6 +258,7 @@ export default async function processBotJob({
                         signal: run_signal,
                         update,
                         report,
+                        trace,
                     }),
             });
         };

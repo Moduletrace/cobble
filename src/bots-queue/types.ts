@@ -1,5 +1,6 @@
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
 import type { TextLoopStep } from "@/src/harness/text/run-text-loop";
+import type { HarnessTracer } from "@/src/harness/trace/types";
 import type { HarnessToolUse } from "@/src/harness/types";
 
 export type BotJobContext = {
@@ -35,6 +36,14 @@ export type BotJobContext = {
      * `onStep`. Best effort: a failed write never stops the job.
      */
     report: (step: TextLoopStep) => Promise<void>;
+    /**
+     * Keeps what the run did in detail (`bot_job_traces`): every turn with
+     * its reasoning, every tool call with its arguments and answer, and
+     * what the loop itself did. The conversation's debug view reads it.
+     * Pass it as the text loop's `trace`. Best effort, redacted before it
+     * is stored, and a failed write never stops the job.
+     */
+    trace: HarnessTracer;
 };
 
 export type BotJobOutcome = {

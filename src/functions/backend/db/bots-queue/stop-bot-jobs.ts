@@ -12,6 +12,7 @@ import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import closeChatroom from "../chatrooms/close-chatroom";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
+import attachJobTracesToMessage from "./attach-job-traces-to-message";
 
 type Params = {
     bot_id: number | string;
@@ -150,7 +151,15 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
             text: stoppedJobReport({ job }),
         }).catch(() => null);
 
-        if (message?.id) messages.push(message);
+        if (message?.id) {
+            messages.push(message);
+
+            /**
+             * The run's debug logs go with the answer that took its place,
+             * the way a finished run's go with its own.
+             */
+            await attachJobTracesToMessage({ job_id: Number(job.id), message_id: Number(message.id) });
+        }
     }
 
     return {

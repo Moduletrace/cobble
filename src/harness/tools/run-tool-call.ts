@@ -30,6 +30,10 @@ export type ToolCallResult = {
      * marked `from_tool`, for the turn after the tool results.
      */
     images: HarnessToolImage[];
+    /**
+     * How long the call took, for the debug view's trace.
+     */
+    duration_ms: number;
 };
 
 /**
@@ -38,15 +42,18 @@ export type ToolCallResult = {
  * can correct itself; only cancellation is thrown.
  */
 export default async function runToolCall({ call, tools, signal }: Params): Promise<ToolCallResult> {
+    const started_at = Date.now();
     const text = await runTool({ call, tools, signal });
+    const duration_ms = Date.now() - started_at;
 
-    if (typeof text == "string") return { text, images: [] };
+    if (typeof text == "string") return { text, images: [], duration_ms };
 
     return {
         text: truncate({ text: text.text, name: call.name }),
         images: text.images
             .slice(0, AppData.HarnessToolMaxImages)
             .map((image) => ({ ...image, from_tool: true })),
+        duration_ms,
     };
 }
 

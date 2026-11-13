@@ -182,6 +182,15 @@ export const GeneralSettingsSections: GeneralSettingsSection[] = [
         fields: [{ key: "keep_days", title: "Keep hook calls for", kind: "days" }],
     },
     {
+        key: "run-traces",
+        title: "Run traces",
+        description: "How long the debug view keeps what a run did in detail: its turns, reasoning, tool calls and results.",
+        readable_by: "everyone",
+        editable_by: "super_admin",
+        citable: true,
+        fields: [{ key: "keep_days", title: "Keep run traces for", kind: "days" }],
+    },
+    {
         key: "chatrooms",
         title: "Chatrooms",
         description: "How many chatrooms are kept per place, and for how long once they close.",

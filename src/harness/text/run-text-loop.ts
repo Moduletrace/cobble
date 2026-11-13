@@ -6,7 +6,9 @@ import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import loadToolsTool from "../tools/load-tools-tool";
 import repeatToolCallKey from "../tools/repeat-tool-call-key";
 import runToolCall from "../tools/run-tool-call";
+import type { ToolCallResult } from "../tools/run-tool-call";
 import toolDefinition from "../tools/tool-definition";
+import type { HarnessTrace, HarnessTracer } from "../trace/types";
 import type {
     HarnessCandidate,
     HarnessMessage,
@@ -66,6 +68,14 @@ type Params = {
      * progress and checkpoints.
      */
     onStep?: (step: TextLoopStep) => Promise<void> | void;
+    /**
+     * Where the run's detailed trace goes (`bot_job_traces`, the
+     * conversation's debug view): every turn with what the model reasoned,
+     * every tool call with its arguments and answer, and what the loop
+     * itself did. Best effort: a trace that can't be kept never fails the
+     * run.
+     */
+    trace?: HarnessTracer;
     /**
      * The user's turns that arrived since the run started (and since the
      * last call), read after each round of tools and before an answer is
@@ -261,6 +271,7 @@ export default async function runTextLoop({
     context_budget,
     signal = new AbortController().signal,
     onStep,
+    trace,
     incoming,
     incoming_notes,
     review,
@@ -361,6 +372,20 @@ export default async function runTextLoop({
      */
     let used_wrap_turn = false;
 
+    /**
+     * One trace entry, kept only when the run has somewhere to put it. A
+     * trace is for reading afterwards, never a reason to fail the work.
+     */
+    const traced = async (entry: HarnessTrace) => {
+        if (!trace) return;
+
+        try {
+            await trace(entry);
+        } catch {
+            /* the debug view is never worth a failed run */
+        }
+    };
+
     for (let index = 0; index <= step_ceiling + 1 + WrapUpSavingTurns; index++) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
@@ -384,7 +409,7 @@ export default async function runTextLoop({
         if (wrap_up && !wrap_up_announced) {
             wrap_up_announced = true;
 
-            if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up });
+            if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up, index });
 
             pushUserTurn({
                 transcript,
@@ -394,6 +419,13 @@ export default async function runTextLoop({
                     saving: wrap_up_saving ? save_tools.map((tool) => tool.name) : [],
                     hand_off: wrap_up_saving ? hand_off_tools.map((tool) => tool.name) : [],
                 }),
+            });
+
+            await traced({
+                kind: "event",
+                index,
+                name: "wrap_up",
+                text: `${out_of_steps ? "Out of steps" : "Out of tokens"}. ${wrap_tools.length ? `It has one turn left with ${wrap_tools.map((tool) => tool.name).join(", ")}.` : "It has no tool left and must answer now."}`,
             });
         }
 
@@ -414,6 +446,8 @@ export default async function runTextLoop({
             budget_tokens: typeof context_budget == "number" ? context_budget : undefined,
             tools_chars: JSON.stringify(definitions).length,
         });
+
+        const turn_started_at = Date.now();
 
         const answer = await generate({
             messages: [{ role: "system", content: run_system }, ...transcript],
@@ -466,11 +500,34 @@ export default async function runTextLoop({
             candidate: answer.candidate,
         });
 
+        await traced({
+            kind: "turn",
+            index,
+            model: answer.candidate.model.name || answer.candidate.model.slug,
+            provider: answer.candidate.provider.name || null,
+            text: answer.text,
+            reasoning: answer.reasoning ?? null,
+            tool_calls: tool_calls.map((call) => ({ name: call.name, arguments: call.arguments })),
+            usage: answer.usage ?? null,
+            finish_reason: answer.finish_reason ?? null,
+            duration_ms: Date.now() - turn_started_at,
+        });
+
         /**
          * An answer the user wrote past is drafted again. Not on the wrap
          * up: the run is out of steps, and a later reply picks them up.
          */
-        if (!tool_calls.length && !wrap_up && (await takeIncoming({ note: incoming_notes?.redraft || RedraftNote }))) {
+        if (
+            !tool_calls.length &&
+            !wrap_up &&
+            (await takeIncoming({ note: incoming_notes?.redraft || RedraftNote, index }))
+        ) {
+            await traced({
+                kind: "event",
+                index,
+                name: "redraft",
+                text: "The user wrote again before this answer went out, so it was written again with that in mind.",
+            });
             continue;
         }
 
@@ -480,6 +537,7 @@ export default async function runTextLoop({
             const note = await review({ text: answer.text || "", tool_uses }).catch(() => null);
 
             if (note) {
+                await traced({ kind: "event", index, name: "review", text: note });
                 pushUserTurn({ transcript, content: note });
                 continue;
             }
@@ -506,10 +564,16 @@ export default async function runTextLoop({
             const repeat_key = repeatToolCallKey({ call });
             const already_read = repeat_key ? repeated_reads.get(repeat_key) : undefined;
 
-            const { text: content, images } =
+            const result: ToolCallResult =
                 already_read !== undefined
-                    ? { text: alreadyRanToolNote({ name: call.name, step: already_read }), images: [] }
+                    ? {
+                          text: alreadyRanToolNote({ name: call.name, step: already_read }),
+                          images: [],
+                          duration_ms: 0,
+                      }
                     : await runToolCall({ call, tools: run_tools, signal });
+
+            const { text: content, images } = result;
 
             /**
              * A deferred tool called without loading it ran all the same;
@@ -520,6 +584,18 @@ export default async function runTextLoop({
             }
 
             tool_uses.push({ name: call.name, ok: !content.startsWith("Error:") });
+
+            await traced({
+                kind: "tool",
+                index,
+                name: call.name,
+                arguments: call.arguments,
+                result: content,
+                ok: !content.startsWith("Error:"),
+                images: images.length,
+                duration_ms: result.duration_ms,
+                repeat_of: already_read ?? null,
+            });
 
             if (!repeat_key) {
                 repeated_reads.clear();
@@ -550,7 +626,7 @@ export default async function runTextLoop({
             });
         }
 
-        await takeIncoming({ note: incoming_notes?.working || IncomingMessagesNote });
+        await takeIncoming({ note: incoming_notes?.working || IncomingMessagesNote, index });
 
         /**
          * Steps left before the wrap up, once the next turn is taken.
@@ -562,6 +638,7 @@ export default async function runTextLoop({
         if (!warned_steps && !isUnlimitedLimit(max_steps) && left <= warn_at) {
             warned_steps = true;
             pushUserTurn({ transcript, content: stepsLowNote({ left }) });
+            await traced({ kind: "event", index, name: "steps_low", text: stepsLowNote({ left }) });
         }
     }
 
@@ -571,7 +648,7 @@ export default async function runTextLoop({
      * Adds what the user wrote since the last look, after `note`. True when
      * there was anything.
      */
-    async function takeIncoming({ note }: { note: string }) {
+    async function takeIncoming({ note, index }: { note: string; index: number }) {
         const turns = (await incoming?.()) || [];
         const user_turns = turns.filter((turn) => turn.role == "user");
 
@@ -582,6 +659,16 @@ export default async function runTextLoop({
         for (const turn of user_turns) {
             pushUserTurn({ transcript, content: turn.content });
         }
+
+        await traced({
+            kind: "event",
+            index,
+            name: "incoming",
+            text: user_turns
+                .map((turn) => (typeof turn.content == "string" ? turn.content : ""))
+                .filter(Boolean)
+                .join("\n\n"),
+        });
 
         return true;
     }

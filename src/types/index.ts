@@ -39,6 +39,7 @@ import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dic
 import type { BotQuestionKind, BotQuestionStatus } from "../dict/bot-question-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict";
+import type { BotTraceKind } from "../dict/bot-trace-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { RunLimit } from "../utils/run-limit";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
@@ -399,6 +400,46 @@ export type BotJobUpdateData = BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & {
      * The conversation session the job belongs to.
      */
     session_id: number | null;
+};
+
+/**
+ * `server:bot-trace` data: a running job kept a trace entry the debug view
+ * shows. Only the job, never the entry itself: that holds whole tool
+ * arguments and results, which the open drawer reads from the API.
+ */
+export type BotTraceData = {
+    job_id: number;
+    session_id: number | null;
+};
+
+/**
+ * A `bot_job_traces` row as the debug view reads it.
+ */
+export type BotTraceRow = {
+    id: number;
+    created_at: number;
+    job_id: number;
+    bot_id: number | null;
+    kind: BotTraceKind;
+    name: string | null;
+    text: string | null;
+    reasoning: string | null;
+    arguments: string | null;
+    result: string | null;
+    metadata: string | null;
+};
+
+/**
+ * One of a session's traced jobs, with everything it did in detail (the
+ * debug view's run section).
+ */
+export type BotTraceJob = {
+    id: number;
+    kind: string;
+    title: string | null;
+    status: string;
+    created_at: number;
+    traces: BotTraceRow[];
 };
 
 /**
@@ -1313,6 +1354,16 @@ export type ChatroomRetentionOverview = {
 };
 
 export type HookCallRetentionOverview = {
+    keep_days: number;
+    default_days: number;
+    max: number;
+};
+
+/**
+ * How long a run's detailed trace is kept (the debug view, Settings >
+ * General, `grab-bot-trace-keep-days.ts`).
+ */
+export type BotTraceRetentionOverview = {
     keep_days: number;
     default_days: number;
     max: number;
@@ -2367,6 +2418,11 @@ export type PagePropsType = {
      */
     hook_call_retention?: HookCallRetentionOverview | null;
     /**
+     * How many days a run's detailed trace is kept (the conversation's
+     * debug view), with the code's default (the General settings page).
+     */
+    bot_trace_retention?: BotTraceRetentionOverview | null;
+    /**
      * How many days logs are kept, with the code's default (the General
      * settings page).
      */
@@ -2665,6 +2721,11 @@ export const WebSocketEvents = [
      * A running job took a step (`data`: `BotJobUpdateData`)
      */
     "server:bot-job-update",
+    /**
+     * A running job kept a trace entry for the debug view (`data`:
+     * `BotTraceData`)
+     */
+    "server:bot-trace",
     /**
      * A new message in one of the user's chatrooms (`data`:
      * `ChatroomMessageData`)

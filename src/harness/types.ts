@@ -235,6 +235,13 @@ export type HarnessChatResult = {
     tool_calls: HarnessToolCall[];
     finish_reason?: string;
     usage?: HarnessUsage;
+    /**
+     * What the model reasoned before answering, when its provider hands it
+     * back (`reasoning`, `reasoning_content`) or it wrote it inline in
+     * `text` (`stripThinkTags`). Only the debug view shows it: never the
+     * bot's answer, history or prompt.
+     */
+    reasoning?: string | null;
 };
 
 export type HarnessAudioInput = {

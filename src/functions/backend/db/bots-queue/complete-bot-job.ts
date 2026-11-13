@@ -13,6 +13,7 @@ import grabJobUserId from "./grab-job-user-id";
 import grabRunningBotJobFace from "./grab-running-bot-job-face";
 import withMessageUsage from "../usage/with-message-usage";
 import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
+import attachJobTracesToMessage from "./attach-job-traces-to-message";
 import type { HarnessToolUse } from "@/src/harness/types";
 import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
 import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
@@ -128,6 +129,12 @@ export default async function completeBotJob({
 
     if (job.id && inserted?.id) {
         await attachJobCallsToMessage({ job_id: job.id, message_id: inserted.id });
+
+        /**
+         * What the run did goes with the message it ended in, for its
+         * Details modal's debug logs tab.
+         */
+        await attachJobTracesToMessage({ job_id: job.id, message_id: inserted.id });
 
         /**
          * Graphics the run made belong to the message it posted.

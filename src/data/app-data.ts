@@ -51,6 +51,12 @@ export const AppData = {
      * next open starts there.
      */
     ComputerViewModeStorageKey: `${SiteData["SiteSlug"]}_computer_view_modes`,
+    /**
+     * Whether each user left the conversation's debug view open, on this
+     * device (`readDebugOpen`/`rememberDebugOpen`): the view is theirs, so
+     * it stays as they left it in every conversation.
+     */
+    DebugViewStorageKey: `${SiteData["SiteSlug"]}_debug_view_open`,
     ServerHealthMessage: "Server Running Well",
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,
@@ -730,6 +736,23 @@ export const AppData = {
      * to have pushed the last ones (`LiveRelayPollMs`).
      */
     BotJobStepsKeepMs: 60 * 1000,
+    /**
+     * The debug view's detailed trace of a job (`bot_job_traces`, read and
+     * written only by `process-bot-job`): how many rows one job keeps, how
+     * much of any one text, and how long the rows stay before the daily
+     * `prune-bot-traces` deletes them (the install may set its own, the app
+     * setting `bot_trace_keep_days`, up to `BotTraceKeepDaysMax`).
+     */
+    BotTraceRowsPerJob: 400,
+    BotTraceTextMaxChars: 4000,
+    BotTraceArgumentsMaxChars: 2000,
+    BotTraceResultMaxChars: 8000,
+    BotTraceKeepDays: 7,
+    BotTraceKeepDaysMax: 365,
+    /**
+     * How many of a session's jobs the debug view offers, newest first.
+     */
+    BotTraceJobsPerSession: 5,
     /**
      * How often each server process reads new bot messages, job steps and
      * bot changes from the database for its own sockets (`liveRelay`).

@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import AppearanceSection from "../(sections)/appearance-section";
 import AppNetworksSection from "../(sections)/app-networks-section";
+import BotTraceRetentionSection from "../(sections)/bot-trace-retention-section";
 import ChatroomRetentionSection from "../(sections)/chatroom-retention-section";
 import ComputerWorkspacesSection from "../(sections)/computer-workspaces-section";
 import HookCallRetentionSection from "../(sections)/hook-call-retention-section";
@@ -27,6 +28,7 @@ const GeneralSettingsSectionComponents: Record<string, ComponentType> = {
     chatrooms: ChatroomRetentionSection,
     "computer-workspaces": ComputerWorkspacesSection,
     "hook-calls": HookCallRetentionSection,
+    "run-traces": BotTraceRetentionSection,
     "install-icon": InstallIconSection,
     "install-name": InstallNameSection,
     "activity-log": LogRetentionSection,

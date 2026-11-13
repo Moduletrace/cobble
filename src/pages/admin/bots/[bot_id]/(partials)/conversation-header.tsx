@@ -42,10 +42,10 @@ type Props = {
 
 /**
  * 64px header. Under the name, what the bot runs on: its model and the
- * computer it's on. On the right, one menu holding everything the header
- * used to show as icons: sessions, a new session, the computer, the models
- * and the bot's settings. Kept here so a save or a switch shows under the
- * name at once.
+ * computer it's on. On the right, one menu
+ * holding everything the header used to show as icons: sessions, a new
+ * session, the computer, the models and the bot's settings. Kept here so a
+ * save or a switch shows under the name at once.
  */
 export default function ConversationHeader({
     bot,
@@ -145,7 +145,7 @@ export default function ConversationHeader({
                 </Row>
             </Stack>
 
-            <Row className="ml-auto shrink-0 flex-nowrap justify-end">
+            <Row className="ml-auto shrink-0 flex-nowrap items-center justify-end gap-1!">
                 <Dropdown
                     position="bottom-right"
                     externalOpen={open_menu}

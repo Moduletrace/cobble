@@ -20,6 +20,7 @@ import {
 import { Harnesses } from "@/src/dict/harness-dict";
 import { HarnessProviderKinds } from "@/src/dict/harness-provider-dict";
 import { BotJobKinds, BotJobUpdateKinds } from "@/src/dict/bot-queue-dict";
+import { BotTraceKinds } from "@/src/dict/bot-trace-dict";
 import { AppData } from "@/src/data/app-data";
 import {
     BotHookEventStatuses,
@@ -1185,6 +1186,107 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bots_queue_updates_job_created_at",
                     indexTableFields: ["bots_queue_id", "created_at"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_job_traces",
+            tableDescription: `What a job did, in detail, for the conversation's debug view: one row per model turn (what it answered and reasoned), per tool call (the arguments it wrote and the answer it read), and per loop event (the wrap up, a redraft, what the user wrote mid-run). Written by \`process-bot-job\` as the run goes, tied to the message it ends in, and pruned after the app setting \`bot_trace_keep_days\``,
+            fields: [
+                {
+                    fieldName: "bots_queue_id",
+                    fieldDescription: `The job (bots_queue) the trace belongs to`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots_queue",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_job_traces_job_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot the job ran for`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_job_traces_bot_fk",
+                    },
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The session the job answers in: who may read the trace`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bot_sessions",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_job_traces_session_fk",
+                    },
+                },
+                {
+                    fieldName: "message_id",
+                    fieldDescription: `The message the run ended in, filled when the job completes: the debug logs tab of its Details modal reads them. No foreign key, so a message's rows wait for the prune rather than cascade`, 
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "kind",
+                    fieldDescription: `turn, tool or event`,
+                    dataType: "TEXT",
+                    options: BotTraceKinds.map((k) => k.value),
+                },
+                {
+                    fieldName: "name",
+                    fieldDescription: `The tool or event's name; null on a model turn`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "text",
+                    fieldDescription: `What the model answered, or what the event says`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "reasoning",
+                    fieldDescription: `What the model reasoned before answering, when the provider hands it back`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "arguments",
+                    fieldDescription: `The arguments a tool call was made with, as the model wrote them`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "result",
+                    fieldDescription: `What the tool answered (cut to AppData.BotTraceResultMaxChars)`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "metadata",
+                    fieldDescription: `JSON details: the step index, model, tokens, duration, and whether the call went through`,
+                    dataType: "TEXT",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_job_traces_job_created_at",
+                    indexTableFields: ["bots_queue_id", "created_at"],
+                },
+                {
+                    indexName: "idx_bot_job_traces_session_created_at",
+                    indexTableFields: ["session_id", "created_at"],
+                },
+                {
+                    indexName: "idx_bot_job_traces_message",
+                    indexTableFields: ["message_id"],
+                },
+                {
+                    indexName: "idx_bot_job_traces_created_at",
+                    indexTableFields: ["created_at"],
                 },
             ],
         },

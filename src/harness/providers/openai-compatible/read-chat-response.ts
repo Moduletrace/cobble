@@ -1,5 +1,6 @@
 import HarnessError from "../../harness-error";
 import type { HarnessChatResult, HarnessToolCall } from "../../types";
+import readReasoning from "./read-reasoning";
 
 type WireToolCall = {
     id?: string;
@@ -74,6 +75,13 @@ export default function readChatResponse({
         text: text || null,
         tool_calls,
         finish_reason: choice.finish_reason || undefined,
+        /**
+         * A reasoning model's own text, when the provider hands it back:
+         * `reasoning` (OpenRouter), `reasoning_content` (DeepSeek and
+         * others). Only the debug view shows it (`stripThinkTags` picks up
+         * what a model writes inline instead).
+         */
+        reasoning: readReasoning({ message: choice.message }),
         usage: json.usage
             ? {
                   prompt_tokens: json.usage.prompt_tokens,

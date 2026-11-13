@@ -101,6 +101,7 @@ export default async function runBotReply({
     job,
     signal,
     report,
+    trace,
 }: Params): Promise<BotJobOutcome> {
     /**
      * Moves when the bot carries the conversation into a new session
@@ -466,6 +467,7 @@ export default async function runBotReply({
             workspace_id,
             signal,
             onStep: report,
+            trace,
             incoming,
             /**
              * Files, tasks and work the answer names are checked against

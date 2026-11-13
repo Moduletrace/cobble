@@ -70,7 +70,8 @@ type Props = {
  * instructions there and making it the admin there, its
  * settings and, while it works, stopping it. A
  * row that opens a modal closes the menu first, so the modal never sits
- * behind an open menu.
+ * behind an open menu. The debug view is what the session's runs did in
+ * detail, beside the thread.
  */
 export default function ConversationHeaderMenu({
     bot,

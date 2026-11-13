@@ -9,6 +9,7 @@ import settingValueLabel from "@/src/utils/setting-value-label";
 import grabChatroomRetentionOverview from "./grab-chatroom-retention";
 import grabComputerWorkspaceQuotaOverview from "./grab-computer-workspace-quota-overview";
 import grabHookCallRetentionOverview from "./grab-hook-events-keep-days";
+import grabBotTraceRetentionOverview from "./grab-bot-trace-keep-days";
 import grabInstallName from "./grab-install-name";
 import grabLogRetentionOverview from "./grab-logs-keep-days";
 import grabMessageLengthOverview from "./grab-bot-message-max-chars";
@@ -28,11 +29,12 @@ type RawValues = Record<string, number | string | null>;
  * started shows its new number).
  */
 export default async function grabGeneralSettingsValues(): Promise<GeneralSettingsSectionValues[]> {
-    const [run_limits, skill_limits, hook_calls, logs, chatrooms, sessions, messages, storage, computer_workspace, appendix, install_name] =
+    const [run_limits, skill_limits, hook_calls, run_traces, logs, chatrooms, sessions, messages, storage, computer_workspace, appendix, install_name] =
         await Promise.all([
             grabRunLimitsOverview().catch(() => null),
             grabSkillLimitsOverview().catch(() => null),
             grabHookCallRetentionOverview().catch(() => null),
+            grabBotTraceRetentionOverview().catch(() => null),
             grabLogRetentionOverview().catch(() => null),
             grabChatroomRetentionOverview().catch(() => null),
             grabSessionLengthOverview().catch(() => null),
@@ -59,6 +61,7 @@ export default async function grabGeneralSettingsValues(): Promise<GeneralSettin
             body_shown_chars: skill_limits?.body_shown_chars ?? null,
         },
         "hook-calls": { keep_days: hook_calls?.keep_days ?? null },
+        "run-traces": { keep_days: run_traces?.keep_days ?? null },
         chatrooms: {
             keep_days: chatrooms?.keep_days ?? null,
             max_per_place: chatrooms?.max_per_place ?? null,

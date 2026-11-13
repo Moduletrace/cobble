@@ -3,6 +3,7 @@ import cronHeartbeat from "./heartbeat";
 import pruneBotsQueue from "./prune-bots-queue";
 import cronClearJobSteps from "./clear-job-steps";
 import pruneBotHookEvents from "./prune-bot-hook-events";
+import pruneBotTraces from "./prune-bot-traces";
 import cronPruneChatrooms from "./prune-chatrooms";
 import cronPruneComputerCaches from "./prune-computer-caches";
 import cronPruneComputerHomes from "./prune-computer-homes";
@@ -49,6 +50,12 @@ export default function cron() {
         title: "prune-bot-hook-events",
         schedule: "@daily",
         task: pruneBotHookEvents,
+    });
+
+    registerCronJob({
+        title: "prune-bot-traces",
+        schedule: "@daily",
+        task: pruneBotTraces,
     });
 
     registerCronJob({

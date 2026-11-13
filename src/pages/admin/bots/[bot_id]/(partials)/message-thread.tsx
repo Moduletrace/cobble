@@ -48,6 +48,19 @@ type Props = {
      */
     no_reply_due?: boolean;
     /**
+     * The session shown: the debug logs read the run it's working on.
+     */
+    session_id?: number | null;
+    /**
+     * The debug logs under the thinking row, streaming what the run does.
+     * The conversation keeps it, remembered per user.
+     */
+    debug_open?: boolean;
+    /**
+     * Shows or hides the debug logs under the thinking row.
+     */
+    on_toggle_debug?: () => void;
+    /**
      * Shown after the messages, or in the middle of an empty thread, e.g.
      * that the bot has no model to answer with.
      */
@@ -98,6 +111,9 @@ export default function MessageThread({
     progress,
     reply_progress,
     receiving,
+    session_id,
+    debug_open,
+    on_toggle_debug,
     has_task,
     moved_on,
     no_reply_due,
@@ -171,6 +187,9 @@ export default function MessageThread({
                         }
                         receiving={receiving}
                         has_task={has_task}
+                        session_id={session_id}
+                        debug_open={debug_open}
+                        on_toggle_debug={on_toggle_debug}
                     />
                 </Stack>
             </Stack>

@@ -11,6 +11,7 @@ import relayCreatedBots from "./relay-created-bots";
 import relayCreatedWorkspaces from "./relay-created-workspaces";
 import relayNewBotMessages from "./relay-new-bot-messages";
 import relayNewJobUpdates from "./relay-new-job-updates";
+import relayNewJobTraces from "./relay-new-job-traces";
 import type { LiveRelayCursor } from "./types";
 
 /**
@@ -27,7 +28,7 @@ export default async function liveRelay() {
      * A failed read starts the relay from the beginning instead of not
      * starting it: clients drop what they already have.
      */
-    const latest = async (table: "bot_messages" | "bots_queue_updates") => {
+    const latest = async (table: "bot_messages" | "bots_queue_updates" | "bot_job_traces") => {
         try {
             return (
                 Number(
@@ -50,6 +51,7 @@ export default async function liveRelay() {
     const cursor: LiveRelayCursor = {
         message_id: await latest("bot_messages"),
         update_id: await latest("bots_queue_updates"),
+        trace_id: await latest("bot_job_traces"),
         bots_at: Date.now(),
         sessions_at: Date.now(),
     };
@@ -67,6 +69,7 @@ export default async function liveRelay() {
 
             cursor.message_id = await relayNewBotMessages({ after_id: cursor.message_id, users });
             cursor.update_id = await relayNewJobUpdates({ after_id: cursor.update_id, users });
+            cursor.trace_id = await relayNewJobTraces({ after_id: cursor.trace_id, users });
 
             /**
              * Overlap one interval, so a change written in the same

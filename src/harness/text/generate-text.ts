@@ -140,9 +140,11 @@ export default async function generateText({
                 signal,
             });
 
-            const text = answer.text ? stripThinkTags({ text: answer.text }) : "";
+            const stripped = answer.text
+                ? stripThinkTags({ text: answer.text })
+                : { text: "", reasoning: null };
 
-            if (!text && !answer.tool_calls.length) {
+            if (!stripped.text && !answer.tool_calls.length) {
                 throw new HarnessError({
                     message: `The model returned an empty answer.`,
                     retryable: true,
@@ -150,7 +152,14 @@ export default async function generateText({
                 });
             }
 
-            return { ...answer, text: text || null, sent_params };
+            /**
+             * Reasoning is kept only for the debug view: what the model
+             * wrote inline wins over a provider's own field, since models
+             * that write tags rarely send both.
+             */
+            const reasoning = stripped.reasoning || answer.reasoning || null;
+
+            return { ...answer, text: stripped.text || null, reasoning, sent_params };
         },
     });
 

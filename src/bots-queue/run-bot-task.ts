@@ -36,6 +36,7 @@ import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-comp
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
+import redactTrace from "@/src/harness/trace/redact-trace";
 import { isUnlimitedLimit, smallerRunLimit } from "@/src/utils/run-limit";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotBrowsers, { type OpenBotBrowsers } from "@/src/harness/tools/browsers/open-bot-browsers";
@@ -108,6 +109,7 @@ export default async function runBotTask({
     computer_shared,
     signal,
     report,
+    trace,
 }: Params): Promise<BotJobOutcome> {
     const workspace_id = job.workspace_id || null;
     /**
@@ -525,6 +527,12 @@ export default async function runBotTask({
             signal,
             onStep: (step) =>
                 report({ ...step, text: step.text && computer ? computer.redact(step.text) : step.text }),
+            /**
+             * The trace also holds a computer's own secrets: what the bot
+             * captured mid-run (`capture_secret`) never reaches the
+             * stored trace, whatever the job's envs are.
+             */
+            trace: (entry) => trace(computer ? redactTrace({ trace: entry, redact: computer.redact }) : entry),
             ...(incoming
                 ? {
                       incoming: incoming.take,
