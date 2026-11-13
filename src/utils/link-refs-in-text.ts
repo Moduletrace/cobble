@@ -1,4 +1,5 @@
 import { BotQuestionRefHrefPrefix } from "./bot-question-ref";
+import { BotSuggestionRefHrefPrefix } from "./bot-suggestion-ref";
 import { ChatroomRefHrefPrefix } from "./chatroom-ref";
 import { GeneralSettingsRefHrefPrefix } from "./general-settings-ref";
 import { GraphicRefHrefPrefix } from "./graphic-ref";
@@ -22,7 +23,8 @@ import {
  * (`[workspace:2]`), file ref (`[file:12]`), folder ref
  * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
  * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
- * request ref (`[secret-request:4]`), question ref (`[question:4]`), graphic ref (`[graphic:5]`) and
+ * request ref (`[secret-request:4]`), question ref (`[question:4]`), suggestion ref (`[suggestion:4]`),
+ * graphic ref (`[graphic:5]`) and
  * chatroom ref (`[room:<id>]`) and task ref (`[task:20]`), and a setting
  * ref (`[setting:run-limits:reply_steps]`, pointing at that section of
  * Settings > General) in a stretch of message text (never code) into a
@@ -65,6 +67,10 @@ export default function linkRefsInText({ text }: { text: string }) {
         .replace(
             /\[question:(\d+)\](?!\()/g,
             (_, id: string) => `[questions ${id}](${BotQuestionRefHrefPrefix}${id})`,
+        )
+        .replace(
+            /\[suggestion:(\d+)\](?!\()/g,
+            (_, id: string) => `[next steps ${id}](${BotSuggestionRefHrefPrefix}${id})`,
         )
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
         .replace(/\[room:(\d+)\](?!\()/g, (_, id: string) => `[room ${id}](${ChatroomRefHrefPrefix}${id})`)

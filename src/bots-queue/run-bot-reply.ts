@@ -61,6 +61,7 @@ import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
+import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
 import type { BotMessageWithAttachments } from "@/src/types";
 import type { HarnessMessage } from "@/src/harness/types";
 import type { BotJobContext, BotJobOutcome } from "./types";
@@ -211,8 +212,9 @@ export default async function runBotReply({
      */
     const proposals: string[] = [];
     /**
-     * The secrets the bot showed (`show_secret`) and the graphics it made
-     * or changed, whose chips the reply always carries.
+     * The secrets the bot showed (`show_secret`), the graphics it made
+     * or changed, and the next steps it suggested: their chips the reply
+     * always carries, without needing the user.
      */
     const shown: string[] = [];
     /**
@@ -414,6 +416,13 @@ export default async function runBotReply({
                     session_id,
                     workspace_id,
                     onAsk: ({ ref }) => proposals.push(ref),
+                }),
+                suggestNextStepsTool({
+                    user_id,
+                    bot_id: bot.id,
+                    session_id,
+                    workspace_id,
+                    onSuggest: ({ ref }) => shown.push(ref),
                 }),
                 ...(has_past_sessions
                     ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]

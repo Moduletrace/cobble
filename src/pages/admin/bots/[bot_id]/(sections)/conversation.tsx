@@ -381,6 +381,8 @@ export default function Conversation() {
             onReply: ({ message }: { message: BotMessageWithAttachments }) =>
                 setReplyTo(message),
             onReact: reactToMessage,
+            onUseSuggestion: ({ text }: { text: string }) =>
+                composer.current?.insertText({ text }),
         }),
         [],
     );

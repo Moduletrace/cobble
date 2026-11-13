@@ -45,6 +45,7 @@ import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-k
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
+import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
 import createWorkspaceTool from "@/src/harness/tools/bot/create-workspace-tool";
 import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import listWorkspacePeopleTool from "@/src/harness/tools/bot/list-workspace-people-tool";
@@ -163,6 +164,11 @@ export default async function runBotTask({
             signal,
         }).catch(() => "");
         const take_overs: string[] = [];
+        /**
+         * The next steps the bot suggested: added to the message without
+         * needing the user.
+         */
+        const suggestions: string[] = [];
         /**
          * Files the bot wrote and asked to send with its report.
          */
@@ -284,6 +290,13 @@ export default async function runBotTask({
                           workspace_id,
                           in_task: true,
                           onAsk: ({ ref }) => take_overs.push(ref),
+                      }),
+                      suggestNextStepsTool({
+                          user_id,
+                          bot_id: bot.id,
+                          session_id,
+                          workspace_id,
+                          onSuggest: ({ ref }) => suggestions.push(ref),
                       }),
                   ]
                 : []),
@@ -534,7 +547,7 @@ export default async function runBotTask({
             ...withTakeOverRefs({
                 text: computer ? computer.redact(text) : text,
                 refs: take_overs,
-                shown,
+                shown: [...shown, ...suggestions],
             }),
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,

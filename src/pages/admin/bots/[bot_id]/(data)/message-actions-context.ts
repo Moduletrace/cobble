@@ -9,9 +9,15 @@ import type { BotMessageWithAttachments } from "@/src/types";
 export type BotMessageActions = {
     onReply: (params: { message: BotMessageWithAttachments }) => void;
     onReact: (params: { message_id: number; emoji: BotMessageReactionEmoji }) => void;
+    /**
+     * A suggested next step the user clicked (`[suggestion:ID]`): put it
+     * in their input, never send it.
+     */
+    onUseSuggestion: (params: { text: string }) => void;
 };
 
 export const BotMessageActionsContext = React.createContext<BotMessageActions>({
     onReply: () => {},
     onReact: () => {},
+    onUseSuggestion: () => {},
 });

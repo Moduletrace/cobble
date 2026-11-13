@@ -36,6 +36,10 @@ describe("exportMessageText", () => {
         expect(exportMessageText({ text: "Pick: [question:4]", ...names, heading_offset: 0 })).toBe("Pick: (questions 4)");
     });
 
+    test("words suggested next steps by number", () => {
+        expect(exportMessageText({ text: "Then: [suggestion:4]", ...names, heading_offset: 0 })).toBe("Then: (next steps 4)");
+    });
+
     test("words a task once, even after the bot's own word for it", () => {
         expect(exportMessageText({ text: "Task [task:27] and [task:3]", ...names, heading_offset: 0 })).toBe(
             "Task #27 and task #3",

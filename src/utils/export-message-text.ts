@@ -87,6 +87,7 @@ function wordRefs({
         .replace(/\[secret:(\d+)\](?!\()/g, "(secret $1, hidden)")
         .replace(/\[secret-request:(\d+)\](?!\()/g, "(secret request $1)")
         .replace(/\[question:(\d+)\](?!\()/g, "(questions $1)")
+        .replace(/\[suggestion:(\d+)\](?!\()/g, "(next steps $1)")
         .replace(/\[graphic:(\d+)\](?!\()/g, "(graphic $1)")
         .replace(
             /(\btask\s+)?\[task:(\d+)\](?!\()/gi,

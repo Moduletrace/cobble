@@ -8,6 +8,7 @@ import proposalRef from "./proposal-ref";
 import secretRef from "./secret-ref";
 import secretRequestRef from "./secret-request-ref";
 import botQuestionRef from "./bot-question-ref";
+import botSuggestionRef from "./bot-suggestion-ref";
 import takeOverRef from "./take-over-ref";
 import generalSettingsRef from "./general-settings-ref";
 
@@ -59,6 +60,13 @@ describe("linkComputerRefs", () => {
             "Before I start: [questions 4](#question-4)",
         );
         expect(linkComputerRefs({ text: "See `[question:4]`" })).toBe("See [questions 4](#question-4)");
+    });
+
+    test("links the next steps a bot suggested, also when quoted alone in code", () => {
+        expect(linkComputerRefs({ text: `Done. ${botSuggestionRef({ id: 4 })}` })).toBe(
+            "Done. [next steps 4](#suggestion-4)",
+        );
+        expect(linkComputerRefs({ text: "See `[suggestion:4]`" })).toBe("See [next steps 4](#suggestion-4)");
     });
 
     test("links take-over requests", () => {

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import takeOverRef from "@/src/utils/take-over-ref";
+import botSuggestionRef from "@/src/utils/bot-suggestion-ref";
 import withTakeOverRefs from "./with-take-over-refs";
 
 const ref = takeOverRef({ id: 1, mode: "browser" });
@@ -20,5 +21,14 @@ describe("withTakeOverRefs", () => {
 
     test("leaves a message without a take-over alone", () => {
         expect(withTakeOverRefs({ text: "Done.", refs: [] })).toEqual({ result: "Done.", needs_you: false });
+    });
+
+    test("adds suggested next steps without needing the user", () => {
+        const suggestions = botSuggestionRef({ id: 4 });
+
+        expect(withTakeOverRefs({ text: "Done.", refs: [], shown: [suggestions] })).toEqual({
+            result: `Done.\n\n${suggestions}`,
+            needs_you: false,
+        });
     });
 });

@@ -44,6 +44,11 @@ export type ComposerHandle = {
      * Quotes text from the thread at the cursor.
      */
     insertQuote: (params: { text: string }) => void;
+    /**
+     * Puts text at the cursor (a suggested next step), leaving the draft
+     * to the user to edit and send.
+     */
+    insertText: (params: { text: string }) => void;
 };
 
 type Props = {
@@ -147,8 +152,11 @@ export default function Composer({
 
     useImperativeHandle(
         handle_ref,
-        () => ({ insertQuote: input.insertQuote }),
-        [input.insertQuote],
+        () => ({
+            insertQuote: input.insertQuote,
+            insertText: input.insertText,
+        }),
+        [input.insertQuote, input.insertText],
     );
 
     /**

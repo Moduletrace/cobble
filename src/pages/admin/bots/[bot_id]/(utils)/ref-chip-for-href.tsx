@@ -13,11 +13,13 @@ import {
 } from "@/src/utils/link-computer-refs";
 import { parseFolderRefHref } from "@/src/utils/folder-ref";
 import { botQuestionRefId } from "@/src/utils/bot-question-ref";
+import { botSuggestionRefId } from "@/src/utils/bot-suggestion-ref";
 import { graphicRefId } from "@/src/utils/graphic-ref";
 import { chatroomRefId } from "@/src/utils/chatroom-ref";
 import { taskRefId } from "@/src/utils/task-ref";
 import { generalSettingsRefId } from "@/src/utils/general-settings-ref";
 import BotQuestionRefChip from "../(partials)/bot-question-ref-chip";
+import BotSuggestionsRef from "../(partials)/bot-suggestions-ref";
 import BotRefChip from "../(partials)/bot-ref-chip";
 import ChatroomRefChip from "../(partials)/chatroom-ref-chip";
 import ComputerRefChip from "../(partials)/computer-ref-chip";
@@ -39,7 +41,8 @@ import WorkspaceRefChip from "../(partials)/workspace-ref-chip";
  * computer, a bot or workspace a link to it, a file a chip that previews
  * it, a folder a chip that opens it in the files browser, a proposal a chip
  * that opens the confirm card, a secret a masked chip, a secret request or
- * questions a chip that opens their card, a graphic the graphic itself, a
+ * questions a chip that opens their card, suggested next steps the
+ * buttons that fill the input, a graphic the graphic itself, a
  * chatroom or task a chip that opens it, a setting a pill to that group of
  * Settings > General. Null for any other link.
  */
@@ -109,6 +112,9 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
 
     const question_id = botQuestionRefId({ href });
     if (question_id) return <BotQuestionRefChip question_id={question_id} />;
+
+    const suggestion_id = botSuggestionRefId({ href });
+    if (suggestion_id) return <BotSuggestionsRef suggestion_id={suggestion_id} />;
 
     const chatroom_id = chatroomRefId({ href });
 

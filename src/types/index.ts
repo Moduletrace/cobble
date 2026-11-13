@@ -836,6 +836,18 @@ export type BotQuestionView = {
     bot_name: string;
 };
 
+/**
+ * Next steps a bot suggested under its answer (`[suggestion:ID]`), shown
+ * as buttons that put the step in the user's input.
+ */
+export type BotSuggestionView = {
+    id: number;
+    title: string;
+    steps: string[];
+    bot_id: number;
+    bot_name: string;
+};
+
 export type SecretRequestView = {
     id: number;
     key: string;

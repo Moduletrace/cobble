@@ -6,8 +6,9 @@ type Params = {
      */
     refs: string[];
     /**
-     * The secrets it showed (`secretRef`): added the same way, but they
-     * don't need the user.
+     * The secrets it showed (`secretRef`) and the next steps it suggested
+     * (`botSuggestionRef`): added the same way, but they don't need the
+     * user, so neither makes the message.
      */
     shown?: string[];
 };
@@ -16,7 +17,8 @@ type Params = {
  * A job's message with every take-over the bot asked for in it and every
  * proposal it made: refs the bot didn't write itself are added at the
  * end, so the user always gets the button. A message asking for either
- * needs the user.
+ * needs the user; secrets it showed and next steps it suggested are added
+ * without asking anything of them.
  */
 export default function withTakeOverRefs({ text, refs, shown = [] }: Params) {
     const missing = [...new Set([...refs, ...shown])].filter((ref) => !text.includes(ref));

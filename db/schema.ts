@@ -1798,6 +1798,48 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
+            tableName: "bot_suggestions",
+            tableDescription: `Next steps a bot suggests under its answer (\`suggest_next_steps\`): buttons that put the step in the user's input. Unlike \`bot_questions\`, nothing waits on them`,
+            fields: [
+                {
+                    fieldName: "title",
+                    fieldDescription: `A short heading for the row of buttons; empty for "Next steps"`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "steps",
+                    fieldDescription: `JSON array of the suggested steps, each put in the user's input when clicked`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user they were suggested to, who alone reads them. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that suggested them. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation they were suggested in. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_suggestions_session_id",
+                    indexTableFields: ["session_id"],
+                },
+            ],
+        },
+        {
             tableName: "bot_graphics",
             tableDescription: `A visual a bot made for a user (a chart, diagram, timeline or report) as one self-contained HTML document. Served by the app at \`/graphics/<id>\` in a sandbox with no network and an origin of its own, so it never runs with the viewer's session. Per user like the conversation it was made in; an edit replaces the HTML and bumps \`version\``,
             fields: [

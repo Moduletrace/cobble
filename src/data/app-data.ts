@@ -978,6 +978,19 @@ export const AppData = {
      */
     BotQuestionOtherMaxChars: 1000,
     /**
+     * Most next steps one `suggest_next_steps` row offers.
+     */
+    BotSuggestionMaxSteps: 4,
+    /**
+     * Longest one suggested next step may be (the text that fills the
+     * user's input).
+     */
+    BotSuggestionStepMaxChars: 120,
+    /**
+     * Longest heading a bot may give its suggested next steps.
+     */
+    BotSuggestionTitleMaxChars: 120,
+    /**
      * Longest dictation the composer records before it stops on its own.
      */
     ComposerVoiceMaxMs: 5 * 60 * 1000,
