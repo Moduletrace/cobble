@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES, BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
+import { LiveCrewRefreshedEvent } from "@/src/functions/frontend/announce-live-crew";
 import type {
     BotCreatedData,
     BotRemovedData,
     BotUpdatedData,
     BotWithLastMessage,
+    LiveCrewRefreshedDetail,
 } from "@/src/types";
 import useServerEvent from "./use-server-event";
 
@@ -23,7 +25,10 @@ type Params = {
 
 /**
  * The crew, kept current from server pushes: faces and status lines,
- * latest messages, and unread for conversations that aren't open.
+ * latest messages, and unread for conversations that aren't open. A task
+ * step's push never reaches a page that was in the background, so the
+ * whole list is also read again when the user comes back
+ * (`cobble:live-crew-refreshed`).
  */
 export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: Params) {
     const [live, setLive] = useState(bots);
@@ -131,6 +136,31 @@ export default function useLiveBots({ bots, open_bot_id, workspace_id = null }: 
             );
         },
     });
+
+    useEffect(() => {
+        const onRefresh = (event: Event) => {
+            const detail = (event as CustomEvent<LiveCrewRefreshedDetail>).detail;
+
+            if (!detail) return;
+
+            /**
+             * The list read for another place: this one keeps what it has.
+             */
+            if ((detail.workspace_id || null) != (workspace_id ? Number(workspace_id) : null)) {
+                return;
+            }
+
+            setLive(
+                detail.bots.map((bot) =>
+                    bot.id == open_bot_id ? { ...bot, unread: 0 } : bot,
+                ),
+            );
+        };
+
+        window.addEventListener(LiveCrewRefreshedEvent, onRefresh);
+
+        return () => window.removeEventListener(LiveCrewRefreshedEvent, onRefresh);
+    }, [workspace_id, open_bot_id]);
 
     return live;
 }

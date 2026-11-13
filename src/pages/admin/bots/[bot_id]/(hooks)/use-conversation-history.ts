@@ -15,7 +15,9 @@ type Params = {
  * Loads the open conversation's history once the page is on screen, and
  * again whenever the browser restores the page from its back-forward
  * cache (`pageshow` with `persisted`), so going back never shows an old
- * thread. The page's `?session_id=` picks a session other than the
+ * thread. `reload` reads it again without the loading line, for the
+ * phone's pull-to-reload, which shows its own spinner. The page's
+ * `?session_id=` picks a session other than the
  * active one, read on every load. Everything else on the page (the header, the composer) comes
  * from the server and shows at once. `loaded` turns true with the first
  * load; a conversation the user can no longer open sends them where the
@@ -30,13 +32,15 @@ export default function useConversationHistory({ bot_id, workspace_id, onLoaded 
 
     on_loaded.current = onLoaded;
 
-    const load = async () => {
+    const load = async ({ silent = false }: { silent?: boolean } = {}) => {
         if (!bot_id) return;
 
         const id = ++request.current;
 
-        setLoading(true);
-        setError(undefined);
+        if (!silent) {
+            setLoading(true);
+            setError(undefined);
+        }
 
         const session_id =
             Number(new URLSearchParams(window.location.search).get("session_id")) || null;
@@ -53,14 +57,19 @@ export default function useConversationHistory({ bot_id, workspace_id, onLoaded 
 
         const history = res?.success ? res.singleRes?.history : null;
 
-        setLoading(false);
+        if (!silent) setLoading(false);
 
         if (!history?.session?.id) {
-            setError(res?.msg || "Couldn't load the conversation.");
+            /**
+             * A silent reload leaves the thread it couldn't read alone:
+             * the pull's own control says it failed, not the page.
+             */
+            if (!silent) setError(res?.msg || "Couldn't load the conversation.");
             return;
         }
 
         on_loaded.current({ history });
+        setError(undefined);
         setLoaded(true);
     };
 
@@ -75,5 +84,11 @@ export default function useConversationHistory({ bot_id, workspace_id, onLoaded 
         return () => window.removeEventListener("pageshow", onPageShow);
     }, [bot_id, workspace_id]);
 
-    return { loading, loaded, error, retry: load };
+    return {
+        loading,
+        loaded,
+        error,
+        retry: () => load(),
+        reload: () => load({ silent: true }),
+    };
 }

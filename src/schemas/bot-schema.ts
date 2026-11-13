@@ -142,6 +142,15 @@ export const ConversationHistoryRequestSchema = BotConversationRequestSchema.ext
 
 export type ConversationHistoryRequest = z.infer<typeof ConversationHistoryRequestSchema>;
 
+/**
+ * The crew a page lists, read again after the window regains focus.
+ */
+export const LiveCrewRequestSchema = z.object({
+    workspace_id: WorkspaceIdField,
+});
+
+export type LiveCrewRequest = z.infer<typeof LiveCrewRequestSchema>;
+
 export const ListBotSessionsRequestSchema = BotConversationRequestSchema.extend({
     query: z.string().trim().max(200).optional(),
     page: z.coerce.number().int().positive().optional(),

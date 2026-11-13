@@ -3,8 +3,15 @@
 import { useEffect, useState } from "react";
 
 /**
+ * A window regaining focus and its tab becoming visible are often one
+ * return; a second bump this soon after is the same one.
+ */
+const EpochGapMs = 1000;
+
+/**
  * Changes after a reason the socket may have died: the browser went back
- * online, the page was restored, or a hidden tab became visible again.
+ * online, the page was restored, a hidden tab became visible again, or
+ * another window was focused (a phone locked while the socket closed).
  * twui's `useWebSocket` gives up after three attempts, so the socket is
  * remounted instead of waiting for a reload.
  */
@@ -12,7 +19,16 @@ export default function useConnectionEpoch() {
     const [epoch, setEpoch] = useState(0);
 
     useEffect(() => {
-        const bump = () => setEpoch((value) => value + 1);
+        let last = 0;
+
+        const bump = () => {
+            const now = Date.now();
+
+            if (now - last < EpochGapMs) return;
+
+            last = now;
+            setEpoch((value) => value + 1);
+        };
 
         const onVisible = () => {
             if (document.visibilityState == "visible") bump();
@@ -20,11 +36,13 @@ export default function useConnectionEpoch() {
 
         window.addEventListener("online", bump);
         window.addEventListener("pageshow", bump);
+        window.addEventListener("focus", bump);
         document.addEventListener("visibilitychange", onVisible);
 
         return () => {
             window.removeEventListener("online", bump);
             window.removeEventListener("pageshow", bump);
+            window.removeEventListener("focus", bump);
             document.removeEventListener("visibilitychange", onVisible);
         };
     }, []);

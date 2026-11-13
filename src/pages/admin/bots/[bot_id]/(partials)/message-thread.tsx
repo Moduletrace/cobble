@@ -7,12 +7,14 @@ import type {
     BotWithLastMessage,
 } from "@/src/types";
 import useMessageSelection from "../(hooks)/use-message-selection";
+import usePullToRefresh from "../(hooks)/use-pull-to-refresh";
 import useThreadScroll from "../(hooks)/use-thread-scroll";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
 import ConversationChatroomStatus from "./conversation-chatroom-status";
 import MessageGroupBlock from "./message-group-block";
 import OlderMessagesLoader from "./older-messages-loader";
+import PullToRefreshIndicator from "./pull-to-refresh-indicator";
 import QuoteSelectionButton from "./quote-selection-button";
 import ScrollToBottomButton from "./scroll-to-bottom-button";
 import quotableText from "../(utils)/quotable-text";
@@ -55,6 +57,11 @@ type Props = {
      */
     onQuote?: (params: { text: string }) => void;
     /**
+     * Reads the conversation again, pulled up from the bottom of the
+     * thread on a phone.
+     */
+    onReload: () => Promise<void>;
+    /**
      * The session's older messages, loaded at the top of the thread.
      */
     older?: {
@@ -82,7 +89,8 @@ type Props = {
  * above it (shown only, never put in the bot's prompt); the reversed column keeps
  * the view where it was as they land above it. The thread follows new
  * messages while it sits at its bottom, stays put while it's scrolled up
- * and then offers a button to get back down.
+ * and then offers a button to get back down. Pulled up past its bottom on
+ * a phone, it offers to read the conversation again.
  */
 export default function MessageThread({
     bot,
@@ -95,17 +103,24 @@ export default function MessageThread({
     no_reply_due,
     notice,
     onQuote,
+    onReload,
     older,
 }: Props) {
     const groups = useMemo(() => groupMessages({ messages }), [messages]);
     const scroll = useThreadScroll({ messages });
+    const pull_state = usePullToRefresh({
+        column_ref: scroll.column_ref,
+        content_ref: scroll.content_ref,
+        at_bottom: scroll.at_bottom,
+        on_refresh: onReload,
+    });
     const { selection, clear } = useMessageSelection({ ref: scroll.column_ref });
 
     return (
         <Stack className="relative grow min-h-0 gap-0! items-stretch">
             <Stack
                 componentRef={scroll.column_ref as RefObject<HTMLDivElement>}
-                className="grow min-h-0 gap-0! items-stretch overflow-y-auto flex-col-reverse"
+                className="grow min-h-0 gap-0! items-stretch overflow-y-auto overscroll-contain flex-col-reverse"
                 onScroll={scroll.on_scroll}
             >
                 <Stack
@@ -162,6 +177,7 @@ export default function MessageThread({
             {scroll.jump_visible ? (
                 <ScrollToBottomButton onClick={scroll.jump_to_bottom} />
             ) : null}
+            <PullToRefreshIndicator state={pull_state} onReload={onReload} />
             {selection && onQuote ? (
                 <QuoteSelectionButton
                     selection={selection}

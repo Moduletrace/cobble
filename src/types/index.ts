@@ -2112,6 +2112,23 @@ export type ConversationHistoryPayload = {
 };
 
 /**
+ * The crew a page lists (the rail's bots and the user's workspaces), read
+ * again after the window regains focus.
+ */
+export type LiveCrewPayload = {
+    bots: BotWithLastMessage[];
+    workspaces: WorkspaceWithActivity[];
+};
+
+/**
+ * `LiveCrewPayload` announced to the page's lists (`cobble:live-crew-refreshed`),
+ * with the workspace it was read for: lists reading another place leave it.
+ */
+export type LiveCrewRefreshedDetail = LiveCrewPayload & {
+    workspace_id: number | null;
+};
+
+/**
  * One build's `.bunext/public` files, downloaded by the service worker
  * before the app runs (`grabPrecacheManifest`).
  */

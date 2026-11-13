@@ -5,6 +5,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import { AppContext } from "@/src/pages/__root";
 import useLiveBots from "@/src/hooks/use-live-bots";
 import useLiveWorkspaces from "../(hooks)/use-live-workspaces";
+import railWorkspaceId from "../(utils)/rail-workspace-id";
 import { RailPages } from "@/src/dict/rail-pages-dict";
 import { RailDrawerContext } from "../(data)/rail-drawer-context";
 import RailHeader from "../(partials)/rail-header";
@@ -38,20 +39,17 @@ export default function BotsRail() {
             Boolean(pathname?.startsWith(`${page.url}/`)),
     );
     const workspace = pageProps?.workspace;
-    const in_workspace = Boolean(
-        workspace?.id && pathname?.startsWith("/admin/workspaces/"),
-    );
+    const workspace_id = railWorkspaceId({ workspace, pathname });
+    const in_workspace = Boolean(workspace_id);
 
     const bots = useLiveBots({
         bots: pageProps?.bots || [],
         open_bot_id: pageProps?.bot?.id || undefined,
-        workspace_id: in_workspace ? workspace?.id || null : null,
+        workspace_id,
     });
     const workspaces = useLiveWorkspaces({
         workspaces: pageProps?.workspaces || [],
-        open_workspace_id: in_workspace
-            ? workspace?.id || undefined
-            : undefined,
+        open_workspace_id: workspace_id || undefined,
     });
     const live_workspace = workspaces.find((w) => w.id == workspace?.id);
 

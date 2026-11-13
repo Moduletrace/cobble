@@ -46,6 +46,7 @@ import SessionMovedBar from "../(partials)/session-moved-bar";
 import NoModelNotice from "../(partials)/no-model-notice";
 import syncSessionQuery from "../(utils)/sync-session-query";
 import announceShownSession from "@/src/functions/frontend/announce-shown-session";
+import requestLiveCrewRefresh from "@/src/functions/frontend/request-live-crew-refresh";
 
 /**
  * The conversation column: header, bottom-anchored thread, composer, the
@@ -233,6 +234,16 @@ export default function Conversation() {
         awaiting_reply,
         last_message_id: last_saved_id,
     });
+
+    /**
+     * The thread's pull-to-reload: the page's crew read again (the layout
+     * answers the request) and this conversation's history, which skips
+     * the loading line since the pull shows its own spinner.
+     */
+    const reload_conversation = async () => {
+        requestLiveCrewRefresh();
+        await history.reload();
+    };
 
     /**
      * A message that starts a newer session (sent here or in another tab)
@@ -436,6 +447,7 @@ export default function Conversation() {
                                         ) : null
                                     }
                                     older={older}
+                                    onReload={reload_conversation}
                                     onQuote={({ text }) =>
                                         composer.current?.insertQuote({ text })
                                     }

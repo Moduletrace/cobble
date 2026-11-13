@@ -52,6 +52,13 @@ export default function useThreadScroll({ messages }: Params) {
         });
     };
 
+    /**
+     * Whether the content's end is exactly at the column's bottom, with no
+     * slack: the pull-to-reload gesture reads it, since a thread a few
+     * pixels short still has somewhere of its own to scroll to.
+     */
+    const atBottom = () => (measure()?.distance ?? 1) <= 0;
+
     /** The user's own scrolling: it decides whether the thread follows. */
     const onScroll = () => {
         const offset = measure();
@@ -158,5 +165,6 @@ export default function useThreadScroll({ messages }: Params) {
         jump_visible,
         jump_to_bottom: jumpToBottom,
         on_scroll: onScroll,
+        at_bottom: atBottom,
     };
 }

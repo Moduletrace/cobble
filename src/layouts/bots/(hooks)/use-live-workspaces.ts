@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
+import { LiveCrewRefreshedEvent } from "@/src/functions/frontend/announce-live-crew";
 import useServerEvent from "@/src/hooks/use-server-event";
 import type {
+    LiveCrewRefreshedDetail,
     WorkspaceCreatedData,
     WorkspaceRemovedData,
     WorkspaceUpdatedData,
@@ -19,7 +21,8 @@ type Params = {
 /**
  * The user's workspaces, marked unread as bot messages arrive in them and
  * kept current when one is created (a bot can create one, so it shows
- * without a reload).
+ * without a reload). Read again as a whole when the user comes back
+ * (`cobble:live-crew-refreshed`), like the bots' list.
  */
 export default function useLiveWorkspaces({ workspaces, open_workspace_id }: Params) {
     const [live, setLive] = useState(workspaces);
@@ -71,6 +74,26 @@ export default function useLiveWorkspaces({ workspaces, open_workspace_id }: Par
             );
         },
     });
+
+    useEffect(() => {
+        const onRefresh = (event: Event) => {
+            const detail = (event as CustomEvent<LiveCrewRefreshedDetail>).detail;
+
+            if (!detail?.workspaces) return;
+
+            setLive(
+                detail.workspaces.map((workspace) =>
+                    Number(workspace.id) == open_workspace_id
+                        ? { ...workspace, unread: 0 }
+                        : workspace,
+                ),
+            );
+        };
+
+        window.addEventListener(LiveCrewRefreshedEvent, onRefresh);
+
+        return () => window.removeEventListener(LiveCrewRefreshedEvent, onRefresh);
+    }, [open_workspace_id]);
 
     return live;
 }

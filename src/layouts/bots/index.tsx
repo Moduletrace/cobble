@@ -11,7 +11,9 @@ import BotsRail from "./(sections)/bots-rail";
 import LiveSocket from "./(sections)/live-socket";
 import AddFlow from "./(partials)/add-flow";
 import OfflineBanner from "./(partials)/offline-banner";
+import useLiveCrewRefresh from "./(hooks)/use-live-crew-refresh";
 import isRaillessPage from "./(utils)/is-railless-page";
+import railWorkspaceId from "./(utils)/rail-workspace-id";
 
 /**
  * Full-bleed shell for every `/admin/*` page: the rail of bot conversations
@@ -53,6 +55,14 @@ export default function BotsLayout({
     }, [drawer_open]);
 
     const has_rail = !isRaillessPage({ pathname });
+
+    /**
+     * The crew the rail lists, read again whenever the user comes back to
+     * the page: pushes that never arrived leave it stale until a reload.
+     */
+    const workspace_id = railWorkspaceId({ workspace: pageProps?.workspace, pathname });
+
+    useLiveCrewRefresh({ workspace_id });
 
     const drawer = useMemo(
         () => ({ open: drawer_open, setOpen: setDrawerOpen, has_rail }),
