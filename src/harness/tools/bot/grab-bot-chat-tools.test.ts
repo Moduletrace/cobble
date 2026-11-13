@@ -37,6 +37,9 @@ mock.module("@/src/functions/backend/db/workspaces/grab-user-workspaces", () => 
 mock.module("@/src/functions/backend/db/bots/grab-crew-workers", () => ({
     default: async () => workers,
 }));
+mock.module("@/src/functions/backend/db/chatrooms/chatroom-askable-bots", () => ({
+    default: async () => workers,
+}));
 
 const grabBotChatTools = (await import("./grab-bot-chat-tools")).default;
 
@@ -59,6 +62,32 @@ async function names({ workspace_id }: { workspace_id: number | null }) {
         user_id: 1,
         computers: [],
         session_id: 9,
+        workspace_id,
+        onPropose: () => {},
+    });
+
+    return tools.map((tool) => tool.name);
+}
+
+/**
+ * The same list for a plain worker: no work to hand out, only its own task to
+ * pass on, to a bot it could ask (`chatroomAskableBots`).
+ */
+async function workerNames({ workspace_id, allowed = ["hand_over_task"] }: { workspace_id: number | null; allowed?: string[] }) {
+    const worker = {
+        bot_types: [],
+        is_coordinator: false,
+        admin_workspace_ids: [],
+        is_workspace_admin: false,
+        can: (permission: string) => allowed.includes(permission),
+    };
+
+    const tools = await grabBotChatTools({
+        bot: { id: 5, kind: "worker", name: "SEO Expert" },
+        powers: worker,
+        user_id: 1,
+        computers: [],
+        session_id: 43,
         workspace_id,
         onPropose: () => {},
     });
@@ -92,5 +121,24 @@ describe("grabBotChatTools", () => {
 
         expect(list).toContain("list_extensions");
         expect(list).toContain("propose_skill");
+    });
+
+    test("a worker gets no work to hand out, only its own task to pass on", async () => {
+        workers = [{ id: 6, name: "Software Engineer", kind: "worker" }];
+
+        const list = await workerNames({ workspace_id: 11 });
+
+        expect(list).toContain("hand_over_task");
+        expect(list).not.toContain("delegate_task");
+        expect(list).not.toContain("manage_workspace_tasks");
+    });
+
+    test("a worker whose types don't allow it gets neither", async () => {
+        workers = [{ id: 6, name: "Software Engineer", kind: "worker" }];
+
+        const list = await workerNames({ workspace_id: 11, allowed: [] });
+
+        expect(list).not.toContain("hand_over_task");
+        expect(list).not.toContain("delegate_task");
     });
 });

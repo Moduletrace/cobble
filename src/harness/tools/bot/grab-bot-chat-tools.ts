@@ -24,6 +24,8 @@ import updateWorkspaceTool from "./update-workspace-tool";
 import listWorkspacePeopleTool from "./list-workspace-people-tool";
 import setUserWorkspaceRoleTool from "./set-user-workspace-role-tool";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
+import chatroomAskableBots from "@/src/functions/backend/db/chatrooms/chatroom-askable-bots";
+import handOverTaskTool from "./hand-over-task-tool";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
 import startTaskTool from "./start-task-tool";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
@@ -111,9 +113,10 @@ type Params = {
  * workspace's crew (a bot's core prompt is asked for from wherever the
  * user is), plus set_bot_type to make a worker a workspace's admin. A
  * workspace admin, in the workspace it leads, gets
- * `grabWorkspaceAdminTools`. Every gate reads the bot's types (`powers`),
- * never `bots.kind`. Anything else on a computer goes through a task,
- * never mid-reply.
+ * `grabWorkspaceAdminTools`. A worker gets no work to hand out, but it may
+ * pass on a task of its own to a bot it could ask (`hand_over_task`). Every
+ * gate reads the bot's types (`powers`), never `bots.kind`. Anything else on
+ * a computer goes through a task, never mid-reply.
  */
 export default async function grabBotChatTools({
     bot,
@@ -169,12 +172,34 @@ export default async function grabBotChatTools({
     ];
 
     if (!powers.is_coordinator) {
-        if (!workspace_id || !powers.is_workspace_admin) return tools;
+        if (workspace_id && powers.is_workspace_admin) {
+            const admin = await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, session_id, scopes, onTask });
 
-        const admin = await grabWorkspaceAdminTools({ bot, user_id, workspace_id, powers, session_id, scopes, onTask });
+            onWorkspaceAdmin?.(admin);
+            tools.push(...admin.tools);
 
-        onWorkspaceAdmin?.(admin);
-        tools.push(...admin.tools);
+            return tools;
+        }
+
+        /**
+         * Only what it already has goes: the bots it may hand to are the
+         * ones it could ask for this user, read again when it does.
+         */
+        if (session_id && powers.can("hand_over_task")) {
+            const workers = await chatroomAskableBots({ user_id, requester_bot_id: bot_id, workspace_id });
+
+            tools.push(
+                handOverTaskTool({
+                    user_id,
+                    bot,
+                    session_id,
+                    powers,
+                    workers,
+                    grabTargets: () => chatroomAskableBots({ user_id, requester_bot_id: bot_id, workspace_id }),
+                    onTask,
+                }),
+            );
+        }
 
         return tools;
     }

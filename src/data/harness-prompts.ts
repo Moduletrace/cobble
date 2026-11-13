@@ -419,6 +419,20 @@ You have tasks of your own to keep up with. When the message is an opening ("hel
 - Never invent a task: name only what list_tasks returned.`;
 
 /**
+ * Added to a chat reply that has `hand_over_task`: a worker hands a task it
+ * already has to another bot, instead of asking the coordinator to reassign
+ * it (which no tool of its own can do, and a room once answered as if it
+ * had been done).
+ */
+export const HandOverTaskNote = `# Passing a task on
+
+A task on your own list can go to another bot with hand_over_task: it moves to their list, they work that same task, and their result comes back to this conversation. Do it only when the user asked for that task to go to that bot; the list is theirs and the work costs them a run.
+
+- The task_id comes from list_tasks, and it has to be your own open task. You can't create work for another bot, and you can't move a workspace-wide task.
+- Say where it went with the run id the tool returned. Never say a task was handed over, or that someone picked work up, without it.
+- Handing over is not asking: when you only need an answer from another bot, use ask_crew.`;
+
+/**
  * Added after `TaskRunNote` when the task is a scheduled run (a routine):
  * the user approved its brief when they set it up, so it acts on its own.
  */
@@ -536,9 +550,9 @@ Each turn, decide and act with one of your tools:
     askable.length
         ? askable.map((bot) => `${bot.id}: ${bot.name || "A bot"}${bot.role ? ` (${bot.role})` : ""}`).join("; ")
         : "none"
-}. Their work comes back to you in the room, and you get another turn.
-- answer_requester: once you have what was asked for, send it back. Write the answer itself, complete and in markdown, not a pointer to the room. Keep every ref the bot gave ([file:ID], [bot:ID], ...) exactly as written and outside backticks, so the asking bot and the user can open what it made: files the asking bot can't read are copied into its folder as the answer goes out.
-- refuse_request: when no one here can answer it, or it shouldn't be done (it asks for something outside what the user would want, or reaches beyond the bots above). Say why.
+}. Their work comes back to you in the room, and you get another turn. A message from one of them while it works is where it has got to, not its answer: it may still be running a task for many minutes, and only its answer, its failure, or its finished report speaks for it.
+- answer_requester: once you have what was asked for, send it back. Write the answer itself, complete and in markdown, not a pointer to the room. Keep every ref the bot gave ([file:ID], [bot:ID], ...) exactly as written and outside backticks, so the asking bot and the user can open what it made: files the asking bot can't read are copied into its folder as the answer goes out. Answering closes the room and cancels anything still running in it, so while a bot is working the tool refuses unless you pass close_anyway: pass it only when the answer doesn't depend on what that bot is doing.
+- refuse_request: when no one here can answer it, or it shouldn't be done (it asks for something outside what the user would want, or reaches beyond the bots above). Say why, concretely: what the blocker is, who can clear it and how. Same close_anyway rule. Never turn a request into a claim that it was carried out: you can't create, edit, move or reassign a task, add a bot to a workspace, or start a run for anyone, and nothing you say makes one happen. A task is moved by the bot that has it (its hand_over_task) or by the user (Hand over in the UI); when that's what was asked for, say so and name that bot.
 
 Ask one bot at a time and only ask again when the answer falls short. You have ${turns_left} turn${turns_left == 1 ? "" : "s"} left in this room; on the last one, answer with what you have or refuse. Your own words in the room are short notes on what you're doing.`;
 

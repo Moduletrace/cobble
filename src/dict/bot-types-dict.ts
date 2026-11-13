@@ -28,6 +28,10 @@ export const BotPermissions = [
         title: "Hand tasks to other bots",
     },
     {
+        value: "hand_over_task",
+        title: "Hand a task on its own list to another bot",
+    },
+    {
         value: "set_member_instructions",
         title: "Set other bots' workspace instructions",
     },
@@ -72,18 +76,27 @@ export const BotTypePermissionMatrix: Record<BotRole, BotPermission[]> = {
     coordinator: BotPermissions.map((bp) => bp.value),
     workspace_admin: [
         "delegate_task",
+        "hand_over_task",
         "set_member_instructions",
         "manage_workspace_tasks",
         "edit_workspace",
     ],
-    worker: [],
+    /**
+     * A worker can't hand out work: it passes on a task it already has
+     * (`hand_over_task`), and asks the crew for anything else through the
+     * coordinator (`ask_crew`).
+     */
+    worker: ["hand_over_task"],
 };
 
 /**
  * Which bots a bot may act on (hand a task to, set instructions for), keyed
  * by the target's role. Same shape as `UserTypeAssignmentMatrix`: the
  * coordinator passes through. A workspace admin directs workers only, so
- * two admins never hand work back and forth.
+ * two admins never hand work back and forth. A worker directs no one
+ * either: `hand_over_task` takes a task it already has to a bot it could
+ * ask, which its own tool decides (`chatroomAskableBots`), not this
+ * matrix.
  */
 export const BotTypeTargetMatrix: TypeAssignmentMatrixType<BotRole> = {
     coordinator: {},

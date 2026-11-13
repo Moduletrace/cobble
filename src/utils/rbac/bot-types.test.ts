@@ -49,6 +49,12 @@ describe("botCan", () => {
     test("a worker can't delegate", () => {
         expect(botCan({ kind: "worker", bot_types: [], permission: "delegate_task", workspace_id: 3 })).toBe(false);
     });
+
+    test("a worker can hand on a task of its own, and a workspace admin can too", () => {
+        expect(botCan({ kind: "worker", bot_types: [], permission: "hand_over_task", workspace_id: 3 })).toBe(true);
+        expect(botCan({ kind: "worker", bot_types: [], permission: "hand_over_task" })).toBe(true);
+        expect(botCan({ bot_types: admin_of_3, permission: "hand_over_task", workspace_id: 3 })).toBe(true);
+    });
 });
 
 describe("botCanTarget", () => {
@@ -77,6 +83,11 @@ describe("botCanTarget", () => {
     });
 
     test("a worker directs no one", () => {
+        /**
+         * `hand_over_task` is separate: it moves a task the worker already
+         * has, to a bot it could ask (`chatroomAskableBots`). Nothing here
+         * lets it hand work out.
+         */
         expect(botCanTarget({ actor_bot_types: [], target_bot_types: [], workspace_id: 3 })).toBe(false);
     });
 });

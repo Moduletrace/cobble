@@ -17,6 +17,7 @@ import {
     CoordinatorSoloNote,
     TasksNote,
     TaskReminderNote,
+    HandOverTaskNote,
     workspaceAdminNote,
     WorkspaceLearningNote,
     openRunsNote,
@@ -331,6 +332,12 @@ export default async function runBotReply({
      * admin is told who leads it.
      */
     const can_delegate = tools.some((tool) => tool.name == "delegate_task");
+    /**
+     * A worker passes on a task of its own (`hand_over_task`): the reply says
+     * where it went and that it needs the run id, so no one claims a hand-over
+     * that didn't happen.
+     */
+    const can_hand_over = tools.some((tool) => tool.name == "hand_over_task");
     const lead = led as WorkspaceAdminTools | null;
     const crew_note = powers.is_coordinator
         ? can_delegate
@@ -357,9 +364,10 @@ export default async function runBotReply({
                 ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: false }),
                 TasksNote,
                 TaskReminderNote,
+                can_hand_over ? HandOverTaskNote : "",
                 ActionCheckNote,
-                RequestScopeNote({ can_ask: true }),
-                QuestionsNote,
+                RequestScopeNote({ can_ask: Boolean(attended) }),
+                attended ? QuestionsNote : "",
                 SecretsNote,
                 SettingsNote,
                 composeEnvsNote({ ...envs, has_computer: computers.length > 0 }),
@@ -410,20 +418,30 @@ export default async function runBotReply({
                     onRequest: ({ ref }) => proposals.push(ref),
                     onShow: ({ ref }) => shown.push(ref),
                 }),
-                askUserTool({
-                    user_id,
-                    bot_id: bot.id,
-                    session_id,
-                    workspace_id,
-                    onAsk: ({ ref }) => proposals.push(ref),
-                }),
-                suggestNextStepsTool({
-                    user_id,
-                    bot_id: bot.id,
-                    session_id,
-                    workspace_id,
-                    onSuggest: ({ ref }) => shown.push(ref),
-                }),
+                /**
+                 * Only where the user follows the conversation: a chatroom's
+                 * hidden session has no card they could answer, and a
+                 * question there was once shown to the coordinator as a bare
+                 * ref, its answer never reaching the bot.
+                 */
+                ...(attended
+                    ? [
+                          askUserTool({
+                              user_id,
+                              bot_id: bot.id,
+                              session_id,
+                              workspace_id,
+                              onAsk: ({ ref }) => proposals.push(ref),
+                          }),
+                          suggestNextStepsTool({
+                              user_id,
+                              bot_id: bot.id,
+                              session_id,
+                              workspace_id,
+                              onSuggest: ({ ref }) => shown.push(ref),
+                          }),
+                      ]
+                    : []),
                 ...(has_past_sessions
                     ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]
                     : []),
