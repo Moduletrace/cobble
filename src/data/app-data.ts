@@ -111,7 +111,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.1",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.2",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
@@ -305,11 +305,14 @@ export const AppData = {
     BotQueueLockTimeoutMs: 10 * 60 * 1000,
     BotQueueBackoffMs: 30 * 1000,
     /**
-     * One attempt of a job (one model run or task, tools included) gives up
-     * after this long and counts as a failed try, so a call that hangs
-     * without ever answering can't hold the job, its computer or the
-     * conversation forever. The lock is outlived by the heartbeat, so this
-     * is the only thing that stops a live but stuck run.
+     * A reply's deadline: one attempt (its model run and tools included)
+     * gives up after this long and counts as a failed try, so a chat answer
+     * that hangs without ever answering can't hold the conversation
+     * forever. The lock is outlived by the heartbeat, so this is the only
+     * thing that stops a live but stuck reply. A task run has none (a
+     * command or a build may hold it for hours): only Stop, a lost lock or
+     * the process ending stops its work, and a command on its computer is
+     * stopped when the call is aborted.
      */
     BotJobAttemptTimeoutMs: 2 * 60 * 60 * 1000,
     /**
@@ -464,10 +467,10 @@ export const AppData = {
     HarnessMaxCandidates: 6,
     HarnessRequestTimeoutMs: 3 * 60 * 1000,
     /**
-     * One tool call gives up after this long, whatever the tool is (bot
-     * tools, MCP servers, computers, custom tools), so a tool that ignores
-     * its own limits can't stall the run. Its result comes back as an error
-     * the model can work around.
+     * One tool call gives up after this long unless the tool names its own
+     * deadline (`HarnessTool.timeout_ms`, `null` for none), so a tool that
+     * ignores its own limits can't stall the run. Its result comes back as
+     * an error the model can work around.
      */
     HarnessToolTimeoutMs: 10 * 60 * 1000,
     /**
@@ -640,10 +643,12 @@ export const AppData = {
     McpToolTimeoutMs: 5 * 60 * 1000,
     /**
      * A bash command on a computer (`computer_bash`) is killed there, with
-     * everything it started, after at most this long, below
-     * `HarnessToolTimeoutMs`.
+     * everything it started, after at most this long: 0 leaves it no time
+     * limit at all, so a script may run for hours. The bot may name its own
+     * `timeout`, which a limit here still caps. Long work holds the
+     * computer (one task run per computer), and Stop ends it.
      */
-    ComputerCommandMaxSeconds: 270,
+    ComputerCommandMaxSeconds: 0,
     /**
      * What a computer's command hands the bot back (its start and end), and
      * what `computer_read_file` reads: lines at a time, each line cut

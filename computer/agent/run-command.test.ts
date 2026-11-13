@@ -47,6 +47,14 @@ describe("runCommand", () => {
         expect(result.truncated).toBe(true);
     });
 
+    test("runs to the end with no time limit", async () => {
+        const result = await runCommand({ ...base, timeout_seconds: null, command: "sleep 1; echo done" });
+
+        expect(result.output).toBe("done\n");
+        expect(result.exit_code).toBe(0);
+        expect(result.timed_out).toBe(false);
+    });
+
     test("is killed when aborted", async () => {
         const controller = new AbortController();
 

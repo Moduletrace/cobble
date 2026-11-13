@@ -6,6 +6,7 @@ import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
 import unknownToolArgs from "./unknown-tool-args";
 import unknownToolMessage from "./unknown-tool-message";
+import toolTimeoutMs from "./tool-timeout-ms";
 import type { HarnessTool, HarnessToolCall, HarnessToolImage } from "../types";
 
 /**
@@ -81,16 +82,22 @@ async function runTool({ call, tools, signal }: Params) {
     }
 
     try {
-        const output = await withTimeout({
-            timeout_ms: AppData.HarnessToolTimeoutMs,
-            signal,
-            message: `${call.name} took too long and was stopped.`,
-            task: (tool_signal) =>
-                tool.run({
-                    args: parsed ? parsed.data : raw,
-                    signal: tool_signal,
-                }),
-        });
+        const args = parsed ? parsed.data : raw;
+        const timeout_ms = toolTimeoutMs({ tool });
+
+        /**
+         * A tool with no deadline (`computer_bash`) runs until it ends, the
+         * run is stopped or its job ends: the caller's signal alone cancels
+         * it, so a long command isn't cut at a tool's own limit.
+         */
+        const output = timeout_ms == null
+            ? await tool.run({ args, signal })
+            : await withTimeout({
+                  timeout_ms,
+                  signal,
+                  message: `${call.name} took too long and was stopped.`,
+                  task: (tool_signal) => tool.run({ args, signal: tool_signal }),
+              });
 
         return typeof output == "string" ? truncate({ text: output, name: call.name }) : output;
     } catch (error: unknown) {

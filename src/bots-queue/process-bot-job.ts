@@ -178,12 +178,15 @@ export default async function processBotJob({
             });
 
             /**
-             * A deadline per attempt: the heartbeat keeps the lock alive
-             * for as long as this run takes, so without one a call that
-             * never answers would hold the slot forever.
+             * A deadline per attempt for a reply: the heartbeat keeps the
+             * lock alive for as long as this run takes, so without one a
+             * chat answer that never comes would hold the conversation's
+             * slot forever. A task run has none: a command or a build may
+             * legitimately hold its computer for hours (`computer_bash` has
+             * no time limit either), and Stop still ends it here and now.
              */
             return await withTimeout({
-                timeout_ms: AppData.BotJobAttemptTimeoutMs,
+                timeout_ms: job.kind == "task" ? null : AppData.BotJobAttemptTimeoutMs,
                 signal: controller.signal,
                 message: timeout_message,
                 on_timeout: () => {
@@ -205,10 +208,10 @@ export default async function processBotJob({
         /**
          * A task whose computer is busy says so while it waits, so the
          * user doesn't see silence. A chatroom job doesn't wait: the bot
-         * that asked is often the one holding the computer, with a run of
-         * up to an hour, and the room would sit silent until it ends. It
-         * works beside it with the shell and files only (`computer_shared`),
-         * which is all most answers need.
+         * that asked is often the one holding the computer, with a task run
+         * that may hold it for hours, and the room would sit silent until it
+         * ends. It works beside it with the shell and files only
+         * (`computer_shared`), which is all most answers need.
          */
         const runOnComputer = async (computer_id: number) => {
             if (computer_lock.busy({ key: computer_id })) {

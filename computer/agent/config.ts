@@ -124,14 +124,19 @@ export const AgentConfig = {
      */
     NoVncDir: env.COBBLE_NOVNC_DIR || "/opt/novnc",
     /**
-     * A command's timeout when it names none, and the most it may ask for.
-     */
-    CommandDefaultSeconds: 270,
-    CommandMaxSeconds: 3600,
-    /**
-     * Output past this is dropped (and the response says so).
+     * A command has no time limit of its own: its caller asks for one (a
+     * bot's `computer_bash` leaves it out for long scripts) and the
+     * caller going away still kills it (`handle-exec`). Output past this is
+     * dropped, and the response says so.
      */
     CommandMaxOutputBytes: 4 * 1024 * 1024,
+    /**
+     * A command sends nothing while it runs, and the app's HTTP client gives
+     * up on a connection that stays silent for minutes (Bun's own fetch cuts
+     * one after about six minutes), so the answer keeps it alive with a space
+     * this often. `JSON.parse` ignores the whitespace around the document.
+     */
+    CommandHeartbeatMs: 15_000,
     /**
      * How long children get to exit on a stop before they're killed.
      */

@@ -14,7 +14,11 @@ type Params = {
      */
     path: string;
     init?: RequestInit;
-    timeout_ms: number;
+    /**
+     * Give up after this long; `null` or 0 waits for the caller's own
+     * signal alone.
+     */
+    timeout_ms: number | null;
     signal?: AbortSignal;
 };
 
@@ -24,12 +28,16 @@ type Params = {
  */
 export default function computerFetch({ computer, path, init = {}, timeout_ms, signal }: Params) {
     const headers = new Headers(init.headers);
+    const signals = [
+        ...(signal ? [signal] : []),
+        ...(timeout_ms != null && timeout_ms > 0 ? [AbortSignal.timeout(timeout_ms)] : []),
+    ];
 
     headers.set("authorization", `Bearer ${computer.token}`);
 
     return fetch(`${computer.base_url}${path}`, {
         ...init,
         headers,
-        signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(timeout_ms)]),
+        ...(signals.length ? { signal: AbortSignal.any(signals) } : {}),
     });
 }

@@ -51,6 +51,47 @@ describe("withTimeout", () => {
         expect(aborted).toBe(true);
     });
 
+    test("runs with no deadline when it has none", async () => {
+        const result = await withTimeout({
+            timeout_ms: null,
+            task: async () => {
+                await wait(30);
+                return "done";
+            },
+        });
+
+        expect(result).toBe("done");
+    });
+
+    test("stops a task with no deadline on the caller's cancellation", async () => {
+        const controller = new AbortController();
+        let aborted = false;
+        let started: () => void = () => {};
+        const running_task = new Promise<void>((resolve) => {
+            started = resolve;
+        });
+
+        const running = withTimeout({
+            timeout_ms: null,
+            signal: controller.signal,
+            task: async (task_signal) => {
+                task_signal.addEventListener("abort", () => {
+                    aborted = true;
+                });
+
+                started();
+                await wait(200);
+            },
+        });
+
+        await running_task;
+        controller.abort();
+        const error = await running.catch((e) => e);
+
+        expect(error).toBeInstanceOf(Error);
+        expect(aborted).toBe(true);
+    });
+
     test("passes the caller's cancellation through", async () => {
         const controller = new AbortController();
         let aborted = false;

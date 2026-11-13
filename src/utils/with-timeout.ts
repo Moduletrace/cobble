@@ -6,7 +6,11 @@ type Params<T> = {
      * the caller cancels, so its requests stop too.
      */
     task: (signal: AbortSignal) => Promise<T>;
-    timeout_ms: number;
+    /**
+     * The deadline in milliseconds; `null` gives the task none, so only the
+     * caller's signal ends it (a task run's long work).
+     */
+    timeout_ms: number | null;
     /**
      * The caller's own cancellation, e.g. a job that lost its lock.
      */
@@ -46,10 +50,12 @@ export default function withTimeout<T>({
 
     parent?.addEventListener("abort", on_abort, { once: true });
 
-    const timer = setTimeout(() => {
-        on_timeout?.();
-        controller.abort(new TaskTimeoutError({ message }));
-    }, timeout_ms);
+    const timer = timeout_ms == null
+        ? undefined
+        : setTimeout(() => {
+              on_timeout?.();
+              controller.abort(new TaskTimeoutError({ message }));
+          }, timeout_ms);
 
     const done = new Promise<T>((resolve, reject) => {
         controller.signal.addEventListener(
@@ -75,7 +81,7 @@ export default function withTimeout<T>({
     });
 
     return done.finally(() => {
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         parent?.removeEventListener("abort", on_abort);
     });
 }

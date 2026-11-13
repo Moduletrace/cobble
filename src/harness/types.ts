@@ -107,6 +107,12 @@ export type HarnessTool<Args = any> = {
      * definitions would otherwise ride along on every turn.
      */
     deferred?: boolean;
+    /**
+     * This call's deadline, overriding `AppData.HarnessToolTimeoutMs`: a
+     * bigger one for a tool with its own slow work, `null` for none at all
+     * (`computer_bash`, whose command may run for hours).
+     */
+    timeout_ms?: number | null;
     run: (params: { args: Args; signal: AbortSignal }) => Promise<HarnessToolOutput>;
 };
 

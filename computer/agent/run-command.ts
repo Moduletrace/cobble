@@ -13,7 +13,10 @@ type Params = {
      * and `gid` are then left out.
      */
     as?: { uid: number; gid: number };
-    timeout_seconds: number;
+    /**
+     * Stop it after this many seconds, `null` for no time limit at all.
+     */
+    timeout_seconds: number | null;
     max_output_bytes: number;
     /**
      * Aborting (the caller went away, the run was stopped) kills it.
@@ -32,9 +35,10 @@ export type CommandResult = {
  * Runs one command in its own `bash -c`, in its own process group, with
  * no input (a prompt fails at once instead of waiting). stdout and stderr
  * come back together, in order, cut at `max_output_bytes`. Past its
- * timeout, or when aborted, the whole group gets TERM, then KILL 5s later.
- * It resolves when bash exits, not when every pipe closes, so work left in
- * the background (`nohup ... &`) keeps running without holding the call.
+ * timeout (when it has one), or when aborted, the whole group gets TERM,
+ * then KILL 5s later. It resolves when bash exits, not when every pipe
+ * closes, so work left in the background (`nohup ... &`) keeps running
+ * without holding the call.
  */
 export default function runCommand({
     command,
@@ -91,10 +95,12 @@ export default function runCommand({
             kill_timer = setTimeout(() => child.pid && killGroup({ pid: child.pid, signal: "SIGKILL" }), 5000);
         };
 
-        const timer = setTimeout(() => {
-            timed_out = true;
-            stop();
-        }, timeout_seconds * 1000);
+        const timer = timeout_seconds == null
+            ? undefined
+            : setTimeout(() => {
+                  timed_out = true;
+                  stop();
+              }, timeout_seconds * 1000);
 
         const onAbort = () => stop();
 
@@ -104,7 +110,7 @@ export default function runCommand({
             if (settled) return;
 
             settled = true;
-            clearTimeout(timer);
+            if (timer) clearTimeout(timer);
             clearTimeout(kill_timer);
             signal?.removeEventListener("abort", onAbort);
 
