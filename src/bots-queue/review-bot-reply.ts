@@ -7,6 +7,7 @@ import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessToolUse } from "@/src/harness/types";
 import replyClaimProblems from "@/src/utils/reply-claim-problems";
 import replyRefIds from "@/src/utils/reply-ref-ids";
+import unresolvedSettingRefs from "@/src/utils/unresolved-setting-refs";
 import type { StorageScope } from "@/src/utils/storage-access";
 
 type Params = {
@@ -24,7 +25,8 @@ type Params = {
 /**
  * Checks a chat reply's answer against what the app knows before it goes
  * out (`replyClaimProblems`): every file and task it names must exist for
- * the user (as their chips would open them), and work it says is under
+ * the user (as their chips would open them), every setting ref the app can
+ * resolve, and work it says is under
  * way must have been started by this reply or still be open from this
  * conversation. Returns the note that sends the answer back to be written
  * again, or null when it holds up. Bots wrote "I'm scanning now" with the
@@ -52,6 +54,7 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
         tool_uses,
         missing_file_ids,
         missing_task_ids,
+        unresolved_setting_refs: unresolvedSettingRefs({ text }),
         has_open_work: await hasOpenWork({ bot_id, session_id }),
     });
 

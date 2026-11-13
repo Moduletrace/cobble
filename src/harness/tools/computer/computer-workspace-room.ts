@@ -1,6 +1,7 @@
 import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
 import grabComputerUsage, { type ComputerUsageFolder } from "@/src/functions/backend/computers/grab-computer-usage";
 import grabComputerWorkspaceQuotaBytes from "@/src/functions/backend/db/app-settings/grab-computer-workspace-quota-bytes";
+import generalSettingsRef from "@/src/utils/general-settings-ref";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import formatBytes from "@/src/utils/format-bytes";
 import computerWorkspaceSpace from "./computer-workspace-space";
@@ -66,6 +67,15 @@ export default async function computerWorkspaceRoomError({ computer, dirs, incom
 }
 
 /**
+ * The setting that bounds a computer's workspace, as the ref a bot writes
+ * when it reports the refusal.
+ */
+const computerWorkspaceQuotaRef = generalSettingsRef({
+    section: "computer-workspaces",
+    field: "quota_mb",
+});
+
+/**
  * What a bot is told when the workspace is full: what is used, what the
  * limit is, where the space went (`computerWorkspaceSpace`), and what to do
  * instead. `dirs` is where its own work is, the one folder it may safely
@@ -85,11 +95,12 @@ export function computerWorkspaceFullMessage({
     const space = computerWorkspaceSpace({ folders, dirs });
 
     const advice = space && !space.clearable
-        ? `Nothing was written. The room has to come back from that folder: name it in your report, with what you needed to write, so the user can clear it through Files or raise the limit. Anything you can delete in ${dirs.bot_dir ?? dirs.cwd} still helps, and importing what matters into your files and removing it here frees that much.`
+        ? `Nothing was written. The room has to come back from that folder: name it in your report, with what you needed to write, so the user can clear it through Files or raise the limit (${computerWorkspaceQuotaRef}). Anything you can delete in ${dirs.bot_dir ?? dirs.cwd} still helps, and importing what matters into your files and removing it here frees that much.`
         : `Nothing was written. Free space first with computer_bash: delete what you no longer need in ${dirs.bot_dir ?? dirs.cwd} (screenshots, downloads, old reports, raw dumps), or import what matters into your files and then remove it here.`;
 
     return [
         `No room left on this computer: its workspace holds ${formatBytes({ bytes: used_bytes })} of ${formatBytes({ bytes: quota_bytes })}.`,
+        `The limit is Settings > General's megabytes per computer (${computerWorkspaceQuotaRef}, ${Math.round(quota_bytes / (1024 * 1024)).toLocaleString("en-US")} MB now): only the super admin can raise it.`,
         space?.description || "",
         advice,
     ]

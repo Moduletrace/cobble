@@ -7,7 +7,7 @@ import SettingsPaneHeader from "./settings-pane-header";
 
 type Props = {
     title: string;
-    description: string;
+    description?: string;
     children: ReactNode;
     /**
      * A wider column, for tables (activity).

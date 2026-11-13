@@ -16,6 +16,11 @@ type Params = {
      */
     missing_task_ids?: number[];
     /**
+     * `[setting:section:field]` refs in the text that name no setting the
+     * app has (`unresolvedSettingRefs`).
+     */
+    unresolved_setting_refs?: string[];
+    /**
      * A run of the bot's, a job it handed over or a room it asked, still
      * open from this conversation: its result is still to come.
      */
@@ -40,6 +45,7 @@ export default function replyClaimProblems({
     tool_uses,
     missing_file_ids = [],
     missing_task_ids = [],
+    unresolved_setting_refs = [],
     has_open_work,
 }: Params): string[] {
     const problems: string[] = [];
@@ -53,6 +59,12 @@ export default function replyClaimProblems({
     if (missing_task_ids.length) {
         problems.push(
             `It names ${missing_task_ids.map((id) => `[task:${id}]`).join(", ")}, which ${missing_task_ids.length == 1 ? "is" : "are"} no task the user can open (never created, or deleted). list_tasks shows what's there.`,
+        );
+    }
+
+    if (unresolved_setting_refs.length) {
+        problems.push(
+            `It points at ${unresolved_setting_refs.join(", ")}, which ${unresolved_setting_refs.length == 1 ? "is" : "are"} no setting the app has, so the pill would go nowhere. read_settings lists every setting with the ref to write.`,
         );
     }
 

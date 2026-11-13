@@ -64,7 +64,7 @@ export default function SystemPromptAppendForm({ appendix }: Props) {
             }}
             className="w-full gap-3! items-stretch"
         >
-            <Stack className="w-full gap-1! items-stretch">
+            <Stack id="appendix" className="w-full gap-1! items-stretch scroll-mt-24">
                 <CodeEditor
                     key={`appendix-${editor_key}`}
                     mode="markdown"

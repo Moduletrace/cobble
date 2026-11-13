@@ -61,7 +61,12 @@ export default function RunLimitsForm({ limits }: Props) {
 
     const save = async () => {
         if (loading) return;
-        if (!window.confirm("Save these run limits? They apply to every bot's next run.")) return;
+        if (
+            !window.confirm(
+                "Save these run limits? They apply to every bot's next run.",
+            )
+        )
+            return;
 
         setLoading(true);
         setStatus(undefined);
@@ -118,14 +123,16 @@ export default function RunLimitsForm({ limits }: Props) {
         >
             <Stack key={form_key} className="w-full gap-3! items-stretch">
                 <RunLimitInput
+                    id="task_steps"
                     label="Tool steps per task"
                     value={values.task_steps}
                     max={overview?.max}
                     suffix="steps"
                     onChange={change("task_steps")}
-                    info={`How many turns the model may take before it must stop and report, when it works on a task. 0 uses the default (${overview?.task_default ?? ""}).`}
+                    info={`How many turns the model may take before it must stop and report, when it works on a task. 0 uses the default (${overview?.task_default ?? ""})${overview?.max ? `. Max steps ${overview.max}` : ``}.`}
                 />
                 <RunLimitInput
+                    id="reply_steps"
                     label="Tool steps per chat reply"
                     value={values.reply_steps}
                     max={overview?.max}
@@ -134,6 +141,7 @@ export default function RunLimitsForm({ limits }: Props) {
                     info={`How many turns a chat reply may take before it answers. Long work belongs in a task. 0 uses the default (${overview?.reply_default ?? ""}).`}
                 />
                 <RunLimitInput
+                    id="unattended_steps"
                     label="Tool steps per routine or hook call"
                     value={values.unattended_steps}
                     max={overview?.max}
@@ -142,6 +150,7 @@ export default function RunLimitsForm({ limits }: Props) {
                     info={`Routine runs and hook calls work with nobody watching, so they stop sooner. Never more than the task limit. 0 uses the default (${overview?.unattended_default ?? ""}).`}
                 />
                 <RunLimitInput
+                    id="run_tokens"
                     label="Tokens per run"
                     value={values.run_tokens}
                     max={overview?.run_tokens_max}
@@ -150,6 +159,7 @@ export default function RunLimitsForm({ limits }: Props) {
                     info={`Every turn sends the prompt again, so a run's prompt tokens add up fast. Once a task or reply has sent this many, its next turn is its last and it reports. Between ${count(overview?.run_tokens_min)} and ${count(overview?.run_tokens_max)}; 0 uses the default (${count(overview?.run_tokens_default)}).`}
                 />
                 <RunLimitInput
+                    id="context_tokens"
                     label="Working context"
                     value={values.context_tokens}
                     max={overview?.context_tokens_max}
@@ -158,6 +168,7 @@ export default function RunLimitsForm({ limits }: Props) {
                     info={`How much a run sends per turn (its prompt, its tools and what it has done so far) before the oldest tool output is cut, whatever the model's window. Smaller costs less per turn; larger lets a bot keep more of what it read. Between ${count(overview?.context_tokens_min)} and ${count(overview?.context_tokens_max)}; 0 uses the default (${count(overview?.context_tokens_default)}).`}
                 />
                 <RunLimitInput
+                    id="model_rest_seconds"
                     label="Model rest after a failure"
                     value={values.model_rest_seconds}
                     max={overview?.model_rest_max}

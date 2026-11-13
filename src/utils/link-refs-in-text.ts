@@ -1,5 +1,6 @@
 import { BotQuestionRefHrefPrefix } from "./bot-question-ref";
 import { ChatroomRefHrefPrefix } from "./chatroom-ref";
+import { GeneralSettingsRefHrefPrefix } from "./general-settings-ref";
 import { GraphicRefHrefPrefix } from "./graphic-ref";
 import { TaskRefHrefPrefix } from "./task-ref";
 import {
@@ -22,8 +23,10 @@ import {
  * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
  * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
  * request ref (`[secret-request:4]`), question ref (`[question:4]`), graphic ref (`[graphic:5]`) and
- * chatroom ref (`[room:<id>]`) and task ref (`[task:20]`) in a
- * stretch of message text (never code) into a markdown link, so it
+ * chatroom ref (`[room:<id>]`) and task ref (`[task:20]`), and a setting
+ * ref (`[setting:run-limits:reply_steps]`, pointing at that section of
+ * Settings > General) in a stretch of message text (never code) into a
+ * markdown link, so it
  * survives markdown rendering as a link the chat can swap for a button,
  * chip or download.
  *
@@ -66,6 +69,9 @@ export default function linkRefsInText({ text }: { text: string }) {
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
         .replace(/\[room:(\d+)\](?!\()/g, (_, id: string) => `[room ${id}](${ChatroomRefHrefPrefix}${id})`)
         .replace(/\[task:(\d+)\](?!\()/g, (_, id: string) => `[task ${id}](${TaskRefHrefPrefix}${id})`)
+        .replace(/\[setting:([a-z0-9-]+)(?::([a-z0-9_-]+))?\](?!\()/g, (_, section: string, field?: string) =>
+            `[setting ${section}](${GeneralSettingsRefHrefPrefix}${section}${field ? `:${field}` : ""})`,
+        )
         .replace(/\[file:(\d+)\](?!\()/g, (_, id: string) => `[file ${id}](${FileRefHrefPrefix}${id})`)
         .replace(/\[folder:([a-z]+):(\d+):([^\]\n]+)\](?!\()/g, (_, volume: string, owner: string, path: string) =>
             `[${path}](${FolderRefHrefPrefix}${encodeURIComponent(`${volume}:${owner}:${path}`)})`,

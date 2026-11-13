@@ -1,5 +1,6 @@
 import { HarnessParameterHarnesses, HarnessParameters } from "@/src/dict/harness-parameter-dict";
 import type { HarnessCallSettings } from "@/src/harness/usage/types";
+import describeCallLimits from "./describe-call-limits";
 
 const SettingsSources: Record<NonNullable<HarnessCallSettings["settings_source"]>, string> = {
     default: "The install's defaults",
@@ -51,6 +52,7 @@ export default function describeCallSettings({ settings, harness }: Params) {
     }
 
     if (settings.max_tokens) rows.push({ label: "Max tokens", value: settings.max_tokens.toLocaleString() });
+    if (settings.limits) rows.push({ label: "Run limits", value: describeCallLimits({ limits: settings.limits }) });
     if (settings.voice) rows.push({ label: "Voice", value: settings.voice });
 
     if (settings.fell_back_from?.length) {

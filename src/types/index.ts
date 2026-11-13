@@ -29,6 +29,7 @@ import type { WebsocketRooms } from "../dict/websocket-rooms";
 import type { LucideIcon } from "lucide-react";
 import type { ServerQueryParam } from "@moduletrace/bun-sqlite";
 import type { MediaParadigms, MediaTypes } from "../dict/media-dict";
+import type { GeneralSettingsSectionValues } from "../dict/general-settings-dict";
 import type { APIResponseObject, BunextPageModuleServerReturnURLObject } from "@moduletrace/bunext/types";
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "./sql-joins";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
@@ -2347,6 +2348,11 @@ export type PagePropsType = {
      * The release the server is running, for the General settings page.
      */
     running_version?: RunningVersion | null;
+    /**
+     * On `/admin/settings/general/<section>`: the one group of General
+     * settings the page shows, with its live values.
+     */
+    general_section?: GeneralSettingsSectionValues | null;
     push_overview?: PushOverview | null;
     mcps_overview?: McpServersOverviewPayload | null;
     tools_overview?: CustomToolsOverviewPayload | null;
@@ -2869,6 +2875,10 @@ export type UserFormObject = BUN_SQLITE_COBBLE_USERS & {
 export type PageQueryObject = {
     user_id?: string;
     bot_id?: string;
+    /**
+     * A General settings group's page (`/admin/settings/general/<section>`).
+     */
+    section?: string;
     workspace_id?: string;
     chatroom_id?: string;
     computer_id?: string;

@@ -82,6 +82,8 @@ export default function SessionLengthForm({ length }: Props) {
             <Input
                 key={`messages-${form_key}`}
                 label="Start a new session after"
+                id="max_messages"
+                className="scroll-mt-24"
                 type="number"
                 min={0}
                 max={overview?.max}

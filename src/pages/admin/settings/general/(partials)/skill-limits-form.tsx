@@ -91,6 +91,8 @@ export default function SkillLimitsForm({ limits }: Props) {
                 <Input
                     key={`max-${form_key}`}
                     label="Longest runbook"
+                    id="body_max_chars"
+                    className="scroll-mt-24"
                     type="number"
                     min={0}
                     max={overview?.max}
@@ -109,6 +111,8 @@ export default function SkillLimitsForm({ limits }: Props) {
                 <Input
                     key={`shown-${form_key}`}
                     label="Runbook a bot reads at once"
+                    id="body_shown_chars"
+                    className="scroll-mt-24"
                     type="number"
                     min={0}
                     max={overview?.max}

@@ -14,6 +14,7 @@ import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-
 import textSeesImages from "@/src/utils/text-sees-images";
 import grabChatParams from "./grab-chat-params";
 import flattenSentParams from "../usage/flatten-sent-params";
+import type { HarnessCallLimits } from "../usage/types";
 import prepareMessagesForModel from "./prepare-messages-for-model";
 import stripThinkTags from "./strip-think-tags";
 
@@ -29,6 +30,11 @@ export type GenerateTextParams = {
      */
     prefer_key?: string;
     max_tokens?: number;
+    /**
+     * The run's own bounds, kept with the call's usage
+     * (`HarnessCallLimits`) so the answer says later which limit shaped it.
+     */
+    limits?: HarnessCallLimits;
     /**
      * Overrides the saved generation settings (media reading wants 0).
      */
@@ -76,6 +82,7 @@ export default async function generateText({
     candidates,
     prefer_key,
     max_tokens,
+    limits,
     params,
     signal = new AbortController().signal,
     media_cache = new Map(),
@@ -108,6 +115,7 @@ export default async function generateText({
                         ...(saved_params ? { settings_source: saved_params.source } : {}),
                         params: flattenSentParams({ params: answer.sent_params }),
                         ...(max_tokens ? { max_tokens } : {}),
+                        ...(limits ? { limits } : {}),
                     },
                 }),
             }),

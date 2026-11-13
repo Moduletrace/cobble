@@ -61,6 +61,22 @@ export type HarnessCallSettings = {
      * resting after an earlier failure, in order.
      */
     resting?: string[];
+    /**
+     * The bounds the run worked under: the steps it had, the prompt tokens
+     * it may spend and the working context it sent per turn. Kept with the
+     * call so a message read later still says which limit shaped it.
+     */
+    limits?: HarnessCallLimits;
+};
+
+/**
+ * A run's own bounds on one call (`HarnessCallSettings.limits`). Null: the
+ * run didn't say, so the number isn't known (not "unlimited").
+ */
+export type HarnessCallLimits = {
+    steps: number | null;
+    run_tokens: number | null;
+    context_tokens: number | null;
 };
 
 export type HarnessUsageCall = {

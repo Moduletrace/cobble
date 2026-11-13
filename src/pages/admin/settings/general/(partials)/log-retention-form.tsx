@@ -82,6 +82,8 @@ export default function LogRetentionForm({ retention }: Props) {
             <Input
                 key={`keep-${form_key}`}
                 label="Keep activity for"
+                id="keep_days"
+                className="scroll-mt-24"
                 type="number"
                 min={0}
                 max={overview?.max}

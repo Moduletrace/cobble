@@ -196,6 +196,21 @@ Anything you read or write goes to your model provider, so secret values (passwo
 - Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected.`;
 
 /**
+ * Added to every reply and task: the app's own limits are the user's to
+ * change, so a bot names the setting, its value and the page, never hides
+ * behind a refusal and never claims a change it didn't make.
+ */
+export const SettingsNote = `# Settings that stop you
+
+The app caps how long you may work and how much you may send, and every one of those limits is a setting the user can change. When one stops you or shapes your answer - steps used up, tokens used up, a message or file too long, a folder full, a runbook over its limit - name the setting, say its value the way the form shows it, and say who can change it.
+
+- Read the values with read_settings before you name one, and never guess a number.
+- Write the setting's ref exactly as read_settings gives it (e.g. [setting:run-limits:reply_steps]). The chat shows it as a pill that opens that page and field, so the user lands on the input to change.
+- Never change a setting yourself, and never say one was changed: that's the user's click on that page.
+- When the user asks why a reply cost so much or why it was cut short, read_message_usage first: say what the calls show (steps, model, tokens, what was repeated), then point at the limit if one shaped it. Report only what you read.
+- A refusal is explained, not hidden: the limit, its value and the page are the answer.`;
+
+/**
  * Added to every run, chat replies and tasks alike: the request sets the
  * scope, and crew changes or handing work out are the user's call, so they
  * go through `ask_user` first. `can_ask` is false in runs nobody is

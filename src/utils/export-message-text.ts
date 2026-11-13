@@ -1,3 +1,4 @@
+import { findGeneralSettingsField, findGeneralSettingsSection } from "@/src/dict/general-settings-dict";
 type Params = {
     text: string;
     /**
@@ -92,6 +93,12 @@ function wordRefs({
             (_, word: string | undefined, id: string) => `${word || "task "}#${id}`,
         )
         .replace(/\[file:(\d+)\](?!\()/g, "file $1")
+        .replace(/\[setting:([a-z0-9-]+)(?::([a-z0-9_-]+))?\](?!\()/gi, (_, section: string, field?: string) => {
+            const found = findGeneralSettingsSection({ key: section });
+            const value = field ? findGeneralSettingsField({ section, field }) : null;
+
+            return `Settings > General > ${found?.title || section}${value ? ` > ${value.title}` : ""}`;
+        })
         .replace(/\[folder:[a-z]+:\d+:([^\]\n]+)\](?!\()/g, "`$1`")
         .replace(/\[folder:([a-z]+):(\d+)\](?!\()/g, "the $1 $2 folder");
 }

@@ -9,6 +9,7 @@ import secretRef from "./secret-ref";
 import secretRequestRef from "./secret-request-ref";
 import botQuestionRef from "./bot-question-ref";
 import takeOverRef from "./take-over-ref";
+import generalSettingsRef from "./general-settings-ref";
 
 describe("linkComputerRefs", () => {
     test("links every computer a message names", () => {
@@ -23,6 +24,16 @@ describe("linkComputerRefs", () => {
         const text = "See [computer:x], [link](url) and [computer:4](https://example.com)";
 
         expect(linkComputerRefs({ text })).toBe(text);
+    });
+
+    test("links a setting a bot sends someone to, with its field as the anchor", () => {
+        expect(
+            linkComputerRefs({
+                text: `Raise it in ${generalSettingsRef({ section: "run-limits", field: "reply_steps" })}, or open ${generalSettingsRef({ section: "run-limits" })}.`,
+            }),
+        ).toBe(
+            "Raise it in [setting run-limits](#setting-run-limits:reply_steps), or open [setting run-limits](#setting-run-limits).",
+        );
     });
 
     test("links proposals", () => {

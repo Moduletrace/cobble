@@ -20,6 +20,18 @@ describe("exportMessageText", () => {
         );
     });
 
+    test("words a setting ref as the page it opens", () => {
+        expect(
+            exportMessageText({
+                text: "Raise [setting:run-limits:reply_steps] or [setting:storage], not [setting:nope:thing].",
+                ...names,
+                heading_offset: 0,
+            }),
+        ).toBe(
+            "Raise Settings > General > Run limits > Tool steps per chat reply or Settings > General > Storage, not Settings > General > nope.",
+        );
+    });
+
     test("words questions by number", () => {
         expect(exportMessageText({ text: "Pick: [question:4]", ...names, heading_offset: 0 })).toBe("Pick: (questions 4)");
     });

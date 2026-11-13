@@ -9,6 +9,7 @@ import {
     RequestScopeNote,
     QuestionsNote,
     SecretsNote,
+    SettingsNote,
     GraphicsNote,
     botFilesNote,
     ComputerFilesNote,
@@ -419,6 +420,7 @@ export default async function runBotTask({
             RequestScopeNote({ can_ask }),
             can_ask ? QuestionsNote : "",
             SecretsNote,
+            SettingsNote,
             GraphicsNote,
             workspace_id ? WorkspaceLearningNote : "",
             powers.is_coordinator

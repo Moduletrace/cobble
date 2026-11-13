@@ -9,7 +9,11 @@ import { twMerge } from "tailwind-merge";
 
 type Props = {
     title: string;
-    description: string;
+    /**
+     * A line under the title. A group page leaves it out: its section
+     * already says what the group is for.
+     */
+    description?: string;
     /**
      * Controls at the end of the header, e.g. a settings link.
      */
@@ -44,14 +48,16 @@ export default function SettingsPaneHeader({
                 >
                     {title}
                 </H1>
-                <Span
-                    className={twMerge(
-                        "text-[13px] leading-[18px] text-ink-secondary truncate",
-                        "line-clamp-1 whitespace-nowrap w-full",
-                    )}
-                >
-                    {description}
-                </Span>
+                {description ? (
+                    <Span
+                        className={twMerge(
+                            "text-[13px] leading-[18px] text-ink-secondary truncate",
+                            "line-clamp-1 whitespace-nowrap w-full",
+                        )}
+                    >
+                        {description}
+                    </Span>
+                ) : null}
             </Stack>
             {action ? (
                 <Row className="ml-auto shrink-0 gap-1! flex-nowrap justify-end">

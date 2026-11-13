@@ -324,6 +324,16 @@ export default async function runTextLoop({
     const save_tools = wrap_tools.filter((tool) => WrapUpSaveToolNames.includes(tool.name));
     const hand_off_tools = wrap_tools.filter((tool) => WrapUpHandOffToolNames.includes(tool.name));
     const wrap_definitions = wrap_tools.map((tool) => all_definitions.get(tool.name)!);
+    /**
+     * What bounds this run, recorded with every call it makes, so a reply
+     * can be told later which limit shaped it (`read_message_usage`).
+     */
+    const call_limits = {
+        steps: max_steps ?? null,
+        run_tokens: max_prompt_tokens ?? null,
+        context_tokens: context_budget ?? null,
+    };
+
     const warn_at = stepsLowWarningLeft({ max_steps });
     let prefer_key: string | undefined;
     let reviewed = false;
@@ -400,6 +410,7 @@ export default async function runTextLoop({
             media_cache,
             bot_id,
             workspace_id,
+            limits: call_limits,
         });
 
         prefer_key = answer.candidate.key;

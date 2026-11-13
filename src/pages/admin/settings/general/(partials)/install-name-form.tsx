@@ -79,6 +79,8 @@ export default function InstallNameForm({ install_name }: Props) {
             <Input
                 key={`install-name-${form_key}`}
                 label="Install name"
+                id="install_name"
+                className="scroll-mt-24"
                 placeholder={SiteData["SiteName"]}
                 maxLength={PwaInstallNameMaxLength}
                 defaultValue={value}

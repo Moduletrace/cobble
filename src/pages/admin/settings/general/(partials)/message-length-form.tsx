@@ -82,6 +82,8 @@ export default function MessageLengthForm({ length }: Props) {
             <Input
                 key={`chars-${form_key}`}
                 label="Longest message"
+                id="max_chars"
+                className="scroll-mt-24"
                 type="number"
                 min={0}
                 max={overview?.max}

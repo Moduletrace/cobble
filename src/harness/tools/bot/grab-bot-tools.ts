@@ -12,6 +12,8 @@ import updateMemoryTool from "./update-memory-tool";
 import reactToMessageTool from "./react-to-message-tool";
 import setPictureTool from "./set-picture-tool";
 import askCrewTool from "./ask-crew-tool";
+import readMessageUsageTool from "./settings/read-message-usage-tool";
+import readSettingsTool from "./settings/read-settings-tool";
 import type { StorageScope } from "@/src/utils/storage-access";
 
 type Params = {
@@ -93,6 +95,8 @@ export default async function grabBotTools({
 }: Params): Promise<HarnessTool[]> {
     return [
         setPictureTool({ user_id, bot_id, scopes, is_coordinator }),
+        readSettingsTool(),
+        readMessageUsageTool({ session_id }),
         updateMemoryTool({ user_id, bot_id, workspace_id }),
         updateInstructionsTool({ user_id, bot_id, workspace_id }),
         createScheduleTool({ user_id, bot_id, workspace_id, computers }),

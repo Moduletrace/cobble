@@ -69,6 +69,8 @@ export default function ComputerWorkspaceQuotaForm({ quota }: Props) {
             <Stack className="w-full gap-1! items-stretch">
                 <Input
                     label="Megabytes per computer"
+                    id="quota_mb"
+                    className="scroll-mt-24"
                     type="number"
                     min={0}
                     step={512}

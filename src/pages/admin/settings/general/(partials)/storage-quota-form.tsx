@@ -66,6 +66,8 @@ export default function StorageQuotaForm({ storage }: Props) {
             <Stack className="w-full gap-1! items-stretch">
                 <Input
                     label="Megabytes per folder"
+                    id="quota_mb"
+                    className="scroll-mt-24"
                     type="number"
                     min={0}
                     step={8}

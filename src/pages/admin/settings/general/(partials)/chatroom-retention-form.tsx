@@ -87,6 +87,8 @@ export default function ChatroomRetentionForm({ retention }: Props) {
             <Input
                 key={`keep-${form_key}`}
                 label="Keep closed chatrooms for"
+                id="keep_days"
+                className="scroll-mt-24"
                 type="number"
                 min={0}
                 max={overview?.max_days}
@@ -105,6 +107,8 @@ export default function ChatroomRetentionForm({ retention }: Props) {
             <Input
                 key={`max-${form_key}`}
                 label="Most chatrooms per place"
+                id="max_per_place"
+                className="scroll-mt-24"
                 type="number"
                 min={0}
                 max={overview?.max_per_place_ceiling}
