@@ -2,6 +2,7 @@ import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import { lazy, Suspense } from "react";
 import { twMerge } from "tailwind-merge";
 import { Bug } from "lucide-react";
 import BotAvatar from "@/src/components/general/bot-avatar";
@@ -10,7 +11,12 @@ import { BotGettingMessageStatusLine } from "@/src/dict/bot-queue-dict";
 import type { BotWithLastMessage } from "@/src/types";
 import botBusyState from "../(utils)/bot-busy-state";
 import StopBotButton from "./stop-bot-button";
-import TracePanel from "./trace-panel";
+
+/**
+ * The debug strip is its own chunk: most conversations never open it, and
+ * the page's first load is what the bundle budget is about.
+ */
+const TracePanel = lazy(() => import("./trace-panel"));
 
 type Props = {
     bot: BotWithLastMessage;
@@ -131,7 +137,9 @@ export default function BotThinkingRow({
                 <StopBotButton bot_name={bot.name} disabled={!stoppable} />
             </Row>
             {debug_open && on_toggle_debug ? (
-                <TracePanel session_id={session_id} open={Boolean(debug_open)} />
+                <Suspense fallback={null}>
+                    <TracePanel session_id={session_id} open={Boolean(debug_open)} />
+                </Suspense>
             ) : null}
         </Stack>
     );

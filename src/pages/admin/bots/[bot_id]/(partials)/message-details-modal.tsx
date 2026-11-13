@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import Divider from "@moduletrace/twui/layout/Divider";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
@@ -10,9 +10,14 @@ import { Info } from "lucide-react";
 import useMessageDetails from "../(hooks)/use-message-details";
 import CopyMessageDetailsButton from "./copy-message-details-button";
 import MessageActionButton from "./message-action-button";
-import MessageDebugLogs from "./message-debug-logs";
 import MessageDetailsBody from "./message-details-body";
 import MessageDetailsTabButton from "./message-details-tab-button";
+
+/**
+ * Only the modal's second tab needs the logs, and only once it's opened, so
+ * it loads as its own chunk rather than with the conversation.
+ */
+const MessageDebugLogs = lazy(() => import("./message-debug-logs"));
 
 type Props = {
     message_id: number;
@@ -94,7 +99,9 @@ export default function MessageDetailsModal({ message_id, tool_log, chatroom_id 
                         )}
                     </Stack>
                 ) : (
-                    <MessageDebugLogs message_id={message_id} chatroom_id={chatroom_id} />
+                    <Suspense fallback={null}>
+                        <MessageDebugLogs message_id={message_id} chatroom_id={chatroom_id} />
+                    </Suspense>
                 )}
             </Stack>
         </Modal>
