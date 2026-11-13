@@ -1,11 +1,10 @@
 import { useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
-import CodeBlock from "@moduletrace/twui/elements/CodeBlock";
 import P from "@moduletrace/twui/layout/P";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { twMerge } from "tailwind-merge";
+import SunkenCodeBlock from "@/src/components/general/sunken-code-block";
 import { TracePreviewChars } from "../(utils)/trace-entry-view";
 
 type Props = {
@@ -40,11 +39,9 @@ export default function TraceBlock({ label, text, kind = "text" }: Props) {
                 </Span>
             ) : null}
             {kind == "code" ? (
-                <CodeBlock>{shown}</CodeBlock>
+                <SunkenCodeBlock wrapAnywhere>{shown}</SunkenCodeBlock>
             ) : (
-                <P className={twMerge("py-0 whitespace-pre-wrap text-sm text-ink")}>
-                    {shown}
-                </P>
+                <P className="py-0 whitespace-pre-wrap text-[13px] leading-5 text-ink">{shown}</P>
             )}
             {long ? (
                 <Row className="w-full items-center gap-2">
