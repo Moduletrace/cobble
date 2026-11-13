@@ -11,10 +11,12 @@ type Props = {
 /**
  * The phone's pull-to-reload control: a lone icon in the room the pull
  * opens under the newest message, a ghost button so it reads as part of
- * the paper rather than a card over it. While the conversation is read
- * again the button shows its own spinner in the icon's place, and tapping
- * it reloads too, so the gesture isn't the only way. Nothing shows until
- * the thread is pulled.
+ * the paper rather than a card over it. It stays dim while the pull is
+ * only being made or the room is only being held, and lights up once
+ * letting go will reload. While the conversation is read again the button
+ * shows its own spinner in the icon's place, and tapping it reloads too,
+ * so the gesture isn't the only way. Nothing shows until the thread is
+ * pulled.
  */
 export default function PullToRefreshIndicator({ state, onReload }: Props) {
     if (state == "idle") return null;

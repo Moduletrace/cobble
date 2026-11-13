@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-/**
- * A window regaining focus and its tab becoming visible are often one
- * return (a phone brings the page back and focuses it), and each may fire
- * more than once. A second call this soon after a refresh is the same
- * return.
- */
-export const RefocusGapMs = 1000;
+import { AppData } from "@/src/data/app-data";
 
 type Params = {
     onRefocus: () => void;
@@ -19,6 +12,10 @@ type Params = {
  * was focused, or a hidden tab (a phone, a notification tapped) became
  * visible again. Pushes that arrived while the page was in the background
  * never reach it, so what it shows may be stale until it reads it again.
+ * A window regaining focus and its tab becoming visible are often one
+ * return (a phone brings the page back and focuses it), and each may fire
+ * more than once, so a second call within `AppData.RefocusGapMs` is the
+ * same return.
  */
 export default function useRefocus({ onRefocus }: Params) {
     const handler = useRef(onRefocus);
@@ -31,7 +28,7 @@ export default function useRefocus({ onRefocus }: Params) {
         const refresh = () => {
             const now = Date.now();
 
-            if (now - last < RefocusGapMs) return;
+            if (now - last < AppData.RefocusGapMs) return;
 
             last = now;
             handler.current();

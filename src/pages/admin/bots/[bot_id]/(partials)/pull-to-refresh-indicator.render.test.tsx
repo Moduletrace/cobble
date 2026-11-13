@@ -23,13 +23,13 @@ describe("PullToRefreshIndicator", () => {
         expect(html).not.toMatch(/twui-button-content-wrapper[^>]*>[A-Za-z]/);
     });
 
-    test("lights the icon up once letting go reloads", () => {
+    test("dims the icon while it's only being pulled and lights it up once letting go reloads", () => {
         expect(
             renderToString(<PullToRefreshIndicator state="pulling" onReload={reload} />),
-        ).toContain("opacity-70");
+        ).toContain("opacity-40");
         expect(
             renderToString(<PullToRefreshIndicator state="ready" onReload={reload} />),
-        ).not.toContain("opacity-70");
+        ).not.toContain("opacity-40");
     });
 
     test("holds the icon's place with a spinner while it reloads", () => {

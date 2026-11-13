@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { AppData } from "@/src/data/app-data";
 import minimumWait from "../(utils)/minimum-wait";
-import pullToRefreshState, {
-    PullToRefreshLongPressMs,
-    PullToRefreshMinLoadingMs,
-} from "../(utils)/pull-to-refresh";
-
+import pullToRefreshState from "../(utils)/pull-to-refresh";
 /**
  * What the pull indicator shows: nothing yet, a pull that isn't far
  * enough, one that will reload on release, or a reload in flight.
@@ -38,8 +35,12 @@ type Params = {
 /**
  * A phone gesture: touching the thread while it sits at its bottom and
  * dragging up lifts the newest message off the edge, opening room for a
- * refresh icon, since there is nothing newer to scroll to. Letting go once
- * the room is deep enough reads the conversation again.
+ * refresh icon, since there is nothing newer to scroll to. Once the room is
+ * as deep as it opens, the finger has to stay there for a moment before
+ * letting go reloads: a thread whose scroll is already exhausted opens its
+ * limit easily by accident, and the hold is what says the reload was meant.
+ * The icon lights up when it is, and a release before that closes the room
+ * and reloads nothing.
  *
  * Touches are read rather than `scrollTop`, whose sign a reversed column
  * reports differently across engines. Once the pull has started it owns the
@@ -72,11 +73,13 @@ export default function usePullToRefresh({
         if (!column) return;
 
         let start_y: number | null = null;
-        let started_at = 0;
         /** The pull has begun: it runs to the release regardless. */
         let engaged = false;
-        /** Letting go now reloads. */
+        /** The room has stayed full long enough: letting go now reloads. */
         let armed = false;
+        /** When the room last became full, while the finger holds it there. */
+        let held_since: number | null = null;
+        let held_timer: ReturnType<typeof setTimeout> | null = null;
         let busy = false;
 
         /**
@@ -93,8 +96,8 @@ export default function usePullToRefresh({
         /**
          * A drag over a message selects its text, in the emulated and real
          * touch alike, and the selection would grow while the thread is
-         * lifted away from the finger. It is taken out of the way for the
-         * length of a pull; a press that rested first never gets here.
+         * lifted away from the finger. It is taken out of the way once a
+         * pull has begun, since the pull is what this finger is doing.
          */
         const holdSelection = (held: boolean) => {
             if (!content) return;
@@ -104,11 +107,40 @@ export default function usePullToRefresh({
             if (held) window.getSelection()?.removeAllRanges();
         };
 
+        /**
+         * The room is full: the hold that makes it a reload starts, or is
+         * already running. A finger that rests on the limit fires no further
+         * touches, so the timer is what notices the hold, not the moves.
+         */
+        const beginHold = () => {
+            if (held_since != null) return;
+
+            held_since = Date.now();
+            held_timer = setTimeout(() => {
+                held_timer = null;
+
+                if (held_since == null) return;
+
+                armed = true;
+                setState("ready");
+            }, AppData.PullToRefreshHoldMs);
+        };
+
+        /** Not full any more: the hold starts again from nothing. */
+        const dropHold = () => {
+            held_since = null;
+            armed = false;
+
+            if (held_timer == null) return;
+
+            clearTimeout(held_timer);
+            held_timer = null;
+        };
+
         const reset = () => {
             start_y = null;
-            started_at = 0;
             engaged = false;
-            armed = false;
+            dropHold();
             setRoom(0);
             holdSelection(false);
             setState("idle");
@@ -116,15 +148,13 @@ export default function usePullToRefresh({
 
         const onStart = (event: TouchEvent) => {
             start_y = null;
-            started_at = 0;
             engaged = false;
-            armed = false;
+            dropHold();
 
             if (busy || event.touches.length != 1) return;
             if (!bottom.current()) return;
 
             start_y = event.touches[0]?.clientY ?? null;
-            started_at = event.timeStamp;
         };
 
         const onMove = (event: TouchEvent) => {
@@ -150,18 +180,6 @@ export default function usePullToRefresh({
                     return;
                 }
 
-                /**
-                 * A finger that rested before it moved was selecting, not
-                 * pulling. A drag that moved at once is a pull, and any
-                 * selection it started goes with it.
-                 */
-                const rested = event.timeStamp - started_at >= PullToRefreshLongPressMs;
-
-                if (rested && window.getSelection()?.toString()) {
-                    reset();
-                    return;
-                }
-
                 if (pullToRefreshState({ start_y, current_y }).pulling) {
                     engaged = true;
                     holdSelection(true);
@@ -172,13 +190,16 @@ export default function usePullToRefresh({
              * A finger dragged back down before it was let go takes the
              * room back down with it and hides the icon at the very travel
              * that showed it, so the pull reads the same in either
-             * direction. The gesture stays its own until the release.
+             * direction. The gesture stays its own until the release, and
+             * a hold that has not finished yet starts over from nothing.
              */
             const pulled = pullToRefreshState({ start_y, current_y });
 
-            armed = pulled.ready;
+            if (pulled.ready) beginHold();
+            else dropHold();
+
             setRoom(pulled.distance);
-            setState(pulled.ready ? "ready" : pulled.pulling ? "pulling" : "idle");
+            setState(armed ? "ready" : pulled.pulling ? "pulling" : "idle");
         };
 
         const onEnd = async () => {
@@ -187,9 +208,8 @@ export default function usePullToRefresh({
             const reload = engaged && armed;
 
             start_y = null;
-            started_at = 0;
             engaged = false;
-            armed = false;
+            dropHold();
 
             if (!reload) {
                 reset();
@@ -206,7 +226,7 @@ export default function usePullToRefresh({
             try {
                 await minimumWait({
                     task: (async () => refresh.current())(),
-                    minimum_ms: PullToRefreshMinLoadingMs,
+                    minimum_ms: AppData.PullToRefreshMinLoadingMs,
                 });
             } finally {
                 busy = false;
@@ -224,6 +244,7 @@ export default function usePullToRefresh({
             column.removeEventListener("touchmove", onMove);
             column.removeEventListener("touchend", onEnd);
             column.removeEventListener("touchcancel", reset);
+            dropHold();
             setRoom(0);
             holdSelection(false);
         };

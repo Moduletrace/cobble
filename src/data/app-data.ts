@@ -701,6 +701,12 @@ export const AppData = {
      */
     BotReplyCatchUpMessages: 20,
     /**
+     * A window regaining focus and its tab becoming visible are often one
+     * return, and each may fire more than once: a second signal this soon
+     * after the first (a refocus, a socket remount) is the same return.
+     */
+    RefocusGapMs: 1000,
+    /**
      * How much of the conversation a bot sees when it replies.
      */
     BotReplyHistoryMessages: 40,
@@ -713,6 +719,27 @@ export const AppData = {
      * How many older messages each scroll to the top of the thread loads.
      */
     ConversationOlderMessages: 30,
+    /**
+     * The phone's pull-to-reload gesture on the thread, in pixels: how far
+     * the finger travels before the gesture counts as a pull rather than a
+     * tap (`PullToRefreshMinPx`), how much of that travel shows
+     * (`PullToRefreshResistance`), and the room it opens under the newest
+     * message (`PullToRefreshRoomPx`), which no drag opens deeper.
+     */
+    PullToRefreshMinPx: 8,
+    PullToRefreshResistance: 0.6,
+    PullToRefreshRoomPx: 64,
+    /**
+     * How long that room must stay full, in milliseconds, before letting go
+     * reloads: an exhausted thread reaches the limit by accident too easily,
+     * and keeping the finger there says the reload was meant.
+     */
+    PullToRefreshHoldMs: 500,
+    /**
+     * The shortest the reloading icon stays up, in milliseconds: a reload
+     * the server answers at once still says it happened.
+     */
+    PullToRefreshMinLoadingMs: 1000,
     /**
      * The most model calls a message's details modal lists one by one. A
      * long task can take hundreds; the totals still count every one.
