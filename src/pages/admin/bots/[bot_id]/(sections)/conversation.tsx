@@ -4,6 +4,7 @@ import isAwaitingReply from "../(utils)/is-awaiting-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
 import type {
+    BotJobUpdateData,
     BotMessageReactionData,
     BotMessageWithAttachments,
 } from "@/src/types";
@@ -75,6 +76,12 @@ export default function Conversation() {
     const [messages, setMessages] = useState<BotMessageWithAttachments[]>(
         [],
     );
+    /**
+     * The step the reply running when the history loaded is on, read with
+     * it so a refreshed thread shows the run's line straight away instead
+     * of only the thinking row's label until its next push.
+     */
+    const [reply_step, setReplyStep] = useState<BotJobUpdateData | null>(null);
     /**
      * Messages sent here that the server hasn't confirmed yet, shown after
      * the saved ones so a slow connection never hides what was typed. They
@@ -202,6 +209,7 @@ export default function Conversation() {
                 previous_session_id: Number(history.session.previous_session_id) || null,
             });
             progress.reset({ task: history.task });
+            setReplyStep(history.step || null);
         },
     });
 
@@ -228,6 +236,7 @@ export default function Conversation() {
         bot_id: bot?.id || 0,
         session_id,
         last_message_id: last_saved_id,
+        seed: reply_step,
     });
 
     useReplyCatchUp({

@@ -23,15 +23,17 @@ type Params = {
 /**
  * Keeps the thread from waiting on a push that never came: every return to
  * the page (`useRefocus`) reads the session's latest messages and the
- * bot's face, status line and active task, and while a reply is due it
- * does so every `AppData.BotReplyCatchUpMs` too. A missed message is
- * replayed as the `server:bot-message` it would have been, so the thread,
- * the rail and the unread flag all take it the usual way. The bot's face,
- * status line and active task are replayed as `server:bot-updated`, so a
- * reply that ended without a final message (its face push missed) can't
- * leave the bot thinking or a finished task on screen. Reading it even
- * when no reply is due is what lets a row stuck on a stale face or task
- * clear itself without a reload.
+ * bot's face, status line, active task and the step its reply is on, and
+ * while a reply is due it does so every `AppData.BotReplyCatchUpMs` too. A
+ * missed message is replayed as the `server:bot-message` it would have been,
+ * so the thread, the rail and the unread flag all take it the usual way. The
+ * bot's face, status line and active task are replayed as
+ * `server:bot-updated`, so a reply that ended without a final message (its
+ * face push missed) can't leave the bot thinking or a finished task on
+ * screen. The step is replayed as `server:bot-job-update`, so a run whose
+ * steps were pushed while the page slept still shows the one it's on.
+ * Reading it even when no reply is due is what lets a row stuck on a stale
+ * face or task clear itself without a reload.
  */
 export default function useReplyCatchUp({ session_id, awaiting_reply, last_message_id }: Params) {
     const last_message = useRef(Number(last_message_id) || 0);
@@ -65,6 +67,13 @@ export default function useReplyCatchUp({ session_id, awaiting_reply, last_messa
         for (const message of missed) {
             replay({ data: { event: "server:bot-message", data: message } });
         }
+
+        /**
+         * The step the reply is on now, replayed as the push it would have
+         * been: a row shows the line of the last step it heard of, and a
+         * reload or a socket that dropped heard of none.
+         */
+        if (res.step?.id) replay({ data: { event: "server:bot-job-update", data: res.step } });
 
         /**
          * After the messages, so a reply that ended silently (its last

@@ -568,6 +568,12 @@ export type BotUpdatedData = {
  */
 export type SessionMessagesResponse = APIResponseObject<BotMessageWithAttachments> & {
     bot?: BotUpdatedData | null;
+    /**
+     * The step the reply running in that session is on, as
+     * `server:bot-job-update` carries it: a conversation that missed the
+     * step's push replays it and keeps its thinking row's line.
+     */
+    step?: BotJobUpdateData | null;
 };
 
 /**
@@ -2104,6 +2110,12 @@ export type ConversationHistory = {
      * far.
      */
     task: BotTaskWithSteps | null;
+    /**
+     * The step the reply running in the session is on (a
+     * `server:bot-job-update`), so a page that just loaded shows what it's
+     * doing instead of only its label. Null when no reply runs there.
+     */
+    step?: BotJobUpdateData | null;
     /**
      * When the session shown was carried over into a newer one (it stays
      * closed, to read): that session. Null otherwise.

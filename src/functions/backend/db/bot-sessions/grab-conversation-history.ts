@@ -2,6 +2,7 @@ import { AppData } from "@/src/data/app-data";
 import type { ConversationHistory } from "@/src/types";
 import grabActiveBotTask from "../bots/grab-active-bot-task";
 import grabBotMessages from "../bots/grab-bot-messages";
+import grabSessionReplyStep from "../bots-queue/grab-session-reply-step";
 import ensureBotSession from "./ensure-bot-session";
 import grabCarriedToSessionId from "./grab-carried-to-session-id";
 import reopenBotSession from "./reopen-bot-session";
@@ -31,8 +32,9 @@ type Params = {
  * one is reopened, unless it was carried over, which only shows, with
  * where the conversation went on), its latest
  * `AppData.ConversationFirstMessages` messages (the thread loads older
- * ones as it scrolls) and the bot's active task in it. Everything else on
- * the page comes with it from the server (`grabConversationProps`).
+ * ones as it scrolls), the bot's active task in it and the step its
+ * running reply is on. Everything else on the page comes with it from the
+ * server (`grabConversationProps`).
  * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationHistory({
@@ -87,13 +89,14 @@ export default async function grabConversationHistory({
         session.unread = 0;
     }
 
-    const [messages, task] = await Promise.all([
+    const [messages, task, step] = await Promise.all([
         grabBotMessages({
             session_id: session.id!,
             user_id,
             limit: AppData.ConversationFirstMessages + 1,
         }),
         grabActiveBotTask({ bot_id: open_bot_id, session_id: session.id }),
+        grabSessionReplyStep({ session_id: session.id! }),
     ]);
 
     const has_more = messages.length > AppData.ConversationFirstMessages;
@@ -103,6 +106,7 @@ export default async function grabConversationHistory({
         messages: has_more ? messages.slice(1) : messages,
         has_more,
         task,
+        step,
         moved_to_session_id: carried_to,
     };
 }
