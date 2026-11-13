@@ -25,6 +25,7 @@ export default function toPublicHarnessProvider({
         has_env_key: Boolean(preset.key_env && process.env[preset.key_env]),
         needs_key: preset.needs_key,
         key_env: preset.key_env || undefined,
+        context_length: provider.context_length || undefined,
         last_synced_at: provider.last_synced_at || undefined,
         sync_error: provider.sync_error || undefined,
     };

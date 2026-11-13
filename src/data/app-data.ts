@@ -310,7 +310,7 @@ export const AppData = {
      * conversation forever. The lock is outlived by the heartbeat, so this
      * is the only thing that stops a live but stuck run.
      */
-    BotJobAttemptTimeoutMs: 60 * 60 * 1000,
+    BotJobAttemptTimeoutMs: 2 * 60 * 60 * 1000,
     /**
      * A failed scheduled run is tried again after this, doubling each time
      * (`scheduledRunRetryAt`), so a short outage doesn't sink the run.
@@ -412,11 +412,13 @@ export const AppData = {
     /**
      * Tasks (the crew's to-do list, `tasks`): the longest title, brief and
      * note, how many one bot or workspace can hold, and how many files one
-     * task carries.
+     * task carries. A brief is where an unattended run's whole plan lives
+     * (they run with `UnattendedMaxToolSteps` and nobody watching), so it
+     * holds a real work order: steps, paths, what to do when a check fails.
      */
     TaskTitleMaxLength: 120,
-    TaskDescriptionMaxLength: 8000,
-    TaskNoteMaxLength: 2000,
+    TaskDescriptionMaxLength: 20000,
+    TaskNoteMaxLength: 4000,
     TaskMaxPerScope: 200,
     TaskMediaMaxPerTask: 20,
     /**
@@ -429,8 +431,29 @@ export const AppData = {
      * Automatic model picks (`rankAutoModels`). A free model from outside
      * `AutoModelVendorPreference` must have at least this much context, and
      * this intelligence index or, unscored, this many billion parameters.
+     * It is a floor for models that say what they have, so a model without
+     * a declared window is never filtered on it (`HarnessUnknownContextWindow`
+     * is what a run assumes for one of those).
      */
-    HarnessAutoMinContext: 32000,
+    HarnessAutoMinContext: 32_000,
+    /**
+     * The window a run assumes for a model whose catalog never said
+     * (`run-text-loop.ts`): a custom provider lists ids and nothing else,
+     * and at 32000 the base prompt alone (system and tool definitions,
+     * ~25000 tokens here) was already past the 70% working window, so every
+     * turn trimmed the output the run was reading. 70% of this is the
+     * widest such a model is ever given, whatever
+     * `harness_context_budget_tokens` asks for, so it must stay at or above
+     * that budget.
+     */
+    HarnessUnknownContextWindow: 131_072,
+    /**
+     * A provider's declared window (`harness_providers.context_length`),
+     * handed to the models it lists without one of their own: the least and
+     * most a super admin may set, so a typo can't ask for a 40-token window.
+     */
+    HarnessProviderContextMin: 1_000,
+    HarnessProviderContextMax: 10_000_000,
     HarnessAutoMinScore: 12,
     HarnessAutoMinSizeB: 20,
     /**
@@ -474,7 +497,7 @@ export const AppData = {
      * Settings > General), which wins over this one; a task run reads it
      * through `grabHarnessMaxToolSteps`.
      */
-    HarnessMaxToolSteps: 200,
+    HarnessMaxToolSteps: 300,
     /**
      * Model turns a routine run or a hook call may take: nobody watches
      * them, and one routine run once spent 39M tokens checking a site. The
@@ -482,14 +505,14 @@ export const AppData = {
      * `grabUnattendedMaxToolSteps`; a brief's own `max_steps` can only
      * lower it.
      */
-    UnattendedMaxToolSteps: 40,
+    UnattendedMaxToolSteps: 200,
     /**
      * Prompt tokens one run may spend in all (every turn resends the
      * prompt): past it the next turn is the wrap up. A safety net under the
      * step limit, for runs whose turns are large. The install may save its
      * own (`run_max_prompt_tokens`), read through `grabRunMaxPromptTokens`.
      */
-    RunMaxPromptTokens: 4_000_000,
+    RunMaxPromptTokens: 40_000_000,
     /**
      * The working context: how many tokens (estimated) of system prompt,
      * tool definitions and transcript a run sends per turn before old tool
@@ -499,12 +522,13 @@ export const AppData = {
      * (`harness_context_budget_tokens`), read through
      * `grabContextBudgetTokens`.
      */
-    HarnessContextBudgetTokens: 80_000,
+    HarnessContextBudgetTokens: 200_000,
     /**
      * The least a saved working context may be: below it a run would trim
-     * the output it is reading right now.
+     * the output it is reading right now (one full tool result is ~20000
+     * tokens, and the system prompt and tool definitions sit on top).
      */
-    HarnessContextBudgetMinTokens: 20_000,
+    HarnessContextBudgetMinTokens: 40_000,
     HarnessContextBudgetMaxTokens: 1_000_000,
     /**
      * Run token budgets the settings page accepts.
@@ -512,15 +536,17 @@ export const AppData = {
     RunMaxPromptTokensMin: 100_000,
     RunMaxPromptTokensMax: 100_000_000,
     /**
-     * Longest tool result handed back to the model.
+     * Longest tool result handed back to the model. Above
+     * `BotFileReadMaxChars` so a full read arrives whole, note and all: a
+     * 45 KB article body read in pieces is a body the run never holds.
      */
-    HarnessToolResultMaxChars: 20000,
+    HarnessToolResultMaxChars: 60_000,
     /**
      * Longest result of a browser tool (`browser_*`, the computer's or a
      * user's own browser): page snapshots and `browser_evaluate` output
      * were the heaviest results a run kept resending.
      */
-    HarnessBrowserResultMaxChars: 12000,
+    HarnessBrowserResultMaxChars: 16_000,
     /**
      * Extension tools (MCP servers, a user's browsers) are listed by name
      * and loaded with `load_tools` only when their definitions together
@@ -621,7 +647,7 @@ export const AppData = {
      * and a larger cap only meant the tool's own head-and-tail note was
      * thrown away by the second cut.
      */
-    ComputerCommandMaxOutputChars: 20_000,
+    ComputerCommandMaxOutputChars: 40_000,
     ComputerReadFileMaxLines: 2000,
     ComputerReadFileMaxLineChars: 2000,
     ComputerReadFileMaxBytes: 10 * 1024 * 1024,
@@ -893,7 +919,7 @@ export const AppData = {
      */
     BotAttachmentMaxBytes: 20 * 1024 * 1024,
     BotAttachmentMaxFiles: 6,
-    BotAttachmentMaxTextChars: 20000,
+    BotAttachmentMaxTextChars: 40_000,
     /**
      * How much of a document's text is kept on its `media` row. A ceiling
      * on the column itself: without it a 20 MB PDF left 20 MB of text in
@@ -976,7 +1002,7 @@ export const AppData = {
      * hands back at once (the rest comes with an offset).
      */
     BotFileWriteMaxChars: 200_000,
-    BotFileReadMaxChars: 40_000,
+    BotFileReadMaxChars: 55_000,
     BotFileListMaxItems: 200,
     BotFileNameMaxChars: 120,
     BotFilePathMaxChars: 400,

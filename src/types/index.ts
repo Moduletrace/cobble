@@ -560,6 +560,11 @@ export type PublicHarnessProvider = {
     has_env_key: boolean;
     needs_key: boolean;
     key_env?: string;
+    /**
+     * The window the provider's models are given when it lists none of its
+     * own (a custom provider lists ids only).
+     */
+    context_length?: number;
     last_synced_at?: number;
     sync_error?: string;
 };

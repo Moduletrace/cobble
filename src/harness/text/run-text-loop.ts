@@ -386,7 +386,7 @@ export default async function runTextLoop({
         fitTranscriptToContext({
             system: run_system,
             transcript,
-            context_length: model?.context_length || AppData.HarnessAutoMinContext,
+            context_length: model?.context_length || AppData.HarnessUnknownContextWindow,
             budget_tokens: context_budget,
             tools_chars: JSON.stringify(definitions).length,
         });

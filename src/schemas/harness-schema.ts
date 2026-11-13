@@ -25,6 +25,24 @@ export const SaveHarnessProviderRequestSchema = z.object({
     api_key: z.string().trim().max(1000, "That key is too long").optional(),
     clear_key: z.boolean().optional(),
     enabled: z.boolean(),
+    /**
+     * The window, in tokens, every model this provider lists without one of
+     * its own is given: 0 or empty leaves them unknown, so a run assumes
+     * `AppData.HarnessUnknownContextWindow`.
+     */
+    context_length: z.coerce
+        .number()
+        .int()
+        .refine(
+            (value) =>
+                value == 0 ||
+                (value >= AppData.HarnessProviderContextMin &&
+                    value <= AppData.HarnessProviderContextMax),
+            {
+                message: `A window must be 0 (unknown) or between ${AppData.HarnessProviderContextMin.toLocaleString("en-US")} and ${AppData.HarnessProviderContextMax.toLocaleString("en-US")} tokens.`,
+            },
+        )
+        .default(0),
 });
 
 export const HarnessProviderIdRequestSchema = z.object({

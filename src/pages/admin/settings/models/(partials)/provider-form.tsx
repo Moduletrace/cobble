@@ -11,6 +11,7 @@ import {
     type HarnessProviderKind,
 } from "@/src/dict/harness-provider-dict";
 import type { HarnessOverviewPayload, PublicHarnessProvider } from "@/src/types";
+import { AppData } from "@/src/data/app-data";
 import SettingsStatus from "../../(partials)/settings-status";
 import postHarnessApi from "../(functions)/post-harness-api";
 
@@ -36,6 +37,9 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
     const [base_url, setBaseUrl] = useState(provider?.base_url || "");
     const [api_key, setApiKey] = useState("");
     const [clear_key, setClearKey] = useState(false);
+    const [context_length, setContextLength] = useState(
+        provider?.context_length ? String(provider.context_length) : "",
+    );
     const [enabled, setEnabled] = useState(provider?.enabled ?? true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
@@ -58,6 +62,7 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 base_url,
                 api_key: api_key || undefined,
                 clear_key: clear_key || undefined,
+                context_length: Number(context_length) || 0,
                 enabled,
             },
         });
@@ -134,6 +139,22 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                     changeHandler={setClearKey}
                 />
             ) : null}
+            <Input
+                id={`${id}-context`}
+                title="Context window"
+                label="Context window"
+                showLabel
+                type="number"
+                min={0}
+                max={AppData.HarnessProviderContextMax}
+                step={1}
+                numberText
+                rawNumber
+                defaultValue={context_length}
+                suffix="tokens"
+                info={`The window every model this provider lists without one of its own is given. Leave empty if its list carries them (OpenRouter's does); a run assumes ${AppData.HarnessUnknownContextWindow.toLocaleString("en-US")} when nothing says.`}
+                onChange={(e) => setContextLength(e.target.value)}
+            />
             <Checkbox
                 title="Turn this provider on"
                 label="Turned on"

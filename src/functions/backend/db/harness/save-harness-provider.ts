@@ -22,6 +22,11 @@ type Params = {
      */
     api_key?: string;
     clear_key?: boolean;
+    /**
+     * The window its models are given when it lists none of its own. Zero
+     * leaves them unknown.
+     */
+    context_length?: number;
     enabled: boolean;
 };
 
@@ -36,6 +41,7 @@ export default async function saveHarnessProvider({
     base_url,
     api_key,
     clear_key,
+    context_length,
     enabled,
 }: Params) {
     const preset = grabProviderPreset({ kind });
@@ -64,6 +70,11 @@ export default async function saveHarnessProvider({
         name: name?.trim() || preset.title,
         base_url: final_base_url,
         enabled: enabled ? 1 : 0,
+        /**
+         * The row type spells an empty INTEGER as `""`, but a window is
+         * cleared with null (the plugin binds it as NULL).
+         */
+        context_length: (context_length && context_length > 0 ? context_length : null) as number,
         ...key_update,
     };
 

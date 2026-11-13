@@ -1626,6 +1626,10 @@ export type BUN_SQLITE_COBBLE_HARNESS_PROVIDERS = {
     api_key?: string;
     enabled?: 0 | 1 | "";
     /** 
+     * Context window, in tokens, for the models this provider lists without one of their own (a custom provider lists ids only). The sync writes it into harness_models.context_length; null leaves them unknown
+     */
+    context_length?: number | "";
+    /** 
      * Unix timestamp of the last model list sync
      */
     last_synced_at?: number | "";

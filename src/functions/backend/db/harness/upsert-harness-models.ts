@@ -1,9 +1,15 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { HarnessCatalogModel } from "@/src/harness/types";
+import modelContextLength from "./model-context-length";
 
 type Params = {
     provider_id: number;
     models: HarnessCatalogModel[];
+    /**
+     * The window its provider declares, for the models it lists without one
+     * of their own (a custom provider lists ids only).
+     */
+    provider_context_length?: number | null;
     now?: number;
 };
 
@@ -42,6 +48,7 @@ const ChunkSize = 50;
 export default async function upsertHarnessModels({
     provider_id,
     models,
+    provider_context_length,
     now = Date.now(),
 }: Params) {
     const unique = [...new Map(models.map((m) => [m.slug, m])).values()];
@@ -67,7 +74,7 @@ export default async function upsertHarnessModels({
                 JSON.stringify(model.input_modalities),
                 JSON.stringify(model.output_modalities),
                 model.supports_tools ? 1 : 0,
-                model.context_length ?? null,
+                modelContextLength({ model, provider_context_length }),
                 model.max_output_tokens ?? null,
                 model.voices ? JSON.stringify(model.voices) : null,
                 model.supported_parameters ? JSON.stringify(model.supported_parameters) : null,

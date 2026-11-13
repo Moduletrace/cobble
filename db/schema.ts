@@ -2647,6 +2647,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     defaultValue: 1,
                 },
                 {
+                    fieldName: "context_length",
+                    fieldDescription: `Context window, in tokens, for the models this provider lists without one of their own (a custom provider lists ids only). The sync writes it into harness_models.context_length; null leaves them unknown`,
+                    dataType: "INTEGER",
+                },
+                {
                     fieldName: "last_synced_at",
                     fieldDescription: `Unix timestamp of the last model list sync`,
                     dataType: "INTEGER",

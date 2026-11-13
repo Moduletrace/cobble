@@ -28,6 +28,7 @@ export default async function syncHarnessProviderModels({ provider }: Params) {
         const count = await upsertHarnessModels({
             provider_id: provider.id,
             models,
+            provider_context_length: provider.context_length || null,
         });
 
         await BunSQLite.sql({
