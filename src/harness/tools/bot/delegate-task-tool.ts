@@ -69,7 +69,8 @@ type Args = {
      */
     task_id?: number;
     /**
-     * With `task_id`: false to only move the task, nothing started.
+     * The user asked for that task's work to begin now (with `task_id`):
+     * left out it only moves, to do, and no run is spent.
      */
     start?: boolean;
     title?: string;
@@ -114,7 +115,7 @@ export default function delegateTaskTool({
 
     return {
         name: "delegate_task",
-        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. To hand over a task already on a list (list_tasks), pass its task_id instead of writing a new one: it moves to the crew member's list (a workspace's task stays on the workspace's list and runs there), goes to doing, and they work that same task; title and instructions are then optional, the task's brief is used and yours is added to it. When the user hasn't asked for that task's work to begin yet (they want it moved, or to decide first), add start: false: it only moves to their list as to do, and no run is spent on reporting that they're waiting. Crew: ${crew}.${
+        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. To hand over a task already on a list (list_tasks), pass its task_id instead of writing a new one: it moves to the crew member's list (a workspace's task stays on the workspace's list and runs there) and they work that same task; title and instructions are then optional, the task's brief is used and yours is added to it. Handing a task over never starts it: it lands there as to do, and only start: true (when the user asked for the work to begin now) marks it doing and queues the run. When the user asked for the move but not for it to start, ask first with ask_user (one card, every task they named: hand over and start, hand over to wait, leave it) and hand over only once they've answered. A new brief with no task_id always runs at once. Crew: ${crew}.${
             workspace_id
                 ? ` You are working in a workspace, so the task runs there: in this workspace's context.`
                 : ` Leave workspace_id out to run it in the crew member's own chat: only its own memory, files and directly assigned computers apply there, and the user finds the result by talking to it on its own. Add workspace_id to run it in one of the user's workspaces instead: the workspace's shared context, the member's instructions and memory there, its files and its computers (the workspace's own and the member's) all apply, and the result lands in its conversation in that workspace, beside the project it belongs to. Pick a workspace when the work belongs to that project; the member is added to it when it isn't in it yet. Workspaces: ${places || "none"}.`
@@ -125,7 +126,7 @@ export default function delegateTaskTool({
             start: z
                 .boolean()
                 .optional()
-                .describe("With task_id: false to only move the task (to do, nothing runs) until the user says to start"),
+                .describe("With task_id: true to start the work at once, only when the user asked for it; left out it only moves (to do, nothing runs)"),
             title: z.string().min(1).max(80).optional(),
             instructions: z.string().min(1).max(8000).optional(),
             workspace_id: z
@@ -198,7 +199,7 @@ export default function delegateTaskTool({
                     handed_by: requester_name,
                     requested_by_bot_id: requester_id,
                     requested_by_session_id: session_id,
-                    start: args.start !== false,
+                    start: args.start === true,
                 });
 
                 onTask?.({ task_id: Number(task.id) });

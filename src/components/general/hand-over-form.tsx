@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Form from "@moduletrace/twui/form/Form";
 import Select from "@moduletrace/twui/form/Select";
 import Textarea from "@moduletrace/twui/form/Textarea";
@@ -24,6 +25,12 @@ type Props<T> = {
      * Offer a note added to the brief (a task's hand-over).
      */
     with_note?: boolean;
+    /**
+     * Offer to start the work now (a task's hand-over). Off by default:
+     * handing a task over only moves it, it never starts the work unless
+     * the user asks for that here.
+     */
+    with_start?: boolean;
     onHandedOver: (params: { saved: T; msg: string }) => void;
     onCancel: () => void;
 };
@@ -39,12 +46,14 @@ export default function HandOverForm<T extends { [k: string]: any }>({
     submit_path,
     body,
     with_note,
+    with_start,
     onHandedOver,
     onCancel,
 }: Props<T>) {
     const [targets, setTargets] = useState<HandOverTarget[]>();
     const [bot_id, setBotId] = useState<number>();
     const [note, setNote] = useState("");
+    const [start, setStart] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -73,14 +82,19 @@ export default function HandOverForm<T extends { [k: string]: any }>({
             return;
         }
 
-        if (!window.confirm(`Hand ${what} over to ${target.name}?`)) return;
+        if (!window.confirm(`Hand ${what} over to ${target.name}${with_start && start ? " and start it now" : ""}?`)) return;
 
         setLoading(true);
         setError(undefined);
 
         const res = await postAdminApi<T>({
             path: submit_path,
-            body: { ...body, bot_id: target.id, instructions: with_note && note.trim() ? note : undefined },
+            body: {
+                ...body,
+                bot_id: target.id,
+                instructions: with_note && note.trim() ? note : undefined,
+                ...(with_start ? { start } : {}),
+            },
         });
 
         setLoading(false);
@@ -119,6 +133,16 @@ export default function HandOverForm<T extends { [k: string]: any }>({
                         placeholder="Anything they should know beyond the task's own brief."
                         rows={3}
                         disabled={loading}
+                    />
+                ) : null}
+                {with_start && targets?.length ? (
+                    <Checkbox
+                        title="Start it now"
+                        label="Start it now"
+                        info="Left off, the task only moves: it lands on their list as to do, and nothing runs until they're told to start."
+                        checked={start}
+                        clickDispatchHandler={setStart}
+                        wrap
                     />
                 ) : null}
                 <AddFormActions submit_label="Hand over" loading={loading} error={error} onCancel={onCancel} />

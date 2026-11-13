@@ -47,10 +47,12 @@ type Params = {
     requested_by_bot_id?: number | string | null;
     requested_by_session_id?: number | string | null;
     /**
-     * False to only move it: the task goes to the new bot's list as to do
-     * and no job is queued, for when the user hasn't asked for the work to
-     * begin. Handing three tasks over "to wait for the go-ahead" once ran
-     * three jobs that each only reported they were waiting.
+     * True only when the user asked for the work to begin now: the task
+     * goes to doing and a job is queued. Left out (the default) it only
+     * moves: the task goes to the new bot's list as to do and no job is
+     * queued, since handing a task over is not asking for it to be worked.
+     * Handing three tasks over "to wait for the go-ahead" once ran three
+     * jobs that each only reported they were waiting.
      */
     start?: boolean;
 };
@@ -70,13 +72,15 @@ export type HandedOverTask = {
 };
 
 /**
- * Hands an open task to another bot and starts the work: a task in a
- * workspace stays there and becomes the new bot's there (the work runs in
- * that workspace), one on a bot's own list moves to the new bot's. The task goes to doing, its log
- * says who handed it over, and a job is queued in the new bot's
- * conversation with the task's brief and `params.tracker_task_id`, so the
- * bot moves this same task along and the job's end is noted on it. With
- * `start` false it only moves: to do, no job, the notice says so.
+ * Hands an open task to another bot: a task in a workspace stays there and
+ * becomes the new bot's there (the work runs in that workspace), one on a
+ * bot's own list moves to the new bot's. Handing it over is not asking for
+ * it to be worked, so by default it only moves: the task goes to the new
+ * bot's list as to do, no job is queued and the notice says so. With
+ * `start` true (the user asked for the work to begin now) the task goes to
+ * doing, its log says who handed it over, and a job is queued in the new
+ * bot's conversation with the task's brief and `params.tracker_task_id`, so
+ * the bot moves this same task along and the job's end is noted on it.
  */
 export default async function handOverTask({
     user_id,
@@ -87,7 +91,7 @@ export default async function handOverTask({
     handed_by,
     requested_by_bot_id,
     requested_by_session_id,
-    start = true,
+    start = false,
 }: Params): Promise<HandedOverTask> {
     const task = await grabTaskRow({ task_id });
 

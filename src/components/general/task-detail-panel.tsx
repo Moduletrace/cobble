@@ -131,6 +131,7 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                 submit_path="tasks/hand-over-task"
                 body={{ task_id: Number(task.id) }}
                 with_note
+                with_start
                 onCancel={() => setHandingOver(false)}
                 onHandedOver={({ saved, msg }) => {
                     setHandingOver(false);

@@ -113,6 +113,7 @@ describe("RequestScopeNote", () => {
         expect(note).toContain("a standing preference is not a standing instruction");
         expect(note).toContain("the same ask_user card");
         expect(note).toContain("delegating a task");
+        expect(note).toContain("ask before it leaves: one ask_user card with every task they named");
         expect(note).toContain("don't offer it again in this conversation");
         expect(note).not.toContain("the brief is what you may do");
         expect(note).not.toContain("\u2014");
@@ -123,6 +124,7 @@ describe("RequestScopeNote", () => {
 
         expect(note).toContain("the brief is what you may do");
         expect(note).toContain("Say in your report what you would propose");
+        expect(note).toContain("move it as to do and say in your report that it waits for the user to start it");
         expect(note).not.toContain("ask_user");
         expect(note).not.toContain("\u2014");
     });

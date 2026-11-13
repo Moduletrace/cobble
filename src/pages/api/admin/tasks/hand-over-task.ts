@@ -13,10 +13,11 @@ import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**
- * Hands an open task to another bot and starts the work (`handOverTask`):
- * the bot works that same task, and its result lands in its conversation.
- * Crew managers only, like every other change to a task by hand. Returns
- * the task as it is now.
+ * Hands an open task to another bot (`handOverTask`): the bot has that same
+ * task on its list, and its result lands in its conversation. It only moves
+ * the task by default, as to do; it starts the work only when the user
+ * ticked that in the form (`start`). Crew managers only, like every other
+ * change to a task by hand. Returns the task as it is now.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = async ({ req, body }) => {
     try {
@@ -38,7 +39,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
             throw new AppError(`Only an admin can hand a task over.`);
         }
 
-        const { task_id, bot_id, instructions } = parseWithSchema({ schema: HandOverTaskRequestSchema, data: body });
+        const { task_id, bot_id, instructions, start } = parseWithSchema({ schema: HandOverTaskRequestSchema, data: body });
 
         await assertUserReachesTask({ user_id: user.id, task_id });
 
@@ -48,14 +49,19 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
             to_bot_id: bot_id,
             instructions,
             handed_by: user.first_name || user.username || "The user",
+            start: start === true,
         });
 
-        wakeBotsQueue();
+        if (handed.job_id) {
+            wakeBotsQueue();
+        }
 
         return {
             success: true,
             singleRes: await grabTask({ user_id: user.id, task_id }),
-            msg: `${handed.bot_name} has it now and is starting on it.`,
+            msg: handed.job_id
+                ? `${handed.bot_name} has it now and is starting on it.`
+                : `${handed.bot_name} has it now, as to do on their list.`,
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

@@ -81,6 +81,11 @@ export const HandOverTaskRequestSchema = z.object({
     task_id: z.number().int().positive(),
     bot_id: z.number().int().positive("Pick a bot"),
     instructions: z.string().max(AppData.TaskDescriptionMaxLength).optional(),
+    /**
+     * True to start the work now (the user ticked "Start it now"): left out
+     * the task only moves, as to do.
+     */
+    start: z.boolean().optional(),
 });
 
 export const TaskIdRequestSchema = z.object({

@@ -42,9 +42,9 @@ type Args = {
     task_id: number;
     bot_id: number;
     /**
-     * False to only move it: the task goes to the other bot's list as to do
-     * and no job is queued, for when the user hasn't asked for the work to
-     * begin.
+     * True only when the user asked for the work to begin now. Left out the
+     * task only moves: it goes to the other bot's list as to do and no job
+     * is queued.
      */
     start?: boolean;
 };
@@ -55,7 +55,9 @@ type Args = {
  * to hand out work. It only ever moves a task the run already has, only an
  * open one, and only to a bot it could ask for the same user, so it can't
  * create a task for someone else or widen a run's reach. The task keeps its
- * place (a workspace's stays there), the other bot works that same task, and
+ * place (a workspace's stays there) and moves as to do: it never starts the
+ * work unless the user asked for that (`start`), and when they only asked
+ * for the move the bot asks first. The other bot works that same task, and
  * the result is reported back in this session.
  */
 export default function handOverTaskTool({ user_id, bot, session_id, powers, workers, grabTargets, onTask }: Params): HarnessTool<Args> {
@@ -64,14 +66,14 @@ export default function handOverTaskTool({ user_id, bot, session_id, powers, wor
 
     return {
         name: "hand_over_task",
-        description: `Hand over a task on your own list to another bot, when the user asked for that task to go to them. Pass its task_id (list_tasks) and the bot: the task moves to their list and they work that same task there, and their result is reported back here. Only a task of your own, and only an open one. To ask a bot something without giving it a task, use ask_crew; to have work made for another bot, ask the user. Crew you can hand to: ${crew || "none"}.`,
+        description: `Hand over a task on your own list to another bot, when the user asked for that task to go to them. Pass its task_id (list_tasks) and the bot: the task moves to their list as to do, and their result is reported back here. Handing it over never starts it: pass start: true only when the user asked for the work to begin now. When they asked for the move but not for it to start, ask first with ask_user (one card, every task they named: hand over and start, hand over to wait, leave it), and hand over only once they've answered: a task that has left your list can't be started by you any more. Only a task of your own, and only an open one. To ask a bot something without giving it a task, use ask_crew; to have work made for another bot, ask the user. Crew you can hand to: ${crew || "none"}.`,
         schema: z.object({
             task_id: z.number().int().describe("An open task on your own list (list_tasks)"),
             bot_id: z.number().int(),
             start: z
                 .boolean()
                 .optional()
-                .describe("false to only move the task (to do, nothing runs) until the user says to start"),
+                .describe("true to start the work at once, only when the user asked for it; left out it only moves (to do, nothing runs)"),
         }),
         run: async ({ args }) => {
             const task = await grabRunTask({
@@ -111,7 +113,7 @@ export default function handOverTaskTool({ user_id, bot, session_id, powers, wor
                 handed_by: bot.name || "The bot that had it",
                 requested_by_bot_id: bot_id,
                 requested_by_session_id: session_id,
-                start: args.start !== false,
+                start: args.start === true,
             });
 
             onTask?.({ task_id: Number(task.id) });
@@ -119,7 +121,7 @@ export default function handOverTaskTool({ user_id, bot, session_id, powers, wor
             const where = handed.workspace_id ? ` in workspace ${handed.workspace_id}` : " in its own chat";
 
             if (!handed.job_id) {
-                return `Task #${task.id} "${task.title}" is on ${handed.bot_name}'s list now${where}, as to do. Nothing is running: they start when the user tells them to.`;
+                return `Task #${task.id} "${task.title}" is on ${handed.bot_name}'s list now${where}, as to do. Nothing is running: they start when the user tells them to.${handed.joined ? ` ${handed.joined}` : ""}`;
             }
 
             return `Task #${task.id} "${task.title}" is with ${handed.bot_name} now (job #${handed.job_id})${where}, marked doing, and it's off your list.${handed.joined} They work that same task; their result is reported back here.`;
