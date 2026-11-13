@@ -35,7 +35,14 @@ type Args = {
  * the answers come back as the user's next message. Once per run, so every
  * question goes on one card.
  */
-export default function askUserTool({ user_id, bot_id, session_id, workspace_id, in_task, onAsk }: Params): HarnessTool<Args> {
+export default function askUserTool({
+    user_id,
+    bot_id,
+    session_id,
+    workspace_id,
+    in_task,
+    onAsk,
+}: Params): HarnessTool<Args> {
     let asked = false;
 
     return {
@@ -46,12 +53,23 @@ export default function askUserTool({ user_id, bot_id, session_id, workspace_id,
                 : `: after asking, end your reply and wait; don't act on what you asked about until they answer.`
         }`,
         schema: z.object({
-            title: z.string().trim().max(120).optional().describe("A short heading for the card, e.g. \"Before I deploy\""),
-            questions: BotQuestionItemsSchema.describe("The questions, in the order to answer them"),
+            title: z
+                .string()
+                .trim()
+                .max(120)
+                .optional()
+                .describe(
+                    'A short heading for the card, e.g. "Before I deploy"',
+                ),
+            questions: BotQuestionItemsSchema.describe(
+                "The questions, in the order to answer them",
+            ),
         }),
         run: async ({ args }) => {
             if (asked) {
-                throw new Error(`You already asked the user in this run. Put every question in one ask_user call, then wait for their answers.`);
+                throw new Error(
+                    `You already asked the user in this run. Put every question in one ask_user call, then wait for their answers.`,
+                );
             }
 
             const id = await createBotQuestion({

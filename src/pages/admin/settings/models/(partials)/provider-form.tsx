@@ -10,7 +10,10 @@ import {
     HarnessProviderKinds,
     type HarnessProviderKind,
 } from "@/src/dict/harness-provider-dict";
-import type { HarnessOverviewPayload, PublicHarnessProvider } from "@/src/types";
+import type {
+    HarnessOverviewPayload,
+    PublicHarnessProvider,
+} from "@/src/types";
 import { AppData } from "@/src/data/app-data";
 import SettingsStatus from "../../(partials)/settings-status";
 import postHarnessApi from "../(functions)/post-harness-api";
@@ -48,7 +51,14 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
 
     const submit = async () => {
         if (loading) return;
-        if (!window.confirm(provider?.id ? `Save ${provider.name || "this provider"}?` : `Add ${name || "this provider"}?`)) return;
+        if (
+            !window.confirm(
+                provider?.id
+                    ? `Save ${provider.name || "this provider"}?`
+                    : `Add ${name || "this provider"}?`,
+            )
+        )
+            return;
 
         setLoading(true);
         setError(undefined);
@@ -113,7 +123,11 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 showLabel
                 placeholder={preset.base_url || "http://localhost:8000/v1"}
                 defaultValue={base_url}
-                info={preset.base_url ? `Leave empty for ${preset.base_url}` : "Required: the server's OpenAI-compatible base URL."}
+                info={
+                    preset.base_url
+                        ? `Leave empty for ${preset.base_url}`
+                        : "Required: the server's OpenAI-compatible base URL."
+                }
                 onChange={(e) => setBaseUrl(e.target.value)}
             />
             <Input
@@ -123,7 +137,11 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 showLabel
                 type="password"
                 autoComplete="off"
-                placeholder={provider?.has_key ? "Saved. Type a new key to replace it." : "Paste the key"}
+                placeholder={
+                    provider?.has_key
+                        ? "Saved. Type a new key to replace it."
+                        : "Paste the key"
+                }
                 info={
                     preset.key_env
                         ? `Encrypted before it's stored. If empty, ${preset.key_env} from the environment is used.`
@@ -154,6 +172,7 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 suffix="tokens"
                 info={`The window every model this provider lists without one of its own is given. Leave empty if its list carries them (OpenRouter's does); a run assumes ${AppData.HarnessUnknownContextWindow.toLocaleString("en-US")} when nothing says.`}
                 onChange={(e) => setContextLength(e.target.value)}
+                placeholder="Eg. 1,000,000"
             />
             <Checkbox
                 title="Turn this provider on"
@@ -162,7 +181,9 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 changeHandler={setEnabled}
             />
             <Stack className="gap-3! items-stretch">
-                <SettingsStatus status={error ? { error: true, msg: error } : undefined} />
+                <SettingsStatus
+                    status={error ? { error: true, msg: error } : undefined}
+                />
                 <Row className="gap-2! flex-nowrap justify-end">
                     <Button
                         title="Cancel"
