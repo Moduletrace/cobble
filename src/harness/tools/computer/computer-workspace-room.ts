@@ -1,8 +1,9 @@
 import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
-import grabComputerUsage from "@/src/functions/backend/computers/grab-computer-usage";
+import grabComputerUsage, { type ComputerUsageFolder } from "@/src/functions/backend/computers/grab-computer-usage";
 import grabComputerWorkspaceQuotaBytes from "@/src/functions/backend/db/app-settings/grab-computer-workspace-quota-bytes";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import formatBytes from "@/src/utils/format-bytes";
+import computerWorkspaceSpace from "./computer-workspace-space";
 
 type Params = {
     computer: ComputerApi;
@@ -56,27 +57,44 @@ export default async function computerWorkspaceRoomError({ computer, dirs, incom
     if (!usage) return null;
     if (workspaceHasRoom({ used_bytes: usage.used_bytes, quota_bytes, incoming_bytes })) return null;
 
-    return computerWorkspaceFullMessage({ used_bytes: usage.used_bytes, quota_bytes, dirs });
+    return computerWorkspaceFullMessage({
+        used_bytes: usage.used_bytes,
+        quota_bytes,
+        dirs,
+        folders: usage.folders,
+    });
 }
 
 /**
  * What a bot is told when the workspace is full: what is used, what the
- * limit is, and what to do instead. `dir` is where its own work is, the one
- * folder it may safely clear.
+ * limit is, where the space went (`computerWorkspaceSpace`), and what to do
+ * instead. `dirs` is where its own work is, the one folder it may safely
+ * clear.
  */
 export function computerWorkspaceFullMessage({
     used_bytes,
     quota_bytes,
     dirs,
+    folders,
 }: {
     used_bytes: number;
     quota_bytes: number;
     dirs: ComputerRunDirs;
+    folders?: ComputerUsageFolder[];
 }) {
+    const space = computerWorkspaceSpace({ folders, dirs });
+
+    const advice = space && !space.clearable
+        ? `Nothing was written. The room has to come back from that folder: name it in your report, with what you needed to write, so the user can clear it through Files or raise the limit. Anything you can delete in ${dirs.bot_dir ?? dirs.cwd} still helps, and importing what matters into your files and removing it here frees that much.`
+        : `Nothing was written. Free space first with computer_bash: delete what you no longer need in ${dirs.bot_dir ?? dirs.cwd} (screenshots, downloads, old reports, raw dumps), or import what matters into your files and then remove it here.`;
+
     return [
         `No room left on this computer: its workspace holds ${formatBytes({ bytes: used_bytes })} of ${formatBytes({ bytes: quota_bytes })}.`,
-        `Nothing was written. Free space first with computer_bash: delete what you no longer need in ${dirs.bot_dir ?? dirs.cwd} (screenshots, downloads, old reports, raw dumps), or import what matters into your files and then remove it here.`,
-    ].join(" ");
+        space?.description || "",
+        advice,
+    ]
+        .filter(Boolean)
+        .join(" ");
 }
 
 /**
@@ -88,12 +106,16 @@ export function computerWorkspaceFullNote({
     used_bytes,
     quota_bytes,
     dirs,
+    folders,
 }: {
     used_bytes: number;
     quota_bytes: number;
     dirs: ComputerRunDirs;
+    folders?: ComputerUsageFolder[];
 }) {
-    return `[This computer's workspace now holds ${formatBytes({ bytes: used_bytes })} of ${formatBytes({ bytes: quota_bytes })}: writes through computer_write_file and computer_edit_file are refused until there is room. Free space in ${dirs.bot_dir ?? dirs.cwd} (screenshots, downloads, old reports, raw dumps), or import what matters into your files and remove it here.]`;
+    const space = computerWorkspaceSpace({ folders, dirs });
+
+    return `[This computer's workspace now holds ${formatBytes({ bytes: used_bytes })} of ${formatBytes({ bytes: quota_bytes })}${space ? `: ${space.description}` : ""} Writes through computer_write_file and computer_edit_file are refused until there is room. Free space in ${dirs.bot_dir ?? dirs.cwd} (screenshots, downloads, old reports, raw dumps), or import what matters into your files and remove it here.]`;
 }
 
 /**
@@ -110,5 +132,10 @@ export async function computerWorkspaceFullWarning({ computer, dirs, signal }: O
     if (!usage) return null;
     if (workspaceHasRoom({ used_bytes: usage.used_bytes, quota_bytes, incoming_bytes: 0 })) return null;
 
-    return computerWorkspaceFullNote({ used_bytes: usage.used_bytes, quota_bytes, dirs });
+    return computerWorkspaceFullNote({
+        used_bytes: usage.used_bytes,
+        quota_bytes,
+        dirs,
+        folders: usage.folders,
+    });
 }

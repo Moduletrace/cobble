@@ -117,12 +117,28 @@ export type TextLoopResult = {
 };
 
 /**
- * The only tools the wrap up may still call: saving the work. A run that
- * spent every step measuring can write the report the user waits for
- * rather than throw its findings away (`write_file`, and `import_file`
- * for what it pulled off a computer).
+ * The wrap-up tools that save the work. A run that spent every step
+ * measuring can write the report the user waits for rather than throw its
+ * findings away (`write_file`, and `import_file` for what it pulled off a
+ * computer).
  */
-export const WrapUpToolNames = ["write_file", "import_file"];
+export const WrapUpSaveToolNames = ["write_file", "import_file"];
+
+/**
+ * The wrap-up tool that hands the work on. A chat reply gets
+ * `AppData.BotReplyMaxToolSteps` steps, and a reply that used them all
+ * researching leaves the writing undone; the next reply starts from the
+ * same budget, so the run queues the rest as a task (`start_task`) while it
+ * can still call a tool, rather than saying it will do it later. The app
+ * runs it as soon as the reply is out.
+ */
+export const WrapUpHandOffToolNames = ["start_task"];
+
+/**
+ * Every tool the wrap up may still call (`WrapUpSaveToolNames` and
+ * `WrapUpHandOffToolNames`): those the run has, in its own order.
+ */
+export const WrapUpToolNames = [...WrapUpSaveToolNames, ...WrapUpHandOffToolNames];
 
 /**
  * Saving turns a wrap up may take: the first, and one more when it reached
@@ -134,25 +150,49 @@ export const WrapUpSavingTurns = 2;
  * Told on the last step, with the app's record of the tools the run
  * called (`describeToolUses`): out of steps, a model tends to report the
  * work it planned as done. `tokens` when the run's token budget ended it
- * rather than its steps. `saving` names the tools it may still call, if
- * any: its one saving round, after which it answers with none.
+ * rather than its steps. `saving` and `hand_off` name the tools it may
+ * still call, if any: its one last round, after which it answers with
+ * none.
  */
 export const wrapUpPrompt = ({
     uses,
     reason = "steps",
     saving = [],
+    hand_off = [],
 }: {
     uses: HarnessToolUse[];
     reason?: "steps" | "tokens";
     saving?: string[];
+    hand_off?: string[];
 }) =>
-    `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} ${
-        saving.length
-            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable) and nothing else, then report. After this turn no tool is left, so anything unsaved is lost.`
-            : `Don't call any more tools.`
-    } Report what you did, what is left, and anything you need from the user.
+    `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} ${wrapUpToolsPrompt({
+        saving,
+        hand_off,
+    })} Report what you did, what is left, and anything you need from the user.
 
 The tools you actually called this run: ${describeToolUses({ uses })}. Nothing else happened. Don't say you saved, created, changed or sent anything this list doesn't show; what you meant to do and didn't is still left, so say so.`;
+
+/**
+ * What the wrap up may still call, said in one line: save the work, hand
+ * on what it can't finish, or neither.
+ */
+const wrapUpToolsPrompt = ({ saving, hand_off }: { saving: string[]; hand_off: string[] }) => {
+    if (!saving.length && !hand_off.length) return `Don't call any more tools.`;
+
+    return [
+        saving.length
+            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable) and nothing else, then report.`
+            : "",
+        saving.length
+            ? `If real work is left that this run can't finish, call ${hand_off.join(" or ")} with a complete brief of what's left: it runs after this turn and posts its own result.`
+            : hand_off.length
+              ? `You have one turn to hand the work on: ${hand_off.join(" or ")} is still yours. If real work is left, call it with a complete brief of what's left: it runs after this turn and posts its own result.`
+              : "",
+        `After this turn no tool is left, so anything unsaved is lost, and so is work you only say you'll do later.`,
+    ]
+        .filter(Boolean)
+        .join(" ");
+};
 
 /**
  * Steps left when a run is warned, once, to save: a share of the run for
@@ -195,8 +235,9 @@ Don't repeat tool calls you have already made.`;
  * go back to it, and so on until it answers without calling a tool. Tools
  * run one at a time, in order; images they return follow their results. Stays on one model unless it fails. After
  * `max_steps` turns, or once the run has sent `max_prompt_tokens`, the
- * model is asked to wrap up: one turn with only the saving tools
- * (`WrapUpToolNames`), then one with none. An answer `review` finds fault
+ * model is asked to wrap up: one turn with only the wrap-up tools
+ * (`WrapUpToolNames`: what saves the work, and `start_task` for the rest),
+ * then one with none. An answer `review` finds fault
  * with is written again once.
  *
  * Every turn resends everything, so the run keeps it small: only the
@@ -262,13 +303,17 @@ export default async function runTextLoop({
     };
     const tool_uses: HarnessToolUse[] = [];
     /**
-     * The tools a wrap up may still call: only the ones that save the work.
-     * A run that spent every step measuring can then still write the report
-     * the user is waiting for, which is what two runs in a row failed to do
-     * (they measured to the last step and had no tool left to save with).
+     * The tools a wrap up may still call: what saves the work, and
+     * `start_task` for the work it can't finish. A run that spent every
+     * step measuring can then still write the report the user is waiting
+     * for, which is what two runs in a row failed to do (they measured to
+     * the last step and had no tool left to save with), and a reply out of
+     * steps hands the rest to a task instead of promising it.
      */
-    const save_tools = run_tools.filter((tool) => WrapUpToolNames.includes(tool.name));
-    const save_definitions = save_tools.map((tool) => all_definitions.get(tool.name)!);
+    const wrap_tools = run_tools.filter((tool) => WrapUpToolNames.includes(tool.name));
+    const save_tools = wrap_tools.filter((tool) => WrapUpSaveToolNames.includes(tool.name));
+    const hand_off_tools = wrap_tools.filter((tool) => WrapUpHandOffToolNames.includes(tool.name));
+    const wrap_definitions = wrap_tools.map((tool) => all_definitions.get(tool.name)!);
     const warn_at = stepsLowWarningLeft({ max_steps });
     let prefer_key: string | undefined;
     let reviewed = false;
@@ -280,7 +325,11 @@ export default async function runTextLoop({
      */
     let wrap_up_announced = false;
     let saving_turns = 0;
-    let saved = false;
+    /**
+     * The wrap up had its one round of tools (saving, or handing the work
+     * on): the next turn offers none, so the run always ends.
+     */
+    let used_wrap_turn = false;
 
     for (let index = 0; index <= max_steps + 1 + WrapUpSavingTurns; index++) {
         if (signal.aborted) {
@@ -291,11 +340,12 @@ export default async function runTextLoop({
         const out_of_tokens = Boolean(max_prompt_tokens && max_prompt_tokens > 0 && usage.prompt_tokens >= max_prompt_tokens);
         const wrap_up = out_of_steps || out_of_tokens;
         /**
-         * The saving turn: only the tools that save the work. Without one
-         * of them, or once it saved, the wrap up is the old one, with no
-         * tools at all, so the run always ends.
+         * The saving turn: only the tools a wrap up has left. Without one
+         * of them, or once it had its round, the wrap up is the old one,
+         * with no tools at all, so the run always ends.
          */
-        const wrap_up_saving = wrap_up && !saved && saving_turns < WrapUpSavingTurns && save_tools.length > 0;
+        const wrap_up_saving =
+            wrap_up && !used_wrap_turn && saving_turns < WrapUpSavingTurns && wrap_tools.length > 0;
 
         if (wrap_up && !wrap_up_announced) {
             wrap_up_announced = true;
@@ -308,13 +358,14 @@ export default async function runTextLoop({
                     uses: tool_uses,
                     reason: out_of_steps ? "steps" : "tokens",
                     saving: wrap_up_saving ? save_tools.map((tool) => tool.name) : [],
+                    hand_off: wrap_up_saving ? hand_off_tools.map((tool) => tool.name) : [],
                 }),
             });
         }
 
         if (wrap_up_saving) saving_turns++;
 
-        const definitions = wrap_up_saving ? save_definitions : wrap_up ? [] : definitionsNow();
+        const definitions = wrap_up_saving ? wrap_definitions : wrap_up ? [] : definitionsNow();
 
         /**
          * Sized for the model the run is on (or will start on). A fallback
@@ -351,7 +402,7 @@ export default async function runTextLoop({
          * saving ones, and the last turn offers none.
          */
         const tool_calls = (wrap_up ? (wrap_up_saving ? answer.tool_calls : []) : answer.tool_calls).filter(
-            (call) => !wrap_up || save_tools.some((tool) => tool.name == call.name),
+            (call) => !wrap_up || wrap_tools.some((tool) => tool.name == call.name),
         );
 
         /**
@@ -362,7 +413,7 @@ export default async function runTextLoop({
         if (wrap_up_saving && answer.tool_calls.length && !tool_calls.length) {
             pushUserTurn({
                 transcript,
-                content: `Only ${save_tools.map((tool) => tool.name).join(" and ")} can still be called in this run. Nothing else you call will run. Save the report or deliverable with one of them, or answer with what you have.`,
+                content: `Only ${wrap_tools.map((tool) => tool.name).join(" and ")} can still be called in this run. Nothing else you call will run. Save the report or deliverable with one of them, or answer with what you have.`,
             });
             continue;
         }
@@ -412,7 +463,7 @@ export default async function runTextLoop({
             };
         }
 
-        if (wrap_up_saving) saved = true;
+        if (wrap_up_saving) used_wrap_turn = true;
 
         const shown: { tool_name: string; images: HarnessToolImage[] }[] = [];
 

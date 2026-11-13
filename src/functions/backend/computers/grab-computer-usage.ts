@@ -6,6 +6,15 @@ type Params = {
     signal?: AbortSignal;
 };
 
+export type ComputerUsageFolder = {
+    /**
+     * Relative to the workspace root: `bots/9` is a bot's folder,
+     * `workspaces/3` a workspace's shared one.
+     */
+    path: string;
+    bytes: number;
+};
+
 export type ComputerUsage = {
     /**
      * How much the whole workspace holds, every bot's and user's folder
@@ -16,6 +25,11 @@ export type ComputerUsage = {
      * Where it is on the computer, for messages.
      */
     workspace_dir: string;
+    /**
+     * The biggest folders in it, most first. A computer whose agent is
+     * older than this sends none.
+     */
+    folders?: ComputerUsageFolder[];
 };
 
 /**
@@ -24,5 +38,5 @@ export type ComputerUsage = {
  * asking before each write costs little.
  */
 export default function grabComputerUsage({ computer, signal }: Params) {
-    return computerJson<ComputerUsage>({ computer, path: "/api/usage", timeout_ms: 30_000, signal });
+    return computerJson<ComputerUsage>({ computer, path: "/api/usage", timeout_ms: 60_000, signal });
 }

@@ -286,6 +286,83 @@ describe("runTextLoop", () => {
         expect(result.text).toBe("Report saved.");
     });
 
+    test("hands the work it can't finish to start_task at the wrap up", async () => {
+        const hand_off: HarnessTool<{ brief: string }> = {
+            name: "start_task",
+            description: "Queues a run.",
+            schema: z.object({ brief: z.string() }),
+            run: async ({ args }) => `Run #7 queued: ${args.brief}`,
+        };
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([
+            loop_call,
+            {
+                tool_calls: [{ id: "t", name: "start_task", arguments: `{"brief":"write the piece"}` }],
+            },
+            { text: "Research done; the writing is queued as a run." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "write the guide" }],
+            tools: [remember, hand_off],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen).toHaveLength(3);
+        expect(seen[1]!.tools!.map((tool) => tool.name)).toEqual(["start_task"]);
+        expect(seen[1]!.messages.at(-1)!.content).toContain(
+            "one turn to hand the work on: start_task is still yours",
+        );
+        expect(seen[2]!.tools).toBe(undefined);
+        expect(result.tool_uses).toEqual([
+            { name: "remember", ok: true },
+            { name: "start_task", ok: true },
+        ]);
+        expect(result.text).toBe("Research done; the writing is queued as a run.");
+    });
+
+    test("offers the saving tools and the hand off together", async () => {
+        const save: HarnessTool<{ path: string }> = {
+            name: "write_file",
+            description: "Saves a file.",
+            schema: z.object({ path: z.string() }),
+            run: async ({ args }) => `Saved ${args.path}.`,
+        };
+        const hand_off: HarnessTool<{ brief: string }> = {
+            name: "start_task",
+            description: "Queues a run.",
+            schema: z.object({ brief: z.string() }),
+            run: async ({ args }) => `Run #7 queued: ${args.brief}`,
+        };
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const { generate, seen } = scripted([
+            loop_call,
+            { text: "Saved what I have." },
+        ]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "audit the disk" }],
+            tools: [remember, save, hand_off],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen[1]!.tools!.map((tool) => tool.name)).toEqual(["write_file", "start_task"]);
+        const prompt = String(seen[1]!.messages.at(-1)!.content);
+
+        expect(prompt).toContain("one turn to save what the user needs: write_file");
+        expect(prompt).toContain("call start_task with a complete brief of what's left");
+    });
+
     test("warns once, a few steps before the wrap up, in a long enough run", async () => {
         const max_steps = AppData.HarnessStepsLowMinSteps;
         const loop_call = {

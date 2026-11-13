@@ -12,14 +12,19 @@ import MessageDetailsBody from "./message-details-body";
 
 type Props = {
     message_id: number;
+    /**
+     * Its `tool_log`: what the run behind it did, shown in the modal and
+     * passed along to the copied report.
+     */
+    tool_log?: string | null;
 };
 
 /**
  * The info button under a bot message, and the modal it opens: which
- * provider and model generated it, the run behind it, and every model
- * call with its tokens and cost. Loaded when it opens.
+ * provider and model generated it, the run behind it, what its tools did,
+ * and every model call with its tokens and cost. Loaded when it opens.
  */
-export default function MessageDetailsModal({ message_id }: Props) {
+export default function MessageDetailsModal({ message_id, tool_log }: Props) {
     const [open, set_open] = useState(false);
     const { details, loading, error } = useMessageDetails({ message_id, enabled: open });
 
@@ -47,7 +52,7 @@ export default function MessageDetailsModal({ message_id }: Props) {
 
             <Stack className="mt-4 max-h-[60vh] w-full gap-0! items-stretch overflow-y-auto">
                 {details ? (
-                    <MessageDetailsBody details={details} />
+                    <MessageDetailsBody details={details} tool_log={tool_log} />
                 ) : (
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">
                         {loading || !error ? "Loading details..." : error}

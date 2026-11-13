@@ -10,17 +10,22 @@ import MessageDetailsCallRow from "./message-details-call-row";
 import MessageDetailsFailureRow from "./message-details-failure-row";
 import MessageDetailsHeading from "./message-details-heading";
 import MessageDetailsModelRow from "./message-details-model-row";
+import MessageToolsRollup from "./message-tools-rollup";
 
 type Props = {
     details: MessageDetails;
+    /**
+     * The message's `tool_log`: what its run did, tool by tool.
+     */
+    tool_log?: string | null;
 };
 
 /**
  * How a message was generated: the provider and model that answered and
- * what it spent, then the job that ran it, every model it used, every
- * call in order and every call that failed, with why.
+ * what it spent, then the job that ran it, what its tools did, every model
+ * it used, every call in order and every call that failed, with why.
  */
-export default function MessageDetailsBody({ details }: Props) {
+export default function MessageDetailsBody({ details, tool_log }: Props) {
     const { totals, models, calls, failures, failed_calls, job } = details;
     const { providers, model_names, first_at, job_kind, job_took } = messageDetailsFacts({ details });
 
@@ -62,6 +67,8 @@ export default function MessageDetailsBody({ details }: Props) {
                     <MessageDetailRow label="Steps" value={String(job.steps)} />
                 </>
             ) : null}
+
+            <MessageToolsRollup tool_log={tool_log} />
 
             {models.length ? (
                 <>

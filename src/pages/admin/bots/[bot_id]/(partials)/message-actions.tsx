@@ -37,7 +37,9 @@ export default function MessageActions({ message }: Props) {
                         message_id={message.id}
                         onReact={onReact}
                     />
-                    {message.author == "bot" ? <MessageDetailsModal message_id={Number(message.id)} /> : null}
+                    {message.author == "bot" ? (
+                        <MessageDetailsModal message_id={Number(message.id)} tool_log={message.tool_log} />
+                    ) : null}
                 </>
             ) : null}
         </Row>

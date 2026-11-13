@@ -6,6 +6,7 @@ import pruneBotHookEvents from "./prune-bot-hook-events";
 import cronPruneChatrooms from "./prune-chatrooms";
 import cronPruneComputerCaches from "./prune-computer-caches";
 import cronPruneComputerHomes from "./prune-computer-homes";
+import cronWarnComputerWorkspaces from "./warn-computer-workspaces";
 import cronPruneOrphanMedia from "./prune-orphan-media";
 import pruneLogs from "./prune-logs";
 import syncNotifyWatchers from "./sync-notify-watchers";
@@ -78,6 +79,13 @@ export default function cron() {
         title: "prune-logs",
         schedule: "@daily",
         task: pruneLogs,
+    });
+
+    registerCronJob({
+        title: "warn-computer-workspaces",
+        schedule: "@daily",
+        task: cronWarnComputerWorkspaces,
+        quiet: true,
     });
 
     registerCronJob({

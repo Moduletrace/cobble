@@ -62,6 +62,13 @@ export type BotJobOutcome = {
      * kept on the result message as `task_ids`.
      */
     task_ids?: number[];
+    /**
+     * The run used every step it was allowed and stopped before it finished
+     * (its wrap up was announced). A handed-over task stays open only when
+     * the run did no work, so the task is blocked rather than left `doing`
+     * (`noteTrackerTask`).
+     */
+    exhausted?: boolean;
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

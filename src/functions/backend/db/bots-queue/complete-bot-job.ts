@@ -48,6 +48,12 @@ type Params = {
      * The tracker tasks the run worked on, linked under the message.
      */
     task_ids?: number[];
+    /**
+     * The run used every step it was allowed (`BotJobOutcome.exhausted`):
+     * a handed-over task it left open is blocked by `noteTrackerTask`, since
+     * a run that spent its whole budget and did no work says so itself.
+     */
+    exhausted?: boolean;
 };
 
 /**
@@ -57,7 +63,8 @@ type Params = {
  * after a task and idle after a reply; with others open, it shows the one
  * still running (a reply in another session mustn't hide a task's row).
  * Nobody else's face changes. A handed-over job's result also goes to the bot that handed
- * it over (`relay`), and a handed-over task left open says so (`noteTrackerTask`). A hook
+ * it over (`relay`), and a handed-over task left open says so, or is blocked when the run used
+ * its whole step budget without finishing (`noteTrackerTask`). A hook
  * run's result is kept on the calls it answered (`recordHookCallResponse`). A job in a chatroom
  * moves the room on (`onChatroomJobEnded`) and leaves the bot's face alone. Throws if this handler no longer holds the job.
  */
@@ -70,6 +77,7 @@ export default async function completeBotJob({
     attachments,
     tool_log,
     task_ids = [],
+    exhausted,
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
 
@@ -165,7 +173,7 @@ export default async function completeBotJob({
                   face: job.kind == "reply" ? "idle" : "done",
               });
 
-    await noteTrackerTask({ job });
+    await noteTrackerTask({ job, exhausted });
 
     await recordHookCallResponse({ job, status: "done", response: result, message_id: inserted?.id });
 

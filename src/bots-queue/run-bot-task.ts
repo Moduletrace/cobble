@@ -494,6 +494,11 @@ export default async function runBotTask({
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,
+            /**
+             * The wrap up was announced (`steps` counts its turns), so the
+             * run never got to the end of the work it was given.
+             */
+            exhausted: result.steps > max_steps,
         };
     } finally {
         await extensions?.close();
