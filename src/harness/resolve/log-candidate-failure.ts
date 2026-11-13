@@ -1,4 +1,5 @@
 import logEvent from "@/src/functions/backend/logger";
+import { UnlimitedLimit } from "@/src/utils/run-limit";
 import type HarnessError from "../harness-error";
 import type { HarnessCandidate } from "../types";
 
@@ -10,6 +11,11 @@ type Params = {
      * Unix ms it may be tried again, if it rests.
      */
     rests_until?: number;
+    /**
+     * The model rests until the run limits change (or the app restarts):
+     * `harness_model_rest_seconds` is unlimited.
+     */
+    forever?: boolean;
 };
 
 /**
@@ -18,11 +24,13 @@ type Params = {
  * explained afterwards. Once per failure, and a resting model isn't tried,
  * so an outage logs at most once per rest per model. Never throws.
  */
-export default async function logCandidateFailure({ harness, candidate, error, rests_until }: Params) {
+export default async function logCandidateFailure({ harness, candidate, error, rests_until, forever }: Params) {
     const provider = candidate.provider.name || candidate.provider.kind;
-    const rest = rests_until
-        ? ` It rests for ${Math.max(1, Math.round((rests_until - Date.now()) / 1000))} seconds.`
-        : " It isn't benched; the next model takes this call.";
+    const rest = forever
+        ? " It stays benched until the run limits change or the app restarts."
+        : rests_until
+          ? ` It rests for ${Math.max(1, Math.round((rests_until - Date.now()) / 1000))} seconds.`
+          : " It isn't benched; the next model takes this call.";
 
     try {
         await logEvent({
@@ -42,7 +50,8 @@ export default async function logCandidateFailure({ harness, candidate, error, r
                 status: error.status,
                 retryable: error.retryable,
                 provider_wide: error.provider_wide,
-                rests_until,
+                rests_until: forever ? UnlimitedLimit : rests_until,
+                rest_forever: forever || undefined,
             },
         });
     } catch {}

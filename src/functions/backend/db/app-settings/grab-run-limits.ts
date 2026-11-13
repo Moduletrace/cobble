@@ -8,7 +8,7 @@ import {
     UnattendedMaxToolStepsSettingKey,
 } from "@/src/dict/harness-dict";
 import type { RunLimitsOverview } from "@/src/types";
-import readStepLimit from "@/src/utils/read-step-limit";
+import readRunLimit from "@/src/utils/read-run-limit";
 import grabAppSetting from "./grab-app-setting";
 
 export type { RunLimitsOverview };
@@ -16,11 +16,11 @@ export type { RunLimitsOverview };
 /**
  * Model turns a task run may take: the install's own limit
  * (`harness_max_tool_steps`, Settings > General), else
- * `AppData.HarnessMaxToolSteps`. `runTextLoop`'s default is the code's one,
- * so a task run passes this in.
+ * `AppData.HarnessMaxToolSteps` (unlimited). `runTextLoop`'s default is the
+ * code's one, so a task run passes this in.
  */
 export async function grabHarnessMaxToolSteps() {
-    return readStepLimit({
+    return readRunLimit({
         saved: await grabAppSetting({ key: HarnessMaxToolStepsSettingKey }),
         fallback: AppData.HarnessMaxToolSteps,
         max: AppData.BotStepLimitMax,
@@ -30,10 +30,10 @@ export async function grabHarnessMaxToolSteps() {
 /**
  * Model turns a chat reply may take: the install's own limit
  * (`bot_reply_max_tool_steps`, Settings > General), else
- * `AppData.BotReplyMaxToolSteps`.
+ * `AppData.BotReplyMaxToolSteps` (unlimited).
  */
 export async function grabReplyMaxToolSteps() {
-    return readStepLimit({
+    return readRunLimit({
         saved: await grabAppSetting({ key: BotReplyMaxToolStepsSettingKey }),
         fallback: AppData.BotReplyMaxToolSteps,
         max: AppData.BotStepLimitMax,
@@ -43,10 +43,10 @@ export async function grabReplyMaxToolSteps() {
 /**
  * Model turns a routine run or a hook call may take, which nobody
  * watches: the install's own limit (`unattended_max_tool_steps`), else
- * `AppData.UnattendedMaxToolSteps`.
+ * `AppData.UnattendedMaxToolSteps` (unlimited).
  */
 export async function grabUnattendedMaxToolSteps() {
-    return readStepLimit({
+    return readRunLimit({
         saved: await grabAppSetting({ key: UnattendedMaxToolStepsSettingKey }),
         fallback: AppData.UnattendedMaxToolSteps,
         max: AppData.BotStepLimitMax,
@@ -56,9 +56,10 @@ export async function grabUnattendedMaxToolSteps() {
 /**
  * Prompt tokens one run may spend before it must wrap up: the install's
  * own budget (`run_max_prompt_tokens`), else `AppData.RunMaxPromptTokens`.
+ * Unlimited when the install chose none.
  */
 export async function grabRunMaxPromptTokens() {
-    return readStepLimit({
+    return readRunLimit({
         saved: await grabAppSetting({ key: RunMaxPromptTokensSettingKey }),
         fallback: AppData.RunMaxPromptTokens,
         min: AppData.RunMaxPromptTokensMin,
@@ -69,10 +70,11 @@ export async function grabRunMaxPromptTokens() {
 /**
  * The working context a run keeps per turn, in estimated tokens: the
  * install's own (`harness_context_budget_tokens`), else
- * `AppData.HarnessContextBudgetTokens`.
+ * `AppData.HarnessContextBudgetTokens`. Unlimited keeps the model's whole
+ * window.
  */
 export async function grabContextBudgetTokens() {
-    return readStepLimit({
+    return readRunLimit({
         saved: await grabAppSetting({ key: HarnessContextBudgetSettingKey }),
         fallback: AppData.HarnessContextBudgetTokens,
         min: AppData.HarnessContextBudgetMinTokens,
@@ -83,9 +85,10 @@ export async function grabContextBudgetTokens() {
 /**
  * How long a model that failed is passed over, in seconds: the install's
  * own (`harness_model_rest_seconds`), else `AppData.HarnessModelRestMs`.
+ * Unlimited rests it until the setting changes (or the app restarts).
  */
 export async function grabModelRestSeconds() {
-    return readStepLimit({
+    return readRunLimit({
         saved: await grabAppSetting({ key: HarnessModelRestSettingKey }),
         fallback: AppData.HarnessModelRestMs / 1000,
         min: AppData.HarnessModelRestMinSeconds,
@@ -94,7 +97,8 @@ export async function grabModelRestSeconds() {
 }
 
 /**
- * Every run limit with its default, for the settings page.
+ * Every run limit with its default, for the settings page. A limit is a
+ * number or `"unlimited"`.
  */
 export default async function grabRunLimitsOverview() {
     const [task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds] =

@@ -36,6 +36,7 @@ import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-comp
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
+import { isUnlimitedLimit, smallerRunLimit } from "@/src/utils/run-limit";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotBrowsers, { type OpenBotBrowsers } from "@/src/harness/tools/browsers/open-bot-browsers";
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
@@ -374,9 +375,19 @@ export default async function runBotTask({
          */
         const task_steps = await grabHarnessMaxToolSteps();
         const install_steps =
-            scheduled || hooked ? Math.min(task_steps, await grabUnattendedMaxToolSteps()) : task_steps;
+            scheduled || hooked
+                ? smallerRunLimit({ a: task_steps, b: await grabUnattendedMaxToolSteps() })
+                : task_steps;
         const budget = Math.floor(Number(params.max_steps) || 0);
-        const max_steps = budget > 0 ? Math.min(budget, install_steps) : install_steps;
+        const max_steps = budget > 0 ? smallerRunLimit({ a: budget, b: install_steps }) : install_steps;
+        /**
+         * What the run is told it has. Unlimited is said as such rather
+         * than as a number: the job's deadline still ends it, and a run
+         * told "at most 0 steps" would stop before it began.
+         */
+        const steps_note = isUnlimitedLimit(max_steps)
+            ? `This run has no step limit: work until the job is done. Its job still stops it after a while, so save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`
+            : `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: pace yourself, save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`;
 
         /**
          * What the user wrote since the run was queued, for a run they
@@ -409,7 +420,7 @@ export default async function runBotTask({
             prompt,
             carry_over,
             TaskRunNote,
-            `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: pace yourself, save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`,
+            steps_note,
             scheduled ? ScheduledRunNote : "",
             hooked ? HookRunNote : "",
             install_request_id ? InstallRequestNote : "",
@@ -532,7 +543,7 @@ export default async function runBotTask({
              * The wrap up was announced (`steps` counts its turns), so the
              * run never got to the end of the work it was given.
              */
-            exhausted: result.steps > max_steps,
+            exhausted: !isUnlimitedLimit(max_steps) && result.steps > max_steps,
         };
     } finally {
         await extensions?.close();

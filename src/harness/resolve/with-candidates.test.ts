@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { AppData } from "@/src/data/app-data";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate } from "../types";
 import createCooldowns from "./create-cooldowns";
@@ -156,6 +157,40 @@ describe("withCandidates", () => {
 
         expect(error.retryable).toBe(true);
         expect(error.retry_at).toBeGreaterThan(Date.now());
+    });
+
+    test("a rest with no end keeps the model benched until the run limits change", async () => {
+        const now = 1_000_000;
+        const cooldowns = createCooldowns();
+        const a = candidate("a");
+
+        await withCandidates({
+            harness: "text",
+            candidates: [a],
+            cooldowns,
+            rest_ms: Infinity,
+            now: () => now,
+            run: async () => {
+                throw rateLimited(a.key);
+            },
+        }).catch(() => {});
+
+        expect(cooldowns.get({ key: a.key, now: now + 5 * 365 * 24 * 3600 * 1000 })).toBe(Infinity);
+
+        const error = (await withCandidates({
+            harness: "text",
+            candidates: [a],
+            cooldowns,
+            rest_ms: Infinity,
+            now: () => now,
+            run: async () => {
+                throw new Error("should not run");
+            },
+        }).catch((e) => e)) as HarnessError;
+
+        expect(error.message).toContain("stay benched until the run limits change or the app restarts");
+        expect(error.resting).toBe(true);
+        expect(error.retry_at).toBe(now + AppData.HarnessMaxCooldownMs);
     });
 
     test("cancellation and bugs are not swallowed", async () => {

@@ -1,5 +1,6 @@
 import { AppData } from "@/src/data/app-data";
 import { alreadyRanToolNote } from "@/src/data/harness-prompts";
+import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
 import HarnessError from "../harness-error";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import loadToolsTool from "../tools/load-tools-tool";
@@ -46,19 +47,19 @@ type Params = {
      * enough to be worth it (`AppData.HarnessDeferToolsMinChars`).
      */
     tools?: HarnessTool[];
-    max_steps?: number;
+    max_steps?: RunLimit;
     /**
      * Prompt tokens the run may spend in all (`grabRunMaxPromptTokens`):
      * once its turns have sent this many, the next one is the wrap up.
-     * Left out, only `max_steps` ends it.
+     * Unlimited or left out, only the run's other bounds end it.
      */
-    max_prompt_tokens?: number;
+    max_prompt_tokens?: RunLimit;
     /**
      * The working context (`grabContextBudgetTokens`): the most each turn
      * sends before old tool output is trimmed, whatever the model's
-     * window. Left out, the window decides.
+     * window. Unlimited or left out, the window decides.
      */
-    context_budget?: number;
+    context_budget?: RunLimit;
     signal?: AbortSignal;
     /**
      * Called after each model turn, before its tools run. Use it for
@@ -127,12 +128,13 @@ export type TextLoopResult = {
 export const WrapUpSaveToolNames = ["write_file", "import_file"];
 
 /**
- * The wrap-up tool that hands the work on. A chat reply gets
- * `AppData.BotReplyMaxToolSteps` steps, and a reply that used them all
- * researching leaves the writing undone; the next reply starts from the
- * same budget, so the run queues the rest as a task (`start_task`) while it
- * can still call a tool, rather than saying it will do it later. The app
- * runs it as soon as the reply is out.
+ * The wrap-up tool that hands the work on. A chat reply has a step
+ * budget (`AppData.BotReplyMaxToolSteps`, unlimited unless the install
+ * sets one), and a reply that used it all researching leaves the writing
+ * undone; the next reply starts from the same budget, so the run queues
+ * the rest as a task (`start_task`) while it can still call a tool,
+ * rather than saying it will do it later. The app runs it as soon as the
+ * reply is out.
  */
 export const WrapUpHandOffToolNames = ["start_task"];
 
@@ -239,7 +241,9 @@ Don't repeat tool calls you have already made.`;
  * `max_steps` turns, or once the run has sent `max_prompt_tokens`, the
  * model is asked to wrap up: one turn with only the wrap-up tools
  * (`WrapUpToolNames`: what saves the work, and `start_task` for the rest),
- * then one with none. An answer `review` finds fault
+ * then one with none. With neither set (unlimited), the run ends when the
+ * model answers without calling a tool, or when its job's deadline or its
+ * abort signal ends it. An answer `review` finds fault
  * with is written again once.
  *
  * Every turn resends everything, so the run keeps it small: only the
@@ -327,17 +331,23 @@ export default async function runTextLoop({
     /**
      * What bounds this run, recorded with every call it makes, so a reply
      * can be told later which limit shaped it (`read_message_usage`).
+     * `null` only ever means an old record; new runs say `"unlimited"`.
      */
     const call_limits = {
-        steps: max_steps ?? null,
-        run_tokens: max_prompt_tokens ?? null,
-        context_tokens: context_budget ?? null,
+        steps: max_steps,
+        run_tokens: max_prompt_tokens ?? UnlimitedLimit,
+        context_tokens: context_budget ?? UnlimitedLimit,
     };
+    /**
+     * A step count to count against, for the loop itself: an unlimited run
+     * counts on to the model's own answer (or the job's deadline).
+     */
+    const step_ceiling = isUnlimitedLimit(max_steps) ? Infinity : max_steps;
 
-    const warn_at = stepsLowWarningLeft({ max_steps });
+    const warn_at = isUnlimitedLimit(max_steps) ? 0 : stepsLowWarningLeft({ max_steps });
     let prefer_key: string | undefined;
     let reviewed = false;
-    let warned_steps = max_steps < AppData.HarnessStepsLowMinSteps;
+    let warned_steps = isUnlimitedLimit(max_steps) || max_steps < AppData.HarnessStepsLowMinSteps;
     /**
      * The wrap up is announced once, and may save until it has: a run told
      * to stop with its report unwritten gets a turn to write it (at most
@@ -351,13 +361,17 @@ export default async function runTextLoop({
      */
     let used_wrap_turn = false;
 
-    for (let index = 0; index <= max_steps + 1 + WrapUpSavingTurns; index++) {
+    for (let index = 0; index <= step_ceiling + 1 + WrapUpSavingTurns; index++) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
         }
 
-        const out_of_steps = index >= max_steps;
-        const out_of_tokens = Boolean(max_prompt_tokens && max_prompt_tokens > 0 && usage.prompt_tokens >= max_prompt_tokens);
+        const out_of_steps = index >= step_ceiling;
+        const out_of_tokens = Boolean(
+            typeof max_prompt_tokens == "number" &&
+                max_prompt_tokens > 0 &&
+                usage.prompt_tokens >= max_prompt_tokens,
+        );
         const wrap_up = out_of_steps || out_of_tokens;
         /**
          * The saving turn: only the tools a wrap up has left. Without one
@@ -397,7 +411,7 @@ export default async function runTextLoop({
             system: run_system,
             transcript,
             context_length: model?.context_length || AppData.HarnessUnknownContextWindow,
-            budget_tokens: context_budget,
+            budget_tokens: typeof context_budget == "number" ? context_budget : undefined,
             tools_chars: JSON.stringify(definitions).length,
         });
 
@@ -540,10 +554,12 @@ export default async function runTextLoop({
 
         /**
          * Steps left before the wrap up, once the next turn is taken.
+         * An unlimited run is never told it's nearly out: it has no budget
+         * to be near the end of.
          */
-        const left = max_steps - (index + 1);
+        const left = step_ceiling - (index + 1);
 
-        if (!warned_steps && left <= warn_at) {
+        if (!warned_steps && !isUnlimitedLimit(max_steps) && left <= warn_at) {
             warned_steps = true;
             pushUserTurn({ transcript, content: stepsLowNote({ left }) });
         }

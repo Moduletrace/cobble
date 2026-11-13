@@ -1,3 +1,5 @@
+import type { RunLimit } from "@/src/utils/run-limit";
+
 /**
  * Who and what a model call was for. Every harness call that reports its
  * usage is written down with this (`/api/auth/crud` no: `token_usages`),
@@ -71,12 +73,13 @@ export type HarnessCallSettings = {
 
 /**
  * A run's own bounds on one call (`HarnessCallSettings.limits`). Null: the
- * run didn't say, so the number isn't known (not "unlimited").
+ * run didn't say, so the number isn't known (not "unlimited");
+ * `"unlimited"`: the run had no limit of that kind.
  */
 export type HarnessCallLimits = {
-    steps: number | null;
-    run_tokens: number | null;
-    context_tokens: number | null;
+    steps: RunLimit | null;
+    run_tokens: RunLimit | null;
+    context_tokens: RunLimit | null;
 };
 
 export type HarnessUsageCall = {

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
+import { UnlimitedLimit } from "@/src/utils/run-limit";
 import { alreadyRanToolNote, DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
@@ -207,6 +208,34 @@ describe("runTextLoop", () => {
         });
     });
 
+    test("a run with no step limit keeps going, and records that its limits were off", async () => {
+        memory.length = 0;
+        const loop_call = {
+            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
+        };
+        const turns = 30;
+        const { generate, seen } = scripted(Array.from({ length: turns }, () => loop_call));
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: UnlimitedLimit,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen).toHaveLength(turns + 1);
+        expect(result.steps).toBe(turns + 1);
+        expect(result.text).toBe("Done.");
+        expect(JSON.stringify(seen)).not.toContain("left in this run");
+        expect(seen[0]!.limits).toEqual({
+            steps: UnlimitedLimit,
+            run_tokens: UnlimitedLimit,
+            context_tokens: UnlimitedLimit,
+        });
+    });
+
     test("at the wrap up, offers only the tools that save, then answers without any", async () => {
         const save: HarnessTool<{ path: string }> = {
             name: "write_file",
@@ -395,8 +424,8 @@ describe("runTextLoop", () => {
          * A 200 step audit once measured to its last step with the report
          * unwritten: the warning has to reach it with real room left.
          */
-        expect(stepsLowWarningLeft({ max_steps: AppData.HarnessMaxToolSteps })).toBe(
-            Math.ceil(AppData.HarnessMaxToolSteps * AppData.HarnessStepsLowWarnShare),
+        expect(stepsLowWarningLeft({ max_steps: 200 })).toBe(
+            Math.ceil(200 * AppData.HarnessStepsLowWarnShare),
         );
         expect(stepsLowWarningLeft({ max_steps: 20 })).toBe(AppData.HarnessStepsLowWarning);
     });

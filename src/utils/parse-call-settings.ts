@@ -1,4 +1,5 @@
 import type { HarnessCallLimits, HarnessCallSettings } from "@/src/harness/usage/types";
+import { isUnlimitedLimit, UnlimitedLimit } from "./run-limit";
 
 type SettingsSource = NonNullable<HarnessCallSettings["settings_source"]>;
 
@@ -54,12 +55,19 @@ export default function parseCallSettings({ json }: Params): HarnessCallSettings
 }
 
 /**
- * The limits a call recorded, keeping only numbers and nulls (a limit the
- * run didn't know is null, never 0).
+ * The limits a call recorded, keeping only numbers, `"unlimited"` and
+ * nulls (a limit the run didn't know is null, never 0).
  */
 function keptLimits({ raw }: { raw: unknown }): HarnessCallLimits {
     const value = raw as Record<string, unknown>;
-    const kept = (key: string) => (typeof value[key] == "number" ? (value[key] as number) : null);
+    const kept = (key: string): HarnessCallLimits["steps"] => {
+        const raw_value = value[key];
+
+        if (typeof raw_value == "number") return raw_value;
+        if (isUnlimitedLimit(raw_value)) return UnlimitedLimit;
+
+        return null;
+    };
 
     return { steps: kept("steps"), run_tokens: kept("run_tokens"), context_tokens: kept("context_tokens") };
 }

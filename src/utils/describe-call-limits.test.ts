@@ -17,4 +17,13 @@ describe("describeCallLimits", () => {
             "not recorded",
         );
     });
+
+    test("says a limit was off rather than showing a number", () => {
+        expect(
+            describeCallLimits({ limits: { steps: "unlimited", run_tokens: "unlimited", context_tokens: 120_000 } }),
+        ).toBe("unlimited steps, unlimited prompt tokens, 120,000 of context per turn");
+        expect(describeCallLimits({ limits: { steps: "unlimited", run_tokens: 250_000, context_tokens: null } })).toBe(
+            "unlimited steps, 250,000 prompt tokens",
+        );
+    });
 });

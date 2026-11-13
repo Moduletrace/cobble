@@ -1,4 +1,5 @@
 import type { GeneralSettingsFieldKind } from "@/src/dict/general-settings-dict";
+import { isUnlimitedLimit } from "./run-limit";
 
 type Params = {
     kind: GeneralSettingsFieldKind;
@@ -24,6 +25,8 @@ const Units: Record<Exclude<GeneralSettingsFieldKind, "text">, { one: string; ma
  */
 export default function settingValueLabel({ kind, value }: Params): string {
     if (value === null || value === undefined || value === "") return "not set yet";
+
+    if (isUnlimitedLimit(value)) return "unlimited";
 
     if (kind == "text") return String(value);
 

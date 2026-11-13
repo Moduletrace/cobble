@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { HarnessCallSettings, TokenUsageSummary } from "@/src/harness/usage/types";
 import parseCallSettings from "@/src/utils/parse-call-settings";
+import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
 import toolRollup, { type ToolRollup } from "@/src/utils/tool-rollup";
 import grabMessageUsage from "./grab-message-usage";
 
@@ -10,9 +11,9 @@ import grabMessageUsage from "./grab-message-usage";
  * may spend and the working context it sent per turn.
  */
 export type RunUsageLimits = {
-    steps: number | null;
-    run_tokens: number | null;
-    context_tokens: number | null;
+    steps: RunLimit | null;
+    run_tokens: RunLimit | null;
+    context_tokens: RunLimit | null;
 };
 
 /**
@@ -20,11 +21,11 @@ export type RunUsageLimits = {
  * install allows now.
  */
 export type CurrentRunLimits = {
-    task_steps: number;
-    reply_steps: number;
-    unattended_steps: number;
-    run_tokens: number;
-    context_tokens: number;
+    task_steps: RunLimit;
+    reply_steps: RunLimit;
+    unattended_steps: RunLimit;
+    run_tokens: RunLimit;
+    context_tokens: RunLimit;
 };
 
 export type RunUsageCall = {
@@ -129,10 +130,13 @@ const limitsOf = ({ calls }: { calls: RunUsageCall[] }): RunUsageLimits | null =
 
     if (!limits) return null;
 
+    const kept = (value: RunLimit | null | undefined): RunLimit | null =>
+        typeof value == "number" ? value : isUnlimitedLimit(value) ? UnlimitedLimit : null;
+
     return {
-        steps: typeof limits.steps == "number" ? limits.steps : null,
-        run_tokens: typeof limits.run_tokens == "number" ? limits.run_tokens : null,
-        context_tokens: typeof limits.context_tokens == "number" ? limits.context_tokens : null,
+        steps: kept(limits.steps),
+        run_tokens: kept(limits.run_tokens),
+        context_tokens: kept(limits.context_tokens),
     };
 };
 

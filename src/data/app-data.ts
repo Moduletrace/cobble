@@ -1,3 +1,4 @@
+import { UnlimitedLimit } from "@/src/utils/run-limit";
 import { SiteData } from "./site-data";
 
 export const AppData = {
@@ -492,25 +493,31 @@ export const AppData = {
      */
     HarnessTextFallbackModelsMax: 3,
     /**
-     * Model turns in one text run before it must stop and report. The
-     * install may save its own limit (the `harness_max_tool_steps` setting,
-     * Settings > General), which wins over this one; a task run reads it
-     * through `grabHarnessMaxToolSteps`.
+     * Model turns in one text run before it must stop and report.
+     * Unlimited by default: a run is bounded by the job's deadline and its
+     * token budget instead, and stops when the work is done. The install
+     * may save its own limit, or keep it unlimited (the
+     * `harness_max_tool_steps` setting, Settings > General), which wins
+     * over this one; a task run reads it through
+     * `grabHarnessMaxToolSteps`.
      */
-    HarnessMaxToolSteps: 300,
+    HarnessMaxToolSteps: UnlimitedLimit,
     /**
      * Model turns a routine run or a hook call may take: nobody watches
-     * them, and one routine run once spent 39M tokens checking a site. The
-     * install may save its own (`unattended_max_tool_steps`), read through
+     * them, and one routine run once spent 39M tokens checking a site.
+     * Unlimited by default, like a task's: the token budget and the job's
+     * deadline end it. The install may save its own
+     * (`unattended_max_tool_steps`), read through
      * `grabUnattendedMaxToolSteps`; a brief's own `max_steps` can only
      * lower it.
      */
-    UnattendedMaxToolSteps: 200,
+    UnattendedMaxToolSteps: UnlimitedLimit,
     /**
      * Prompt tokens one run may spend in all (every turn resends the
-     * prompt): past it the next turn is the wrap up. A safety net under the
-     * step limit, for runs whose turns are large. The install may save its
-     * own (`run_max_prompt_tokens`), read through `grabRunMaxPromptTokens`.
+     * prompt): past it the next turn is the wrap up. The one bound that
+     * always holds, since step limits are unlimited by default, for runs
+     * whose turns are large. The install may save its own
+     * (`run_max_prompt_tokens`), read through `grabRunMaxPromptTokens`.
      */
     RunMaxPromptTokens: 40_000_000,
     /**
@@ -880,11 +887,12 @@ export const AppData = {
     WorkspaceActivityItems: 6,
     /**
      * Tool turns a chat reply may take. Long work goes to a task instead.
-     * The install may save its own limit (the `bot_reply_max_tool_steps`
-     * setting, Settings > General), which wins over this one; a reply
-     * reads it through `grabReplyMaxToolSteps`.
+     * Unlimited by default, like a task's: the job's deadline and the
+     * token budget end it. The install may save its own limit (the
+     * `bot_reply_max_tool_steps` setting, Settings > General), which wins
+     * over this one; a reply reads it through `grabReplyMaxToolSteps`.
      */
-    BotReplyMaxToolSteps: 20,
+    BotReplyMaxToolSteps: UnlimitedLimit,
     /**
      * From this many characters, a bot message whose run called no tools
      * shows "No tools used" under it (`MessageNoToolsChip`): a long report
@@ -902,7 +910,7 @@ export const AppData = {
      * chat reply. A typo in the settings page can't turn one run into an
      * hour of tool calls, and a huge limit still ends with a report.
      */
-    BotStepLimitMax: 1000,
+    BotStepLimitMax: 10000,
     /**
      * The least steps a task run needs before it plans first (`planBotTask`):
      * a shorter run's own first turn already is its plan. How long a plan

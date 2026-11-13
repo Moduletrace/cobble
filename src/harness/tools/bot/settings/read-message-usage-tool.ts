@@ -53,11 +53,11 @@ Long runs cost more than the work suggests because every turn resends the prompt
         run: async ({ args }) => {
             const limits = await grabRunLimitsOverview().catch(() => null);
             const current_limits: CurrentRunLimits = {
-                task_steps: limits?.task_steps ?? (Number(limits?.task_default) || 0),
-                reply_steps: limits?.reply_steps ?? (Number(limits?.reply_default) || 0),
-                unattended_steps: limits?.unattended_steps ?? (Number(limits?.unattended_default) || 0),
-                run_tokens: limits?.run_tokens ?? (Number(limits?.run_tokens_default) || 0),
-                context_tokens: limits?.context_tokens ?? (Number(limits?.context_tokens_default) || 0),
+                task_steps: limits?.task_steps ?? limits?.task_default ?? 0,
+                reply_steps: limits?.reply_steps ?? limits?.reply_default ?? 0,
+                unattended_steps: limits?.unattended_steps ?? limits?.unattended_default ?? 0,
+                run_tokens: limits?.run_tokens ?? limits?.run_tokens_default ?? 0,
+                context_tokens: limits?.context_tokens ?? limits?.context_tokens_default ?? 0,
             };
             const scope = grabHarnessUsageScope();
             const run_session_id = Number(scope?.session_id) || Number(session_id) || 0;

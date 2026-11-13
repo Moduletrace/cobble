@@ -101,9 +101,11 @@ export default async function withCandidates<T>({
         );
 
         throw new HarnessError({
-            message: `Every ${title.toLowerCase()} model is resting after errors or rate limits. Trying again shortly.`,
+            message: Number.isFinite(next)
+                ? `Every ${title.toLowerCase()} model is resting after errors or rate limits. Trying again shortly.`
+                : `Every ${title.toLowerCase()} model is resting after errors or rate limits. They stay benched until the run limits change or the app restarts.`,
             retryable: true,
-            retry_at: next,
+            retry_at: Number.isFinite(next) ? next : now() + AppData.HarnessMaxCooldownMs,
             resting: true,
         });
     }
@@ -138,10 +140,27 @@ export default async function withCandidates<T>({
             failed.push(candidate.key);
 
             const rests_until = coolDown({ candidate, error, cooldowns, now: now(), rest_ms: rest });
+            /**
+             * A rest with no end (`harness_model_rest_seconds` unlimited)
+             * never runs out: it's logged as such, never written as a
+             * timestamp nothing can read back.
+             */
+            const forever = typeof rests_until == "number" && !Number.isFinite(rests_until);
 
             if (log_failures) {
-                await logCandidateFailure({ harness, candidate, error, rests_until });
-                await recordHarnessFailure({ harness, candidate, error, rests_until });
+                await logCandidateFailure({
+                    harness,
+                    candidate,
+                    error,
+                    rests_until: forever ? undefined : rests_until,
+                    forever,
+                });
+                await recordHarnessFailure({
+                    harness,
+                    candidate,
+                    error,
+                    rests_until: forever ? undefined : rests_until,
+                });
             }
         }
     }

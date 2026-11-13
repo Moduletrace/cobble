@@ -128,25 +128,38 @@ export type SaveBotHarnessSettingsRequest = z.infer<
 >;
 
 /**
- * The General settings' run limits: model turns a task run and a chat reply
- * may take. Zero puts the code's default back.
+ * A step count on the run limits form: -1 is no limit, 0 puts the default
+ * back, anything else must be a whole number of steps.
  */
+const stepLimit = () =>
+    z.coerce
+        .number()
+        .int()
+        .refine((value) => value == -1 || (value >= 0 && value <= AppData.BotStepLimitMax), {
+            message: `Steps must be -1 (no limit), 0 (the default) or between 1 and ${AppData.BotStepLimitMax}.`,
+        });
+
 /**
- * A token figure on the run limits form: 0 puts the default back, anything
- * else must sit inside its range.
+ * A token figure on the run limits form: -1 is no limit, 0 puts the default
+ * back, anything else must sit inside its range.
  */
 const tokenLimit = ({ min, max, label }: { min: number; max: number; label: string }) =>
     z.coerce
         .number()
         .int()
-        .refine((value) => value == 0 || (value >= min && value <= max), {
-            message: `${label} must be 0 (the default) or between ${min.toLocaleString("en-US")} and ${max.toLocaleString("en-US")} tokens.`,
+        .refine((value) => value == -1 || value == 0 || (value >= min && value <= max), {
+            message: `${label} must be -1 (no limit), 0 (the default) or between ${min.toLocaleString("en-US")} and ${max.toLocaleString("en-US")} tokens.`,
         });
 
+/**
+ * The General settings' run limits: model turns a task run and a chat reply
+ * may take. `-1` is no limit ("unlimited"), `0` puts the code's default
+ * back.
+ */
 export const SaveRunLimitsRequestSchema = z.object({
-    task_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax),
-    reply_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax),
-    unattended_steps: z.coerce.number().int().min(0).max(AppData.BotStepLimitMax).default(0),
+    task_steps: stepLimit(),
+    reply_steps: stepLimit(),
+    unattended_steps: stepLimit().default(0),
     run_tokens: tokenLimit({
         min: AppData.RunMaxPromptTokensMin,
         max: AppData.RunMaxPromptTokensMax,
@@ -158,17 +171,19 @@ export const SaveRunLimitsRequestSchema = z.object({
         label: "Working context",
     }).default(0),
     /**
-     * Seconds a failed model rests; 0 puts the default back.
+     * Seconds a failed model rests; -1 is no limit, 0 puts the default
+     * back.
      */
     model_rest_seconds: z.coerce
         .number()
         .int()
         .refine(
             (value) =>
+                value == -1 ||
                 value == 0 ||
                 (value >= AppData.HarnessModelRestMinSeconds && value <= AppData.HarnessModelRestMaxSeconds),
             {
-                message: `Model rest must be 0 (the default) or between ${AppData.HarnessModelRestMinSeconds} and ${AppData.HarnessModelRestMaxSeconds} seconds.`,
+                message: `Model rest must be -1 (no limit), 0 (the default) or between ${AppData.HarnessModelRestMinSeconds} and ${AppData.HarnessModelRestMaxSeconds} seconds.`,
             },
         )
         .default(0),

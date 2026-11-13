@@ -1,7 +1,19 @@
 import type { CurrentRunLimits, RunUsage, RunUsageMessage } from "@/src/functions/backend/db/usage/grab-run-usage";
+import { isUnlimitedLimit, type RunLimit } from "./run-limit";
 import generalSettingsRef from "./general-settings-ref";
 
 const count = (value: number) => value.toLocaleString("en-US");
+
+/**
+ * A limit the way a person reads it: its number, "unlimited", or the
+ * phrase used when the run never recorded one.
+ */
+const limitText = ({ value, none }: { value: RunLimit | null; none: string }) => {
+    if (value === null) return none;
+    if (isUnlimitedLimit(value)) return "unlimited";
+
+    return count(value);
+};
 
 const when = (value: number | null) => (value ? new Date(value).toISOString().replace("T", " ").slice(0, 16) + " UTC" : "now");
 
@@ -9,9 +21,9 @@ const limitsLine = ({ limits }: { limits: RunUsage["limits"] }) => {
     if (!limits) return "Their calls recorded no limits (made before runs kept them).";
 
     return [
-        `The run was allowed ${limits.steps === null ? "an unrecorded number of" : count(limits.steps)} steps,`,
-        `${limits.run_tokens === null ? "an unrecorded number of" : count(limits.run_tokens)} prompt tokens in all,`,
-        `and ${limits.context_tokens === null ? "an unrecorded working context" : `${count(limits.context_tokens)} tokens of working context`} per turn.`,
+        `The run was allowed ${limitText({ value: limits.steps, none: "an unrecorded number of" })} steps,`,
+        `${limitText({ value: limits.run_tokens, none: "an unrecorded number of" })} prompt tokens in all,`,
+        `and ${limits.context_tokens === null ? "an unrecorded working context" : `${limitText({ value: limits.context_tokens, none: "an unrecorded working context" })} tokens of working context`} per turn.`,
     ].join(" ");
 };
 
@@ -26,7 +38,7 @@ const changeLimitsLine = [
 const costDriversLine = `More steps is the usual reason a run costs more than the work looks: every turn resends the prompt, the tool list and the whole transcript, so a long run grows with the square of its turns. A long session makes every reply cost more too (${generalSettingsRef({ section: "sessions", field: "max_messages" })} starts a new one sooner).`;
 
 const todayLine = ({ current }: { current: CurrentRunLimits }) =>
-    `Today's settings: ${count(current.task_steps)} steps per task, ${count(current.reply_steps)} per reply, ${count(current.unattended_steps)} per routine or hook call, ${count(current.run_tokens)} prompt tokens per run, ${count(current.context_tokens)} tokens of working context per turn.`;
+    `Today's settings: ${limitText({ value: current.task_steps, none: "an unrecorded number of" })} steps per task, ${limitText({ value: current.reply_steps, none: "an unrecorded number of" })} per reply, ${limitText({ value: current.unattended_steps, none: "an unrecorded number of" })} per routine or hook call, ${limitText({ value: current.run_tokens, none: "an unrecorded number of" })} prompt tokens per run, ${limitText({ value: current.context_tokens, none: "an unrecorded working context" })} tokens of working context per turn.`;
 
 /**
  * What one run spent, in the shape a bot reports it: what it cost, the

@@ -15,14 +15,28 @@ import {
 import { SaveRunLimitsRequestSchema } from "@/src/schemas/harness-schema";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
+import { UnlimitedLimit } from "@/src/utils/run-limit";
+import HarnessCooldowns from "@/src/harness/resolve/harness-cooldowns";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**
+ * What a sent field is saved as: the sentinel when it asks for no limit,
+ * nothing (the code's default) for zero, its number otherwise.
+ */
+const savedValue = (value: number) => (value == -1 ? UnlimitedLimit : value > 0 ? String(value) : null);
+
+/**
+ * How a sent field reads in the activity log: "unlimited", "default" or
+ * its number.
+ */
+const loggedValue = (value: number) => (value == -1 ? "unlimited" : value > 0 ? String(value) : "default");
+
+/**
  * Super admin only: how many model turns a task run, a chat reply and a
- * routine run or hook call may take, the prompt tokens one run may spend
- * the working context it keeps and how long a failed model rests. Zero puts the code's default back for
- * that one.
+ * routine run or hook call may take, the prompt tokens one run may spend,
+ * the working context it keeps and how long a failed model rests. -1 means
+ * no limit, 0 puts the code's default back for that one.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>> = async ({
     req,
@@ -40,37 +54,27 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>
             data: body,
         });
 
-        await saveAppSetting({
-            key: HarnessMaxToolStepsSettingKey,
-            value: task_steps > 0 ? String(task_steps) : null,
-        });
-        await saveAppSetting({
-            key: BotReplyMaxToolStepsSettingKey,
-            value: reply_steps > 0 ? String(reply_steps) : null,
-        });
-        await saveAppSetting({
-            key: UnattendedMaxToolStepsSettingKey,
-            value: unattended_steps > 0 ? String(unattended_steps) : null,
-        });
-        await saveAppSetting({
-            key: RunMaxPromptTokensSettingKey,
-            value: run_tokens > 0 ? String(run_tokens) : null,
-        });
-        await saveAppSetting({
-            key: HarnessContextBudgetSettingKey,
-            value: context_tokens > 0 ? String(context_tokens) : null,
-        });
+        await saveAppSetting({ key: HarnessMaxToolStepsSettingKey, value: savedValue(task_steps) });
+        await saveAppSetting({ key: BotReplyMaxToolStepsSettingKey, value: savedValue(reply_steps) });
+        await saveAppSetting({ key: UnattendedMaxToolStepsSettingKey, value: savedValue(unattended_steps) });
+        await saveAppSetting({ key: RunMaxPromptTokensSettingKey, value: savedValue(run_tokens) });
+        await saveAppSetting({ key: HarnessContextBudgetSettingKey, value: savedValue(context_tokens) });
+        await saveAppSetting({ key: HarnessModelRestSettingKey, value: savedValue(model_rest_seconds) });
 
-        await saveAppSetting({
-            key: HarnessModelRestSettingKey,
-            value: model_rest_seconds > 0 ? String(model_rest_seconds) : null,
-        });
+        /**
+         * A rest with no end lasts until this setting changes, so what was
+         * benched may be tried again now. Clearing a timed one too costs
+         * at most one failed call each.
+         */
+        HarnessCooldowns.clear();
 
         await logEvent({
             title: "Bot run limits changed",
             category: "system",
             user_id: user.id,
-            plain_text: `User #${user.id} set the tool step limits to ${task_steps || "default"} per task, ${reply_steps || "default"} per chat reply and ${unattended_steps || "default"} per routine or hook call, the tokens per run to ${run_tokens || "default"}, the working context to ${context_tokens || "default"} and the model rest to ${model_rest_seconds ? `${model_rest_seconds} seconds` : "default"}.`,
+            plain_text: `User #${user.id} set the tool step limits to ${loggedValue(task_steps)} per task, ${loggedValue(reply_steps)} per chat reply and ${loggedValue(unattended_steps)} per routine or hook call, the tokens per run to ${loggedValue(run_tokens)}, the working context to ${loggedValue(context_tokens)} and the model rest to ${
+                model_rest_seconds == -1 ? "unlimited" : model_rest_seconds > 0 ? `${model_rest_seconds} seconds` : "default"
+            }.`,
             metadata: { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds },
             ip_address: grabRequestIP(req),
         });

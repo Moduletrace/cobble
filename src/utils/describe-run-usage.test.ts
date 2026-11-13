@@ -46,6 +46,25 @@ describe("describeRunUsage", () => {
         expect(text).toContain("computer_bash 3 (1 failed)");
     });
 
+    test("says a limit is unlimited, not that it was never recorded", () => {
+        const text = describeRunUsage({
+            usage: {
+                ...usage,
+                limits: { steps: "unlimited", run_tokens: 250_000, context_tokens: "unlimited" },
+                current_limits: {
+                    task_steps: "unlimited",
+                    reply_steps: 20,
+                    unattended_steps: "unlimited",
+                    run_tokens: 250_000,
+                    context_tokens: 120_000,
+                },
+            },
+        });
+
+        expect(text).toContain("The run was allowed unlimited steps, 250,000 prompt tokens in all, and unlimited tokens of working context per turn.");
+        expect(text).toContain("Today's settings: unlimited steps per task, 20 per reply, unlimited per routine or hook call");
+    });
+
     test("a call recorded before runs kept their limits says so", () => {
         expect(describeRunUsage({ usage: { ...usage, limits: null } })).toContain("recorded no limits");
     });

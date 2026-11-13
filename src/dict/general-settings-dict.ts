@@ -129,7 +129,7 @@ export const GeneralSettingsSections: GeneralSettingsSection[] = [
     {
         key: "run-limits",
         title: "Run limits",
-        description: "How long a bot may work on one run, and how much of its work it sends the model each turn.",
+        description: "How long a bot may work on one run, how much of its work it sends the model each turn, and how long a failed model rests. Each limit can be unlimited.",
         readable_by: "everyone",
         editable_by: "super_admin",
         citable: true,

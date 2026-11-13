@@ -21,6 +21,12 @@ describe("settingValueLabel", () => {
         expect(settingValueLabel({ kind: "text", value: "Cobble HQ" })).toBe("Cobble HQ");
     });
 
+    test("a limit turned off reads as unlimited, not as unset", () => {
+        expect(settingValueLabel({ kind: "steps", value: "unlimited" })).toBe("unlimited");
+        expect(settingValueLabel({ kind: "tokens", value: "unlimited" })).toBe("unlimited");
+        expect(settingValueLabel({ kind: "seconds", value: "unlimited" })).toBe("unlimited");
+    });
+
     test("an unset or unreadable value says so instead of showing a number", () => {
         expect(settingValueLabel({ kind: "steps", value: null })).toBe("not set yet");
         expect(settingValueLabel({ kind: "tokens", value: undefined })).toBe("not set yet");

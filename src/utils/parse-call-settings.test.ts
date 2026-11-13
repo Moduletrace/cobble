@@ -33,6 +33,20 @@ describe("parseCallSettings", () => {
         ).toBeUndefined();
     });
 
+    test("keeps an unlimited run limit, rather than losing it as unreadable", () => {
+        const kept = parseCallSettings({
+            json: JSON.stringify({
+                model_source: "auto",
+                limits: { steps: "unlimited", run_tokens: 250_000, context_tokens: "unlimited" },
+            }),
+        });
+
+        expect(kept?.limits).toEqual({ steps: "unlimited", run_tokens: 250_000, context_tokens: "unlimited" });
+        expect(
+            parseCallSettings({ json: JSON.stringify({ model_source: "auto", limits: { steps: "lots" } }) })?.limits,
+        ).toEqual({ steps: null, run_tokens: null, context_tokens: null });
+    });
+
     test("is null for an older call or a broken value", () => {
         expect(parseCallSettings({ json: null })).toBeNull();
         expect(parseCallSettings({ json: "{nope" })).toBeNull();

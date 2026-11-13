@@ -40,6 +40,7 @@ import type { BotQuestionKind, BotQuestionStatus } from "../dict/bot-question-di
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
+import type { RunLimit } from "../utils/run-limit";
 import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
 import type { HookProposalAction } from "../dict/bot-hook-dict";
@@ -1312,33 +1313,33 @@ export type LogRetentionOverview = {
  */
 export type RunLimitsOverview = {
     /**
-     * The limit a task run uses right now.
+     * The limit a task run uses right now: a number, or `"unlimited"`.
      */
-    task_steps: number;
+    task_steps: RunLimit;
     /**
      * The limit a chat reply uses right now.
      */
-    reply_steps: number;
+    reply_steps: RunLimit;
     /**
      * The limit a routine run or hook call uses right now.
      */
-    unattended_steps: number;
+    unattended_steps: RunLimit;
     /**
      * The prompt tokens one run may spend right now.
      */
-    run_tokens: number;
+    run_tokens: RunLimit;
     /**
      * The working context a run keeps right now, in tokens.
      */
-    context_tokens: number;
+    context_tokens: RunLimit;
     /**
      * What each uses when the install saved nothing.
      */
-    task_default: number;
-    reply_default: number;
-    unattended_default: number;
-    run_tokens_default: number;
-    context_tokens_default: number;
+    task_default: RunLimit;
+    reply_default: RunLimit;
+    unattended_default: RunLimit;
+    run_tokens_default: RunLimit;
+    context_tokens_default: RunLimit;
     /**
      * The most steps the settings page accepts.
      */
@@ -1354,8 +1355,8 @@ export type RunLimitsOverview = {
      * How long a failed model rests right now, in seconds, its default and
      * the range the settings page accepts.
      */
-    model_rest_seconds: number;
-    model_rest_default: number;
+    model_rest_seconds: RunLimit;
+    model_rest_default: RunLimit;
     model_rest_min: number;
     model_rest_max: number;
 };
