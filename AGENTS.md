@@ -36,7 +36,7 @@ For the current UI read `src/layouts/bots/` (rail, workspace rail, user popover)
 | DB schema sync / admin UI / backup | `bun run db:schema` / `db:admin` / `db:backup` |
 | Seed super admin / sample crew | `bun run seed` (needs `SEED_SUPER_ADMIN_PASSWORD`) / `bun run seed:bots [email]` (idempotent) |
 | Query DB (read-only, JSON envelope) | `bun llm-code-assistant/query-db.ts "<sql>"` |
-| Publish a release | `bun run publish:github` / `publish:gitea`; `bun run mirror:gitea` afterwards |
+| Publish a release | `bun run publish:github` / `publish:gitea`; `bun run mirror:gitea` afterwards (`gh run watch` in between until the image build ends) |
 
 No linter or formatter. `bun run typecheck` and `bun run test` are the verification steps. Use `query-db.ts` to see what is actually in the database instead of reading ORM code.
 
@@ -241,6 +241,7 @@ Read-only browser of every volume (`src/utils/storage-volumes.ts`: bots, workspa
 - **App networks:** extra docker networks for the app's own container (never computers) are the app setting `app_extra_networks` (Settings > General, super admin, picked from the networks docker lists, `listJoinableNetworks`), joined by the app itself over the docker socket (`syncAppNetworks`) at boot, on save and every 5 minutes, so they outlast `install.sh` recreating the container; the installer's `--extra-network` still works beside it.
 - Plain HTTP only; TLS is the proxy's job. Container: `--network cobble`, `.env` read-only at `/app/.env`, docker socket, `MAIN_SERVER=1`, `--init`, `--cpus 1 --memory 2048m` by default.
 - Publishing: `scripts/publish-github.sh` / `publish-gitea.sh` sharing `scripts/lib/publish-*.sh` (tested by `scripts/publish-tools.test.ts`). A GitHub release triggers `.github/workflows/release.yml` (amd64 + arm64 to `ghcr.io/moduletrace/cobble`); `mirror-gitea.sh` copies to `git.tben.me/moduletrace/cobble` (CI can't reach the VPN). **Bump `package.json`'s `version` with a release.** CI (`ci.yml`) runs typecheck and tests. Dockerfile pins Bun 1.4.3.
+- **A release is done when every artifact exists, not when the tag is pushed.** Publishing (`publish`/`release`/`ship`, any of them) means the whole chain, run by you and watched to the end: `publish:github`, `publish:gitea`, then `gh run watch` until the image build succeeds, then `mirror:gitea` (it has nothing to copy until that build finishes). Report each artifact with its link, and say plainly (with the reason) if one fails or is still building: never hand back a tag and leave the rest as a note for the user.
 
 ## Admin routes
 
