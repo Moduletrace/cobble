@@ -1,7 +1,7 @@
 import type { MessageDetails, MessageDetailsCall, MessageDetailsFailure, MessageDetailsModel } from "@/src/types";
 import describeCallSettings from "@/src/utils/describe-call-settings";
 import formatDuration from "@/src/utils/format-duration";
-import costLabel from "./cost-label";
+import costLabel from "@/src/utils/cost-label";
 import failureSourceLabel from "./failure-source-label";
 import harnessLabel from "./harness-label";
 import messageDetailsFacts from "./message-details-facts";

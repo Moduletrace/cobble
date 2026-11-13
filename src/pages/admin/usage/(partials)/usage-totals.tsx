@@ -1,8 +1,8 @@
 import Row from "@moduletrace/twui/layout/Row";
 import type { UsageOverview } from "@/src/types";
+import UsageStat from "@/src/components/general/usage-stat";
 import formatTokens from "@/src/utils/format-tokens";
 import { UsageHarnessTitles } from "../(data)/usage-harness-titles";
-import UsageStat from "./usage-stat";
 
 type Props = {
     usage: UsageOverview;

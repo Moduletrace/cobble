@@ -6,8 +6,7 @@ import SettingsShell from "@/src/pages/admin/settings/(partials)/settings-shell"
 import ChatroomRetryButton from "@/src/components/general/chatroom-retry-button";
 import { CrewBotsContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-bots-context";
 import { CrewWorkspacesContext } from "@/src/pages/admin/bots/[bot_id]/(data)/crew-workspaces-context";
-import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
-import type { ChatroomSummary } from "@/src/types";
+import type { BotMessageWithAttachments, ChatroomSummary } from "@/src/types";
 import chatroomStatusLine from "@/src/utils/chatroom-status-line";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import useLiveChatroom from "../(hooks)/use-live-chatroom";
@@ -15,17 +14,19 @@ import ChatroomBotsRow from "../(partials)/chatroom-bots-row";
 import ChatroomMessageRow from "../(partials)/chatroom-message-row";
 import ChatroomOutcome from "../(partials)/chatroom-outcome";
 import ChatroomStopButton from "../(partials)/chatroom-stop-button";
+import ChatroomUsageSummary from "../(partials)/chatroom-usage-summary";
 import ChatroomStatus from "./chatroom-status";
 
 type Props = {
     chatroom: ChatroomSummary;
-    messages: BUN_SQLITE_COBBLE_BOT_MESSAGES[];
+    messages: BotMessageWithAttachments[];
 };
 
 /**
- * The open room, live: who is in it and their part, the thread and the
- * outcome, where each bot stands while it's open, with Stop for anyone who
- * can do more than read, and Try again once it failed or was stopped.
+ * The open room, live: who is in it and their part, what everything there
+ * spent, the thread and the outcome, where each bot stands while it's open,
+ * with Stop for anyone who can do more than read, and Try again once it
+ * failed or was stopped.
  */
 export default function ChatroomBody({ chatroom, messages }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -64,12 +65,14 @@ export default function ChatroomBody({ chatroom, messages }: Props) {
                             />
                         ))}
                     </Row>
+                    <ChatroomUsageSummary usage={room.usage} />
                     <Stack className="w-full gap-6! items-stretch py-2">
                         {thread.map((message) => (
                             <ChatroomMessageRow
                                 key={message.id}
                                 message={message}
                                 bot={bots.get(Number(message.bot_id)) || null}
+                                chatroom_id={Number(room.id)}
                             />
                         ))}
                         <ChatroomOutcome chatroom={room} />

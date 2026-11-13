@@ -17,16 +17,22 @@ type Props = {
      * passed along to the copied report.
      */
     tool_log?: string | null;
+    /**
+     * Set when the message was posted in a chatroom, so its details are read
+     * from the room's route.
+     */
+    chatroom_id?: number;
 };
 
 /**
- * The info button under a bot message, and the modal it opens: which
- * provider and model generated it, the run behind it, what its tools did,
- * and every model call with its tokens and cost. Loaded when it opens.
+ * The info button under a bot message (in a conversation or a chatroom),
+ * and the modal it opens: which provider and model generated it, the run
+ * behind it, what its tools did, and every model call with its tokens and
+ * cost. Loaded when it opens.
  */
-export default function MessageDetailsModal({ message_id, tool_log }: Props) {
+export default function MessageDetailsModal({ message_id, tool_log, chatroom_id }: Props) {
     const [open, set_open] = useState(false);
-    const { details, loading, error } = useMessageDetails({ message_id, enabled: open });
+    const { details, loading, error } = useMessageDetails({ message_id, enabled: open, chatroom_id });
 
     return (
         <Modal
@@ -43,7 +49,7 @@ export default function MessageDetailsModal({ message_id, tool_log }: Props) {
             <Stack className="w-full gap-1! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
                     <H2 className="grow text-lg! leading-6! tracking-normal! font-bold text-ink">Message details</H2>
-                    <CopyMessageDetailsButton message_id={message_id} />
+                    <CopyMessageDetailsButton message_id={message_id} chatroom_id={chatroom_id} />
                 </Row>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     How this answer was generated: the provider and model behind it, the settings they were called with, and what it spent.

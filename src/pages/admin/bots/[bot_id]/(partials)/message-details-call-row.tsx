@@ -4,7 +4,7 @@ import type { MessageDetailsCall } from "@/src/types";
 import describeCallSettings from "@/src/utils/describe-call-settings";
 import formatDuration from "@/src/utils/format-duration";
 import formatTokens from "@/src/utils/format-tokens";
-import costLabel from "../(utils)/cost-label";
+import costLabel from "@/src/utils/cost-label";
 import harnessLabel from "../(utils)/harness-label";
 
 type Props = {

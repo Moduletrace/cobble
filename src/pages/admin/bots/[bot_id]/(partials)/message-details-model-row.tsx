@@ -4,7 +4,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type { MessageDetailsModel } from "@/src/types";
 import describeCallSettings from "@/src/utils/describe-call-settings";
 import formatTokens from "@/src/utils/format-tokens";
-import costLabel from "../(utils)/cost-label";
+import costLabel from "@/src/utils/cost-label";
 import harnessLabel from "../(utils)/harness-label";
 import providerLabel from "../(utils)/provider-label";
 import MessageDetailsSetting from "./message-details-setting";

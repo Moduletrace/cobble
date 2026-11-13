@@ -29,7 +29,7 @@ export default async function relayChangedChatrooms({ since, users }: Params) {
 
     const mine = rooms.filter((room) => room.user_id && users.has(String(room.user_id)));
 
-    for (const summary of await chatroomSummaries({ chatrooms: mine })) {
+    for (const summary of await chatroomSummaries({ chatrooms: mine, with_usage: true })) {
         sendToUser({ user_id: summary.user_id!, data: { event: "server:chatroom-updated", data: summary } });
     }
 }

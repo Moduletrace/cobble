@@ -1,11 +1,10 @@
 import { useState } from "react";
-import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import useServerEvent from "@/src/hooks/use-server-event";
-import type { ChatroomMessageData, ChatroomSummary } from "@/src/types";
+import type { BotMessageWithAttachments, ChatroomMessageData, ChatroomSummary } from "@/src/types";
 
 type Params = {
     chatroom: ChatroomSummary;
-    messages: BUN_SQLITE_COBBLE_BOT_MESSAGES[];
+    messages: BotMessageWithAttachments[];
 };
 
 /**

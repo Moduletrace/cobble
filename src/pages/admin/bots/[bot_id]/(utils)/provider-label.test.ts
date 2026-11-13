@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import costLabel from "./cost-label";
+import costLabel from "@/src/utils/cost-label";
 import providerLabel from "./provider-label";
 
 describe("providerLabel", () => {

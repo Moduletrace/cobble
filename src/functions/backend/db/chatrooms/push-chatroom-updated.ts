@@ -9,7 +9,8 @@ type Params = {
 
 /**
  * Pushes a room as it is now (`server:chatroom-updated`) to its user's
- * open tabs, for the rail and the room's header. Best effort.
+ * open tabs, for the rail and the room's header, what its bots spent
+ * included, for the totals at its top. Best effort.
  */
 export default async function pushChatroomUpdated({ chatroom_id }: Params) {
     try {
@@ -17,7 +18,7 @@ export default async function pushChatroomUpdated({ chatroom_id }: Params) {
 
         if (!room?.id || !room.user_id) return;
 
-        const [summary] = await chatroomSummaries({ chatrooms: [room] });
+        const [summary] = await chatroomSummaries({ chatrooms: [room], with_usage: true });
 
         if (summary) {
             sendToUser({ user_id: room.user_id, data: { event: "server:chatroom-updated", data: summary } });

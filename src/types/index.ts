@@ -438,14 +438,47 @@ export type ChatroomSummary = BUN_SQLITE_COBBLE_CHATROOMS & {
      * The workspace the request came from, by name.
      */
     workspace_name?: string | null;
+    /**
+     * What the room's bots spent while working in it, summed. Only asked
+     * for the room itself (and its live pushes), never for a list.
+     */
+    usage?: ChatroomUsage;
 };
 
 /**
- * `server:chatroom-message` data: a message one of the room's bots posted.
+ * What one bot's work in a chatroom spent: every model call it made there,
+ * a call of a turn still running included.
+ */
+export type ChatroomUsageBot = TokenUsageSummary & {
+    bot_id: number;
+    /**
+     * Its name while it exists, like the messages it posted.
+     */
+    name: string | null;
+};
+
+/**
+ * What everything in a chatroom cost: every model call its bots made there
+ * (a turn still running included), the calls that failed, and the same
+ * split by bot. This is what the totals at the top of a room show.
+ */
+export type ChatroomUsage = {
+    totals: TokenUsageSummary;
+    /**
+     * How many model calls failed there; they spent nothing, so they aren't
+     * in `totals`.
+     */
+    failed_calls: number;
+    by_bot: ChatroomUsageBot[];
+};
+
+/**
+ * `server:chatroom-message` data: a message one of the room's bots posted,
+ * with what it cost.
  */
 export type ChatroomMessageData = {
     chatroom_id: number;
-    message: BUN_SQLITE_COBBLE_BOT_MESSAGES;
+    message: BotMessageWithAttachments;
 };
 
 /**
@@ -2233,7 +2266,7 @@ export type PagePropsType = {
      * message in it.
      */
     chatroom?: ChatroomSummary | null;
-    chatroom_messages?: BUN_SQLITE_COBBLE_BOT_MESSAGES[] | null;
+    chatroom_messages?: BotMessageWithAttachments[] | null;
     /**
      * The user's chatrooms (`/admin/chatrooms`).
      */

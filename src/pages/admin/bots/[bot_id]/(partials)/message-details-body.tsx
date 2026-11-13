@@ -3,7 +3,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type { MessageDetails } from "@/src/types";
 import formatTokens from "@/src/utils/format-tokens";
 import relativeTime from "@/src/utils/relative-time";
-import costLabel from "../(utils)/cost-label";
+import costLabel from "@/src/utils/cost-label";
 import messageDetailsFacts from "../(utils)/message-details-facts";
 import MessageDetailRow from "./message-detail-row";
 import MessageDetailsCallRow from "./message-details-call-row";
