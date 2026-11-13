@@ -878,6 +878,16 @@ export const AppData = {
      */
     BotStepLimitMax: 1000,
     /**
+     * The least steps a task run needs before it plans first (`planBotTask`):
+     * a shorter run's own first turn already is its plan. How long a plan
+     * may be is capped here too, since a model writes it. A plan is an
+     * economy, never a gate: a run whose plan can't be written just starts.
+     */
+    BotTaskPlanMinSteps: 10,
+    BotTaskPlanMaxSteps: 12,
+    BotTaskPlanMaxGather: 8,
+    BotTaskPlanTextMaxChars: 400,
+    /**
      * Chat attachments: per file, per message, and how much of a
      * document's text a reply reads.
      */

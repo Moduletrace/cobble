@@ -309,6 +309,51 @@ export const TaskRedraftNote = `Your report above was not sent: the user wrote i
 export const TaskWrapUpIncomingNote = `The user wrote in this conversation before you finished (below), and this run has no steps left to act on it. If it changes, corrects or adds to this task, say in your report what it changes and what is still to redo because of it; never report a result it overruled as it stands.`;
 
 /**
+ * The one turn a task run plans in before its first step (`planBotTask`).
+ * It is a user turn, not part of the system prompt, so the prompt the run's
+ * own turns send is the same one this call already cached.
+ */
+export const TaskPlanPrompt = `Before you start, plan this run in one turn, so you spend its steps doing the work instead of finding out what the work is.
+
+Answer with a JSON object only, no markdown fence and no other text:
+{"goal": "...", "gather": ["..."], "steps": ["..."], "done": "..."}
+
+- goal: what finishing this run gives the user, in one sentence.
+- gather: everything whose content you will need, each once, named as exactly as you can (a path, a URL, a command). A file you will edit is read first, a folder you will save into is listed first, and a fact you need twice is looked up once.
+- steps: the work in order, the shortest way that finishes it. Fold each check into the step it belongs to: no step that only verifies a previous one, and nothing you would do the same way twice.
+- done: how you will know it is finished, from what you can see for yourself.
+
+The plan is for you, and it replaces finding out as you go: anything it says to gather is gathered once and reused, never re-read or re-run to see it again.`;
+
+/**
+ * The plan a task run wrote before its first step, given back to it as the
+ * turn it works from. It stays advice, not an order: what a step turns up
+ * can change the rest, and the run says so in its report.
+ */
+export const taskPlanNote = ({
+    plan,
+}: {
+    plan: { goal: string; gather: string[]; steps: string[]; done: string };
+}) =>
+    `# Your plan
+
+You wrote this before starting, and this run works from it now. Steps count, so follow it: gather once what it says to gather, and reuse what you already have instead of calling the same tool again for it. When a step turns up something that changes the rest, change the plan and carry on; don't repeat a step that is done.
+
+Goal: ${plan.goal}
+
+${plan.gather.length ? `Gather first, once each:\n${plan.gather.map((item) => `- ${item}`).join("\n")}\n\n` : ""}Steps:
+${plan.steps.map((step, index) => `${index + 1}. ${step}`).join("\n")}${plan.done ? `\n\nDone when: ${plan.done}` : ""}`;
+
+/**
+ * What a run gets back instead of a second identical read: the answer is
+ * already in its transcript, and paying for it again buys nothing. Only
+ * reads reach this (`RepeatableToolNames`), and any run write clears what
+ * was remembered, so "nothing has changed" holds.
+ */
+export const alreadyRanToolNote = ({ name, step }: { name: string; step: number }) =>
+    `You already called ${name} with these exact arguments on step ${step + 1} of this run, and nothing has changed since. Its output is above: use that instead of calling it again.`;
+
+/**
  * Added to a chat reply while the bot has runs open in this conversation
  * that take in what the user writes here: a correction to one reaches it,
  * so the reply never starts another run for it. Empty with none.

@@ -1,7 +1,9 @@
 import { AppData } from "@/src/data/app-data";
+import { alreadyRanToolNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import loadToolsTool from "../tools/load-tools-tool";
+import repeatToolCallKey from "../tools/repeat-tool-call-key";
 import runToolCall from "../tools/run-tool-call";
 import toolDefinition from "../tools/tool-definition";
 import type {
@@ -303,6 +305,14 @@ export default async function runTextLoop({
     };
     const tool_uses: HarnessToolUse[] = [];
     /**
+     * The reads this run already made, by the call they answer
+     * (`repeatToolCallKey`) and the step it was. A read repeated word for
+     * word gets this answer instead of being run again, and anything that
+     * may have written forgets them: a file read once, then edited, is
+     * read again.
+     */
+    const repeated_reads = new Map<string, number>();
+    /**
      * The tools a wrap up may still call: what saves the work, and
      * `start_task` for the work it can't finish. A run that spent every
      * step measuring can then still write the report the user is waiting
@@ -468,7 +478,13 @@ export default async function runTextLoop({
         const shown: { tool_name: string; images: HarnessToolImage[] }[] = [];
 
         for (const call of tool_calls) {
-            const { text: content, images } = await runToolCall({ call, tools: run_tools, signal });
+            const repeat_key = repeatToolCallKey({ call });
+            const already_read = repeat_key ? repeated_reads.get(repeat_key) : undefined;
+
+            const { text: content, images } =
+                already_read !== undefined
+                    ? { text: alreadyRanToolNote({ name: call.name, step: already_read }), images: [] }
+                    : await runToolCall({ call, tools: run_tools, signal });
 
             /**
              * A deferred tool called without loading it ran all the same;
@@ -479,6 +495,14 @@ export default async function runTextLoop({
             }
 
             tool_uses.push({ name: call.name, ok: !content.startsWith("Error:") });
+
+            if (!repeat_key) {
+                repeated_reads.clear();
+            } else if (already_read === undefined) {
+                if (content.startsWith("Error:")) repeated_reads.delete(repeat_key);
+                else repeated_reads.set(repeat_key, index);
+            }
+
             transcript.push({ role: "tool", tool_call_id: call.id, content });
 
             if (images.length) shown.push({ tool_name: call.name, images });

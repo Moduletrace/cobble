@@ -23,6 +23,7 @@ import {
     TaskIncomingNote,
     TaskRedraftNote,
     TaskWrapUpIncomingNote,
+    taskPlanNote,
 } from "@/src/data/harness-prompts";
 import {
     grabContextBudgetTokens,
@@ -66,6 +67,8 @@ import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import taskIncoming from "./task-incoming";
+import planBotTask from "./plan-bot-task";
+import shouldPlanBotTask from "./should-plan-bot-task";
 import pushUserTurn from "@/src/harness/text/push-user-turn";
 import type { HarnessMessage } from "@/src/harness/types";
 
@@ -401,62 +404,91 @@ export default async function runBotTask({
             }
         }
 
+        const system = [
+            prompt,
+            carry_over,
+            TaskRunNote,
+            `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: pace yourself, save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`,
+            scheduled ? ScheduledRunNote : "",
+            hooked ? HookRunNote : "",
+            install_request_id ? InstallRequestNote : "",
+            botFilesNote({ bot_id: bot.id }),
+            ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
+            TasksNote,
+            ActionCheckNote,
+            RequestScopeNote({ can_ask }),
+            can_ask ? QuestionsNote : "",
+            SecretsNote,
+            GraphicsNote,
+            workspace_id ? WorkspaceLearningNote : "",
+            powers.is_coordinator
+                ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`
+                : admin_tools.some((tool) => tool.name == "update_workspace")
+                  ? `If this brief asked you to record something in this workspace's context, do it yourself with update_workspace before you report: the report alone changes nothing.`
+                  : "",
+            powers.is_coordinator || powers.is_workspace_admin
+                ? ""
+                : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
+            powers.is_coordinator || hooked ? "" : AskCrewNote,
+            powers.is_coordinator || hooked || params.chatroom_id
+                ? ""
+                : crewRequestsNote({ requests: await grabCrewRequests({ user_id, bot_id: bot.id, workspace_id }) }),
+            computer && computer_shared
+                ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files and code runners) while another run uses it, so you have its shell and files but not its browser. If the answer needs the browser, say so in your report instead of waiting.`
+                : computer
+                ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything.${hooked ? "" : " When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over."}`
+                : workspace_id
+                  ? `You have no computer for this task: this workspace has none. If the task needs one, stop and say so in the report; the user can add a computer to the workspace.`
+                  : `You have no computer for this task.`,
+            computers.length > 1
+                ? `search_computers runs a read-only command on every computer you have. When you name one in the report, write its ref, e.g. ${computerRef({ id: computers[0]!.id || 0 })}: the user can click it to switch you to that computer.`
+                : "",
+            computer?.envs.length
+                ? `Environment variables set on this computer (use them by name, e.g. $KEY; never print their values):\n${computer.envs
+                      .map((env) => `- ${env.key}${env.description ? `: ${env.description}` : ""}`)
+                      .join("\n")}`
+                : "",
+            composeBrowsersNote({
+                browsers: browsers.browsers,
+                has_computer_browser: Boolean(computer),
+                run_kind: browser_run_kind,
+            }),
+            skills.note,
+            knowledge.note,
+            extensions.note,
+        ]
+            .filter(Boolean)
+            .join("\n\n");
+
+        /*
+         * The plan this run works from, written in one turn before it takes
+         * a step (`planBotTask`). It shares this run's prompt, so it costs
+         * little more than the plan, and it saves the steps a long run
+         * spends finding out what it is doing. A run whose plan can't be
+         * written starts the way it always did.
+         */
+        const planned = shouldPlanBotTask({ max_steps, in_chatroom: Boolean(params.chatroom_id) })
+            ? await planBotTask({ system, messages: opening, signal, bot_id: bot.id, workspace_id }).catch(
+                  (error) => {
+                      if (signal.aborted) throw error;
+
+                      return null;
+                  },
+              )
+            : null;
+
+        if (planned) {
+            pushUserTurn({ transcript: opening, content: taskPlanNote({ plan: planned.plan }) });
+            await report({
+                index: -1,
+                text: `Plan: ${planned.plan.goal}`,
+                tool_calls: [],
+                candidate: planned.candidate,
+            });
+        }
+
         const result = await runTextLoop({
-            system: [
-                prompt,
-                carry_over,
-                TaskRunNote,
-                `This run has at most ${max_steps} steps (model turns)${budget > 0 ? ", set when it was queued" : ""}. Plan for that: pace yourself, save what you find as you go, and if you're no closer after a few tries, stop and report what you tried and what you need from the user rather than spending the rest.`,
-                scheduled ? ScheduledRunNote : "",
-                hooked ? HookRunNote : "",
-                install_request_id ? InstallRequestNote : "",
-                botFilesNote({ bot_id: bot.id }),
-                ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
-                TasksNote,
-                ActionCheckNote,
-                RequestScopeNote({ can_ask }),
-                can_ask ? QuestionsNote : "",
-                SecretsNote,
-                GraphicsNote,
-                workspace_id ? WorkspaceLearningNote : "",
-                powers.is_coordinator
-                    ? `If this brief asked you to record something in a workspace (its context, or a new one), do it yourself with update_workspace or create_workspace before you report: the report alone changes nothing.`
-                    : admin_tools.some((tool) => tool.name == "update_workspace")
-                      ? `If this brief asked you to record something in this workspace's context, do it yourself with update_workspace before you report: the report alone changes nothing.`
-                      : "",
-                powers.is_coordinator || powers.is_workspace_admin
-                    ? ""
-                    : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
-                powers.is_coordinator || hooked ? "" : AskCrewNote,
-                powers.is_coordinator || hooked || params.chatroom_id
-                    ? ""
-                    : crewRequestsNote({ requests: await grabCrewRequests({ user_id, bot_id: bot.id, workspace_id }) }),
-                computer && computer_shared
-                    ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files and code runners) while another run uses it, so you have its shell and files but not its browser. If the answer needs the browser, say so in your report instead of waiting.`
-                    : computer
-                    ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything.${hooked ? "" : " When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over."}`
-                    : workspace_id
-                      ? `You have no computer for this task: this workspace has none. If the task needs one, stop and say so in the report; the user can add a computer to the workspace.`
-                      : `You have no computer for this task.`,
-                computers.length > 1
-                    ? `search_computers runs a read-only command on every computer you have. When you name one in the report, write its ref, e.g. ${computerRef({ id: computers[0]!.id || 0 })}: the user can click it to switch you to that computer.`
-                    : "",
-                computer?.envs.length
-                    ? `Environment variables set on this computer (use them by name, e.g. $KEY; never print their values):\n${computer.envs
-                          .map((env) => `- ${env.key}${env.description ? `: ${env.description}` : ""}`)
-                          .join("\n")}`
-                    : "",
-                composeBrowsersNote({
-                    browsers: browsers.browsers,
-                    has_computer_browser: Boolean(computer),
-                    run_kind: browser_run_kind,
-                }),
-                skills.note,
-                knowledge.note,
-                extensions.note,
-            ]
-                .filter(Boolean)
-                .join("\n\n"),
+            system,
             messages: opening,
             tools: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools, ...knowledge.tools],
             max_steps,

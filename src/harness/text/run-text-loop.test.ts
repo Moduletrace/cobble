@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
-import { DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { GenerateTextParams, GenerateTextResult } from "./generate-text";
@@ -814,5 +814,146 @@ describe("runTextLoop", () => {
 
         expect(seen[0]!.tools!.map((tool) => tool.name)).toEqual(["remember", "srv__small"]);
         expect(String(seen[0]!.messages[0]!.content)).not.toContain("Tools you can load");
+    });
+});
+
+describe("runTextLoop repeated reads", () => {
+    const readCall = ({ id, path }: { id: string; path: string }) => ({
+        id,
+        name: "read_file",
+        arguments: JSON.stringify({ path }),
+    });
+
+    /**
+     * A read that counts how often it actually ran, and a write that only
+     * exists to change what a read would say.
+     */
+    const makeTools = () => {
+        const counts = { reads: 0, writes: 0 };
+        const read: HarnessTool<{ path: string }> = {
+            name: "read_file",
+            description: "Reads a file.",
+            schema: z.object({ path: z.string() }),
+            run: async ({ args }) => {
+                counts.reads++;
+
+                return `contents of ${args.path} (read ${counts.reads})`;
+            },
+        };
+        const write: HarnessTool<{ path: string }> = {
+            name: "write_file",
+            description: "Writes a file.",
+            schema: z.object({ path: z.string() }),
+            run: async () => {
+                counts.writes++;
+
+                return "Saved.";
+            },
+        };
+
+        return { tools: [read, write], counts };
+    };
+
+    test("answers a read repeated word for word from the first", async () => {
+        const { tools, counts } = makeTools();
+        const { generate, seen } = scripted([
+            { text: null, tool_calls: [readCall({ id: "c1", path: "a.md" })] },
+            { text: null, tool_calls: [readCall({ id: "c2", path: "a.md" })] },
+            { text: "Done.", tool_calls: [] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Read a.md twice." }],
+            tools,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(counts.reads).toBe(1);
+        expect(result.tool_uses.map((use) => use.ok)).toEqual([true, true]);
+
+        const results = seen[2]!.messages.filter((message) => message.role == "tool");
+
+        expect(results.map((message) => message.role == "tool" && message.content)).toEqual([
+            "contents of a.md (read 1)",
+            alreadyRanToolNote({ name: "read_file", step: 0 }),
+        ]);
+    });
+
+    test("reads again after something may have written", async () => {
+        const { tools, counts } = makeTools();
+        const { generate, seen } = scripted([
+            { text: null, tool_calls: [readCall({ id: "c1", path: "a.md" })] },
+            { text: null, tool_calls: [{ id: "c2", name: "write_file", arguments: `{"path":"a.md"}` }] },
+            { text: null, tool_calls: [readCall({ id: "c3", path: "a.md" })] },
+            { text: "Done.", tool_calls: [] },
+        ]);
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Update a.md." }],
+            tools,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(counts.reads).toBe(2);
+        expect(counts.writes).toBe(1);
+
+        const results = seen[3]!.messages.filter((message) => message.role == "tool");
+
+        expect(results.map((message) => message.role == "tool" && message.content)).toEqual([
+            "contents of a.md (read 1)",
+            "Saved.",
+            "contents of a.md (read 2)",
+        ]);
+    });
+
+    test("reads a different file on its own", async () => {
+        const { tools, counts } = makeTools();
+        const { generate } = scripted([
+            { text: null, tool_calls: [readCall({ id: "c1", path: "a.md" }), readCall({ id: "c2", path: "b.md" })] },
+            { text: "Done.", tool_calls: [] },
+        ]);
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Read both." }],
+            tools,
+            generate,
+            resolveCandidates,
+        });
+
+        expect(counts.reads).toBe(2);
+    });
+
+    test("keeps its own answers apart from other runs", async () => {
+        const { tools, counts } = makeTools();
+        const turns = [
+            { text: null, tool_calls: [readCall({ id: "c1", path: "a.md" })] },
+            { text: "Done.", tool_calls: [] },
+        ];
+        const first = scripted(turns);
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Read a.md." }],
+            tools,
+            generate: first.generate,
+            resolveCandidates,
+        });
+
+        const second = scripted(turns);
+
+        await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Read a.md." }],
+            tools,
+            generate: second.generate,
+            resolveCandidates,
+        });
+
+        expect(counts.reads).toBe(2);
     });
 });
