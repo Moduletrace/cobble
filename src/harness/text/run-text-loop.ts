@@ -1,7 +1,14 @@
 import { AppData } from "@/src/data/app-data";
-import { alreadyRanToolNote, commitEarlyNote, failedToolCallNote, tokensLowNote } from "@/src/data/harness-prompts";
+import {
+    alreadyRanToolNote,
+    answerNotSentNote,
+    commitEarlyNote,
+    failedToolCallNote,
+    tokensLowNote,
+} from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
 import HarnessError from "../harness-error";
+import isClosingTool from "../tools/closing-tool-names";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import loadToolsTool from "../tools/load-tools-tool";
 import repeatToolCallKey, { toolCallKey } from "../tools/repeat-tool-call-key";
@@ -370,6 +377,11 @@ export default async function runTextLoop({
     const warn_at = isUnlimitedLimit(max_steps) ? 0 : stepsLowWarningLeft({ max_steps });
     let prefer_key: string | undefined;
     let reviewed = false;
+    /**
+     * A run that wrote a message and then called a tool has been told, once,
+     * that the message never went out (`answerNotSentNote`).
+     */
+    let told_answer_lost = false;
     let warned_steps = isUnlimitedLimit(max_steps) || max_steps < AppData.HarnessStepsLowMinSteps;
     /**
      * The prompt tokens past which the run is told to land the work
@@ -676,6 +688,40 @@ export default async function runTextLoop({
         }
 
         /**
+         * An answer that ends on a card is the whole reply: the question
+         * waits for the user, and what comes next was just offered. Going on
+         * would send the next turn's short line in its place, since the reply
+         * is only the run's last message (`ClosingToolNames`).
+         */
+        if (answer.text && tool_calls.every((call) => isClosingTool({ name: call.name }))) {
+            /**
+             * Checked before it goes out, as any reply is: a note comes
+             * back and the answer is written again (the card stays on the
+             * reply, its ref is already recorded).
+             */
+            if (review && !reviewed) {
+                reviewed = true;
+
+                const note = await review({ text: answer.text, tool_uses }).catch(() => null);
+
+                if (note) {
+                    await traced({ kind: "event", index, name: "review", text: note });
+                    pushUserTurn({ transcript, content: note });
+                    continue;
+                }
+            }
+
+            return {
+                text: answer.text,
+                messages: transcript,
+                steps: index + 1,
+                candidate: answer.candidate,
+                usage,
+                tool_uses,
+            };
+        }
+
+        /**
          * Screenshots and other tool images follow the results in a user
          * turn. A model that sees gets them as they are when the text
          * setting allows it (`textSeesImages`); otherwise `generateText`
@@ -693,6 +739,19 @@ export default async function runTextLoop({
         }
 
         await takeIncoming({ note: incoming_notes?.working || IncomingMessagesNote, index });
+
+        /**
+         * The run wrote for the user and then carried on: that message never
+         * goes out, and a run that doesn't know it ends with the tail of an
+         * answer it already wrote. Told once, with the message still in the
+         * transcript to write again.
+         */
+        if (!told_answer_lost && answer.text) {
+            told_answer_lost = true;
+
+            pushUserTurn({ transcript, content: answerNotSentNote });
+            await traced({ kind: "event", index, name: "answer_not_sent", text: answerNotSentNote });
+        }
 
         /**
          * What this turn spent: past the budget, the wrap up says it better

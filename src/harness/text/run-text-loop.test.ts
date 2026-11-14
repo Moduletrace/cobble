@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -35,6 +35,30 @@ const remember: HarnessTool<{ note: string }> = {
     run: async ({ args }) => {
         memory.push(args.note);
         return "Saved.";
+    },
+};
+
+const asked: string[] = [];
+
+const askUser: HarnessTool<{ question: string }> = {
+    name: "ask_user",
+    description: "Asks the user.",
+    schema: z.object({ question: z.string() }),
+    run: async ({ args }) => {
+        asked.push(args.question);
+        return "Asked. The card is under the user's message.";
+    },
+};
+
+const suggested: string[] = [];
+
+const suggestNextSteps: HarnessTool<{ steps: string[] }> = {
+    name: "suggest_next_steps",
+    description: "Offers the next steps as buttons.",
+    schema: z.object({ steps: z.array(z.string()) }),
+    run: async ({ args }) => {
+        suggested.push(...args.steps);
+        return "Suggested. The buttons are under your message.";
     },
 };
 
@@ -160,7 +184,7 @@ describe("runTextLoop", () => {
         });
         expect(seen[0]!.tools?.[0]?.name).toBe("remember");
         expect(seen[1]!.prefer_key).toBe("1:m");
-        expect(seen[1]!.messages.slice(-2)).toEqual([
+        expect(seen[1]!.messages.slice(-3)).toEqual([
             {
                 role: "assistant",
                 content: "Noting that.",
@@ -169,6 +193,7 @@ describe("runTextLoop", () => {
                 ],
             },
             { role: "tool", tool_call_id: "c1", content: "Saved." },
+            { role: "user", content: answerNotSentNote },
         ]);
     });
 
@@ -1050,7 +1075,7 @@ describe("runTextLoop trace", () => {
         });
 
         expect(result.text).toBe("I'll remember you like tea.");
-        expect(traces.map((entry) => entry.kind)).toEqual(["turn", "tool", "turn"]);
+        expect(traces.map((entry) => entry.kind)).toEqual(["turn", "tool", "event", "turn"]);
         expect(traces[0]).toMatchObject({
             kind: "turn",
             index: 0,
@@ -1074,6 +1099,12 @@ describe("runTextLoop trace", () => {
         });
         expect((traces[1] as { duration_ms: number }).duration_ms).toBeGreaterThanOrEqual(0);
         expect(traces[2]).toMatchObject({
+            kind: "event",
+            index: 0,
+            name: "answer_not_sent",
+            text: answerNotSentNote,
+        });
+        expect(traces[3]).toMatchObject({
             kind: "turn",
             index: 1,
             text: "I'll remember you like tea.",
@@ -1265,5 +1296,161 @@ describe("runTextLoop commit early", () => {
 
         expect(committed({ turn: 1, seen })).toBe(0);
         expect(committed({ turn: 3, seen })).toBe(0);
+    });
+});
+
+describe("runTextLoop closing tools", () => {
+    test("ends the run on the turn that answers and asks the user", async () => {
+        asked.length = 0;
+        const { generate, seen } = scripted([
+            {
+                text: "Eight articles are left: five in batch 2 and three in batch 3.",
+                tool_calls: [
+                    { id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` },
+                ],
+            },
+            { text: "Still waiting on your answer." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "How many articles are left?" }],
+            tools: [askUser, remember],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(result.text).toBe("Eight articles are left: five in batch 2 and three in batch 3.");
+        expect(result.steps).toBe(1);
+        expect(seen.length).toBe(1);
+        expect(asked).toEqual(["Which date rule?"]);
+    });
+
+    test("ends the run on the turn that answers and offers what's next", async () => {
+        suggested.length = 0;
+        const { generate, seen } = scripted([
+            {
+                text: "PR #4: https://git.tben.me/Summit-Lending/main-site/pulls/4",
+                tool_calls: [
+                    { id: "s1", name: "suggest_next_steps", arguments: `{"steps":["Commit task 50"]}` },
+                ],
+            },
+            { text: "Still open on my list: task 44, task 50." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Send me the PR links." }],
+            tools: [suggestNextSteps, remember],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(result.text).toBe("PR #4: https://git.tben.me/Summit-Lending/main-site/pulls/4");
+        expect(result.steps).toBe(1);
+        expect(seen.length).toBe(1);
+        expect(suggested).toEqual(["Commit task 50"]);
+    });
+
+    test("checks the answer before it goes out, and writes it again when the review sends it back", async () => {
+        const { generate, seen } = scripted([
+            {
+                text: "Done: [file:99] has all of it.",
+                tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":"Next?"}` }],
+            },
+            {
+                text: "Done: [file:12] has all of it.",
+                tool_calls: [{ id: "q2", name: "ask_user", arguments: `{"question":"Next?"}` }],
+            },
+        ]);
+        const notes = ["You named [file:99], which isn't there for the user."];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "File it." }],
+            tools: [askUser],
+            generate,
+            resolveCandidates,
+            review: async () => notes.shift() || null,
+        });
+
+        expect(result.text).toBe("Done: [file:12] has all of it.");
+        expect(result.steps).toBe(2);
+        expect(seen[1]!.messages.at(-1)).toEqual({
+            role: "user",
+            content: "You named [file:99], which isn't there for the user.",
+        });
+    });
+
+    test("keeps going when the card comes with real work", async () => {
+        asked.length = 0;
+        const { generate } = scripted([
+            {
+                text: "Saved your preference and put the question up.",
+                tool_calls: [
+                    { id: "c1", name: "remember", arguments: `{"note":"links"}` },
+                    { id: "q1", name: "ask_user", arguments: `{"question":"Which repo?"}` },
+                ],
+            },
+            { text: "Noted. The question is under this message." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Always send me the links." }],
+            tools: [askUser, remember],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(result.text).toBe("Noted. The question is under this message.");
+        expect(result.steps).toBe(2);
+    });
+});
+
+describe("runTextLoop answer not sent", () => {
+    test("says once that a message written before a tool call never went out", async () => {
+        const { generate, seen } = scripted([
+            {
+                text: "Here are the links.",
+                tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"tea"}` }],
+            },
+            {
+                text: "And the rest.",
+                tool_calls: [{ id: "c2", name: "remember", arguments: `{"note":"coffee"}` }],
+            },
+            { text: "Here are the links. And the rest." },
+        ]);
+
+        const told = ({ turn }: { turn: number }) =>
+            seen[turn]!.messages.filter((message) => message.content == answerNotSentNote).length;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(result.text).toBe("Here are the links. And the rest.");
+        expect(told({ turn: 1 })).toBe(1);
+        expect(told({ turn: 2 })).toBe(1);
+    });
+
+    test("says nothing when the turn made no tool call", async () => {
+        const { generate, seen } = scripted([
+            { text: "The answer.", tool_calls: [] },
+        ]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen.length).toBe(1);
     });
 });

@@ -72,7 +72,9 @@ You are chatting with the user. Answer their latest messages directly and briefl
 
 ## Keep the work moving
 
-Be proactive. Follow where the conversation is heading and, once you've answered, offer the next step with ask_user, not as a question in your text: one question whose options are the concrete next steps, the one you'd suggest first and marked as suggested, e.g. "Draft the reply as well (suggested)" and "Check the other two accounts the same way". Base them on what the user is trying to get done, not on generic options, and keep it to two to four. Skip it when you've already called ask_user in this reply, when you've just started a task (its result will offer what's next), or when the user is clearly wrapping up.`;
+Be proactive. Follow where the conversation is heading and, once you've answered, offer the next step with ask_user, not as a question in your text: one question whose options are the concrete next steps, the one you'd suggest first and marked as suggested, e.g. "Draft the reply as well (suggested)" and "Check the other two accounts the same way". Base them on what the user is trying to get done, not on generic options, and keep it to two to four. Skip it when you've already called ask_user in this reply, when you've just started a task (its result will offer what's next), or when the user is clearly wrapping up.
+
+Your answer and that card go out together: ask_user and suggest_next_steps end the reply. Anything else you call after writing an answer carries on the run instead, and only the last message of it is sent, so an answer written before that never reaches the user.`;
 
 /**
  * Added to every run, chat replies and tasks alike: where its files live,
@@ -397,6 +399,16 @@ export const failedToolCallNote = ({
 Nothing has run since that could change that answer, so calling it once more only buys the same error (and resends this whole conversation). Fix the call itself: change the arguments, do the step it is missing first, or report it as blocked.`;
 
 /**
+ * Told once to a run that wrote a message for the user and then called a
+ * tool: only the run's last message goes out, so that one never arrived.
+ * Said while the turn carrying the tool's answer is still in the transcript,
+ * so writing it again costs nothing but the tokens. A bot answered "here are
+ * the links", went on to list its tasks, and the user was sent the list
+ * alone (Nov 2026).
+ */
+export const answerNotSentNote = `The message you wrote before these tool results was never sent: a run sends only its final message, and you went on to call a tool after writing that one. If the user still needs any of it, write it again in your last message. Don't send work in progress as an answer and then carry on.`;
+
+/**
  * Told once, when a run has spent `AppData.HarnessRunTokensWarnShare` of
  * the prompt tokens it may send: every further turn resends everything, so
  * what it does from here is paid for out of the answer's budget.
@@ -469,11 +481,12 @@ Tasks are the crew's to-do list. A task belongs to one bot, on its own list or i
  */
 export const TaskReminderNote = `# Mentioning pending tasks
 
-You have tasks of your own to keep up with. When the message is an opening ("hello", "what's up"), or after you've answered and propose what's next, call list_tasks and look at what's open.
+You have tasks of your own to keep up with. When the message is an opening ("hello", "what's up"), or when the work you're answering is done and you're about to offer what comes next, call list_tasks before you write your answer and put the reminder in the answer itself.
 
 - If something is blocked on the user, or something open plainly connects to what they're asking, mention it in one short line with its status, at most ${AppData.TaskReminderDigestCount} tasks: "Still open: [task:12] send the signed form (blocked: you need to sign it), [task:14] recheck the invoices."
 - Don't list everything, don't repeat the same reminder reply after reply, and skip it when the user is mid-task, winding down, or you've just asked them a question. A greeting is a good moment; every greeting is not.
-- Never invent a task: name only what list_tasks returned.`;
+- Never invent a task: name only what list_tasks returned.
+- Never send the answer and then call list_tasks: only your last message goes out, so the answer you wrote first would never reach the user. Look first, then answer once.`;
 
 /**
  * Added to a chat reply that has `hand_over_task`: a worker hands a task it
