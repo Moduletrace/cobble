@@ -4,6 +4,7 @@ import {
     answerNotSentNote,
     commitEarlyNote,
     failedToolCallNote,
+    oversizedRequestNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
@@ -382,6 +383,11 @@ export default async function runTextLoop({
      * that the message never went out (`answerNotSentNote`).
      */
     let told_answer_lost = false;
+    /**
+     * A run whose prompt no longer fits the working context, with nothing
+     * trimmable left, has been told, once (`oversizedRequestNote`).
+     */
+    let told_over_budget = false;
     let warned_steps = isUnlimitedLimit(max_steps) || max_steps < AppData.HarnessStepsLowMinSteps;
     /**
      * The prompt tokens past which the run is told to land the work
@@ -485,13 +491,28 @@ export default async function runTextLoop({
          */
         const model = (candidates.find((c) => c.key == prefer_key) || candidates[0])?.model;
 
-        fitTranscriptToContext({
+        const fit = fitTranscriptToContext({
             system: run_system,
             transcript,
             context_length: model?.context_length || AppData.HarnessUnknownContextWindow,
             budget_tokens: typeof context_budget == "number" ? context_budget : undefined,
             tools_chars: JSON.stringify(definitions).length,
         });
+
+        /**
+         * Everything trimmable was trimmed and it still doesn't fit: what is
+         * over is what the user wrote, which is never cut. Told once, so it
+         * works in pieces and says what it could not reach instead of
+         * inventing the rest (`oversizedRequestNote`).
+         */
+        if (fit.over_budget && !told_over_budget) {
+            told_over_budget = true;
+
+            const note = oversizedRequestNote({ budget: fit.budget });
+
+            pushUserTurn({ transcript, content: note });
+            await traced({ kind: "event", index, name: "over_budget", text: note });
+        }
 
         const turn_started_at = Date.now();
 

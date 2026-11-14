@@ -898,9 +898,13 @@ export const AppData = {
     BotSessionSummaryMaxChars: 4000,
     /**
      * The first messages of a session the bot reads to name and summarize
-     * it once the first reply is in, and how long its title may be.
+     * it once the first reply is in, how much of each message it reads (a
+     * pasted brief can run to tens of thousands of characters, and the
+     * naming turn is a model call like any other), and how long its title
+     * may be.
      */
     BotSessionNameMessages: 4,
+    BotSessionNameMessageChars: 2000,
     BotSessionTitleMaxChars: 80,
     /**
      * Sessions listed per page in a conversation's sessions modal.

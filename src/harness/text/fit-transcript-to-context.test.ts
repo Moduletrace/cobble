@@ -147,4 +147,53 @@ describe("fitTranscriptToContext", () => {
 
         expect(JSON.parse(call.arguments).trimmed).toContain(`${long.length} characters`);
     });
+
+    test("never trims the user's own request, however long it is", () => {
+        const request = "Explain this.".repeat(2500);
+
+        const transcript: HarnessMessage[] = [
+            { role: "user", content: request },
+            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
+            { role: "tool", tool_call_id: "1", content: big },
+            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
+            { role: "tool", tool_call_id: "2", content: big },
+            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
+            { role: "tool", tool_call_id: "3", content: "recent" },
+        ];
+
+        const result = fitTranscriptToContext({
+            system: "s",
+            transcript,
+            context_length: 131_072,
+            budget_tokens: 12_000,
+        });
+
+        expect(result.trimmed).toBeGreaterThan(0);
+        expect(transcript[0]!.content).toBe(request);
+        expect(String(transcript[2]!.content)).toContain("[Trimmed:");
+        expect(result.over_budget).toBe(true);
+    });
+
+    test("says a transcript it trimmed down fits", () => {
+        const result = fitTranscriptToContext({
+            system: "s",
+            transcript: run(),
+            context_length: 200_000,
+            budget_tokens: 12_000,
+        });
+
+        expect(result.over_budget).toBe(false);
+        expect(result.estimated_tokens).toBeLessThanOrEqual(result.budget);
+    });
+
+    test("says a request nothing can be cut from does not fit", () => {
+        const request = "x".repeat(30_000);
+        const transcript: HarnessMessage[] = [{ role: "user", content: request }];
+
+        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 131_072, budget_tokens: 4_000 });
+
+        expect(result.trimmed).toBe(0);
+        expect(result.over_budget).toBe(true);
+        expect(transcript[0]!.content).toBe(request);
+    });
 });

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, DroppedToolImageNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, DroppedToolImageNote, oversizedRequestNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -1452,5 +1452,57 @@ describe("runTextLoop answer not sent", () => {
         });
 
         expect(seen.length).toBe(1);
+    });
+});
+
+describe("runTextLoop over budget", () => {
+    test("tells a run whose own request is over the working context, once", async () => {
+        const brief = "x".repeat(30_000);
+        const note = oversizedRequestNote({ budget: 4_000 });
+
+        const { generate, seen } = scripted([
+            { text: "One piece.", tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"a"}` }] },
+            { text: "The answer." },
+        ]);
+
+        const told = ({ turn }: { turn: number }) =>
+            seen[turn]!.messages.filter((message) => String(message.content).includes(note)).length;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: brief }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            context_budget: 4_000,
+        });
+
+        expect(result.text).toBe("The answer.");
+        expect(told({ turn: 0 })).toBe(1);
+        expect(told({ turn: 1 })).toBe(1);
+        expect(seen[1]!.messages.some((message) => String(message.content).includes(brief))).toBe(true);
+    });
+
+    test("says nothing when the transcript fits, or when trimming was enough", async () => {
+        const note = oversizedRequestNote({ budget: 20_000 });
+
+        const { generate, seen } = scripted([
+            { text: "One.", tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"a"}` }] },
+            { text: "Two.", tool_calls: [{ id: "c2", name: "remember", arguments: `{"note":"b"}` }] },
+            { text: "The answer." },
+        ]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            context_budget: 20_000,
+        });
+
+        expect(seen.flatMap((turn) => turn.messages).some((message) => String(message.content).includes(note))).toBe(
+            false,
+        );
     });
 });

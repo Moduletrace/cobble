@@ -66,7 +66,9 @@ const ArgumentsKeepChars = 1500;
  * working context, or 70% of the window when that is smaller), the
  * oldest tool results, then long tool call arguments, then the oldest
  * assistant texts are replaced with a note of what was cut, down to 60%
- * of the budget. Returns how many messages were trimmed.
+ * of the budget. Returns how many messages were trimmed, and whether the
+ * prompt still doesn't fit (nothing trimmable was left: the conversation
+ * is the user's own text, which is never cut).
  */
 export default function fitTranscriptToContext({
     system,
@@ -84,7 +86,7 @@ export default function fitTranscriptToContext({
         transcript.reduce((sum, m) => sum + messageTokens({ message: m }), 0);
     let trimmed = 0;
 
-    if (total <= budget) return { trimmed, estimated_tokens: total, budget };
+    if (total <= budget) return { trimmed, estimated_tokens: total, budget, over_budget: false };
 
     const target = Math.floor(budget * TrimToShare);
     const trimmable = transcript.length - keep_last;
@@ -173,7 +175,7 @@ export default function fitTranscriptToContext({
         });
     }
 
-    return { trimmed, estimated_tokens: total, budget };
+    return { trimmed, estimated_tokens: total, budget, over_budget: total > budget };
 }
 
 /**

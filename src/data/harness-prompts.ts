@@ -409,6 +409,22 @@ Nothing has run since that could change that answer, so calling it once more onl
 export const answerNotSentNote = `The message you wrote before these tool results was never sent: a run sends only its final message, and you went on to call a tool after writing that one. If the user still needs any of it, write it again in your last message. Don't send work in progress as an answer and then carry on.`;
 
 /**
+ * Told once, when the prompt no longer fits the working context even after
+ * everything trimmable was trimmed: what is left is what the user wrote,
+ * which the app never cuts. A run that keeps reading whole files into the
+ * conversation only makes the next turn larger, and its answer is paid for
+ * out of whatever room is left. Told rather than trimming the request: the
+ * model has to know it may not be seeing all of a pasted brief, so it says
+ * what it could not reach instead of inventing the rest.
+ */
+export const oversizedRequestNote = ({ budget }: { budget: number }) =>
+    `This conversation is already larger than the working context this model may be sent (about ${budget.toLocaleString("en-US")} tokens), and none of what is over is yours to trim: the app cuts tool output, never what the user wrote. Every turn resends all of it, so reading more makes the next one worse.
+
+From here: stop pulling whole files, whole pages or entire command outputs into the conversation. Work from what you already have, read only the piece you need (a line range, a filter, grep), write what must be kept to a file rather than into a message, and answer on this turn.
+
+If what you need sits in a part of the request you cannot reach in one piece, say plainly what you could and could not read, and ask the user to attach it as a file, put it in a knowledgebase, or point you at a path. A guess presented as a reading of it is worse than saying it was too long.`;
+
+/**
  * Told once, when a run has spent `AppData.HarnessRunTokensWarnShare` of
  * the prompt tokens it may send: every further turn resends everything, so
  * what it does from here is paid for out of the answer's budget.
