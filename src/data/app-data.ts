@@ -627,6 +627,13 @@ export const AppData = {
      */
     HarnessStepsLowWarnShare: 0.1,
     /**
+     * Trimmed turns between the two notes a run gets about it
+     * (`contextTrimmedNote`): often enough to connect a missing earlier
+     * reading to its cause, rarely enough to cost nothing. A turn is
+     * trimmed when earlier tool output no longer fits the working context.
+     */
+    HarnessTrimNoteEvery: 3,
+    /**
      * Image readings kept across runs: one upload read once, not once per
      * reply (`media-readings`).
      */

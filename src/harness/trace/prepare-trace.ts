@@ -1,5 +1,6 @@
 import { AppData } from "@/src/data/app-data";
 import capTraceText from "./cap-trace-text";
+import toolArgumentPath from "./tool-argument-path";
 import type { HarnessTrace } from "./types";
 
 /**
@@ -50,7 +51,11 @@ export default function prepareTrace({ trace }: { trace: HarnessTrace }): Prepar
             name: trace.name,
             text: null,
             reasoning: null,
-            arguments: capTraceText({ text: trace.arguments, max: AppData.BotTraceArgumentsMaxChars }),
+            arguments: capTraceText({
+                text: trace.arguments,
+                max: AppData.BotTraceArgumentsMaxChars,
+                keep: toolArgumentPath({ text: trace.arguments }),
+            }),
             result: capTraceText({ text: trace.result, max: AppData.BotTraceResultMaxChars }),
             metadata: JSON.stringify({
                 index: trace.index,

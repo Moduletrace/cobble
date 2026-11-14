@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, DroppedToolImageNote, oversizedRequestNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -1504,5 +1504,106 @@ describe("runTextLoop over budget", () => {
         expect(seen.flatMap((turn) => turn.messages).some((message) => String(message.content).includes(note))).toBe(
             false,
         );
+    });
+});
+
+describe("runTextLoop trimming and wrap up notes", () => {
+    /**
+     * Every text part of a turn's messages, joined: a note is pushed onto the
+     * user's own turn when that is the last one, so it is not a content value
+     * of its own.
+     */
+    function runText(messages: { content: unknown }[]): string {
+        return messages
+            .map((message) =>
+                typeof message.content == "string"
+                    ? message.content
+                    : ((message.content || []) as { type: string; text?: string }[])
+                          .map((part) => (part.type == "text" ? part.text || "" : ""))
+                          .join("\n"),
+            )
+            .join("\n");
+    }
+
+    test("tells the run when earlier tool output was trimmed, every few turns", async () => {
+        const heavy: HarnessTool<{ n: number }> = {
+            name: "heavy",
+            description: "Returns a lot.",
+            schema: z.object({ n: z.number() }),
+            run: async () => "x".repeat(20_000),
+        };
+        const call = (n: number) => ({
+            tool_calls: [{ id: `c${n}`, name: "heavy", arguments: `{"n":${n}}` }],
+        });
+        /**
+         * `keep_last` is 4, so the first tool results are only trimmable from
+         * the fourth turn on: seven rounds leave room for the three trims a
+         * note waits for (`AppData.HarnessTrimNoteEvery`).
+         */
+        const { generate, seen } = scripted([
+            call(1),
+            call(2),
+            call(3),
+            call(4),
+            call(5),
+            call(6),
+            call(7),
+            { text: "Done." },
+        ]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [heavy],
+            max_steps: 10,
+            context_budget: 1_500,
+            generate,
+            resolveCandidates,
+        });
+
+        const note = contextTrimmedNote({ trimmed: AppData.HarnessTrimNoteEvery });
+
+        expect(seen.some((turn) => runText(turn.messages).includes(note))).toBe(true);
+    });
+
+    test("adds the machine's account of the work at the wrap up, and traces it", async () => {
+        const loop_call = { tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }] };
+        const { generate, seen } = scripted([loop_call, { text: "Ran out; here's where I got to." }]);
+        const traces: HarnessTrace[] = [];
+        const note = "# What is on disk now\n\n M src/server.ts";
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: 1,
+            wrap_up_note: () => note,
+            generate,
+            resolveCandidates,
+            trace: (entry) => {
+                traces.push(entry);
+            },
+        });
+
+        expect(runText(seen[1]!.messages)).toContain(note);
+        expect(traces.some((entry) => entry.kind == "event" && entry.name == "worktree")).toBe(true);
+        expect(result.text).toBe("Ran out; here's where I got to.");
+    });
+
+    test("adds nothing when the machine has nothing to say", async () => {
+        const loop_call = { tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }] };
+        const { generate, seen } = scripted([loop_call, { text: "Done." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            max_steps: 1,
+            wrap_up_note: () => "",
+            generate,
+            resolveCandidates,
+        });
+
+        expect(runText(seen[1]!.messages)).not.toContain("What is on disk now");
     });
 });

@@ -1,4 +1,5 @@
 import type { HarnessToolCall } from "../types";
+import isReadOnlyCommand from "./computer/read-only-command";
 import isRepeatableTool from "./repeatable-tool-names";
 
 /**
@@ -28,11 +29,35 @@ export function toolCallKey({ call }: { call: HarnessToolCall }): string | null 
 /**
  * What makes two reads the same read: null for a tool whose answer may
  * change (anything with a side effect), which is answered by running it.
+ *
+ * A shell is the one tool that has to be judged by its command rather than
+ * by its name: `cat`, `grep` and `git log` read, everything else may write,
+ * so `isReadOnlyCommand` decides and the rest is run again.
  */
 export default function repeatToolCallKey({ call }: { call: HarnessToolCall }): string | null {
-    if (!isRepeatableTool({ name: call.name })) return null;
+    if (isRepeatableTool({ name: call.name })) return toolCallKey({ call });
 
-    return toolCallKey({ call });
+    if (call.name == "computer_bash" && bashReads({ arguments: call.arguments })) {
+        return toolCallKey({ call });
+    }
+
+    return null;
+}
+
+/**
+ * Whether a `computer_bash` call's `command` only reads. Arguments that are
+ * not the expected object are not a read.
+ */
+function bashReads({ arguments: text }: { arguments: string }): boolean {
+    if (!text.trim()) return false;
+
+    try {
+        const args = JSON.parse(text) as { command?: unknown };
+
+        return typeof args?.command == "string" && isReadOnlyCommand({ command: args.command });
+    } catch {
+        return false;
+    }
 }
 
 /**

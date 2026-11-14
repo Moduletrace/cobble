@@ -304,6 +304,10 @@ You are working through a task on your own; the user isn't watching. Use your to
 
 Pace your work: don't spend more than about a third of the run on pre-flight checks and backups. When the task calls for an action (a write, update, code edit, database change or file creation), execute the change early enough to verify it and report. If pre-checks pass, proceed immediately to the action. Never spend your entire run repeating read-only checks without making the change.
 
+A brief can be wrong about the repository: it is written from a report or an earlier conversation, and it does not override the tree. When it says work is committed, deployed or live, check that yourself (git log, git status, the branch a file is on) before building on it. When the two disagree, the tree wins, and the report says what you found and what that means for the task.
+
+Work larger than one run is handed on, not half-done: start_task with separate for the rest, and the report says what you finished, what you handed on and what the new run is for. That is finishing the task, not leaving it.
+
 If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
 
 /**
@@ -345,7 +349,9 @@ Answer with a JSON object only, no markdown fence and no other text:
 - steps: the work in order, the shortest way that finishes it. Fold each check into the step it belongs to: no step that only verifies a previous one, and nothing you would do the same way twice.
 - done: how you will know it is finished, from what you can see for yourself.
 
-The plan is for you, and it replaces finding out as you go: anything it says to gather is gathered once and reused, never re-read or re-run to see it again.`;
+The plan is for you, and it replaces finding out as you go: anything it says to gather is gathered once and reused, never re-read or re-run to see it again.
+
+Some tasks are longer than one run: a diff to write, a build to watch, a second half that only makes sense once the first is verified. Plan for that instead of forcing it into one pass: the run that settles what is true, writes down what the next one needs, and hands the rest on with start_task is following the plan, not abandoning it.`;
 
 /**
  * The plan a task run wrote before its first step, given back to it as the
@@ -365,6 +371,24 @@ Goal: ${plan.goal}
 
 ${plan.gather.length ? `Gather first, once each:\n${plan.gather.map((item) => `- ${item}`).join("\n")}\n\n` : ""}Steps:
 ${plan.steps.map((step, index) => `${index + 1}. ${step}`).join("\n")}${plan.done ? `\n\nDone when: ${plan.done}` : ""}`;
+
+/**
+ * Given to a task run at its wrap up, with the machine-read state of the
+ * folders it worked in (`worktreeSummary`). A run reports from memory: it
+ * describes the file it meant to write, or calls an edit written that a
+ * later command discarded. The tree's own answer leaves nothing to
+ * reconstruct, and lets the reader check the report against it.
+ */
+export const wrapUpWorktreeNote = ({ summary }: { summary: string }) =>
+    `# What is on disk now
+
+The app ran this in your folders a moment ago, after your last step:
+
+\`\`\`
+${summary}
+\`\`\`
+
+That is the tree's own answer, not a summary of it. List what you actually did from it, exactly as it reads, and never describe a file from memory: a report that names work which isn't there is worse than one that says the work wasn't finished.`;
 
 /**
  * What a run gets back instead of a second identical read: the answer is
@@ -423,6 +447,19 @@ export const oversizedRequestNote = ({ budget }: { budget: number }) =>
 From here: stop pulling whole files, whole pages or entire command outputs into the conversation. Work from what you already have, read only the piece you need (a line range, a filter, grep), write what must be kept to a file rather than into a message, and answer on this turn.
 
 If what you need sits in a part of the request you cannot reach in one piece, say plainly what you could and could not read, and ask the user to attach it as a file, put it in a knowledgebase, or point you at a path. A guess presented as a reading of it is worse than saying it was too long.`;
+
+/**
+ * Told when the app has had to trim earlier tool output from the transcript
+ * (`fitTranscriptToContext`'s `trimmed` count, every
+ * `AppData.HarnessTrimNoteEvery`). A run that keeps re-reading what it read
+ * the first time is not learning it twice, it is paying for it twice: one
+ * run read the same server file five times because each reading had been
+ * cut before the next turn.
+ */
+export const contextTrimmedNote = ({ trimmed }: { trimmed: number }) =>
+    `The app has cut tool output from earlier in this conversation ${trimmed} times now, to keep each turn inside the model's working context: the earlier readings are no longer all here, and reading the same thing again replaces nothing, it only costs the same again.
+
+From here, put what you establish in a file of your own (write it down as you go) and work from that file and from short readings (a line range, a grep, a filter) rather than pulling the whole thing back into the conversation.`;
 
 /**
  * Told once, when a run has spent `AppData.HarnessRunTokensWarnShare` of

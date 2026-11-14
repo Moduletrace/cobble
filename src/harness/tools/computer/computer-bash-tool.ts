@@ -10,6 +10,9 @@ import commandTimeoutSeconds from "./command-timeout";
 import computerDirsShell from "./computer-dirs-shell";
 import type { ComputerToolContext } from "./computer-tool-context";
 import { computerWorkspaceFullWarning } from "./computer-workspace-room";
+import isDestructiveGit from "./destructive-command";
+import gitSnapshotNote from "./git-snapshot-note";
+import snapshotGitWorktree from "./snapshot-git-worktree";
 
 type Args = {
     command: string;
@@ -54,6 +57,16 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
             const cwd = args.cwd ? resolveComputerPath({ path: args.cwd, dirs }) : null;
             const seconds = commandTimeoutSeconds({ asked: args.timeout, max });
 
+            /**
+             * Before anything that would throw uncommitted work away: keep it
+             * outside the repository, and say where in the result, so a run
+             * that just discarded its own edits can get them back instead of
+             * rediscovering the loss.
+             */
+            const snapshots = isDestructiveGit({ command: args.command })
+                ? await snapshotGitWorktree({ computer, dirs, cwd, signal }).catch(() => [])
+                : [];
+
             const result = await runComputerCommand({
                 computer,
                 command: [
@@ -77,6 +90,7 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
             const full = await computerWorkspaceFullWarning({ computer, dirs }).catch(() => null);
 
             return [
+                gitSnapshotNote({ snapshots }),
                 `Exit code: ${result.exit_code ?? "unknown"}`,
                 output || "(no output)",
                 result.timed_out ? `[Stopped after ${seconds ?? 0}s: the command timed out. Run long work in the background and check its log.]` : "",

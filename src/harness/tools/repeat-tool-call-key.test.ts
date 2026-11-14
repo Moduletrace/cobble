@@ -25,9 +25,23 @@ describe("repeatToolCallKey", () => {
     });
 
     test("never repeats a tool that may write", () => {
-        expect(repeatToolCallKey({ call: call({ name: "computer_bash", arguments: `{"command":"ls"}` }) })).toBeNull();
+        expect(repeatToolCallKey({ call: call({ name: "computer_bash", arguments: `{"command":"rm -rf build"}` }) })).toBeNull();
+        expect(repeatToolCallKey({ call: call({ name: "computer_bash", arguments: `{"command":"cat a > b"}` }) })).toBeNull();
         expect(repeatToolCallKey({ call: call({ name: "write_file", arguments: `{"path":"a.md"}` }) })).toBeNull();
         expect(repeatToolCallKey({ call: call({ name: "computer_write_file", arguments: `{"path":"a.md"}` }) })).toBeNull();
+    });
+
+    test("repeats a shell command that only reads", () => {
+        const first = repeatToolCallKey({ call: call({ name: "computer_bash", arguments: `{"command":"ls"}` }) });
+        const second = repeatToolCallKey({ call: call({ name: "computer_bash", arguments: `{"command":"ls"}` }) });
+
+        expect(first).not.toBeNull();
+        expect(second).toBe(first);
+    });
+
+    test("doesn't repeat a bash call whose command it can't read", () => {
+        expect(repeatToolCallKey({ call: call({ name: "computer_bash", arguments: `{"command":42}` }) })).toBeNull();
+        expect(repeatToolCallKey({ call: call({ name: "computer_bash", arguments: "{nope" }) })).toBeNull();
     });
 
     test("leaves arguments it can't read alone", () => {

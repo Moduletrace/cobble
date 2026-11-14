@@ -25,6 +25,7 @@ import {
     TaskRedraftNote,
     TaskWrapUpIncomingNote,
     taskPlanNote,
+    wrapUpWorktreeNote,
 } from "@/src/data/harness-prompts";
 import {
     grabContextBudgetTokens,
@@ -59,6 +60,7 @@ import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-t
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import answerInstallRequestTool from "@/src/harness/tools/bot/answer-install-request-tool";
 import requestInstallTool from "@/src/harness/tools/computer/request-install-tool";
+import worktreeSummary from "@/src/harness/tools/computer/worktree-summary";
 import composeBrowsersNote from "./compose-browsers-note";
 import computerRef from "@/src/utils/computer-ref";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
@@ -533,6 +535,21 @@ export default async function runBotTask({
              * stored trace, whatever the job's envs are.
              */
             trace: (entry) => trace(computer ? redactTrace({ trace: entry, redact: computer.redact }) : entry),
+            /**
+             * What the run wrote is on disk, and the run's memory of writing
+             * it is what drifts: the folders are read at the wrap up so the
+             * report can be written from the tree instead of from memory.
+             * No computer, no folders of the run's own, so nothing to read.
+             */
+            wrap_up_note: computer
+                ? async () => {
+                      const summary = await worktreeSummary({ computer: computer.computer, dirs, signal }).catch(
+                          () => "",
+                      );
+
+                      return summary ? wrapUpWorktreeNote({ summary }) : "";
+                  }
+                : undefined,
             ...(incoming
                 ? {
                       incoming: incoming.take,

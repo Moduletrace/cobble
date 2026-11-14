@@ -3,14 +3,18 @@ import {
     botFilesNote,
     chatReplyNote,
     ComputerFilesNote,
+    contextTrimmedNote,
     coordinatorReplyNote,
     crewRequestsNote,
     openRunsNote,
     RequestScopeNote,
     TaskIncomingNote,
+    TaskPlanPrompt,
     TaskRedraftNote,
+    TaskRunNote,
     TaskWrapUpIncomingNote,
     TasksNote,
+    wrapUpWorktreeNote,
 } from "./harness-prompts";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 
@@ -159,5 +163,37 @@ describe("crewRequestsNote", () => {
 
     test("is empty with no requests", () => {
         expect(crewRequestsNote({ requests: [] })).toBe("");
+    });
+});
+
+describe("contextTrimmedNote", () => {
+    test("says how often output was cut, and what to do instead of re-reading", () => {
+        const note = contextTrimmedNote({ trimmed: 6 });
+
+        expect(note).toContain("6 times now");
+        expect(note).toContain("put what you establish in a file of your own");
+    });
+});
+
+describe("wrapUpWorktreeNote", () => {
+    test("hands the run the tree's own answer, fenced, and forbids memory", () => {
+        const summary = "== /home/gem/w/repo\n M src/server.ts\n src/server.ts | 4 +-";
+        const note = wrapUpWorktreeNote({ summary });
+
+        expect(note).toContain("```\n" + summary + "\n```");
+        expect(note).toContain("M src/server.ts");
+        expect(note).toContain("never describe a file from memory");
+    });
+});
+
+describe("TaskRunNote", () => {
+    test("says a brief can be wrong about the tree, and that handing on finishes the task", () => {
+        expect(TaskRunNote).toContain("A brief can be wrong about the repository");
+        expect(TaskRunNote).toContain("the tree wins");
+        expect(TaskRunNote).toContain("start_task with separate for the rest");
+    });
+
+    test("gives the plan permission to hand work on", () => {
+        expect(TaskPlanPrompt).toContain("hands the rest on with start_task is following the plan");
     });
 });

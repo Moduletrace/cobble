@@ -3,6 +3,7 @@ import {
     alreadyRanToolNote,
     answerNotSentNote,
     commitEarlyNote,
+    contextTrimmedNote,
     failedToolCallNote,
     oversizedRequestNote,
     tokensLowNote,
@@ -102,6 +103,14 @@ type Params = {
      * after (a task); without it a later reply does.
      */
     incoming_notes?: { working?: string; redraft?: string; wrap_up?: string };
+    /**
+     * What the app itself can say about the run's work at the wrap up, read
+     * from the machine rather than from the run's memory: the state of the
+     * folders it worked in (`worktreeSummary`). Called once, before the wrap
+     * up turn, and nothing is added when it returns empty. Only a task run
+     * passes one: a reply has no folders of its own.
+     */
+    wrap_up_note?: () => Promise<string> | string;
     /**
      * Checks an answer before it's returned, with the tool calls the run
      * made. A note sends the answer back to be written again with it, once
@@ -284,6 +293,7 @@ export default async function runTextLoop({
     trace,
     incoming,
     incoming_notes,
+    wrap_up_note,
     review,
     bot_id,
     workspace_id,
@@ -388,6 +398,12 @@ export default async function runTextLoop({
      * trimmable left, has been told, once (`oversizedRequestNote`).
      */
     let told_over_budget = false;
+    /**
+     * How many turns the app trimmed earlier tool output for
+     * (`fitTranscriptToContext`), so the run can be told
+     * (`contextTrimmedNote`, every `AppData.HarnessTrimNoteEvery`).
+     */
+    let trimmed_turns = 0;
     let warned_steps = isUnlimitedLimit(max_steps) || max_steps < AppData.HarnessStepsLowMinSteps;
     /**
      * The prompt tokens past which the run is told to land the work
@@ -463,6 +479,18 @@ export default async function runTextLoop({
 
             if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up, index });
 
+            /**
+             * The machine's own account of the work, when the caller has
+             * one: the tree says what is on disk, and the run's memory of
+             * writing it is what drifts.
+             */
+            const wrap_note = wrap_up_note ? await Promise.resolve(wrap_up_note()).catch(() => "") : "";
+
+            if (wrap_note) {
+                pushUserTurn({ transcript, content: wrap_note });
+                await traced({ kind: "event", index, name: "worktree", text: wrap_note });
+            }
+
             pushUserTurn({
                 transcript,
                 content: wrapUpPrompt({
@@ -512,6 +540,22 @@ export default async function runTextLoop({
 
             pushUserTurn({ transcript, content: note });
             await traced({ kind: "event", index, name: "over_budget", text: note });
+        }
+
+        /**
+         * Trimming leaves no trace: a run that re-reads what it read before
+         * is not learning it twice, it is paying for it twice, and it has no
+         * way to know the earlier readings were cut (`contextTrimmedNote`).
+         */
+        if (fit.trimmed > 0) {
+            trimmed_turns += 1;
+
+            if (trimmed_turns % AppData.HarnessTrimNoteEvery == 0) {
+                const note = contextTrimmedNote({ trimmed: trimmed_turns });
+
+                pushUserTurn({ transcript, content: note });
+                await traced({ kind: "event", index, name: "trimmed", text: note });
+            }
         }
 
         const turn_started_at = Date.now();

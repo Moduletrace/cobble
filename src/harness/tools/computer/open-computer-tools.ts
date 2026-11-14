@@ -1,3 +1,4 @@
+import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
 import { AppData } from "@/src/data/app-data";
 import { ComputerMcpExcludedTools } from "@/src/dict/computer-dict";
 import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
@@ -62,6 +63,12 @@ type Params = {
 export type OpenComputer = {
     name: string;
     tools: HarnessTool[];
+    /**
+     * The connection the tools use, for what the app itself has to run on
+     * the computer rather than hand to the bot: the state of the folders the
+     * run worked in, at its wrap up (`worktreeSummary`).
+     */
+    computer: ComputerApi;
     /**
      * The envs set on the computer, for the prompt: keys and descriptions,
      * never values.
@@ -147,6 +154,7 @@ export default async function openComputerTools({
 
         return {
             name: target.name,
+            computer: target,
             tools: [
                 computerBashTool(context),
                 computerReadFileTool(context),
