@@ -1,14 +1,11 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { AppContext } from "@/src/pages/__root";
 import type { BotQuestionView } from "@/src/types";
-import botQuestionAnswersText from "@/src/utils/bot-question-answers-text";
 import checkBotQuestionAnswers from "@/src/utils/check-bot-question-answers";
 import decideBotQuestion from "../(functions)/decide-bot-question";
-import sendBotMessage from "../(functions)/send-bot-message";
 import botQuestionDraftAnswer, {
     type BotQuestionDraft,
 } from "../(utils)/bot-question-draft-answer";
@@ -24,10 +21,10 @@ type Props = {
  * The card a user answers a bot's questions in: each question with its
  * options (radios for one pick, checkboxes for several, "Other" to type
  * their own). Sending or skipping tells the bot in chat, as the user's
- * message; once decided it shows what they answered.
+ * message, in the conversation it asked in (the route posts it, since that
+ * may not be the one on screen). Once decided it shows what they answered.
  */
 export default function BotQuestionCard({ view, onDecided, onDone }: Props) {
-    const { pageProps } = useContext(AppContext);
     const [drafts, setDrafts] = useState<BotQuestionDraft[]>(() =>
         view.questions.map(() => ({ choices: [], other_on: false, other: "" })),
     );
@@ -83,13 +80,6 @@ export default function BotQuestionCard({ view, onDecided, onDone }: Props) {
         }
 
         onDecided(res.singleRes);
-
-        await sendBotMessage({
-            bot_id: Number(pageProps?.bot?.id) || 0,
-            workspace_id: pageProps?.workspace?.id || null,
-            text: botQuestionAnswersText({ view: res.singleRes }),
-            media_ids: [],
-        }).catch(() => null);
 
         setBusy(undefined);
         onDone();

@@ -1,6 +1,7 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import answerBotQuestion from "@/src/functions/backend/db/bot-questions/answer-bot-question";
 import grabBotQuestionView from "@/src/functions/backend/db/bot-questions/grab-bot-question-view";
+import postBotQuestionAnswers from "@/src/functions/backend/db/bot-questions/post-bot-question-answers";
 import { AnswerBotQuestionSchema } from "@/src/schemas/bot-question-schema";
 import type { BotQuestionView } from "@/src/types";
 import AppError from "@/src/utils/app-error";
@@ -33,7 +34,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotQuestionView>> 
 
         await answerBotQuestion({ question_id, user_id: user.id, answers });
 
-        return { success: true, singleRes: await grabBotQuestionView({ question_id, user_id: user.id }) };
+        const view = await grabBotQuestionView({ question_id, user_id: user.id });
+
+        /**
+         * The answers go to the bot in the conversation it asked in, which
+         * may not be the one the card was read from.
+         */
+        await postBotQuestionAnswers({ view, user_id: user.id });
+
+        return { success: true, singleRes: view };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };
     }

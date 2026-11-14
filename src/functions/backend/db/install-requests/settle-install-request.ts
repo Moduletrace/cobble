@@ -10,6 +10,7 @@ import parseInstallPackages from "@/src/utils/parse-install-packages";
 import ensureBotSession from "../bot-sessions/ensure-bot-session";
 import insertUserMessage from "../bots/insert-user-message";
 import enqueueBotReply from "../bots-queue/enqueue-bot-reply";
+import stripQuestionRefs from "@/src/utils/strip-question-refs";
 
 type Params = {
     job: Pick<BUN_SQLITE_COBBLE_BOTS_QUEUE, "id">;
@@ -63,7 +64,11 @@ export default async function settleInstallRequest({ job, text, failed }: Params
                 request_id: request.id,
                 status: (request.status || "failed") as InstallRequestStatus,
                 asked: installRequestAsked({ packages: parseInstallPackages({ text: request.packages }) }),
-                answer: request.answer,
+                /**
+                 * A question the coordinator asked stays in its own
+                 * conversation: a card here would answer into this one.
+                 */
+                answer: request.answer ? stripQuestionRefs({ text: request.answer }).text : request.answer,
             }),
             from_install_request_id: request.id,
         });

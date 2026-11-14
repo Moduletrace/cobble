@@ -6,6 +6,7 @@ import type {
 } from "@/db/types/db";
 import insertBotMessage from "../bots/insert-bot-message";
 import ensureBotSession from "../bot-sessions/ensure-bot-session";
+import stripQuestionRefs from "@/src/utils/strip-question-refs";
 
 type Params = {
     job: BUN_SQLITE_COBBLE_BOTS_QUEUE;
@@ -66,13 +67,24 @@ export default async function relayJobToRequester({ job, text, failed, task_ids 
     const name = worker?.name || "A crew member";
     const title = job.title || "the job";
 
+    /**
+     * The worker's questions stay in its own conversation: a card here
+     * would be answered into this one, and the worker would never hear.
+     */
+    const report = stripQuestionRefs({ text });
+    const where = report.removed
+        ? `\n\n_They asked you something in their own conversation: [bot:${job.bot_id}]._`
+        : "";
+
     const message = await insertBotMessage({
         bot_id: requester.id,
         session_id: Number(session.id),
         workspace_id,
-        text: failed
-            ? `${name} couldn't finish **${title}**. ${text}`.trim()
-            : `${name} finished **${title}**. Their report:\n\n${text}`,
+        text:
+            (failed
+                ? `${name} couldn't finish **${title}**. ${report.text}`
+                : `${name} finished **${title}**. Their report:\n\n${report.text}`
+            ).trim() + where,
         needs_you: failed,
         task_ids,
     });

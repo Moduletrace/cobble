@@ -9,6 +9,7 @@ import grabUserBot from "../bots/grab-user-bot";
 import grabUserBotSession from "../bot-sessions/grab-user-bot-session";
 import insertUserMessage from "../bots/insert-user-message";
 import askOutcomeMessage from "./ask-outcome-message";
+import stripQuestionRefs from "@/src/utils/strip-question-refs";
 
 type Params = {
     ask: BUN_SQLITE_COBBLE_BOT_ASKS;
@@ -93,7 +94,15 @@ async function tellRequester({
         bot_id: requester.id,
         session_id: session.id,
         workspace_id: Number(ask.workspace_id) || null,
-        text: askOutcomeMessage({ ask, status, outcome }),
+        /**
+         * A question the answer names stays in the conversation it was
+         * asked in: its card here would answer into this one.
+         */
+        text: askOutcomeMessage({
+            ask,
+            status,
+            outcome: outcome ? stripQuestionRefs({ text: outcome }).text : outcome,
+        }),
         from_ask_id: Number(ask.id),
     });
 

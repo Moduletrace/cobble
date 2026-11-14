@@ -1,5 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabBotQuestionView from "@/src/functions/backend/db/bot-questions/grab-bot-question-view";
+import postBotQuestionAnswers from "@/src/functions/backend/db/bot-questions/post-bot-question-answers";
 import skipBotQuestion from "@/src/functions/backend/db/bot-questions/skip-bot-question";
 import { BotQuestionIdSchema } from "@/src/schemas/bot-question-schema";
 import type { BotQuestionView } from "@/src/types";
@@ -32,7 +33,15 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotQuestionView>> 
 
         await skipBotQuestion({ question_id, user_id: user.id });
 
-        return { success: true, singleRes: await grabBotQuestionView({ question_id, user_id: user.id }) };
+        const view = await grabBotQuestionView({ question_id, user_id: user.id });
+
+        /**
+         * The refusal goes to the bot in the conversation it asked in, which
+         * may not be the one the card was read from.
+         */
+        await postBotQuestionAnswers({ view, user_id: user.id });
+
+        return { success: true, singleRes: view };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };
     }
