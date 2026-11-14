@@ -71,10 +71,19 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
                         onClick={onOpen}
                         className={twMerge(
                             "grow min-w-0 justify-start px-0! h-auto! py-0! text-sm! font-bold! leading-5! truncate text-left hover:bg-transparent! hover:underline",
+                            "[&_.twui-button-content-wrapper]:min-w-0 [&_.twui-button-content-wrapper]:gap-1.5",
                             done ? "text-ink-secondary! line-through" : "text-ink!",
                         )}
                     >
                         <Span className="truncate">{task.title || `Task ${task.id}`}</Span>
+                        {task.title ? (
+                            <Span
+                                title={`Task ${task.id}`}
+                                className="shrink-0 text-[11px] leading-4 font-normal text-ink-secondary tabular-nums"
+                            >
+                                {`#${task.id}`}
+                            </Span>
+                        ) : null}
                     </Button>
                     <TaskStatusChip status={task.status} />
                     {can_manage && onDelete ? (
