@@ -44,4 +44,37 @@ describe("supersedeToolOutputs", () => {
         expect(supersedeToolOutputs({ transcript })).toBe(0);
         expect(transcript[1]!.content).toBe("page one");
     });
+
+    test("keeps only the newest find of each browser, beside the newest snapshot", () => {
+        const transcript: HarnessMessage[] = [
+            { role: "user", content: "Book the flight." },
+            call("1", "browser_find"),
+            result("1", "found the Publish button"),
+            call("2", "browser_find"),
+            result("2", "found the Confirm button"),
+            call("3", "browser_snapshot"),
+            result("3", "the whole page"),
+            call("4", "laptop__browser_find"),
+            result("4", "found elsewhere"),
+        ];
+
+        expect(supersedeToolOutputs({ transcript })).toBe(1);
+        expect(transcript[2]!.content).toBe(SupersededSnapshotNote);
+        expect(transcript[4]!.content).toBe("found the Confirm button");
+        expect(transcript[6]!.content).toBe("the whole page");
+        expect(transcript[8]!.content).toBe("found elsewhere");
+        expect(supersedeToolOutputs({ transcript })).toBe(0);
+    });
+
+    test("a failed find replaces nothing", () => {
+        const transcript: HarnessMessage[] = [
+            call("1", "browser_find"),
+            result("1", "found the Publish button"),
+            call("2", "browser_find"),
+            result("2", "Error: Timeout 5000ms exceeded."),
+        ];
+
+        expect(supersedeToolOutputs({ transcript })).toBe(0);
+        expect(transcript[1]!.content).toBe("found the Publish button");
+    });
 });

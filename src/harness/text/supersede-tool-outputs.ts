@@ -10,11 +10,11 @@ type Params = {
 };
 
 /**
- * Keeps only the newest page snapshot of each browser in a run's
- * transcript: a snapshot shows the page as it was, and the next one
- * replaces it, so resending the old ones on every turn only costs tokens.
- * Older ones become a note. A failed snapshot replaces nothing. Returns
- * how many were replaced.
+ * Keeps only the newest page reading of each kind and browser in a run's
+ * transcript: a snapshot or a find shows the page as it was, and the next
+ * one of the same kind replaces it, so resending the old ones on every turn
+ * only costs tokens. Older ones become a note. A failed call replaces
+ * nothing. Returns how many were replaced.
  */
 export default function supersedeToolOutputs({ transcript }: Params) {
     const names = new Map<string, string>();
@@ -28,7 +28,7 @@ export default function supersedeToolOutputs({ transcript }: Params) {
     const newest = new Map<string, number>();
 
     transcript.forEach((message, index) => {
-        if (message.role != "tool" || !isSnapshot({ message, names })) return;
+        if (message.role != "tool" || !isPageState({ message, names })) return;
 
         newest.set(names.get(message.tool_call_id)!, index);
     });
@@ -36,7 +36,7 @@ export default function supersedeToolOutputs({ transcript }: Params) {
     let replaced = 0;
 
     transcript.forEach((message, index) => {
-        if (message.role != "tool" || !isSnapshot({ message, names })) return;
+        if (message.role != "tool" || !isPageState({ message, names })) return;
         if (newest.get(names.get(message.tool_call_id)!) == index) return;
 
         transcript[index] = { ...message, content: SupersededSnapshotNote };
@@ -47,14 +47,24 @@ export default function supersedeToolOutputs({ transcript }: Params) {
 }
 
 /**
- * A successful snapshot that is still shown in full.
+ * Playwright MCP's readings of the page itself: a snapshot's whole tree and
+ * a find's matches. Both are the page as it was when the call ran, both are
+ * large, and both go stale at the next action, so only the newest of each
+ * kind is worth resending. Ten find results stayed in a Canva run's
+ * transcript for the rest of its 58 turns, since nothing replaced them
+ * (Nov 2026).
  */
-function isSnapshot({ message, names }: { message: HarnessMessage & { role: "tool" }; names: Map<string, string> }) {
+const PageStateActions = ["browser_snapshot", "browser_find"];
+
+/**
+ * A successful page reading that is still shown in full.
+ */
+function isPageState({ message, names }: { message: HarnessMessage & { role: "tool" }; names: Map<string, string> }) {
     const name = names.get(message.tool_call_id);
 
     return (
         Boolean(name) &&
-        isBrowserTool({ name: name!, action: "browser_snapshot" }) &&
+        PageStateActions.some((action) => isBrowserTool({ name: name!, action })) &&
         !message.content.startsWith("Error:") &&
         message.content != SupersededSnapshotNote
     );

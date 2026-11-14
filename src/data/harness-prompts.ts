@@ -34,10 +34,20 @@ export const ToolImagesNote = `The images the tool calls above returned (screens
 export const DroppedToolImageNote = `[An earlier image from a tool, no longer shown to save space. Take it again if you still need it.]`;
 
 /**
- * Stands in for a page snapshot a newer snapshot of the same browser
- * replaced (`supersedeToolOutputs`): the page it showed is gone.
+ * Stands in for a page reading (a snapshot or a find) that a newer one of
+ * the same browser replaced (`supersedeToolOutputs`): the page it showed is
+ * gone.
  */
-export const SupersededSnapshotNote = `[An older page snapshot, replaced by the newer one further down. Take another if you need the page again.]`;
+export const SupersededSnapshotNote = `[An older page snapshot or find, replaced by the newer one further down. Take another if you need the page again.]`;
+
+/**
+ * Appended to a browser action that timed out waiting for its element to
+ * settle (`browserRecoveryHint`). The page animates, so the same call times
+ * out in the same place however often it is made; only driving the page
+ * itself gets past it. A Canva run spent five 5-second clicks and four turns
+ * learning that before it found `browser_evaluate` worked (Nov 2026).
+ */
+export const browserSettleTimeoutNote = `This timed out because the element never stopped moving: the page animates, so the same call will time out in the same place however often it is made. Drive it from the page itself instead: browser_evaluate with getByRole('button', { name: 'Publish' }).click(), or with element.click() on the element.`;
 
 /**
  * The folder-ref example a note shows, always over the running bot's own

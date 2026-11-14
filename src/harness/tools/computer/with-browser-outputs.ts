@@ -5,6 +5,7 @@ import type { ComputerApi } from "@/src/functions/backend/computers/computer-fet
 import browserOutputText from "@/src/utils/browser-output-text";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import type { HarnessTool } from "../../types";
+import browserRecoveryHint from "./browser-recovery-hint";
 import { computerWorkspaceFullWarning } from "./computer-workspace-room";
 
 type Params = {
@@ -51,8 +52,10 @@ export default function withBrowserOutputs({ tool, computer, dirs }: Params): Ha
                 ? await computerWorkspaceFullWarning({ computer, dirs, signal }).catch(() => null)
                 : null;
             const parts = [lines.length ? `${text}\n### Downloads\n${lines.join("\n")}` : text];
+            const hint = browserRecoveryHint({ name: tool.name, text });
 
             if (full) parts.push(full);
+            if (hint) parts.push(hint);
 
             const next = parts.join("\n\n");
 
