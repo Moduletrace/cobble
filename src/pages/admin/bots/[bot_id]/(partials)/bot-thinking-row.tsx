@@ -4,11 +4,12 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { lazy, Suspense } from "react";
 import { twMerge } from "tailwind-merge";
-import { Bug } from "lucide-react";
+import { ArrowRight, Bug } from "lucide-react";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import { BotGettingMessageStatusLine } from "@/src/dict/bot-queue-dict";
-import type { BotWithLastMessage } from "@/src/types";
+import type { BotWithLastMessage, PagePropsType } from "@/src/types";
+import conversationHref from "@/src/utils/conversation-href";
 import botBusyState from "../(utils)/bot-busy-state";
 import StopBotButton from "./stop-bot-button";
 
@@ -42,6 +43,16 @@ type Props = {
      */
     has_task?: boolean;
     /**
+     * The crew request the bot is answering for the user: its answer runs in
+     * a hidden session, so this is the only sign of it in the thread.
+     */
+    answer_ask?: PagePropsType["answer_ask"];
+    /**
+     * Whether it's answering one right now (the request is open and the
+     * bot's face says it's working).
+     */
+    answering_ask?: boolean;
+    /**
      * The session's id: the debug logs read the run it's working on.
      */
     session_id?: number | null;
@@ -74,27 +85,34 @@ export default function BotThinkingRow({
     awaiting_reply,
     receiving,
     has_task,
+    answer_ask,
+    answering_ask,
     session_id,
     debug_open,
     on_toggle_debug,
 }: Props) {
     const name = bot.name || "The bot";
-    const { waiting, getting, thinking, working, busy, stoppable } = botBusyState({
+    const { waiting, getting, thinking, working, answering, busy, stoppable } = botBusyState({
         bot,
         awaiting_reply,
         receiving,
         has_task,
+        answering_ask,
     });
 
     if (!busy) return null;
 
+    const requester = answer_ask?.requester_name;
+    const place = answer_ask?.workspace_name;
     const label = getting
         ? `${name} is ${BotGettingMessageStatusLine.toLowerCase()}…`
-        : thinking
-          ? `${name} is thinking…`
-          : working
-            ? `${name} is working…`
-            : `${bot.status_line}…`;
+        : answering
+          ? `${name} is answering ${requester ? `${requester}'s` : "a"} request${place ? ` in ${place}` : ""}…`
+          : thinking
+            ? `${name} is thinking…`
+            : working
+              ? `${name} is working…`
+              : `${bot.status_line}…`;
     const detail = working ? progress : thinking ? reply_progress : null;
 
     return (
@@ -116,6 +134,28 @@ export default function BotThinkingRow({
                         </Span>
                     ) : null}
                 </Stack>
+                {answering && answer_ask?.session_id && answer_ask.session_id != Number(session_id) ? (
+                    <Button
+                        title={
+                            place
+                                ? `Open the request in ${place}`
+                                : "Open the conversation the request is running in"
+                        }
+                        type="button"
+                        size="smaller"
+                        variant="ghost"
+                        color="text"
+                        href={conversationHref({
+                            bot_id: Number(bot.id),
+                            workspace_id: answer_ask.workspace_id ?? null,
+                            session_id: answer_ask.session_id,
+                        })}
+                        className="shrink-0 gap-1! px-2! text-ink-secondary dark:text-ink-secondary hover:text-ink hover:dark:text-ink hover:bg-sunken hover:dark:bg-sunken rounded-default transition-colors duration-[var(--m-fast)] focus-visible:ring-2 focus-visible:ring-ink"
+                    >
+                        Open
+                        <ArrowRight size={12} aria-hidden />
+                    </Button>
+                ) : null}
                 {on_toggle_debug ? (
                     <Button
                         title={debug_open ? "Hide the debug logs" : "Show the debug logs"}

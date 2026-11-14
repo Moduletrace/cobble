@@ -5,6 +5,8 @@ import {
     ComputerFilesNote,
     contextTrimmedNote,
     coordinatorReplyNote,
+    AskGateNote,
+    AskGateRequest,
     crewRequestsNote,
     openRunsNote,
     RequestScopeNote,
@@ -150,14 +152,14 @@ describe("crewRequestsNote", () => {
     test("lists open and answered requests, and where an answer's files are", () => {
         const note = crewRequestsNote({
             requests: [
-                { id: 5, title: "Cite sheet", status: "open" },
+                { id: 5, title: "Cite sheet", status: "pending" },
                 { id: 4, title: "Research files", status: "answered" },
             ],
         });
 
-        expect(note).toContain(`[room:5] "Cite sheet": still open`);
-        expect(note).toContain(`[room:4] "Research files": answered`);
-        expect(note).toContain("crew/room-4/");
+        expect(note).toContain(`ask #5 "Cite sheet": waiting on the coordinator`);
+        expect(note).toContain(`ask #4 "Research files": answered`);
+        expect(note).toContain("crew/ask-4/");
         expect(note).toContain("Don't ask for these again");
     });
 
@@ -195,5 +197,51 @@ describe("TaskRunNote", () => {
 
     test("gives the plan permission to hand work on", () => {
         expect(TaskPlanPrompt).toContain("hands the rest on with start_task is following the plan");
+    });
+});
+
+describe("AskGateNote", () => {
+    const askable = ["4: Tben INC Admin", "6: SEO Expert"];
+
+    test("names the bot the asker suggested as a suggestion", () => {
+        const note = AskGateNote({ requester: "Model Tester (14)", askable, in_workspace: false, suggested: "[bot:4] Tben INC Admin" });
+
+        expect(note).toContain("It asked to send this to [bot:4] Tben INC Admin: that is its suggestion");
+    });
+
+    test("asks for a bot when the asker named none", () => {
+        const note = AskGateNote({ requester: "Model Tester (14)", askable, in_workspace: false, suggested: null });
+
+        expect(note).toContain("It named no bot: pick the one that should answer it.");
+    });
+
+    test("never tells the asker to ask the coordinator, which it cannot", () => {
+        const note = AskGateNote({ requester: "Model Tester (14)", askable, in_workspace: false });
+
+        expect(note).toContain("This request is the only way the asking bot reaches another bot");
+        expect(note).not.toContain("ask the coordinator directly");
+    });
+
+    test("says there is no bot to ask when there is none", () => {
+        const note = AskGateNote({ requester: "Model Tester (14)", askable: [], in_workspace: false });
+
+        expect(note).toContain("With none, refuse it and say so.");
+    });
+});
+
+describe("AskGateRequest", () => {
+    test("carries the suggested bot and the brief", () => {
+        const text = AskGateRequest({
+            requester_id: 14,
+            requester_name: "Model Tester",
+            in_workspace: false,
+            title: "Open tasks",
+            request: "List your open tasks.",
+            suggested: "[bot:4] Tben INC Admin",
+        });
+
+        expect(text).toContain("It asked to send this to: [bot:4] Tben INC Admin");
+        expect(text).toContain("Title: Open tasks");
+        expect(text).toContain("List your open tasks.");
     });
 });

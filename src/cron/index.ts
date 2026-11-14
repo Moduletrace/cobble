@@ -4,7 +4,7 @@ import pruneBotsQueue from "./prune-bots-queue";
 import cronClearJobSteps from "./clear-job-steps";
 import pruneBotHookEvents from "./prune-bot-hook-events";
 import pruneBotTraces from "./prune-bot-traces";
-import cronPruneChatrooms from "./prune-chatrooms";
+import cronPruneAsks from "./prune-asks";
 import cronPruneComputerCaches from "./prune-computer-caches";
 import cronPruneComputerHomes from "./prune-computer-homes";
 import cronWarnComputerWorkspaces from "./warn-computer-workspaces";
@@ -59,9 +59,9 @@ export default function cron() {
     });
 
     registerCronJob({
-        title: "prune-chatrooms",
+        title: "prune-asks",
         schedule: "@daily",
-        task: cronPruneChatrooms,
+        task: cronPruneAsks,
     });
 
     registerCronJob({

@@ -5,7 +5,6 @@ import type {
     BUN_SQLITE_COBBLE_BOT_TASK_STEPS,
     BUN_SQLITE_COBBLE_BOT_TASKS,
     BUN_SQLITE_COBBLE_BOTS,
-    BUN_SQLITE_COBBLE_CHATROOMS,
     BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES,
     BUN_SQLITE_COBBLE_COMPUTERS,
     BUN_SQLITE_COBBLE_CRON_JOBS,
@@ -443,83 +442,30 @@ export type BotTraceJob = {
 };
 
 /**
- * A bot taking part in a chatroom, as the room draws it.
+ * One of a bot's requests to the crew, as its prompt lists them: what is
+ * still open and what ended recently.
  */
-export type ChatroomBot = Pick<
-    BUN_SQLITE_COBBLE_BOTS,
-    "id" | "name" | "kind" | "color" | "stone" | "hue" | "image_media_id"
->;
-
 /**
- * A job still open in a chatroom: which bot, in which of its room
- * sessions, whether it has started and its latest step.
+ * One crew request as the chat reads it: its `[ask:ID]` pill and the bar in
+ * the session it opened (`api/admin/bots/ask`).
  */
-export type ChatroomJob = {
-    bot_id: number;
-    session_id: number;
+export type AskOverview = {
+    ask_id: number;
+    title: string | null;
     status: string;
-    progress?: string | null;
+    target_bot_id: number | null;
+    target_name: string | null;
+    workspace_id: number | null;
+    session_id: number | null;
+    previous_session_id: number | null;
+    requester_name: string | null;
 };
 
-/**
- * A chatroom with the bots in it (asking bot first, then the coordinator,
- * then those it asked), for the rail and the room's header.
- */
-export type ChatroomSummary = BUN_SQLITE_COBBLE_CHATROOMS & {
-    bots: ChatroomBot[];
-    /**
-     * Whether a job in the room can still run.
-     */
-    working?: boolean;
-    /**
-     * The jobs still open in the room, for its status rows.
-     */
-    jobs?: ChatroomJob[];
-    /**
-     * The workspace the request came from, by name.
-     */
-    workspace_name?: string | null;
-    /**
-     * What the room's bots spent while working in it, summed. Only asked
-     * for the room itself (and its live pushes), never for a list.
-     */
-    usage?: ChatroomUsage;
-};
-
-/**
- * What one bot's work in a chatroom spent: every model call it made there,
- * a call of a turn still running included.
- */
-export type ChatroomUsageBot = TokenUsageSummary & {
-    bot_id: number;
-    /**
-     * Its name while it exists, like the messages it posted.
-     */
-    name: string | null;
-};
-
-/**
- * What everything in a chatroom cost: every model call its bots made there
- * (a turn still running included), the calls that failed, and the same
- * split by bot. This is what the totals at the top of a room show.
- */
-export type ChatroomUsage = {
-    totals: TokenUsageSummary;
-    /**
-     * How many model calls failed there; they spent nothing, so they aren't
-     * in `totals`.
-     */
-    failed_calls: number;
-    by_bot: ChatroomUsageBot[];
-};
-
-/**
- * `server:chatroom-message` data: a message one of the room's bots posted,
- * with what it cost.
- */
-export type ChatroomMessageData = {
-    chatroom_id: number;
-    message: BotMessageWithAttachments;
+export type CrewRequest = {
+    id: number;
+    title: string | null;
+    status: string;
+    updated_at?: number;
 };
 
 /**
@@ -1341,16 +1287,16 @@ export type MessageLengthOverview = {
 };
 
 /**
- * How long hook calls are kept (Settings > General,
- * `grab-hook-events-keep-days.ts`).
+ * How long ended crew requests are kept, and how many one place keeps
+ * (Settings > General, `grab-ask-retention.ts`).
  */
-export type ChatroomRetentionOverview = {
+export type AskRetentionOverview = {
     keep_days: number;
-    default_days: number;
-    max_days: number;
+    keep_days_default: number;
+    keep_days_max: number;
     max_per_place: number;
-    default_per_place: number;
-    max_per_place_ceiling: number;
+    max_per_place_default: number;
+    max_per_place_max: number;
 };
 
 export type HookCallRetentionOverview = {
@@ -2325,16 +2271,6 @@ export type PagePropsType = {
      */
     workspace_activity?: WorkspaceActivityItem[] | null;
     /**
-     * The open chatroom (`/admin/chatrooms/[chatroom_id]`) and every
-     * message in it.
-     */
-    chatroom?: ChatroomSummary | null;
-    chatroom_messages?: BotMessageWithAttachments[] | null;
-    /**
-     * The user's chatrooms (`/admin/chatrooms`).
-     */
-    chatrooms?: ChatroomSummary[] | null;
-    /**
      * A workspace's dashboard: its shared to-do list.
      */
     workspace_tasks?: TaskWithNames[] | null;
@@ -2428,10 +2364,10 @@ export type PagePropsType = {
      */
     log_retention?: LogRetentionOverview | null;
     /**
-     * How long closed chatrooms are kept and how many one place keeps, with
-     * the code's defaults (the General settings page).
+     * How long ended crew requests are kept and how many one place keeps,
+     * with the code's defaults (the General settings page).
      */
-    chatroom_retention?: ChatroomRetentionOverview | null;
+    ask_retention?: AskRetentionOverview | null;
     /**
      * How many messages a session takes, with the code's default (the
      * General settings page).
@@ -2514,6 +2450,18 @@ export type PagePropsType = {
      * characters (`grabBotMessageMaxChars`).
      */
     message_max_chars?: number | null;
+    /**
+     * The crew request the bot is answering here right now, so the thread
+     * says what it's working on while the answer runs in a hidden session.
+     */
+    answer_ask?: {
+        ask_id: number;
+        title: string | null;
+        requester_name: string | null;
+        session_id: number | null;
+        workspace_id: number | null;
+        workspace_name: string | null;
+    } | null;
     /**
      * The open conversation's text model (its header). The full model
      * settings load when the models modal opens.
@@ -2726,16 +2674,6 @@ export const WebSocketEvents = [
      * `BotTraceData`)
      */
     "server:bot-trace",
-    /**
-     * A new message in one of the user's chatrooms (`data`:
-     * `ChatroomMessageData`)
-     */
-    "server:chatroom-message",
-    /**
-     * One of the user's chatrooms opened or changed status (`data`:
-     * `ChatroomSummary`)
-     */
-    "server:chatroom-updated",
     /**
      * A call to one of the user's hooks came in or changed (`data`:
      * `{ hook_id }`)
@@ -2999,7 +2937,6 @@ export type PageQueryObject = {
      */
     section?: string;
     workspace_id?: string;
-    chatroom_id?: string;
     computer_id?: string;
     event_id?: string;
     user_type?: UserType;

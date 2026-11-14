@@ -83,17 +83,16 @@ The computer keeps the session, like everything else in its browser (site permis
 A task that hit the wall stops and reports instead of waiting, so after you hand back the bot picks the work up again from the chat.`,
     },
     {
-        id: "chatrooms",
-        title: "What is a chatroom?",
-        summary: "A chatroom showed up in the rail, or a bot says it asked another bot.",
-        body: `When a bot needs something another bot is better placed to give (what it knows, a file it has, work in its line), it doesn't ask that bot directly. It asks the coordinator, which reads the request, picks who should answer, asks them and sends the answer back. Each of those exchanges is kept in a **chatroom**.
+        id: "asking-a-bot",
+        title: "A bot asked another bot for something",
+        summary: "A bot says it asked another bot, and the answer arrives a little later.",
+        body: `When a bot needs something another bot is better placed to give (what it knows, a file it has, work in its line), it asks it through the coordinator. The coordinator reads the request first: it passes it to the bot that should answer, sends it to a better-placed bot, or turns it down with the reason. Then that bot answers, and the answer comes back to the bot that asked.
 
-- **Where:** with the conversation it came from. A request made in a workspace is listed under Chatrooms inside that workspace, after its bots; one made in a bot's own chat is listed under Chatrooms after the workspaces. The chip in the bot's message opens it too.
 - **Who can be asked:** in a workspace only the workspace's bots, otherwise any bot you work with. The work runs as you, with your access.
-- **Read-only:** nobody writes in a chatroom. To steer the coordinator, talk to it in its own chat (super admin only). You can **Stop** an open request from the room's header.
-- **While it runs:** the asking bot's conversation shows where each bot in the request stands, linked to the room, until it's done.
-- **Try again:** a request that failed or was stopped can be tried again, from the room's header, the Chatrooms list or the message in the conversation that says so. The same room carries on from what was already said, and the answer goes back to the bot that asked.
-- **What happens after:** the answer appears in the asking bot's conversation as a message from the coordinator, and the bot carries on from there.`,
+- **What you see:** nothing new in the rail. The answer arrives in the asking bot's conversation as a message from the coordinator, and that bot carries on from there.
+- **Turning one down:** an ask the coordinator refuses says why in that same message, so the asking bot can carry on without it.
+- **Stopping it:** Stop in the conversation ends whatever the bot was doing, its open requests included.
+- **Files:** a file another bot sends is copied into the asking bot's own folder (under \`crew/ask-<id>/\`) so the reference keeps working for you.`,
     },
     {
         id: "graphics",
@@ -176,6 +175,6 @@ If it's given and still misses:
 2. Add its URL under **New browser** and click **Test connection**.
 3. Choose where it applies: for all your bots on the same page, for one bot from the browser button under its composer or its settings, or for a workspace the same way. Choose it as the default there and bots go to it first, falling back to the computer's browser if it's off.
 
-Be careful: a bot in your browser acts as you, and anyone who can reach that port can too. Keep the port on your machine or a private network. Routines only use a browser you've allowed them; hook calls and chatrooms never do.`,
+Be careful: a bot in your browser acts as you, and anyone who can reach that port can too. Keep the port on your machine or a private network. Routines only use a browser you've allowed them; hook calls and crew requests never do.`,
     },
 ];

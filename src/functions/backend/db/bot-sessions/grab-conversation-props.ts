@@ -11,6 +11,7 @@ import { grabBotMessageMaxChars } from "../app-settings/grab-bot-message-max-cha
 import resolveHarnessCandidates from "@/src/harness/resolve/resolve-harness-candidates";
 import grabUserWorkspaces from "../workspaces/grab-user-workspaces";
 import grabUserConversation from "./grab-user-conversation";
+import grabConversationAsk from "../asks/grab-conversation-ask";
 
 type Params = {
     user_id: number;
@@ -51,9 +52,10 @@ export default async function grabConversationProps({
 
     const scope = conversation.workspace_id;
 
-    const [bots, workspaces] = await Promise.all([
+    const [bots, workspaces, answer_ask] = await Promise.all([
         grabBots({ user_id, workspace_id: scope }),
         grabUserWorkspaces({ user_id }),
+        grabConversationAsk({ user_id, bot_id, workspace_id: scope }).catch(() => null),
     ]);
 
     const bot = bots.find((b) => b.id == conversation.bot.id);
@@ -86,6 +88,7 @@ export default async function grabConversationProps({
         bot_voice: { transcription, speech },
         has_browsers,
         message_max_chars,
+        answer_ask,
     };
 }
 

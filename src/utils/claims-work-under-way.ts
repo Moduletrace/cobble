@@ -21,6 +21,12 @@ const UnderWayPatterns = [
      * sentence.
      */
     /\bI(?:'|’)ll\s+(?:now\s+|go\s+ahead\s+and\s+)?(?:drive|open|go|head|browse|navigate|check|look|run|start|search|scan|dig|pull|grab|fetch|try|use)\b(?:[^.!?\n]|\.(?=\S)){0,160}\b(?:and see|see what|right away|straight away|directly|now)\b/i,
+    /**
+     * "What I sent @SEO Expert", "I've passed the brief on to [bot:6]": a
+     * request claimed as made. Only `ask_bot` makes one, so the app's
+     * record decides whether it's true.
+     */
+    /\b(?:sent|passed|forwarded|handed)\b[^.!?\n]{0,80}(?:@[a-z0-9_-]+|\[bot:\d+\])/i,
 ];
 
 /**

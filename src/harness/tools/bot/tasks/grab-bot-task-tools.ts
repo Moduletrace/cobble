@@ -24,7 +24,7 @@ type Params = {
     workspace_id?: number | string | null;
     /**
      * A chat reply the user follows: it also gets delete_task. Never a
-     * routine, a hook call or a chatroom run.
+     * routine or a hook call.
      */
     can_delete?: boolean;
     /**

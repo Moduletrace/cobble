@@ -25,11 +25,11 @@ describe("composerHistoryTexts", () => {
         expect(texts).toEqual(["real text"]);
     });
 
-    test("leaves out what a chatroom or an install request wrote on the user's side", () => {
+    test("leaves out what a crew request or an install request wrote on the user's side", () => {
         const texts = composerHistoryTexts({
             messages: [
                 sent("ask the crew"),
-                { author: "user" as const, text: "Room closed: the answer", from_chatroom_id: 12 },
+                { author: "user" as const, text: "Request ended: the answer", from_ask_id: 12 },
                 { author: "user" as const, text: "Installed numpy", from_install_request_id: 3 },
             ],
         });

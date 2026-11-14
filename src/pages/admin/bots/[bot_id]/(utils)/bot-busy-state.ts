@@ -20,6 +20,11 @@ type Params = {
      * A task of the bot's is running.
      */
     has_task?: boolean;
+    /**
+     * The bot is answering another bot's crew request: its answer runs in a
+     * hidden session, so the thread would otherwise look idle.
+     */
+    answering_ask?: boolean;
 };
 
 export type BotBusyState = {
@@ -39,6 +44,10 @@ export type BotBusyState = {
      * A task is running and the bot has the last word.
      */
     working: boolean;
+    /**
+     * The bot is answering a crew request from another bot.
+     */
+    answering: boolean;
     /**
      * Anything of the above, so the row has something to say.
      */
@@ -67,6 +76,7 @@ export default function botBusyState({
     awaiting_reply,
     receiving,
     has_task,
+    answering_ask,
 }: Params): BotBusyState {
     const asleep = bot.face == "asleep";
     const waiting_model =
@@ -79,8 +89,10 @@ export default function botBusyState({
     const waiting = waiting_model || waiting_computer;
     const getting = Boolean(receiving) && Boolean(awaiting_reply);
     const thinking = Boolean(awaiting_reply) && !waiting && !getting;
+    const answering = Boolean(answering_ask);
     const working =
         !awaiting_reply &&
+        !answering &&
         bot.face == "working" &&
         bot.status_line != BotReplyJobTitle &&
         Boolean(has_task);
@@ -94,6 +106,7 @@ export default function botBusyState({
         waiting ||
         thinking ||
         working ||
+        answering ||
         bot.face == "working" ||
         (asleep &&
             (bot.status_line == BotWaitingStatusLine ||
@@ -104,7 +117,8 @@ export default function botBusyState({
         getting,
         thinking,
         working,
-        busy: getting || thinking || working || waiting,
+        answering,
+        busy: getting || thinking || working || waiting || answering,
         stoppable,
     };
 }

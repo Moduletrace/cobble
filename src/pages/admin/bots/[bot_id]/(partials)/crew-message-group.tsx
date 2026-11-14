@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * What the coordinator brought back from a chatroom, on its own paper so
+ * What the coordinator brought back from another bot, on its own paper so
  * it stands apart from the conversation: text under the hue-less
  * coordinator stone, never a user bubble, though the bot answers it like
  * one.

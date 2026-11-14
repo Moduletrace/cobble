@@ -9,7 +9,6 @@ import RailBotSessions from "./rail-bot-sessions";
 import RailBotsSection from "./rail-bots-section";
 import RailSectionAddButton from "./rail-section-add-button";
 import WorkspaceRow from "./workspace-row";
-import RailChatroomsSection from "./rail-chatrooms-section";
 
 type Props = {
     workspace: WorkspaceWithActivity;
@@ -27,9 +26,8 @@ type Props = {
 
 /**
  * The rail inside a workspace: back to all bots, the workspace itself (its
- * page), the coordinator working in it, the workspace's bots, then the
- * chatrooms asked from here. Every conversation here runs with the
- * workspace's context.
+ * page), the coordinator working in it, then the workspace's bots. Every
+ * conversation here runs with the workspace's context.
  */
 export default function RailWorkspaceList({
     workspace,
@@ -86,7 +84,6 @@ export default function RailWorkspaceList({
                 hrefFor={(bot) => `${base}/bots/${bot.id}`}
                 empty="No bots here yet."
             />
-            <RailChatroomsSection workspace_id={workspace.id ? Number(workspace.id) : null} />
         </>
     );
 }

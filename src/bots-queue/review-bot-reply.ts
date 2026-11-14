@@ -104,10 +104,10 @@ async function hasOpenWork({ bot_id, session_id }: { bot_id: number | string; se
 
     if (jobs.payload?.[0]) return true;
 
-    const rooms = await BunSQLite.sql<{ id: number }>({
-        sql: `SELECT id FROM chatrooms WHERE status = 'open' AND requester_bot_id = ? AND origin_session_id = ? LIMIT 1`,
+    const asks = await BunSQLite.sql<{ id: number }>({
+        sql: `SELECT id FROM bot_asks WHERE status IN ('pending', 'working') AND requester_bot_id = ? AND origin_session_id = ? LIMIT 1`,
         values: [Number(bot_id), Number(session_id)],
     });
 
-    return Boolean(rooms.payload?.[0]);
+    return Boolean(asks.payload?.[0]);
 }

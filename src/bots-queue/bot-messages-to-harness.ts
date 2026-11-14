@@ -18,7 +18,7 @@ type Params = {
         | "reply_to"
         | "tool_log"
         | "reactions"
-        | "from_chatroom_id"
+        | "from_ask_id"
         | "from_install_request_id"
     >[];
     /**
@@ -44,7 +44,7 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * message whose run was recorded (`tool_log`) is followed by the app's
  * record of the tools it called, so the bot can tell what its past
  * messages actually did from what they say, and of how the user reacted
- * to it, their feedback on it. A chatroom's outcome brought
+ * to it, their feedback on it. A crew request's outcome brought
  * back to the bot, or the coordinator's answer to its install request
  * (`isCrewMessage`), is a user turn fenced as what the
  * coordinator passed on (`crewMessageBlock`), never the user's words.

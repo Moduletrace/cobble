@@ -78,7 +78,7 @@ export default function BrowsersSettingsSection() {
             </SettingsGroup>
             <SettingsGroup
                 title="All your bots"
-                description="Applies everywhere, unless a bot or workspace chooses differently. Routines only use a browser you've allowed them; hook calls and chatrooms never do."
+                description="Applies everywhere, unless a bot or workspace chooses differently. Routines only use a browser you've allowed them; hook calls and crew requests never do."
             >
                 <BrowserDefaultPicker key={version} id="browsers-all-bots" />
             </SettingsGroup>

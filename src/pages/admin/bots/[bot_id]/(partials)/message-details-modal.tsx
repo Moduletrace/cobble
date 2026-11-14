@@ -26,25 +26,19 @@ type Props = {
      * passed along to the copied report.
      */
     tool_log?: string | null;
-    /**
-     * Set when the message was posted in a chatroom, so its details are read
-     * from the room's route.
-     */
-    chatroom_id?: number;
 };
 
 /**
- * The info button under a bot message (in a conversation or a chatroom),
- * and the modal it opens: which provider and model generated it, the run
+ * The info button under a bot message, and the modal it opens: which provider and model generated it, the run
  * behind it, what its tools did, and every model call with its tokens and
  * cost - then, under "Debug logs", what the run did step by step (its
  * turns and what it reasoned, every tool call with its arguments and
  * answer), which is read only when that tab is opened.
  */
-export default function MessageDetailsModal({ message_id, tool_log, chatroom_id }: Props) {
+export default function MessageDetailsModal({ message_id, tool_log }: Props) {
     const [open, set_open] = useState(false);
     const [tab, set_tab] = useState<"details" | "debug">("details");
-    const { details, loading, error } = useMessageDetails({ message_id, enabled: open, chatroom_id });
+    const { details, loading, error } = useMessageDetails({ message_id, enabled: open });
 
     return (
         <Modal
@@ -88,7 +82,7 @@ export default function MessageDetailsModal({ message_id, tool_log, chatroom_id 
                 {tab == "details" ? (
                     <Stack className="w-full gap-3! items-stretch">
                         <Row className="w-full flex-nowrap items-center justify-end">
-                            <CopyMessageDetailsButton message_id={message_id} chatroom_id={chatroom_id} />
+                            <CopyMessageDetailsButton message_id={message_id} />
                         </Row>
                         {details ? (
                             <MessageDetailsBody details={details} tool_log={tool_log} />
@@ -100,7 +94,7 @@ export default function MessageDetailsModal({ message_id, tool_log, chatroom_id 
                     </Stack>
                 ) : (
                     <Suspense fallback={null}>
-                        <MessageDebugLogs message_id={message_id} chatroom_id={chatroom_id} />
+                        <MessageDebugLogs message_id={message_id} />
                     </Suspense>
                 )}
             </Stack>

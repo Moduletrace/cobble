@@ -97,7 +97,7 @@ describe("linkComputerRefs", () => {
 describe("linkComputerRefs and code", () => {
     test("a ref quoted alone in a code span is the ref", () => {
         expect(linkComputerRefs({ text: "saved as `[file:131]` today" })).toBe("saved as [file 131](#file-131) today");
-        expect(linkComputerRefs({ text: "see `` [room:4] ``" })).toBe("see [room 4](#room-4)");
+        expect(linkComputerRefs({ text: "see `` [room:4] ``" })).toBe("see [room:4]");
     });
 
     test("refs inside longer code stay as written", () => {

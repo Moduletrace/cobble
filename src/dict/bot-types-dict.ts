@@ -95,7 +95,7 @@ export const BotTypePermissionMatrix: Record<BotRole, BotPermission[]> = {
  * coordinator passes through. A workspace admin directs workers only, so
  * two admins never hand work back and forth. A worker directs no one
  * either: `hand_over_task` takes a task it already has to a bot it could
- * ask, which its own tool decides (`chatroomAskableBots`), not this
+ * ask, which its own tool decides (`askableBots`), not this
  * matrix.
  */
 export const BotTypeTargetMatrix: TypeAssignmentMatrixType<BotRole> = {

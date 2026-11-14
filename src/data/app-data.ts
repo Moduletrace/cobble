@@ -351,14 +351,20 @@ export const AppData = {
      */
     CronJobMaxPerBot: 20,
     /**
-     * Chatrooms (a worker asking another through the coordinator): how many
-     * turns the coordinator gets in one room, how deep rooms may nest (a
-     * bot asked in a room asking someone else), how many rooms one bot may
-     * have open at once for a user, and how many the rail lists.
+     * A worker asking another bot directly, through the coordinator's gate:
+     * how deep asks may nest (a bot answering one asking someone else), how
+     * many one bot may have open at once for a user, and how large its
+     * brief and the coordinator's reason may be.
      */
-    ChatroomMaxCoordinatorTurns: 6,
-    ChatroomMaxDepth: 2,
-    ChatroomMaxOpenPerBot: 3,
+    AskMaxDepth: 2,
+    AskMaxOpenPerBot: 3,
+    AskBriefMaxChars: 8000,
+    AskReasonMaxChars: 600,
+    /**
+     * How many turns the coordinator gets to return a usable decision: one
+     * more than this and the request fails rather than being guessed at.
+     */
+    AskGateAttempts: 2,
     /**
      * How far back a run is shown the requests its bot made to the crew
      * from the same place (`grabCrewRequests`), and how many at most.
@@ -366,22 +372,20 @@ export const AppData = {
     CrewRequestsRecentMs: 6 * 60 * 60 * 1000,
     CrewRequestsListed: 8,
     /**
-     * Files a room's answer may have copied over to the bot that asked
-     * (`shareRoomFiles`); refs past it are left as written.
+     * Files an answer may have copied over to the bot that asked
+     * (`shareAskFiles`); refs past it are left as written.
      */
-    ChatroomSharedFilesMax: 30,
-    ChatroomCoordinatorMaxToolSteps: 6,
-    ChatroomRailLimit: 8,
+    AskSharedFilesMax: 30,
     /**
-     * Closed chatrooms are deleted after this many days, and past this many
-     * rooms in one place (a workspace, or bots' own chats) the oldest
-     * closed ones go: the defaults, each with the most an install may set
-     * (`chatroom_keep_days`, `chatroom_max_per_place`, Settings > General).
+     * Finished asks are deleted after this many days, and past this many in
+     * one place (a workspace, or bots' own chats) the oldest finished ones
+     * go: the defaults, each with the most an install may set
+     * (`ask_keep_days`, `ask_max_per_place`, Settings > General).
      */
-    ChatroomKeepDays: 30,
-    ChatroomKeepDaysMax: 3650,
-    ChatroomMaxPerPlace: 200,
-    ChatroomMaxPerPlaceMax: 10000,
+    AskKeepDays: 30,
+    AskKeepDaysMax: 3650,
+    AskMaxPerPlace: 200,
+    AskMaxPerPlaceMax: 10000,
     CronJobMinIntervalMs: 5 * 60 * 1000,
     /**
      * Due schedules queued per tick of the `run-cron-jobs` cron.

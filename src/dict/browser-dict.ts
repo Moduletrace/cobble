@@ -18,7 +18,7 @@ export const BrowserInheritDefault = "inherit";
 /**
  * What a run is, for whether it may reach a user's browser: someone is
  * following it, it's one of their routines, or nobody will see it (a hook
- * call, a chatroom).
+ * call).
  */
 export const BrowserRunKinds = ["attended", "routine", "unattended"] as const;
 

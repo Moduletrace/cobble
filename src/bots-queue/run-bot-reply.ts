@@ -5,7 +5,8 @@ import {
     ActionCheckNote,
     RequestScopeNote,
     QuestionsNote,
-    AskCrewNote,
+    AskRulesNote,
+    passedOnRequestNote,
     SecretsNote,
     SettingsNote,
     GraphicsNote,
@@ -37,6 +38,8 @@ import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes"
 import openBotBrowsers from "@/src/harness/tools/browsers/open-bot-browsers";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
+import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
+import parseJobJson from "./parse-job-json";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabKnowledgebaseContext from "@/src/harness/tools/knowledgebases/grab-knowledgebase-context";
@@ -201,7 +204,7 @@ export default async function runBotReply({
     const has_past_sessions = Boolean(
         (
             await BunSQLite.sql({
-                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? AND chatroom_id IS NULL AND hook_id IS NULL LIMIT 1`,
+                sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND id != ? AND ask_id IS NULL AND hook_id IS NULL LIMIT 1`,
                 values: [user_id, bot.id!, workspace_id ? Number(workspace_id) : null, session_id],
             })
         ).payload?.[0],
@@ -249,9 +252,22 @@ export default async function runBotReply({
      */
     const powers = await grabBotRunPowers({ bot_id: bot.id, workspace_id });
     /**
-     * A chatroom's turn is a reply too, and nobody follows that.
+     * A crew request's session and a hook's run are hidden: nobody follows
+     * them.
      */
     const attended = !(await isHiddenSession({ session_id }));
+    /**
+     * Answering another bot's request, which came through the coordinator's
+     * gate (`enqueueAskAnswer`).
+     */
+    /**
+     * A crew request's answer: the brief sits in the user's own conversation
+     * with the bot, so the run reads the request note and answers it, and the
+     * asker is woken with the answer (`finishAsk`).
+     */
+    const asked =
+        Boolean(Number(parseJobJson({ text: job.params })?.ask_id) || 0) ||
+        (session_id ? Boolean(await grabSessionAskId({ session_id }).catch(() => null)) : false);
     let led: WorkspaceAdminTools | null = null;
 
     const tools = await grabBotChatTools({
@@ -269,7 +285,6 @@ export default async function runBotReply({
         onWorkspaceAdmin: (admin) => {
             led = admin;
         },
-        onChatroom: ({ ref }) => shown.push(ref),
         onTask: ({ task_id }) => task_ids.push(task_id),
     });
 
@@ -367,7 +382,7 @@ export default async function runBotReply({
                 TaskReminderNote,
                 can_hand_over ? HandOverTaskNote : "",
                 ActionCheckNote,
-                RequestScopeNote({ can_ask: Boolean(attended) }),
+                RequestScopeNote({ can_ask: Boolean(attended) && !asked }),
                 attended ? QuestionsNote : "",
                 SecretsNote,
                 SettingsNote,
@@ -387,7 +402,8 @@ export default async function runBotReply({
                 }),
                 crew_note,
                 openRunsNote({ runs: open_runs }),
-                powers.is_coordinator ? "" : AskCrewNote,
+                powers.is_coordinator || !attended ? "" : AskRulesNote,
+                asked ? passedOnRequestNote : "",
                 skills.note,
                 knowledge.note,
                 extensions.note,
@@ -420,8 +436,8 @@ export default async function runBotReply({
                     onShow: ({ ref }) => shown.push(ref),
                 }),
                 /**
-                 * Only where the user follows the conversation: a chatroom's
-                 * hidden session has no card they could answer, and a
+                 * Only where the user follows the conversation: a hidden
+                 * session has no card they could answer, and a
                  * question there was once shown to the coordinator as a bare
                  * ref, its answer never reaching the bot.
                  */

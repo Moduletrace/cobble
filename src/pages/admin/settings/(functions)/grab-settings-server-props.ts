@@ -10,7 +10,7 @@ import grabSkillLimitsOverview from "@/src/functions/backend/db/app-settings/gra
 import grabHookCallRetentionOverview from "@/src/functions/backend/db/app-settings/grab-hook-events-keep-days";
 import grabBotTraceRetentionOverview from "@/src/functions/backend/db/app-settings/grab-bot-trace-keep-days";
 import grabLogRetentionOverview from "@/src/functions/backend/db/app-settings/grab-logs-keep-days";
-import grabChatroomRetentionOverview from "@/src/functions/backend/db/app-settings/grab-chatroom-retention";
+import grabAskRetention from "@/src/functions/backend/db/app-settings/grab-ask-retention";
 import grabSessionLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-session-max-messages";
 import grabMessageLengthOverview from "@/src/functions/backend/db/app-settings/grab-bot-message-max-chars";
 import grabStorageQuotaOverview from "@/src/functions/backend/db/app-settings/grab-storage-quota-overview";
@@ -60,7 +60,7 @@ export default async function grabSettingsServerProps({ req }: Params) {
             hook_call_retention: await grabHookCallRetentionOverview().catch(() => null),
             bot_trace_retention: await grabBotTraceRetentionOverview().catch(() => null),
             log_retention: await grabLogRetentionOverview().catch(() => null),
-            chatroom_retention: await grabChatroomRetentionOverview().catch(() => null),
+            ask_retention: await grabAskRetention().catch(() => null),
             session_length: await grabSessionLengthOverview().catch(() => null),
             message_length: await grabMessageLengthOverview().catch(() => null),
             running_version: runningVersion({ env: process.env }),

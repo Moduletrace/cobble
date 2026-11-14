@@ -105,7 +105,7 @@ describe("browserRunAllowed", () => {
         expect(browserRunAllowed({ run_kind: "routine", allow_routines: 1 })).toBe(true);
     });
 
-    test("hook calls and chatrooms never do, whatever the switch says", () => {
+    test("hook calls and crew requests never do, whatever the switch says", () => {
         expect(browserRunAllowed({ run_kind: "unattended", allow_routines: 1 })).toBe(false);
     });
 });

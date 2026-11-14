@@ -10,10 +10,8 @@ export const SaveBotTraceRetentionRequestSchema = z.object({
 });
 
 /**
- * The message whose run's debug logs are wanted, and the room it was posted
- * in when it came from a chatroom (read through the room's own access).
+ * The message whose run's debug logs are wanted.
  */
 export const BotMessageTraceRequestSchema = z.object({
     message_id: z.coerce.number().int().positive("Pick a message"),
-    chatroom_id: z.coerce.number().int().positive().optional(),
 });

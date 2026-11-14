@@ -5,13 +5,13 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type {
     BotMessageWithAttachments,
     BotWithLastMessage,
+    PagePropsType,
 } from "@/src/types";
 import useMessageSelection from "../(hooks)/use-message-selection";
 import usePullToRefresh from "../(hooks)/use-pull-to-refresh";
 import useThreadScroll from "../(hooks)/use-thread-scroll";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
-import ConversationChatroomStatus from "./conversation-chatroom-status";
 import MessageGroupBlock from "./message-group-block";
 import OlderMessagesLoader from "./older-messages-loader";
 import PullToRefreshIndicator from "./pull-to-refresh-indicator";
@@ -39,14 +39,14 @@ type Props = {
      */
     has_task?: boolean;
     /**
+     * The crew request the bot is answering here, whose answer runs in a
+     * hidden session, so the row can say who it's answering.
+     */
+    answer_ask?: PagePropsType["answer_ask"];
+    /**
      * The conversation went on in another session: no reply is due here.
      */
     moved_on?: boolean;
-    /**
-     * No reply is due, for another reason: the last word is a chatroom's
-     * that doesn't wake the bot.
-     */
-    no_reply_due?: boolean;
     /**
      * The session shown: the debug logs read the run it's working on.
      */
@@ -115,8 +115,8 @@ export default function MessageThread({
     debug_open,
     on_toggle_debug,
     has_task,
+    answer_ask,
     moved_on,
-    no_reply_due,
     notice,
     onQuote,
     onReload,
@@ -172,14 +172,14 @@ export default function MessageThread({
                         />
                     ))}
                     {notice}
-                    {moved_on ? null : <ConversationChatroomStatus />}
                     <BotThinkingRow
                         bot={bot}
                         progress={progress}
+                        answer_ask={answer_ask}
+                        answering_ask={Boolean(answer_ask) && bot.face == "working"}
                         reply_progress={reply_progress}
                         awaiting_reply={
                             !moved_on &&
-                            !no_reply_due &&
                             isAwaitingReply({
                                 last_message: messages[messages.length - 1],
                                 face: bot.face,

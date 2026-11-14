@@ -24,7 +24,7 @@ type Args = {
  * Without it, bots cancelled tasks and told the user they were removed.
  * The run must reach the task (`grabRunTask`) and so must its user
  * (`assertUserReachesTask`). Only chat replies get it: a routine, a hook
- * call or a chatroom run has no user asking, and a payload could ask for it.
+ * call has no user asking, and a payload could ask for it.
  */
 export default function deleteTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids = [] }: Params): HarnessTool<Args> {
     return {

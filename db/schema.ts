@@ -43,7 +43,7 @@ import {
     CustomToolKinds,
     CustomToolStatuses,
 } from "@/src/dict/custom-tool-dict";
-import { ChatroomStatuses } from "@/src/dict/chatroom-dict";
+import { AskStatuses } from "@/src/dict/ask-dict";
 import {
     TaskAuthors,
     TaskMediaKinds,
@@ -300,8 +300,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
         },
         {
-            tableName: "chatrooms",
-            tableDescription: `A read-only record of one worker asking another for something through the coordinator, for one user: the asking bot's request, the coordinator's turns, the asked bot's work and the answer sent back. Every bot in it has a session there (\`bot_sessions.chatroom_id\`, status \`chatroom\`) that holds its messages and jobs`,
+            tableName: "bot_asks",
+            tableDescription: `One worker's request to another, for one user: the brief the coordinator reviewed, its decision, the asked bot's run there and the answer sent back. Each bot's part is its session (\`bot_sessions.ask_id\`, status \`ask\`), which holds its messages and jobs`,
             fields: [
                 {
                     fieldName: "user_id",
@@ -312,19 +312,19 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableName: "users",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "chatroom_user_fk",
+                        foreignKeyName: "ask_user_fk",
                     },
                 },
                 {
                     fieldName: "workspace_id",
-                    fieldDescription: `The workspace the request was made in, where every run in the room works and only its members can be asked. Null: the asking bot's own chat`,
+                    fieldDescription: `The workspace the request was made in, where the run works and only its members can be asked. Null: the asking bot's own chat`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,
                         destinationTableName: "workspaces",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "chatroom_workspace_fk",
+                        foreignKeyName: "ask_workspace_fk",
                     },
                 },
                 {
@@ -334,17 +334,17 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "target_bot_id",
-                    fieldDescription: `The bot the coordinator last asked, null until it asks one. Not a foreign key`,
+                    fieldDescription: `The bot that is asked: the one the asking bot named, or the one the coordinator redirected it to. Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
                     fieldName: "origin_session_id",
-                    fieldDescription: `The asking bot's session the request came from: the answer goes back there and wakes it. Not a foreign key`,
+                    fieldDescription: `The asking bot's session the request came from: the outcome goes back there and wakes it. Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
-                    fieldName: "parent_chatroom_id",
-                    fieldDescription: `The room the asking bot was itself working in when it asked (a nested request). Not a foreign key`,
+                    fieldName: "parent_ask_id",
+                    fieldDescription: `The ask the asking bot was itself working on when it asked (a nested request). Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
@@ -360,8 +360,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "status",
                     dataType: "TEXT",
-                    options: ChatroomStatuses.map((s) => s.value),
-                    defaultValue: "open",
+                    options: AskStatuses.map((s) => s.value),
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "gate_note",
+                    fieldDescription: `The coordinator's reason for its decision: why it approved, where it redirected or why it refused`,
+                    dataType: "TEXT",
                 },
                 {
                     fieldName: "outcome",
@@ -369,36 +374,33 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
-                    fieldName: "coordinator_turns",
-                    fieldDescription: `How many turns the coordinator has taken in the room, capped at \`AppData.ChatroomMaxCoordinatorTurns\``,
-                    dataType: "INTEGER",
-                    defaultValue: 0,
-                },
-                {
-                    fieldName: "unread",
-                    dataType: "INTEGER",
-                    options: [0, 1],
-                    defaultValue: 0,
-                },
-                {
-                    fieldName: "last_activity_at",
-                    fieldDescription: `Unix timestamp of the latest message in the room, for ordering`,
+                    fieldName: "session_id",
+                    fieldDescription: `The asked bot's session working this ask (\`bot_sessions.ask_id\`), once it is approved. Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
-                    fieldName: "closed_at",
-                    fieldDescription: `Unix timestamp of when the room reached a final status`,
+                    fieldName: "job_id",
+                    fieldDescription: `The asked bot's run answering it, so Stop can end it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "previous_session_id",
+                    fieldDescription: `The asked bot's session before the request opened one of its own, so its conversation can offer the way back. Not a foreign key`,
                     dataType: "INTEGER",
                 },
             ],
             indexes: [
                 {
-                    indexName: "idx_chatrooms_user_id",
-                    indexTableFields: ["user_id", "status", "last_activity_at"],
+                    indexName: "idx_bot_asks_user_id",
+                    indexTableFields: ["user_id", "status"],
                 },
                 {
-                    indexName: "idx_chatrooms_requester_bot_id",
+                    indexName: "idx_bot_asks_requester_bot_id",
                     indexTableFields: ["requester_bot_id", "status"],
+                },
+                {
+                    indexName: "idx_bot_asks_target_bot_id",
+                    indexTableFields: ["target_bot_id"],
                 },
             ],
         },
@@ -463,15 +465,15 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                 },
                 {
-                    fieldName: "chatroom_id",
-                    fieldDescription: `The chatroom this session is the bot's part of. Such sessions (status \`chatroom\`) never show in the bot's conversation, rails or session lists. Null: an ordinary session`,
+                    fieldName: "ask_id",
+                    fieldDescription: `The ask (\`bot_asks\`) this session is the bot's part of. Such sessions (status \`ask\`) never show in the bot's conversation, rails or session lists. Null: an ordinary session`,
                     dataType: "INTEGER",
                     foreignKey: {
                         cascadeDelete: true,
-                        destinationTableName: "chatrooms",
+                        destinationTableName: "bot_asks",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "bot_session_chatroom_fk",
+                        foreignKeyName: "bot_session_ask_fk",
                     },
                 },
                 {
@@ -481,7 +483,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "status",
-                    fieldDescription: `One active session per conversation; \`chatroom\` for a bot's part of a chatroom`,
+                    fieldDescription: `One active session per conversation; \`ask\` for a bot's part of a crew request, \`hook\` for a hook's runs`,
                     dataType: "TEXT",
                     options: BotSessionStatuses.map((s) => s.value),
                     defaultValue: "active",
@@ -500,8 +502,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             ],
             indexes: [
                 {
-                    indexName: "idx_bot_sessions_chatroom_id",
-                    indexTableFields: ["chatroom_id"],
+                    indexName: "idx_bot_sessions_ask_id",
+                    indexTableFields: ["ask_id"],
                 },
                 {
                     indexName: "idx_bot_sessions_bot_id_workspace_id",
@@ -599,8 +601,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                 },
                 {
-                    fieldName: "from_chatroom_id",
-                    fieldDescription: `Set on the message that brings a chatroom's outcome back into the asking bot's conversation: the room. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key`,
+                    fieldName: "from_ask_id",
+                    fieldDescription: `Set on the message that brings a crew request's outcome back into the asking bot's conversation: the ask. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key`,
                     dataType: "INTEGER",
                 },
                 {
@@ -3240,7 +3242,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "allow_routines",
-                    fieldDescription: `1 lets its owner's routines use it. Hook calls and chatroom runs never do`,
+                    fieldDescription: `1 lets its owner's routines use it. Hook calls and crew requests never do`,
                     dataType: "INTEGER",
                     options: [0, 1],
                     defaultValue: 0,

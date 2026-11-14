@@ -4,7 +4,7 @@ import type { BotMessageWithAttachments } from "@/src/types";
 export type MessageGroup = {
     key: string;
     /**
-     * `crew`: a chatroom's outcome or an install request's answer brought
+     * `crew`: a crew request's outcome or an install request's answer brought
      * back to the bot (`isCrewMessage`),
      * stored on the user's side but shown as from the coordinator.
      */

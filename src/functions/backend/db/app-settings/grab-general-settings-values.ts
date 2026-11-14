@@ -6,7 +6,7 @@ import generalSettingsHref, {
     type GeneralSettingsValue,
 } from "@/src/dict/general-settings-dict";
 import settingValueLabel from "@/src/utils/setting-value-label";
-import grabChatroomRetentionOverview from "./grab-chatroom-retention";
+import grabAskRetention from "./grab-ask-retention";
 import grabComputerWorkspaceQuotaOverview from "./grab-computer-workspace-quota-overview";
 import grabHookCallRetentionOverview from "./grab-hook-events-keep-days";
 import grabBotTraceRetentionOverview from "./grab-bot-trace-keep-days";
@@ -29,14 +29,14 @@ type RawValues = Record<string, number | string | null>;
  * started shows its new number).
  */
 export default async function grabGeneralSettingsValues(): Promise<GeneralSettingsSectionValues[]> {
-    const [run_limits, skill_limits, hook_calls, run_traces, logs, chatrooms, sessions, messages, storage, computer_workspace, appendix, install_name] =
+    const [run_limits, skill_limits, hook_calls, run_traces, logs, asks, sessions, messages, storage, computer_workspace, appendix, install_name] =
         await Promise.all([
             grabRunLimitsOverview().catch(() => null),
             grabSkillLimitsOverview().catch(() => null),
             grabHookCallRetentionOverview().catch(() => null),
             grabBotTraceRetentionOverview().catch(() => null),
             grabLogRetentionOverview().catch(() => null),
-            grabChatroomRetentionOverview().catch(() => null),
+            grabAskRetention().catch(() => null),
             grabSessionLengthOverview().catch(() => null),
             grabMessageLengthOverview().catch(() => null),
             grabStorageQuotaOverview().catch(() => null),
@@ -62,9 +62,9 @@ export default async function grabGeneralSettingsValues(): Promise<GeneralSettin
         },
         "hook-calls": { keep_days: hook_calls?.keep_days ?? null },
         "run-traces": { keep_days: run_traces?.keep_days ?? null },
-        chatrooms: {
-            keep_days: chatrooms?.keep_days ?? null,
-            max_per_place: chatrooms?.max_per_place ?? null,
+        asks: {
+            keep_days: asks?.keep_days ?? null,
+            max_per_place: asks?.max_per_place ?? null,
         },
         "activity-log": { keep_days: logs?.keep_days ?? null },
         storage: { quota_mb: storage?.quota_mb ?? null },

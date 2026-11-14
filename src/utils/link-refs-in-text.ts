@@ -1,8 +1,8 @@
 import { BotQuestionRefHrefPrefix } from "./bot-question-ref";
 import { BotSuggestionRefHrefPrefix } from "./bot-suggestion-ref";
-import { ChatroomRefHrefPrefix } from "./chatroom-ref";
 import { GeneralSettingsRefHrefPrefix } from "./general-settings-ref";
 import { GraphicRefHrefPrefix } from "./graphic-ref";
+import { AskRefHrefPrefix } from "./ask-ref";
 import { TaskRefHrefPrefix } from "./task-ref";
 import {
     BotRefHrefPrefix,
@@ -25,7 +25,7 @@ import {
  * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
  * request ref (`[secret-request:4]`), question ref (`[question:4]`), suggestion ref (`[suggestion:4]`),
  * graphic ref (`[graphic:5]`) and
- * chatroom ref (`[room:<id>]`) and task ref (`[task:20]`), and a setting
+ * task ref (`[task:20]`), and a setting
  * ref (`[setting:run-limits:reply_steps]`, pointing at that section of
  * Settings > General) in a stretch of message text (never code) into a
  * markdown link, so it
@@ -73,8 +73,8 @@ export default function linkRefsInText({ text }: { text: string }) {
             (_, id: string) => `[next steps ${id}](${BotSuggestionRefHrefPrefix}${id})`,
         )
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
-        .replace(/\[room:(\d+)\](?!\()/g, (_, id: string) => `[room ${id}](${ChatroomRefHrefPrefix}${id})`)
         .replace(/\[task:(\d+)\](?!\()/g, (_, id: string) => `[task ${id}](${TaskRefHrefPrefix}${id})`)
+        .replace(/\[ask:(\d+)\](?!\()/g, (_, id: string) => `[ask ${id}](${AskRefHrefPrefix}${id})`)
         .replace(/\[setting:([a-z0-9-]+)(?::([a-z0-9_-]+))?\](?!\()/g, (_, section: string, field?: string) =>
             `[setting ${section}](${GeneralSettingsRefHrefPrefix}${section}${field ? `:${field}` : ""})`,
         )

@@ -1,4 +1,4 @@
-import grabCrewRequests from "@/src/functions/backend/db/chatrooms/grab-crew-requests";
+import grabCrewRequests from "@/src/functions/backend/db/asks/grab-crew-requests";
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import { grabSkillBodyShownChars } from "@/src/functions/backend/db/app-settings/grab-skill-limits";
 import grabWorkspaceAdminTools from "@/src/harness/tools/bot/grab-workspace-admin-tools";
@@ -18,7 +18,7 @@ import {
     InstallRequestNote,
     TasksNote,
     TaskRunNote,
-    AskCrewNote,
+    AskRulesNote,
     crewRequestsNote,
     WorkspaceLearningNote,
     TaskIncomingNote,
@@ -75,6 +75,7 @@ import computerRunDirs from "@/src/utils/computer-work-dirs";
 import taskIncoming from "./task-incoming";
 import planBotTask from "./plan-bot-task";
 import shouldPlanBotTask from "./should-plan-bot-task";
+import { AppData } from "@/src/data/app-data";
 import pushUserTurn from "@/src/harness/text/push-user-turn";
 import type { HarnessMessage } from "@/src/harness/types";
 
@@ -108,7 +109,6 @@ export default async function runBotTask({
     user_id,
     job,
     params,
-    computer_shared,
     signal,
     report,
     trace,
@@ -132,7 +132,6 @@ export default async function runBotTask({
     const computer = job.computer_id
         ? await openComputerTools({
               computer_id: job.computer_id,
-              browser: !computer_shared,
               bot_id: bot.id,
               user_id,
               workspace_id,
@@ -185,10 +184,9 @@ export default async function runBotTask({
         const hooked = Boolean(params.hook_id);
         /**
          * Only a task the user follows in their conversation asks them
-         * questions: routines and hook calls act on their own, and a
-         * chatroom's session is hidden from them.
+         * questions: routines and hook calls act on their own.
          */
-        const can_ask = Boolean(session_id) && !scheduled && !hooked && !params.chatroom_id;
+        const can_ask = Boolean(session_id) && !scheduled && !hooked;
         /**
          * The coordinator weighing a worker's install request
          * (`request_install`): it answers it with answer_install_request.
@@ -362,7 +360,7 @@ export default async function runBotTask({
             signal,
         });
 
-        const browser_run_kind = hooked || params.chatroom_id ? "unattended" : scheduled ? "routine" : "attended";
+        const browser_run_kind = hooked ? "unattended" : scheduled ? "routine" : "attended";
 
         browsers = await openBotBrowsers({
             user_id,
@@ -459,13 +457,11 @@ export default async function runBotTask({
             powers.is_coordinator || powers.is_workspace_admin
                 ? ""
                 : await workspaceAdminsNote({ bot_id: bot.id, workspace_id }),
-            powers.is_coordinator || hooked ? "" : AskCrewNote,
-            powers.is_coordinator || hooked || params.chatroom_id
+            powers.is_coordinator || hooked ? "" : AskRulesNote,
+            powers.is_coordinator || hooked
                 ? ""
-                : crewRequestsNote({ requests: await grabCrewRequests({ user_id, bot_id: bot.id, workspace_id }) }),
-            computer && computer_shared
-                ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files and code runners) while another run uses it, so you have its shell and files but not its browser. If the answer needs the browser, say so in your report instead of waiting.`
-                : computer
+                : crewRequestsNote({ requests: await grabCrewRequests({ user_id, bot_id: bot.id, workspace_id, since: Date.now() - AppData.CrewRequestsRecentMs }) }),
+            computer
                 ? `You're working on the computer "${computer.name}" (a Linux sandbox with a shell, files, code runners and a browser). Use its tools; don't ask the user to run anything.${hooked ? "" : " When only the user can go on (a login, a captcha, a code sent to them), ask them to take over with ask_user_to_take_over."}`
                 : workspace_id
                   ? `You have no computer for this task: this workspace has none. If the task needs one, stop and say so in the report; the user can add a computer to the workspace.`
@@ -497,7 +493,7 @@ export default async function runBotTask({
          * spends finding out what it is doing. A run whose plan can't be
          * written starts the way it always did.
          */
-        const planned = shouldPlanBotTask({ max_steps, in_chatroom: Boolean(params.chatroom_id) })
+        const planned = shouldPlanBotTask({ max_steps })
             ? await planBotTask({ system, messages: opening, signal, bot_id: bot.id, workspace_id }).catch(
                   (error) => {
                       if (signal.aborted) throw error;

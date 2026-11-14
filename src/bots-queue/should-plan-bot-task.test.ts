@@ -17,9 +17,4 @@ describe("shouldPlanBotTask", () => {
         expect(shouldPlanBotTask({ max_steps: AppData.BotTaskPlanMinSteps - 1 })).toBe(false);
         expect(shouldPlanBotTask({ max_steps: 1 })).toBe(false);
     });
-
-    test("never plans a chatroom turn, not even an unlimited one", () => {
-        expect(shouldPlanBotTask({ max_steps: 200, in_chatroom: true })).toBe(false);
-        expect(shouldPlanBotTask({ max_steps: UnlimitedLimit, in_chatroom: true })).toBe(false);
-    });
 });

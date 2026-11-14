@@ -71,7 +71,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotFileScopesPaylo
                     : scopes;
             /**
              * A file from another bot's folder (an answer passed on from a
-             * chatroom names the asked bot's file) opens for a user who
+             * request names the asked bot's file) opens for a user who
              * reaches that folder, as its bytes do (`grabBotFileMedia`).
              */
             let file = await grabBotFile({ scopes: file_scopes, file_id });

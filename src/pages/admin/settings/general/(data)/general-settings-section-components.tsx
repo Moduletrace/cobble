@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import AppearanceSection from "../(sections)/appearance-section";
 import AppNetworksSection from "../(sections)/app-networks-section";
 import BotTraceRetentionSection from "../(sections)/bot-trace-retention-section";
-import ChatroomRetentionSection from "../(sections)/chatroom-retention-section";
+import AskRetentionSection from "../(sections)/ask-retention-section";
 import ComputerWorkspacesSection from "../(sections)/computer-workspaces-section";
 import HookCallRetentionSection from "../(sections)/hook-call-retention-section";
 import InstallIconSection from "../(sections)/install-icon-section";
@@ -25,7 +25,7 @@ import VersionSection from "../(sections)/version-section";
 const GeneralSettingsSectionComponents: Record<string, ComponentType> = {
     theme: AppearanceSection,
     "docker-networks": AppNetworksSection,
-    chatrooms: ChatroomRetentionSection,
+    asks: AskRetentionSection,
     "computer-workspaces": ComputerWorkspacesSection,
     "hook-calls": HookCallRetentionSection,
     "run-traces": BotTraceRetentionSection,

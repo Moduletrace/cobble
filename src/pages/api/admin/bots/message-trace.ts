@@ -1,7 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabTraceMessage from "@/src/functions/backend/db/bot-sessions/grab-trace-message";
 import grabMessageTraces from "@/src/functions/backend/db/bots-queue/grab-message-traces";
-import grabChatroomMessage from "@/src/functions/backend/db/chatrooms/grab-chatroom-message";
 import { BotMessageTraceRequestSchema } from "@/src/schemas/bot-trace-schema";
 import type { BotTraceJob } from "@/src/types";
 import AppError from "@/src/utils/app-error";
@@ -13,9 +12,8 @@ import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bune
  * What the run behind one message did, in detail: the debug logs tab of
  * that message's Details modal. Read when the tab is opened rather than
  * with the details, since a long run's tool answers are the biggest thing
- * the modal would carry. The conversation's own user reads it, a super
- * admin reads any, and a message posted in a chatroom is checked against
- * the room.
+ * the modal would carry. The conversation's own user reads it; a super
+ * admin reads any.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BotTraceJob[]>> = async ({
     req,
@@ -30,18 +28,16 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotTraceJob[]>> = 
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
 
-        const { message_id, chatroom_id } = parseWithSchema({
+        const { message_id } = parseWithSchema({
             schema: BotMessageTraceRequestSchema,
             data: body,
         });
 
-        const message = chatroom_id
-            ? await grabChatroomMessage({ message_id, user_id: Number(user.id) })
-            : await grabTraceMessage({
-                  message_id,
-                  user_id: Number(user.id),
-                  user_types,
-              });
+        const message = await grabTraceMessage({
+            message_id,
+            user_id: Number(user.id),
+            user_types,
+        });
 
         if (!message?.id) throw new AppError(`Message not found.`);
 

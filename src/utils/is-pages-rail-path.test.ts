@@ -15,7 +15,6 @@ describe("isPagesRailPath", () => {
         expect(isPagesRailPath({})).toBe(false);
         expect(isPagesRailPath({ pathname: "/admin/bots/3" })).toBe(false);
         expect(isPagesRailPath({ pathname: "/admin/workspaces/2/bots/3" })).toBe(false);
-        expect(isPagesRailPath({ pathname: "/admin/chatrooms" })).toBe(false);
         expect(isPagesRailPath({ pathname: "/admin/settingsx" })).toBe(false);
         expect(isPagesRailPath({ pathname: "/admin/usagex" })).toBe(false);
     });

@@ -8,8 +8,8 @@ import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
 import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
-import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
-import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
+import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
+import onAskJobEnded from "../asks/on-ask-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import jobTrackerTaskId from "./job-tracker-task-id";
@@ -27,8 +27,8 @@ type Params = {
  * bot to needs-you for that user. Its task stays active, since the work isn't done. A
  * handed-over job's failure also goes to the bot that handed it over, and
  * blocks the handed-over task it worked on (`noteTrackerTask`). A hook run's
- * calls keep why it failed (`recordHookCallResponse`). A job in a chatroom moves the room on
- * (`onChatroomJobEnded`) and leaves the bot's face alone.
+ * calls keep why it failed (`recordHookCallResponse`). A job working a crew request ends it
+ * (`onAskJobEnded`) and leaves the bot's face alone.
  */
 export default async function notifyBotJobFailed({
     job,
@@ -76,11 +76,14 @@ export default async function notifyBotJobFailed({
     }
 
     const user_id = await grabJobUserId({ job });
-    const in_room =
-        Boolean(await grabSessionChatroomId({ session_id: job.session_id })) ||
-        Boolean(await grabSessionHookId({ session_id: job.session_id }));
 
-    const bot = user_id && !in_room
+    /**
+     * A hook's run is followed by nobody, so it never shows on the bot's
+     * face. A crew request's does: the bot answering it is working.
+     */
+    const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }));
+
+    const bot = user_id && !in_hook
         ? await setBotFace({
               bot_id: job.bot_id,
               user_id,
@@ -105,7 +108,7 @@ export default async function notifyBotJobFailed({
         task_ids,
     });
 
-    await onChatroomJobEnded({ job, text: failure_message || job.last_error || "", failed: true });
+    await onAskJobEnded({ job, text: failure_message || job.last_error || "", failed: true });
 
     await settleInstallRequest({ job, text: failure_message || job.last_error || "", failed: true });
 

@@ -23,12 +23,12 @@ type Params = {
      */
     powers: BotRunPowers;
     /**
-     * The bots it may hand to, for the description (`chatroomAskableBots`).
+     * The bots it may hand to, for the description (`askableBots`).
      */
     workers: BUN_SQLITE_COBBLE_BOTS[];
     /**
      * Reads the bots it may hand to when it does, so a bot added mid-run is
-     * there: the ones it could ask (`chatroomAskableBots`).
+     * there: the ones it could ask (`askableBots`).
      */
     grabTargets: () => Promise<BUN_SQLITE_COBBLE_BOTS[]>;
     /**

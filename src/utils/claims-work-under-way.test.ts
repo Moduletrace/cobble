@@ -14,6 +14,8 @@ describe("claimsWorkUnderWay", () => {
             "I'll drive the browser to ideogram.ai directly and see what's there.",
             "I'll open the contest page now.",
             "I'll go ahead and check the tab right away.",
+            "What I sent @SEO Expert: a full brief, with the scope and the ground rules.",
+            "I've passed the brief on to [bot:6] SEO Expert.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(true);
         }
@@ -29,6 +31,8 @@ describe("claimsWorkUnderWay", () => {
             "I'll keep that in mind going forward.",
             "Want me to check it now? I'll wait for your go-ahead.",
             "I'll use the navy palette in the next round.",
+            "I sent the invoice to accounting last week.",
+            "The report was sent to the team on Monday.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(false);
         }

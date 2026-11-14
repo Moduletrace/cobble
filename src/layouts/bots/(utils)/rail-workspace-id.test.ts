@@ -6,7 +6,7 @@ describe("railWorkspaceId", () => {
         expect(
             railWorkspaceId({
                 workspace: { id: 4 },
-                pathname: "/admin/workspaces/4/chatrooms",
+                pathname: "/admin/workspaces/4/bots/12",
             }),
         ).toBe(4);
     });

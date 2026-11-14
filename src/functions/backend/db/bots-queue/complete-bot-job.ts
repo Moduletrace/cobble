@@ -15,8 +15,8 @@ import withMessageUsage from "../usage/with-message-usage";
 import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
 import type { HarnessToolUse } from "@/src/harness/types";
-import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
-import onChatroomJobEnded from "../chatrooms/on-chatroom-job-ended";
+import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
+import onAskJobEnded from "../asks/on-ask-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import jobTrackerTaskId from "./job-tracker-task-id";
@@ -66,8 +66,8 @@ type Params = {
  * Nobody else's face changes. A handed-over job's result also goes to the bot that handed
  * it over (`relay`), and a handed-over task left open says so, or is blocked when the run used
  * its whole step budget without finishing (`noteTrackerTask`). A hook
- * run's result is kept on the calls it answered (`recordHookCallResponse`). A job in a chatroom
- * moves the room on (`onChatroomJobEnded`) and leaves the bot's face alone. Throws if this handler no longer holds the job.
+ * run's result is kept on the calls it answered (`recordHookCallResponse`). A job working a crew
+ * request ends it (`onAskJobEnded`) and leaves the bot's face alone. Throws if this handler no longer holds the job.
  */
 export default async function completeBotJob({
     job_id,
@@ -156,14 +156,12 @@ export default async function completeBotJob({
     const user_id = await grabJobUserId({ job });
 
     /**
-     * Work in a chatroom shows in the room and a hook's run in its thread,
-     * never on the bot's face.
+     * A hook's run is followed by nobody, so it never shows on the bot's
+     * face. A crew request's does: the bot answering it is working.
      */
-    const in_room =
-        Boolean(await grabSessionChatroomId({ session_id: job.session_id })) ||
-        Boolean(await grabSessionHookId({ session_id: job.session_id }));
+    const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }));
 
-    const bot = !user_id || in_room
+    const bot = !user_id || in_hook
         ? null
         : needs_you
           ? await setBotFace({
@@ -186,7 +184,7 @@ export default async function completeBotJob({
 
     const relay = silent ? null : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
 
-    await onChatroomJobEnded({ job, text: silent ? "" : result });
+    await onAskJobEnded({ job, text: silent ? "" : result });
 
     await settleInstallRequest({ job, text: result });
 

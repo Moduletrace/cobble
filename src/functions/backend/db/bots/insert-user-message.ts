@@ -26,13 +26,13 @@ type Params = {
      */
     media?: BUN_SQLITE_COBBLE_MEDIA[];
     /**
-     * Brings a chatroom's outcome back to the bot that asked: stored on the
+     * Brings a crew request's outcome back to the bot that asked: stored on the
      * user's side (the bot answers it), shown as from the coordinator.
      */
-    from_chatroom_id?: number;
+    from_ask_id?: number;
     /**
      * Brings the coordinator's answer to a worker's install request back
-     * to it, stored and shown like a chatroom's outcome.
+     * to it, stored and shown like a crew request's outcome.
      */
     from_install_request_id?: number;
 };
@@ -50,7 +50,7 @@ export default async function insertUserMessage({
     text,
     reply_to,
     media = [],
-    from_chatroom_id,
+    from_ask_id,
     from_install_request_id,
 }: Params): Promise<BotMessageWithAttachments> {
     const now = Date.now();
@@ -69,7 +69,7 @@ export default async function insertUserMessage({
                 text,
                 needs_you: 0,
                 reply_to_message_id: reply_to?.id || undefined,
-                from_chatroom_id,
+                from_ask_id,
                 from_install_request_id,
             },
         ],
@@ -102,7 +102,7 @@ export default async function insertUserMessage({
         text,
         needs_you: 0,
         reply_to_message_id: reply_to?.id || undefined,
-        from_chatroom_id,
+        from_ask_id,
         from_install_request_id,
         created_at: now,
         updated_at: now,

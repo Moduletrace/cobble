@@ -13,6 +13,19 @@ function bot(overrides: Partial<BotWithLastMessage>): BotWithLastMessage {
 }
 
 describe("botBusyState", () => {
+    test("answering a crew request is busy and stoppable while the thread looks idle", () => {
+        const state = botBusyState({
+            bot: bot({ face: "working", status_line: "Thinking" }),
+            awaiting_reply: false,
+            answering_ask: true,
+        });
+
+        expect(state.answering).toBe(true);
+        expect(state.busy).toBe(true);
+        expect(state.stoppable).toBe(true);
+        expect(state.working).toBe(false);
+    });
+
     test("a reply owed here is thinking", () => {
         const state = botBusyState({ bot: bot({ face: "idle" }), awaiting_reply: true });
 

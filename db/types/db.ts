@@ -6,7 +6,7 @@ export const BunSQLiteTables = [
     "media",
     "media_paradigms",
     "bots",
-    "chatrooms",
+    "bot_asks",
     "bot_sessions",
     "bot_messages",
     "bot_message_reactions",
@@ -251,7 +251,7 @@ export type BUN_SQLITE_COBBLE_BOTS = {
     image_media_id?: number | "";
 }
 
-export type BUN_SQLITE_COBBLE_CHATROOMS = {
+export type BUN_SQLITE_COBBLE_BOT_ASKS = {
     /** 
      * The unique identifier of the record.
      */
@@ -269,7 +269,7 @@ export type BUN_SQLITE_COBBLE_CHATROOMS = {
      */
     user_id?: number | "";
     /** 
-     * The workspace the request was made in, where every run in the room works and only its members can be asked. Null: the asking bot's own chat
+     * The workspace the request was made in, where the run works and only its members can be asked. Null: the asking bot's own chat
      */
     workspace_id?: number | "";
     /** 
@@ -277,17 +277,17 @@ export type BUN_SQLITE_COBBLE_CHATROOMS = {
      */
     requester_bot_id?: number | "";
     /** 
-     * The bot the coordinator last asked, null until it asks one. Not a foreign key
+     * The bot that is asked: the one the asking bot named, or the one the coordinator redirected it to. Not a foreign key
      */
     target_bot_id?: number | "";
     /** 
-     * The asking bot's session the request came from: the answer goes back there and wakes it. Not a foreign key
+     * The asking bot's session the request came from: the outcome goes back there and wakes it. Not a foreign key
      */
     origin_session_id?: number | "";
     /** 
-     * The room the asking bot was itself working in when it asked (a nested request). Not a foreign key
+     * The ask the asking bot was itself working on when it asked (a nested request). Not a foreign key
      */
-    parent_chatroom_id?: number | "";
+    parent_ask_id?: number | "";
     /** 
      * A short label for the request
      */
@@ -296,24 +296,27 @@ export type BUN_SQLITE_COBBLE_CHATROOMS = {
      * What the asking bot needs, in markdown, as it wrote it
      */
     request?: string;
-    status?: "open" | "answered" | "refused" | "failed" | "stopped" | "";
+    status?: "pending" | "working" | "answered" | "refused" | "failed" | "stopped" | "";
+    /** 
+     * The coordinator's reason for its decision: why it approved, where it redirected or why it refused
+     */
+    gate_note?: string;
     /** 
      * What was sent back to the asking bot (the answer, or why there is none), in markdown
      */
     outcome?: string;
     /** 
-     * How many turns the coordinator has taken in the room, capped at `AppData.ChatroomMaxCoordinatorTurns`
+     * The asked bot's session working this ask (`bot_sessions.ask_id`), once it is approved. Not a foreign key
      */
-    coordinator_turns?: number | "";
-    unread?: 0 | 1 | "";
+    session_id?: number | "";
     /** 
-     * Unix timestamp of the latest message in the room, for ordering
+     * The asked bot's run answering it, so Stop can end it. Not a foreign key
      */
-    last_activity_at?: number | "";
+    job_id?: number | "";
     /** 
-     * Unix timestamp of when the room reached a final status
+     * The asked bot's session before the request opened one of its own, so its conversation can offer the way back. Not a foreign key
      */
-    closed_at?: number | "";
+    previous_session_id?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
@@ -358,17 +361,17 @@ export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
      */
     previous_session_id?: number | "";
     /** 
-     * The chatroom this session is the bot's part of. Such sessions (status `chatroom`) never show in the bot's conversation, rails or session lists. Null: an ordinary session
+     * The ask (`bot_asks`) this session is the bot's part of. Such sessions (status `ask`) never show in the bot's conversation, rails or session lists. Null: an ordinary session
      */
-    chatroom_id?: number | "";
+    ask_id?: number | "";
     /** 
      * The hook whose runs this session holds. Such sessions (status `hook`) never show in the bot's conversation, rails or session lists: their results are read in the hook's thread. Not a foreign key: a run can outlast its hook. Null: an ordinary session
      */
     hook_id?: number | "";
     /** 
-     * One active session per conversation; `chatroom` for a bot's part of a chatroom
+     * One active session per conversation; `ask` for a bot's part of a crew request, `hook` for a hook's runs
      */
-    status?: "active" | "hook" | "closed" | "chatroom" | "";
+    status?: "active" | "ask" | "hook" | "closed" | "";
     unread?: 0 | 1 | "";
     /** 
      * Unix timestamp of the latest message, for ordering
@@ -421,9 +424,9 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     task_ids?: string;
     /** 
-     * Set on the message that brings a chatroom's outcome back into the asking bot's conversation: the room. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key
+     * Set on the message that brings a crew request's outcome back into the asking bot's conversation: the ask. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key
      */
-    from_chatroom_id?: number | "";
+    from_ask_id?: number | "";
     /** 
      * Set on the message that brings the coordinator's answer to a worker's install request (`install_requests`) back into the worker's conversation. Stored on the user's side (the bot answers it), shown as coming from the coordinator, read by the model as data. Not a foreign key
      */
@@ -2023,7 +2026,7 @@ export type BUN_SQLITE_COBBLE_BROWSERS = {
     tools_cache?: string;
     enabled?: 0 | 1 | "";
     /** 
-     * 1 lets its owner's routines use it. Hook calls and chatroom runs never do
+     * 1 lets its owner's routines use it. Hook calls and crew requests never do
      */
     allow_routines?: 0 | 1 | "";
     status?: "untested" | "ok" | "error" | "";
@@ -2926,4 +2929,4 @@ export type BUN_SQLITE_COBBLE_APP_SETTINGS = {
     value?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_CHATROOMS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_BOT_JOB_TRACES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_INSTALL_REQUESTS & BUN_SQLITE_COBBLE_BOT_QUESTIONS & BUN_SQLITE_COBBLE_BOT_SUGGESTIONS & BUN_SQLITE_COBBLE_BOT_GRAPHICS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_ROLES & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_BROWSERS & BUN_SQLITE_COBBLE_BROWSER_ACCESS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_HARNESS_CALL_FAILURES & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_ASKS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_BOT_JOB_TRACES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_INSTALL_REQUESTS & BUN_SQLITE_COBBLE_BOT_QUESTIONS & BUN_SQLITE_COBBLE_BOT_SUGGESTIONS & BUN_SQLITE_COBBLE_BOT_GRAPHICS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_ROLES & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_BROWSERS & BUN_SQLITE_COBBLE_BROWSER_ACCESS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_HARNESS_CALL_FAILURES & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS

@@ -37,7 +37,7 @@ mock.module("@/src/functions/backend/db/workspaces/grab-user-workspaces", () => 
 mock.module("@/src/functions/backend/db/bots/grab-crew-workers", () => ({
     default: async () => workers,
 }));
-mock.module("@/src/functions/backend/db/chatrooms/chatroom-askable-bots", () => ({
+mock.module("@/src/functions/backend/db/asks/askable-bots", () => ({
     default: async () => workers,
 }));
 
@@ -71,7 +71,7 @@ async function names({ workspace_id }: { workspace_id: number | null }) {
 
 /**
  * The same list for a plain worker: no work to hand out, only its own task to
- * pass on, to a bot it could ask (`chatroomAskableBots`).
+ * pass on, to a bot it could ask (`askableBots`).
  */
 async function workerNames({ workspace_id, allowed = ["hand_over_task"] }: { workspace_id: number | null; allowed?: string[] }) {
     const worker = {

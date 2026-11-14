@@ -8,11 +8,6 @@ import fetchMessageDetails from "../(functions)/fetch-message-details";
 
 type Props = {
     message_id: number;
-    /**
-     * Set when the message was posted in a chatroom, so its details are read
-     * from the room's route.
-     */
-    chatroom_id?: number;
 };
 
 /**
@@ -21,7 +16,7 @@ type Props = {
  * every call and failure it took included, not only the ones the modal
  * lists. The row shows a check for a moment, then goes back.
  */
-export default function CopyMessageDetailsButton({ message_id, chatroom_id }: Props) {
+export default function CopyMessageDetailsButton({ message_id }: Props) {
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,7 +30,7 @@ export default function CopyMessageDetailsButton({ message_id, chatroom_id }: Pr
     const copy = async () => {
         setLoading(true);
 
-        const markdown = fetchMessageDetails({ message_id, full: true, chatroom_id }).then((res) => {
+        const markdown = fetchMessageDetails({ message_id, full: true }).then((res) => {
             if (!res?.success || !res.singleRes) {
                 throw new Error(res?.msg || "Couldn't load this message's details.");
             }

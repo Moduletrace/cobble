@@ -23,7 +23,7 @@ const QuoteMaxChars = 120;
 /**
  * A conversation's session (`grabConversationExport`) as one markdown
  * document: a title and summary, then every message under its author and
- * time (a chatroom's outcome under the coordinator). Messages' own headings drop below those (`exportMessageText`) and
+ * time (a crew request's outcome under the coordinator). Messages' own headings drop below those (`exportMessageText`) and
  * their refs read as names.
  */
 export default function conversationMarkdown({

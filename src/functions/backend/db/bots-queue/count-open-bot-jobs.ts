@@ -7,7 +7,8 @@ type Params = {
      */
     user_id: number | string;
     /**
-     * Leave out jobs in chatrooms, which never show on the bot's face.
+     * Leave out jobs in hidden sessions (a crew request's, a hook's),
+     * which never show on the bot's face.
      */
     conversations_only?: boolean;
 };
@@ -19,7 +20,7 @@ export default async function countOpenBotJobs({ bot_id, user_id, conversations_
     const res = await BunSQLite.sql<{ open: number }>({
         sql: `SELECT COUNT(*) AS open FROM bots_queue WHERE bot_id = ? AND status IN ('pending', 'processing')
             AND session_id IN (SELECT id FROM bot_sessions WHERE user_id = ? AND hook_id IS NULL${
-                conversations_only ? " AND chatroom_id IS NULL" : ""
+                conversations_only ? " AND ask_id IS NULL" : ""
             })`,
         values: [bot_id, user_id],
     });

@@ -191,15 +191,15 @@ export const GeneralSettingsSections: GeneralSettingsSection[] = [
         fields: [{ key: "keep_days", title: "Keep run traces for", kind: "days" }],
     },
     {
-        key: "chatrooms",
-        title: "Chatrooms",
-        description: "How many chatrooms are kept per place, and for how long once they close.",
+        key: "asks",
+        title: "Crew requests",
+        description: "How many crew requests are kept per place, and for how long once they end.",
         readable_by: "everyone",
         editable_by: "super_admin",
         citable: true,
         fields: [
-            { key: "keep_days", title: "Keep closed chatrooms for", kind: "days" },
-            { key: "max_per_place", title: "Most chatrooms per place", kind: "steps" },
+            { key: "keep_days", title: "Keep ended requests for", kind: "days" },
+            { key: "max_per_place", title: "Most ended requests per place", kind: "steps" },
         ],
     },
     {

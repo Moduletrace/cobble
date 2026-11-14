@@ -9,11 +9,6 @@ import TraceJobCard from "./trace-job-card";
 
 type Props = {
     message_id: number;
-    /**
-     * Set when the message was posted in a chatroom, so its run is read
-     * through the room's access.
-     */
-    chatroom_id?: number;
 };
 
 /**
@@ -23,8 +18,8 @@ type Props = {
  * `bot_trace_keep_days`), and for the messages the app writes itself (a
  * stop, a failure notice), which no run generated.
  */
-export default function MessageDebugLogs({ message_id, chatroom_id }: Props) {
-    const { jobs, loading, error, reload } = useMessageTrace({ message_id, chatroom_id });
+export default function MessageDebugLogs({ message_id }: Props) {
+    const { jobs, loading, error, reload } = useMessageTrace({ message_id });
 
     if (error)
         return (

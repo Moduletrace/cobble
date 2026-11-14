@@ -5,11 +5,6 @@ import fetchMessageTrace from "../(functions)/fetch-message-trace";
 type Params = {
     message_id: number;
     /**
-     * Set when the message was posted in a chatroom, so its run is read
-     * through the room's access.
-     */
-    chatroom_id?: number;
-    /**
      * Read only once the debug logs tab is open, so the modal's first tab
      * doesn't wait on a long run's trace.
      */
@@ -21,7 +16,7 @@ type Params = {
  * debug logs tab of its Details modal. Read when that tab opens, and kept
  * while the modal is open.
  */
-export default function useMessageTrace({ message_id, chatroom_id, enabled = true }: Params) {
+export default function useMessageTrace({ message_id, enabled = true }: Params) {
     const [jobs, setJobs] = useState<BotTraceJob[]>();
     const [loading, set_loading] = useState(false);
     const [error, set_error] = useState<string>();
@@ -30,7 +25,7 @@ export default function useMessageTrace({ message_id, chatroom_id, enabled = tru
         set_loading(true);
         set_error(undefined);
 
-        const res = await fetchMessageTrace({ message_id, chatroom_id }).catch(() => null);
+        const res = await fetchMessageTrace({ message_id }).catch(() => null);
 
         set_loading(false);
 
@@ -40,7 +35,7 @@ export default function useMessageTrace({ message_id, chatroom_id, enabled = tru
         }
 
         setJobs(res.singleRes);
-    }, [message_id, chatroom_id]);
+    }, [message_id]);
 
     useEffect(() => {
         if (enabled) load().catch(() => {});

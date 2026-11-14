@@ -32,7 +32,7 @@ import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
 import nameBotSession from "./name-bot-session";
 import pushBotSession from "./push-bot-session";
-import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
+import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
 import { registerJobAbort, unregisterJobAbort } from "./job-abort-registry";
 import type { BotTraceData } from "@/src/types";
 import type { BotJobUpdateData } from "@/src/types";
@@ -91,12 +91,14 @@ export default async function processBotJob({
     const user_id = await grabJobUserId({ job }).catch(() => null);
 
     /**
-     * Work in a chatroom shows in the room and a hook's run in its thread:
-     * no face changes, and the session is never named.
+     * A crew request's session and a hook's run are hidden: neither is
+     * ever named. A hook's run changes no face (nobody follows it); a
+     * request's does, so the bot it was passed to shows its work.
      */
-    const in_room =
-        Boolean(await grabSessionChatroomId({ session_id: job.session_id }).catch(() => null)) ||
-        Boolean(await grabSessionHookId({ session_id: job.session_id }).catch(() => null));
+    const in_ask = Boolean(
+        await grabSessionAskId({ session_id: Number(job.session_id) }).catch(() => null),
+    );
+    const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }).catch(() => null));
 
     const controller = new AbortController();
     /**
@@ -113,7 +115,7 @@ export default async function processBotJob({
      * leave a bot that shows work with nothing behind it.
      */
     const setFace = async (face: Omit<Parameters<typeof setBotFace>[0], "bot_id" | "user_id">) => {
-        if (!user_id || in_room || controller.signal.aborted) return;
+        if (!user_id || in_hook || controller.signal.aborted) return;
 
         await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
     };
@@ -225,7 +227,7 @@ export default async function processBotJob({
          * The face changes once the job really starts, after any wait for
          * its computer.
          */
-        const run = async ({ computer_shared }: { computer_shared?: boolean } = {}) => {
+        const run = async () => {
             await setFace({
                 face: "working",
                 status_line:
@@ -254,7 +256,6 @@ export default async function processBotJob({
                         job,
                         params,
                         checkpoint: parseJobJson({ text: job.checkpoint }),
-                        computer_shared,
                         signal: run_signal,
                         update,
                         report,
@@ -265,16 +266,10 @@ export default async function processBotJob({
 
         /**
          * A task whose computer is busy says so while it waits, so the
-         * user doesn't see silence. A chatroom job doesn't wait: the bot
-         * that asked is often the one holding the computer, with a task run
-         * that may hold it for hours, and the room would sit silent until it
-         * ends. It works beside it with the shell and files only
-         * (`computer_shared`), which is all most answers need.
+         * user doesn't see silence.
          */
         const runOnComputer = async (computer_id: number) => {
             if (computer_lock.busy({ key: computer_id })) {
-                if (params.chatroom_id) return await run({ computer_shared: true });
-
                 await setFace({ face: "asleep", status_line: BotComputerBusyStatusLine });
             }
 
@@ -311,7 +306,7 @@ export default async function processBotJob({
          * job to name. Tasks name too: a session the coordinator's
          * delegation or a routine opened has no reply to name it.
          */
-        if (!in_room && completion.message?.session_id) {
+        if (!in_ask && !in_hook && completion.message?.session_id) {
             /**
              * The message's session, not the job's as it was claimed: a
              * reply that moved the conversation on answered in the new one.

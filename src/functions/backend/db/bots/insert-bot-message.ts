@@ -42,7 +42,7 @@ type Params = {
 };
 
 /**
- * Appends a bot message to a session, marks the session (or the chatroom
+ * Appends a bot message to a session, marks the session (or the crew
  * it's part of) unread and bumps its activity. Callers must check the bot and session first.
  */
 export default async function insertBotMessage({
@@ -104,11 +104,11 @@ export default async function insertBotMessage({
     });
 
     /**
-     * A bot's part of a chatroom: the room is what shows the activity.
+     * A crew request's hidden session: the ask is what shows activity.
      */
     await BunSQLite.sql({
-        sql: `UPDATE chatrooms SET last_activity_at = ?, unread = 1
-            WHERE id = (SELECT chatroom_id FROM bot_sessions WHERE id = ?)`,
+        sql: `UPDATE bot_asks SET updated_at = ?
+            WHERE id = (SELECT ask_id FROM bot_sessions WHERE id = ?)`,
         values: [now, session_id],
     });
 

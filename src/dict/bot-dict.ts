@@ -231,16 +231,16 @@ export const BotSessionStatuses = [
         value: "active",
     },
     {
+        title: "Ask",
+        value: "ask",
+    },
+    {
         title: "Hook",
         value: "hook",
     },
     {
         title: "Closed",
         value: "closed",
-    },
-    {
-        title: "Chatroom",
-        value: "chatroom",
     },
 ] as const;
 

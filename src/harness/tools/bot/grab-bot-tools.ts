@@ -11,7 +11,8 @@ import updateInstructionsTool from "./update-instructions-tool";
 import updateMemoryTool from "./update-memory-tool";
 import reactToMessageTool from "./react-to-message-tool";
 import setPictureTool from "./set-picture-tool";
-import askCrewTool from "./ask-crew-tool";
+import askBotTool from "./ask-bot-tool";
+import listAsksTool from "./list-asks-tool";
 import readMessageUsageTool from "./settings/read-message-usage-tool";
 import readSettingsTool from "./settings/read-settings-tool";
 import type { StorageScope } from "@/src/utils/storage-access";
@@ -60,11 +61,6 @@ type Params = {
      */
     onPropose?: (params: { ref: string }) => void;
     /**
-     * In a chat reply: called with the ref of each chatroom the bot opened
-     * (`ask_crew`), so the reply carries its chip.
-     */
-    onChatroom?: (params: { ref: string }) => void;
-    /**
      * Called with each tracker task the run worked on, so the message it
      * posts links to it (`bot_messages.task_ids`).
      */
@@ -74,8 +70,8 @@ type Params = {
 /**
  * The tools a bot works with on every run, bound to that bot and where it
  * works: its memory and instructions, its schedules, its hooks
- * (`grabBotHookTools`), for a worker ask_crew (another bot, through the
- * coordinator), and in a workspace with several computers
+ * (`grabBotHookTools`), for a worker ask_bot (another bot, through the
+ * coordinator's gate), and in a workspace with several computers
  * switching the default one.
  */
 export default async function grabBotTools({
@@ -90,7 +86,6 @@ export default async function grabBotTools({
     hooked,
     can_delete_tasks,
     onPropose,
-    onChatroom,
     onTask,
 }: Params): Promise<HarnessTool[]> {
     return [
@@ -106,11 +101,15 @@ export default async function grabBotTools({
         ...grabBotHookTools({ user_id, bot_id, session_id, workspace_id, computers, hooked, onPropose }),
         ...(session_id ? [reactToMessageTool({ bot_id, user_id, session_id })] : []),
         /**
-         * A worker asks the crew only through the coordinator, never from
-         * a hook call's run, whose payload is someone else's words.
+         * A worker asks another bot only through the coordinator's gate,
+         * never from a hook call's run, whose payload is someone else's
+         * words.
          */
         ...(session_id && !is_coordinator && !hooked
-            ? [askCrewTool({ user_id, bot_id, session_id, workspace_id, onChatroom })]
+            ? [
+                  askBotTool({ user_id, bot_id, session_id, workspace_id }),
+                  listAsksTool({ user_id, bot_id }),
+              ]
             : []),
         ...(workspace_id && computers.length > 1
             ? [setWorkspaceComputerTool({ user_id, workspace_id, computers })]

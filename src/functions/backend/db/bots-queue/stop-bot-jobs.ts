@@ -8,8 +8,10 @@ import insertBotJobUpdate from "./insert-bot-job-update";
 import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import openBotJobsSql from "./open-bot-jobs-sql";
 import stoppedJobReport, { pickReportedJobs } from "./stopped-job-report";
-import grabSessionChatroomId from "../chatrooms/grab-session-chatroom-id";
-import closeChatroom from "../chatrooms/close-chatroom";
+import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
+import parseJobJson from "@/src/bots-queue/parse-job-json";
+import stopAsk from "../asks/stop-ask";
+import stopAsks from "../asks/stop-asks";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
@@ -124,16 +126,43 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
     }
 
     /**
-     * A job it was doing in a chatroom stops the room: the bot that asked
-     * is told, and the room says so.
+     * A job it was doing for a crew request stops the request: the bot that
+     * asked is told, and the other side's run is cancelled.
      */
-    for (const job of jobs) {
-        const chatroom_id = await grabSessionChatroomId({ session_id: job.session_id });
+    const ask_ids = new Set<number>();
 
-        if (chatroom_id) {
-            await closeChatroom({ chatroom_id, status: "stopped", outcome: "" }).catch(() => false);
-        }
+    for (const job of jobs) {
+        const from_session = await grabSessionAskId({ session_id: Number(job.session_id) }).catch(
+            () => null,
+        );
+
+        if (from_session) ask_ids.add(Number(from_session));
+
+        /**
+         * An answer runs in the bot's own conversation, so the request it is
+         * answering is carried by the job, not by a hidden session.
+         */
+        const asked = Number(parseJobJson({ text: job.params })?.ask_id) || 0;
+
+        if (asked) ask_ids.add(asked);
     }
+
+    for (const ask_id of ask_ids) {
+        await stopAsk({
+            ask_id,
+            reason: "The user stopped the run answering it, so there is no answer.",
+        }).catch(() => null);
+    }
+
+    /**
+     * And the requests a run of its own had open go with it: its bot isn't
+     * woken about work the user just stopped.
+     */
+    await stopAsks({
+        user_id,
+        requester_bot_id: bot_id,
+        session_ids: jobs.map((job) => Number(job.session_id)),
+    }).catch(() => []);
 
     const messages: BUN_SQLITE_COBBLE_BOT_MESSAGES[] = [];
 

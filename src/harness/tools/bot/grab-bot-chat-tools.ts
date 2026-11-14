@@ -24,7 +24,7 @@ import updateWorkspaceTool from "./update-workspace-tool";
 import listWorkspacePeopleTool from "./list-workspace-people-tool";
 import setUserWorkspaceRoleTool from "./set-user-workspace-role-tool";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
-import chatroomAskableBots from "@/src/functions/backend/db/chatrooms/chatroom-askable-bots";
+import askableBots from "@/src/functions/backend/db/asks/askable-bots";
 import handOverTaskTool from "./hand-over-task-tool";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
 import startTaskTool from "./start-task-tool";
@@ -63,7 +63,7 @@ type Params = {
      */
     scopes?: StorageScope[];
     /**
-     * The user follows the conversation (not a chatroom's hidden session):
+     * The user follows the conversation (not a hidden session):
      * only then may the reply delete tasks.
      */
     attended?: boolean;
@@ -81,10 +81,6 @@ type Params = {
      * the reply can say so in its prompt.
      */
     onWorkspaceAdmin?: (params: WorkspaceAdminTools) => void;
-    /**
-     * Called with the ref of each chatroom the bot opened (`ask_crew`).
-     */
-    onChatroom?: (params: { ref: string }) => void;
     /**
      * Called with each tracker task the run worked on, so the message it
      * posts links to it (`bot_messages.task_ids`).
@@ -131,7 +127,6 @@ export default async function grabBotChatTools({
     onTakeOver,
     onPropose,
     onWorkspaceAdmin,
-    onChatroom,
     onTask,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
@@ -147,7 +142,6 @@ export default async function grabBotChatTools({
             scopes,
             can_delete_tasks: Boolean(attended),
             onPropose,
-            onChatroom,
             onTask,
         })),
         startTaskTool({
@@ -186,7 +180,7 @@ export default async function grabBotChatTools({
          * ones it could ask for this user, read again when it does.
          */
         if (session_id && powers.can("hand_over_task")) {
-            const workers = await chatroomAskableBots({ user_id, requester_bot_id: bot_id, workspace_id });
+            const workers = await askableBots({ user_id, requester_bot_id: bot_id, workspace_id });
 
             tools.push(
                 handOverTaskTool({
@@ -195,7 +189,7 @@ export default async function grabBotChatTools({
                     session_id,
                     powers,
                     workers,
-                    grabTargets: () => chatroomAskableBots({ user_id, requester_bot_id: bot_id, workspace_id }),
+                    grabTargets: () => askableBots({ user_id, requester_bot_id: bot_id, workspace_id }),
                     onTask,
                 }),
             );

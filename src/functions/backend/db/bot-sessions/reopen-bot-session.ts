@@ -27,9 +27,9 @@ export default async function reopenBotSession({
     if (session.status == "active") return session;
 
     /**
-     * A bot's part of a chatroom is only ever read in the room.
+     * A bot's part of a crew request is only ever read there.
      */
-    if (session.chatroom_id || session.hook_id) {
+    if (session.ask_id || session.hook_id) {
         throw new AppError(`Session not found.`);
     }
 

@@ -9,18 +9,8 @@ import { isUnlimitedLimit, type RunLimit } from "@/src/utils/run-limit";
  * spends working out what it is doing. A run too short to repay that gets
  * nothing from it: its first turn is its plan. An unlimited run always
  * plans, since it has the steps to repay it.
- *
- * A chatroom turn is never planned: it is short, it has almost no tools,
- * and nobody follows it.
  */
-export default function shouldPlanBotTask({
-    max_steps,
-    in_chatroom,
-}: {
-    max_steps: RunLimit;
-    in_chatroom?: boolean;
-}) {
-    if (in_chatroom) return false;
+export default function shouldPlanBotTask({ max_steps }: { max_steps: RunLimit }) {
     if (isUnlimitedLimit(max_steps)) return true;
 
     return max_steps >= AppData.BotTaskPlanMinSteps;

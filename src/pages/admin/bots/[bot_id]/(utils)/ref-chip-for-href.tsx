@@ -15,13 +15,12 @@ import { parseFolderRefHref } from "@/src/utils/folder-ref";
 import { botQuestionRefId } from "@/src/utils/bot-question-ref";
 import { botSuggestionRefId } from "@/src/utils/bot-suggestion-ref";
 import { graphicRefId } from "@/src/utils/graphic-ref";
-import { chatroomRefId } from "@/src/utils/chatroom-ref";
 import { taskRefId } from "@/src/utils/task-ref";
+import { askRefId } from "@/src/utils/ask-ref";
 import { generalSettingsRefId } from "@/src/utils/general-settings-ref";
 import BotQuestionRefChip from "../(partials)/bot-question-ref-chip";
 import BotSuggestionsRef from "../(partials)/bot-suggestions-ref";
 import BotRefChip from "../(partials)/bot-ref-chip";
-import ChatroomRefChip from "../(partials)/chatroom-ref-chip";
 import ComputerRefChip from "../(partials)/computer-ref-chip";
 import FileRefChip from "../(partials)/file-ref-chip";
 import FolderRefChip from "../(partials)/folder-ref-chip";
@@ -33,6 +32,7 @@ import SecretRequestRefChip from "../(partials)/secret-request-ref-chip";
 import SettingRefChip from "../(partials)/setting-ref-chip";
 import TakeOverChip from "../(partials)/take-over-chip";
 import TaskRefChip from "../(partials)/task-ref-chip";
+import AskRefChip from "../(partials)/ask-ref-chip";
 import WorkspaceRefChip from "../(partials)/workspace-ref-chip";
 
 /**
@@ -42,9 +42,8 @@ import WorkspaceRefChip from "../(partials)/workspace-ref-chip";
  * it, a folder a chip that opens it in the files browser, a proposal a chip
  * that opens the confirm card, a secret a masked chip, a secret request or
  * questions a chip that opens their card, suggested next steps the
- * buttons that fill the input, a graphic the graphic itself, a
- * chatroom or task a chip that opens it, a setting a pill to that group of
- * Settings > General. Null for any other link.
+ * buttons that fill the input, a graphic the graphic itself, a task a
+ * chip that opens it, a setting a pill to that group of Settings > General. Null for any other link.
  */
 export default function refChipForHref({ href }: { href?: string }): ReactNode | null {
     if (href?.startsWith(ComputerRefHrefPrefix)) {
@@ -116,13 +115,13 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
     const suggestion_id = botSuggestionRefId({ href });
     if (suggestion_id) return <BotSuggestionsRef suggestion_id={suggestion_id} />;
 
-    const chatroom_id = chatroomRefId({ href });
-
-    if (chatroom_id) return <ChatroomRefChip chatroom_id={chatroom_id} />;
-
     const task_id = taskRefId({ href });
 
     if (task_id) return <TaskRefChip task_id={task_id} />;
+
+    const ask_id = askRefId({ href });
+
+    if (ask_id) return <AskRefChip ask_id={ask_id} />;
 
     const graphic_id = graphicRefId({ href });
 

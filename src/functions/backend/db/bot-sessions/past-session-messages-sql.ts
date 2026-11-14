@@ -62,7 +62,7 @@ export default function searchPastSessionsSql({
         `s.bot_id = ?`,
         `s.workspace_id IS ?`,
         `s.id != ?`,
-        `s.chatroom_id IS NULL`,
+        `s.ask_id IS NULL`,
         `s.hook_id IS NULL`,
     ];
 

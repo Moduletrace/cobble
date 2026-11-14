@@ -85,7 +85,7 @@ describe("botCanTarget", () => {
     test("a worker directs no one", () => {
         /**
          * `hand_over_task` is separate: it moves a task the worker already
-         * has, to a bot it could ask (`chatroomAskableBots`). Nothing here
+         * has, to a bot it could ask (`askableBots`). Nothing here
          * lets it hand work out.
          */
         expect(botCanTarget({ actor_bot_types: [], target_bot_types: [], workspace_id: 3 })).toBe(false);

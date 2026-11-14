@@ -6,8 +6,7 @@ import notifyBotFace from "@/src/push/notify-bot-face";
 import pushBotUpdated from "./push-bot-updated";
 import pushToSessionUser from "./push-to-session-user";
 import withSessionMessageTasks from "./with-session-message-tasks";
-import grabSessionChatroomId from "@/src/functions/backend/db/chatrooms/grab-session-chatroom-id";
-import pushChatroomMessage from "@/src/functions/backend/db/chatrooms/push-chatroom-message";
+import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
 import grabSessionHookId from "@/src/functions/backend/db/bot-hooks/grab-session-hook-id";
 
 type Params = {
@@ -33,10 +32,10 @@ type Params = {
 /**
  * Pushes a new bot message to the open tabs of the user whose
  * conversation it's in, and a face change to the user it's for
- * (`pushBotUpdated`). A relayed report
- * goes to the conversation it was posted in, and a chatroom's message to
- * the room (`pushChatroomMessage`). Best effort: a push that
- * fails is logged and never fails the job that made the change.
+ * (`pushBotUpdated`). A relayed report goes to the conversation it was
+ * posted in. A message in a hidden session (a crew request's, a hook's) is
+ * pushed nowhere: those are read in their own place. Best effort: a push
+ * that fails is logged and never fails the job that made the change.
  */
 export default async function pushBotNotice({ bot_id, message, bot, relay, quiet_push }: Params) {
     try {
@@ -52,19 +51,17 @@ export default async function pushBotNotice({ bot_id, message, bot, relay, quiet
 
 async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
     /**
-     * A message in a chatroom goes to the room, never to a conversation,
-     * and never as a notification: rooms are records.
+     * A message in a hidden session goes to no conversation and no
+     * notification: a hook run's result is read in the hook's thread
+     * (which reloads from `server:hook-call-updated`), and a crew request's
+     * is read by the bots working it.
      */
-    const room_id = message ? await grabSessionChatroomId({ session_id: message.session_id }) : null;
-    /**
-     * A hook run's result is read in the hook's thread, which reloads from
-     * `server:hook-call-updated`: no conversation, no notification.
-     */
-    const hook_id = message && !room_id ? await grabSessionHookId({ session_id: message.session_id }) : null;
+    const hidden =
+        message &&
+        (Boolean(await grabSessionAskId({ session_id: Number(message.session_id) })) ||
+            Boolean(await grabSessionHookId({ session_id: message.session_id })));
 
-    if (message && room_id) {
-        await pushChatroomMessage({ chatroom_id: room_id, message });
-    } else if (message && !hook_id) {
+    if (message && !hidden) {
         await pushToSessionUser({
             session_id: message.session_id,
             /**

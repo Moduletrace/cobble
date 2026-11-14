@@ -5,7 +5,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabUserWorkspace from "./grab-user-workspace";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
-import deleteChatrooms from "@/src/functions/backend/db/chatrooms/delete-chatrooms";
+import deleteAsks from "@/src/functions/backend/db/asks/delete-asks";
 
 type Params = {
     user_id: number | string;
@@ -44,7 +44,7 @@ export default async function deleteWorkspace({ user_id, workspace_id }: Params)
     await BunSQLite.sql({ sql: `DELETE FROM workspace_user_visits WHERE workspace_id = ?`, values: [workspace.id] });
     await BunSQLite.sql({ sql: `DELETE FROM workspace_user_roles WHERE workspace_id = ?`, values: [workspace.id] });
     await BunSQLite.sql({ sql: `DELETE FROM browser_access WHERE workspace_id = ?`, values: [workspace.id] });
-    await deleteChatrooms({ workspace_id: workspace.id! });
+    await deleteAsks({ workspace_id: workspace.id! });
 
     const res = await BunSQLite.sql({
         sql: `DELETE FROM workspaces WHERE id = ?`,

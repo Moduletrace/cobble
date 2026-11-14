@@ -15,7 +15,7 @@ import installRequestBlock from "@/src/utils/install-request-block";
 import ensureBotSession from "../bot-sessions/ensure-bot-session";
 import insertBotMessage from "../bots/insert-bot-message";
 import enqueueBotJob from "../bots-queue/enqueue-bot-job";
-import grabCoordinatorBot from "../chatrooms/grab-coordinator-bot";
+import grabCoordinatorBot from "../bots/grab-coordinator-bot";
 
 type Params = {
     /**

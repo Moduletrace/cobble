@@ -3,12 +3,12 @@ import isCrewMessage from "@/src/utils/is-crew-message";
 
 /**
  * A message the Up arrow can recall: only what the user typed here. A
- * chatroom's outcome and an install request's answer are stored on the
+ * crew request's outcome and an install request's answer are stored on the
  * user's side, but the user wrote neither.
  */
 export type ComposerHistoryMessage = Pick<
     BotMessageWithAttachments,
-    "author" | "text" | "from_chatroom_id" | "from_install_request_id"
+    "author" | "text" | "from_ask_id" | "from_install_request_id"
 >;
 
 /**
