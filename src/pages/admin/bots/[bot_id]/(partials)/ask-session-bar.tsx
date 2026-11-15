@@ -5,6 +5,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { ArrowLeft } from "lucide-react";
 import conversationHref from "@/src/utils/conversation-href";
+import askPreviousSessionId from "@/src/utils/ask-previous-session-id";
 import type { AskOverview } from "@/src/types";
 
 type Props = {
@@ -48,6 +49,18 @@ export default function AskSessionBar({ bot_id, workspace_id, session_id }: Prop
 
     if (!ask?.previous_session_id) return null;
 
+    /**
+     * A bot with no conversation there before the request has nothing to
+     * lead back to, so its thread carries no bar: only a real earlier
+     * session is one.
+     */
+    const previous_session_id = askPreviousSessionId({
+        previous_session_id: ask.previous_session_id,
+        session_id,
+    });
+
+    if (!previous_session_id) return null;
+
     return (
         <Stack className="shrink-0 gap-0! items-stretch border-0 border-b border-solid border-hairline">
             <Row className="w-full max-w-container mx-auto py-3 gap-3! md:gap-4! flex-nowrap items-center justify-between px-3 md:px-6">
@@ -63,7 +76,7 @@ export default function AskSessionBar({ bot_id, workspace_id, session_id }: Prop
                     href={conversationHref({
                         bot_id,
                         workspace_id,
-                        session_id: ask.previous_session_id,
+                        session_id: previous_session_id,
                     })}
                     beforeIcon={<ArrowLeft size={14} aria-hidden />}
                     variant="outlined"

@@ -8,6 +8,7 @@ import startBotSession from "../bot-sessions/start-bot-session";
 import grabWorkspaceName from "../workspaces/grab-workspace-name";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import grabActiveBotSession from "../bot-sessions/grab-active-bot-session";
+import askPreviousSessionId from "@/src/utils/ask-previous-session-id";
 
 type Params = {
     ask: BUN_SQLITE_COBBLE_BOT_ASKS;
@@ -29,7 +30,10 @@ type Params = {
  * (instructions, memory, files, computers) and the answer is posted where
  * the work belongs. Every request starts a new session
  * (`startBotSession`), so the conversation the user was in is left where it
- * was. Opened with the brief as a user-side crew message. The ask is
+ * was, and that session is what the session's bar leads back to: a bot with
+ * no conversation there before the request (or one still empty, which
+ * `startBotSession` keeps as it is) gets no way back, so its thread shows no
+ * bar at all. Opened with the brief as a user-side crew message. The ask is
  * `working` from here until that run ends (`onAskJobEnded`).
  */
 export default async function enqueueAskAnswer({ ask, target, requester_name, gate_note }: Params) {
@@ -44,6 +48,15 @@ export default async function enqueueAskAnswer({ ask, target, requester_name, ga
         user_id: Number(ask.user_id),
         bot_id: Number(target.id),
         workspace_id,
+    });
+
+    /**
+     * Null when there was nothing to go back to: no session before the
+     * request, or an empty one `startBotSession` kept as the request's own.
+     */
+    const previous_session_id = askPreviousSessionId({
+        previous_session_id: previous?.id,
+        session_id: session.id,
     });
 
     /**
@@ -114,7 +127,7 @@ export default async function enqueueAskAnswer({ ask, target, requester_name, ga
             Number(target.id),
             Number(session.id),
             job_id,
-            previous ? Number(previous.id) : null,
+            previous_session_id,
             gate_note || null,
             Date.now(),
             Number(ask.id),
