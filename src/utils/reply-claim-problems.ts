@@ -1,5 +1,6 @@
 import type { HarnessToolUse } from "@/src/harness/types";
 import claimsWorkUnderWay from "./claims-work-under-way";
+import { AppRecordPrefix } from "./strip-app-records";
 
 type Params = {
     text: string;
@@ -69,6 +70,20 @@ export default function replyClaimProblems({
     }
 
     const started = tool_uses.some((use) => use.ok && WorkStartingTools.includes(use.name));
+
+    /**
+     * The record line the answer wrote itself. Only when it claims tools:
+     * a model that mimics "called no tools" is stripped and harmless
+     * (`stripAppRecords`), one that writes the tools it never called makes
+     * the app vouch for it, which is what the user reads.
+     */
+    const forged = text.match(/\[App record:[^\]]*\]/i)?.[0];
+
+    if (forged && !/called no tools/i.test(forged)) {
+        problems.push(
+            `It writes its own "${AppRecordPrefix} ...]" line claiming tools it never called. Only the app writes that line, from the tools it recorded; the user reads it as the app's word. Delete it and say only what the tools returned.`,
+        );
+    }
 
     if (!started && !has_open_work && claimsWorkUnderWay({ text })) {
         problems.push(

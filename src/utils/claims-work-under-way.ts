@@ -14,7 +14,7 @@ const UnderWayPatterns = [
     /\bI(?:'|’)ll\s+(?:report back|get back to you|let you know when|bring (?:you |it )?back|report (?:the|my) (?:results?|findings))/i,
     /\b(?:report|results?|details|update)\s+(?:follows|will follow|to follow|coming)\b/i,
     /\bin (?:my|the|a) (?:next|following) message\b/i,
-    /\b(?:when|once) (?:it|that|the (?:run|scan|search|check))(?:'|’)?s? (?:back|done|finished|complete)\b/i,
+    /\b(?:when|once) (?:it|that|the (?:run|job|task|scan|search|check|work))(?:'|’)?s?\s+(?:back|done|finished|complete|reports|lands|returns|comes in|comes back)\b/i,
     /**
      * "I'll drive the browser to ideogram.ai directly and see what's
      * there." A dot inside a word (a domain, a file name) doesn't end the
@@ -27,6 +27,16 @@ const UnderWayPatterns = [
      * record decides whether it's true.
      */
     /\b(?:sent|passed|forwarded|handed)\b[^.!?\n]{0,80}(?:@[a-z0-9_-]+|\[bot:\d+\])/i,
+    /**
+     * "I'm starting the hydration work on computer 1", "I've kicked off
+     * the run": a run claimed as started, without the "now" or the
+     * promised report the patterns above need. Only `start_task` starts
+     * one, so the app's record decides whether it's true.
+     */
+    /\bI(?:'|’)?m\s+(?:now\s+|just\s+)?(?:starting|beginning|kicking off|launching|queueing|queuing|firing off|spinning up)\b[^.!?\n]{0,120}\b(?:run|task|job|work|scan|audit|recon|build|pass)\b/i,
+    /\bI(?:'|’)ve\s+(?:now\s+|just\s+)?(?:started|begun|kicked off|launched|queued|fired off|spun up)\b/i,
+    /\bI(?:'|’)?m\s+(?:now\s+|just\s+)?(?:starting|beginning|kicking off)\s+(?:it|this|that)\b/i,
+    /(?:^|[.!?\n]\s*)(?:starting|beginning|kicking off)\s+(?:it|that|the (?:run|job|task|work|scan|audit|build))\b/i,
 ];
 
 /**

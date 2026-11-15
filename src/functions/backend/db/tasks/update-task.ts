@@ -82,6 +82,14 @@ export default async function updateTask({
         return await grabTask({ user_id, task_id });
     }
 
+    /**
+     * `tasks` list rows by `updated_at` (`grabTasks`), so a status change
+     * that leaves it alone never rises; the move and hand-over helpers set
+     * it themselves.
+     */
+    fields.push(`updated_at = ?`);
+    values.push(Date.now());
+
     const res = await BunSQLite.sql({
         sql: `UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`,
         values: [...values, Number(task_id)],

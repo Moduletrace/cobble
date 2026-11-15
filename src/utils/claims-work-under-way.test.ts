@@ -16,6 +16,18 @@ describe("claimsWorkUnderWay", () => {
             "I'll go ahead and check the tab right away.",
             "What I sent @SEO Expert: a full brief, with the scope and the ground rules.",
             "I've passed the brief on to [bot:6] SEO Expert.",
+            /**
+             * The reply that started nothing: it said the run was under
+             * way, then wrote its own app record line to look like the
+             * tools had run. Caught by the app, not by the user.
+             */
+            "I'm starting the hydration work as a single-route proof rather than a shell-wide rewrite, on [computer:1] - with the production numbers as the target. I'll say why I scoped it that way once the run reports.",
+            "I've started the hydration work on computer 1. I'll report when it lands.",
+            "I'm starting the recon run for task #44.",
+            "I've kicked off the run on computer 1.",
+            "I'm spinning up the build now.",
+            "I'm starting it now.",
+            "Starting it now.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(true);
         }
@@ -33,6 +45,10 @@ describe("claimsWorkUnderWay", () => {
             "I'll use the navy palette in the next round.",
             "I sent the invoice to accounting last week.",
             "The report was sent to the team on Monday.",
+            "I'll start with what changed, then the numbers.",
+            "I'm starting to think the brief is wrong.",
+            "I started the invoice last week.",
+            "Task #48 is doing, nothing is running yet.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(false);
         }
