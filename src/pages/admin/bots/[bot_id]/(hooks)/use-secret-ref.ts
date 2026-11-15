@@ -1,37 +1,16 @@
-import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
-import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { useEffect, useState } from "react";
 import type { SecretRefView } from "@/src/types";
+import loadRefView from "../(utils)/ref-view-loader";
 
 type Params = {
     env_id: number;
 };
 
 /**
- * Secret refs already read, by id. Only the key and whether the viewer may
- * reveal it: the value is fetched on Reveal or Copy and never cached here.
- */
-const loaded = new Map<number, Promise<SecretRefView | null>>();
-
-function loadSecret({ env_id }: Params) {
-    const cached = loaded.get(env_id);
-
-    if (cached) return cached;
-
-    const pending = fetchApi<{}, APIResponseObject<SecretRefView>>(
-        `/api/admin/secrets/get-secret?env_id=${env_id}`,
-        { method: "GET" },
-    )
-        .then((res) => (res?.success && res.singleRes ? res.singleRes : null))
-        .catch(() => null);
-
-    loaded.set(env_id, pending);
-
-    return pending;
-}
-
-/**
- * A secret a bot showed (`[secret:ID]`), for its masked chip.
+ * A secret a bot showed (`[secret:ID]`), for its masked chip. Only the key
+ * and whether the viewer may reveal it: the value is fetched on Reveal or
+ * Copy and never read here. A read that failed or hung is tried again
+ * (`loadRefView`), so the chip isn't left saying nothing until a reload.
  */
 export default function useSecretRef({ env_id }: Params) {
     const [view, setView] = useState<SecretRefView | null>(null);
@@ -40,7 +19,12 @@ export default function useSecretRef({ env_id }: Params) {
     useEffect(() => {
         let live = true;
 
-        loadSecret({ env_id }).then((result) => {
+        setLoading(true);
+
+        loadRefView<SecretRefView>({
+            key: `secret:${env_id}`,
+            url: `/api/admin/secrets/get-secret?env_id=${env_id}`,
+        }).then((result) => {
             if (!live) return;
             setView(result);
             setLoading(false);

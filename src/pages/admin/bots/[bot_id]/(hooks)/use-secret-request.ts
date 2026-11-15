@@ -1,39 +1,17 @@
-import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
-import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { useCallback, useEffect, useState } from "react";
 import type { SecretRequestView } from "@/src/types";
+import loadRefView, { primeRefView } from "../(utils)/ref-view-loader";
 
 type Params = {
     request_id: number;
 };
 
 /**
- * Secret requests already read, by id, so a thread naming one twice asks
- * once. An answer replaces its entry.
- */
-const loaded = new Map<number, Promise<SecretRequestView | null>>();
-
-function loadRequest({ request_id }: Params) {
-    const cached = loaded.get(request_id);
-
-    if (cached) return cached;
-
-    const pending = fetchApi<{}, APIResponseObject<SecretRequestView>>(
-        `/api/admin/secret-requests/get-request?request_id=${request_id}`,
-        { method: "GET" },
-    )
-        .then((res) => (res?.success && res.singleRes ? res.singleRes : null))
-        .catch(() => null);
-
-    loaded.set(request_id, pending);
-
-    return pending;
-}
-
-/**
  * A secret a bot asked for (`[secret-request:ID]`), for its chip and card:
  * read when the chip renders, so it shows whether it's still waiting.
- * Only the user it was asked of can read it; anyone else gets null.
+ * Only the user it was asked of can read it; anyone else gets null. A
+ * read that failed or hung is tried again (`loadRefView`), so the card
+ * isn't unopenable until the page is reloaded.
  */
 export default function useSecretRequest({ request_id }: Params) {
     const [view, setViewState] = useState<SecretRequestView | null>(null);
@@ -42,7 +20,12 @@ export default function useSecretRequest({ request_id }: Params) {
     useEffect(() => {
         let live = true;
 
-        loadRequest({ request_id }).then((result) => {
+        setLoading(true);
+
+        loadRefView<SecretRequestView>({
+            key: `secret-request:${request_id}`,
+            url: `/api/admin/secret-requests/get-request?request_id=${request_id}`,
+        }).then((result) => {
             if (!live) return;
             setViewState(result);
             setLoading(false);
@@ -55,7 +38,7 @@ export default function useSecretRequest({ request_id }: Params) {
 
     const setView = useCallback(
         (next: SecretRequestView) => {
-            loaded.set(request_id, Promise.resolve(next));
+            primeRefView({ key: `secret-request:${request_id}`, view: next });
             setViewState(next);
         },
         [request_id],

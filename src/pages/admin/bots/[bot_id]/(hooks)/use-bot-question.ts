@@ -1,39 +1,17 @@
-import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
-import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { useCallback, useEffect, useState } from "react";
 import type { BotQuestionView } from "@/src/types";
+import loadRefView, { primeRefView } from "../(utils)/ref-view-loader";
 
 type Params = {
     question_id: number;
 };
 
 /**
- * Questions already read, by id, so a thread naming them twice asks once.
- * An answer replaces their entry.
- */
-const loaded = new Map<number, Promise<BotQuestionView | null>>();
-
-function loadQuestion({ question_id }: Params) {
-    const cached = loaded.get(question_id);
-
-    if (cached) return cached;
-
-    const pending = fetchApi<{}, APIResponseObject<BotQuestionView>>(
-        `/api/admin/bot-questions/get-question?question_id=${question_id}`,
-        { method: "GET" },
-    )
-        .then((res) => (res?.success && res.singleRes ? res.singleRes : null))
-        .catch(() => null);
-
-    loaded.set(question_id, pending);
-
-    return pending;
-}
-
-/**
  * Questions a bot asked (`[question:ID]`), for their chip and card: read
  * when the chip renders, so it shows whether they're still waiting. Only
- * the user they were asked of can read them; anyone else gets null.
+ * the user they were asked of can read them; anyone else gets null. A
+ * read that failed or hung is tried again (`loadRefView`) instead of
+ * leaving the card unopenable until the page is reloaded.
  */
 export default function useBotQuestion({ question_id }: Params) {
     const [view, setViewState] = useState<BotQuestionView | null>(null);
@@ -42,7 +20,12 @@ export default function useBotQuestion({ question_id }: Params) {
     useEffect(() => {
         let live = true;
 
-        loadQuestion({ question_id }).then((result) => {
+        setLoading(true);
+
+        loadRefView<BotQuestionView>({
+            key: `question:${question_id}`,
+            url: `/api/admin/bot-questions/get-question?question_id=${question_id}`,
+        }).then((result) => {
             if (!live) return;
             setViewState(result);
             setLoading(false);
@@ -53,9 +36,13 @@ export default function useBotQuestion({ question_id }: Params) {
         };
     }, [question_id]);
 
+    /**
+     * The card's own answers replace what was read, so its chip says they
+     * were answered without asking the app again.
+     */
     const setView = useCallback(
         (next: BotQuestionView) => {
-            loaded.set(question_id, Promise.resolve(next));
+            primeRefView({ key: `question:${question_id}`, view: next });
             setViewState(next);
         },
         [question_id],

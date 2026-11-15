@@ -1,38 +1,17 @@
-import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
-import type { APIResponseObject } from "@moduletrace/bunext/types";
 import { useEffect, useState } from "react";
 import type { BotSuggestionView } from "@/src/types";
+import loadRefView from "../(utils)/ref-view-loader";
 
 type Params = {
     suggestion_id: number;
 };
 
 /**
- * Next steps already read, by id, so a thread naming them twice asks once.
- */
-const loaded = new Map<number, Promise<BotSuggestionView | null>>();
-
-function loadSuggestion({ suggestion_id }: Params) {
-    const cached = loaded.get(suggestion_id);
-
-    if (cached) return cached;
-
-    const pending = fetchApi<{}, APIResponseObject<BotSuggestionView>>(
-        `/api/admin/bot-suggestions/get-suggestion?suggestion_id=${suggestion_id}`,
-        { method: "GET" },
-    )
-        .then((res) => (res?.success && res.singleRes ? res.singleRes : null))
-        .catch(() => null);
-
-    loaded.set(suggestion_id, pending);
-
-    return pending;
-}
-
-/**
  * Next steps a bot suggested (`[suggestion:ID]`): read when their buttons
  * render. Only the user they were suggested to can read them; anyone else
- * gets null.
+ * gets null. A read that failed or hung is tried again before the buttons
+ * give up on it (`loadRefView`), so a missed push or a sleeping phone no
+ * longer needs the page reloaded.
  */
 export default function useBotSuggestion({ suggestion_id }: Params) {
     const [view, setView] = useState<BotSuggestionView | null>(null);
@@ -41,7 +20,12 @@ export default function useBotSuggestion({ suggestion_id }: Params) {
     useEffect(() => {
         let live = true;
 
-        loadSuggestion({ suggestion_id }).then((result) => {
+        setLoading(true);
+
+        loadRefView<BotSuggestionView>({
+            key: `suggestion:${suggestion_id}`,
+            url: `/api/admin/bot-suggestions/get-suggestion?suggestion_id=${suggestion_id}`,
+        }).then((result) => {
             if (!live) return;
             setView(result);
             setLoading(false);

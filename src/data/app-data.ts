@@ -833,6 +833,18 @@ export const AppData = {
      */
     BotReplyCatchUpMessages: 20,
     /**
+     * How long one read of a chip's view (the next steps a bot suggested,
+     * the questions it asked) may hang before it is dropped and asked
+     * again: a chip read as its message was pushed, on a phone waking up,
+     * once said "(not available)" until the page was reloaded.
+     */
+    BotRefViewTimeoutMs: 8000,
+    /**
+     * How long to wait between those reads, one more read after each, so
+     * a ref named before its row was written heals itself in seconds.
+     */
+    BotRefViewRetryDelaysMs: [800, 2500],
+    /**
      * A window regaining focus and its tab becoming visible are often one
      * return, and each may fire more than once: a second signal this soon
      * after the first (a refocus, a socket remount) is the same return.
