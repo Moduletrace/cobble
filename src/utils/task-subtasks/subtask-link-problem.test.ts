@@ -11,7 +11,7 @@ const parent = {
 };
 
 describe("subtaskLinkProblem", () => {
-    test("a bot's task in the parent's workspace can be a part of it", () => {
+    test("a bot's task in the parent's workspace can be a subtask of it", () => {
         expect(subtaskLinkProblem({ parent, bot_id: 7, workspace_id: 4 })).toBeNull();
     });
 
@@ -29,22 +29,22 @@ describe("subtaskLinkProblem", () => {
         ).toContain("isn't workspace-wide");
     });
 
-    test("a part can't be split again", () => {
+    test("a subtask can't be split again", () => {
         expect(
             subtaskLinkProblem({ parent: { ...parent, parent_task_id: 3 }, bot_id: 7, workspace_id: 4 }),
         ).toContain("can't be split again");
 
-        // A real part has a bot, which is no reason to call it something else.
+        // A real subtask has a bot, which is no reason to call it something else.
         expect(
             subtaskLinkProblem({ parent: { ...parent, bot_id: 7, parent_task_id: 3 }, bot_id: 8, workspace_id: 4 }),
         ).toContain("can't be split again");
     });
 
-    test("a part belongs to one bot", () => {
+    test("a subtask belongs to one bot", () => {
         expect(subtaskLinkProblem({ parent, bot_id: null, workspace_id: 4 })).toContain("belongs to one bot");
     });
 
-    test("a part stays in its parent's workspace", () => {
+    test("a subtask stays in its parent's workspace", () => {
         expect(subtaskLinkProblem({ parent, bot_id: 7, workspace_id: 9 })).toContain("same workspace");
         expect(subtaskLinkProblem({ parent, bot_id: 7, workspace_id: null })).toContain("same workspace");
     });

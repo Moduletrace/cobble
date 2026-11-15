@@ -28,28 +28,28 @@ describe("subtaskAttachProblem", () => {
         expect(subtaskAttachProblem({ task: null, parent })).toContain("doesn't exist");
     });
 
-    test("a task can't be a part of itself", () => {
-        expect(subtaskAttachProblem({ task: parent, parent })).toContain("part of itself");
+    test("a task can't be a subtask of itself", () => {
+        expect(subtaskAttachProblem({ task: parent, parent })).toContain("subtask of itself");
     });
 
-    test("a part of another task is unlinked first", () => {
+    test("a subtask of another task is unlinked first", () => {
         expect(subtaskAttachProblem({ task: { ...task, parent_task_id: 9 }, parent })).toContain(
-            "already a part of task #9",
+            "already a subtask of task #9",
         );
     });
 
     test("a task with parts of its own can't become one", () => {
-        expect(subtaskAttachProblem({ task, parent, task_subtasks: 2 })).toContain("a part can't be a parent");
+        expect(subtaskAttachProblem({ task, parent, task_subtasks: 2 })).toContain("a subtask can't be a parent");
     });
 
     test("only a bot's task in a workspace can join one", () => {
-        expect(subtaskAttachProblem({ task: { ...task, bot_id: null }, parent })).toContain("nothing to be a part of");
+        expect(subtaskAttachProblem({ task: { ...task, bot_id: null }, parent })).toContain("nothing to be a subtask of");
         expect(subtaskAttachProblem({ task: { ...task, workspace_id: null }, parent })).toContain(
-            "nothing to be a part of",
+            "nothing to be a subtask of",
         );
     });
 
-    test("a closed task can't become a part", () => {
+    test("a closed task can't become a subtask", () => {
         expect(subtaskAttachProblem({ task: { ...task, status: "done" }, parent })).toContain("closed task");
     });
 

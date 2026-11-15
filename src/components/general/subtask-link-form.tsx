@@ -9,7 +9,7 @@ import type { TaskDetail, TaskWithNames } from "@/src/types";
 
 type Props = {
     /**
-     * The bot's task being made a part of a workspace-wide one.
+     * The bot's task being made a subtask of a workspace-wide one.
      */
     task: TaskDetail;
     onLinked: (task: TaskDetail, msg: string) => void;
@@ -18,7 +18,7 @@ type Props = {
 
 /**
  * Picks which open workspace-wide task of the same workspace a bot's task
- * becomes a part of (`linkSubtask`), the way the task's own bot can with
+ * becomes a subtask of (`linkSubtask`), the way the task's own bot can with
  * `update_task`. The parents load when the form opens, so the page's props
  * stay small.
  */
@@ -53,7 +53,7 @@ export default function SubtaskLinkForm({ task, onLinked, onCancel }: Props) {
             return;
         }
 
-        if (!window.confirm(`Make "${task.title}" a part of "${parent.title}"? It stays ${task.bot_name || "its bot"}'s, and the parent stays open until someone verifies all its parts.`))
+        if (!window.confirm(`Make "${task.title}" a subtask of "${parent.title}"? It stays ${task.bot_name || "its bot"}'s, and the parent stays open until someone verifies all its subtasks.`))
             return;
 
         setLoading(true);
@@ -67,11 +67,11 @@ export default function SubtaskLinkForm({ task, onLinked, onCancel }: Props) {
         setLoading(false);
 
         if (!res.success || !res.singleRes) {
-            setError(res.msg || "Couldn't make it a part of that task.");
+            setError(res.msg || "Couldn't make it a subtask of that task.");
             return;
         }
 
-        onLinked(res.singleRes, res.msg || `It's a part of task #${parent.id} now.`);
+        onLinked(res.singleRes, res.msg || `It's a subtask of task #${parent.id} now.`);
     };
 
     return (
@@ -82,7 +82,7 @@ export default function SubtaskLinkForm({ task, onLinked, onCancel }: Props) {
                 ) : parents.length ? (
                     <Select
                         key={parents.length}
-                        label="Part of"
+                        label="Parent task"
                         showLabel
                         options={parents.map((it) => ({
                             title: `#${it.id} ${it.title || ""}`.trim(),
@@ -96,7 +96,7 @@ export default function SubtaskLinkForm({ task, onLinked, onCancel }: Props) {
                         This workspace has no open workspace-wide task to join. Make one first, then split it.
                     </Span>
                 )}
-                <AddFormActions submit_label="Make it a part" loading={loading} error={error} onCancel={onCancel} />
+                <AddFormActions submit_label="Make it a subtask" loading={loading} error={error} onCancel={onCancel} />
             </Stack>
         </Form>
     );

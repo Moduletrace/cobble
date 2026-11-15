@@ -121,13 +121,13 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                 .positive()
                 .optional()
                 .describe(
-                    `N attaches this task to the open workspace-wide task #N in its workspace: the piece of it you took on. Only tasks a bot has in a workspace can join one, and a task with parts of its own can't.`,
+                    `N attaches this task to the open workspace-wide task #N in its workspace: the piece of it you took on. Only tasks a bot has in a workspace can join one, and a task with subtasks of its own can't.`,
                 ),
             unlink_parent: z
                 .boolean()
                 .optional()
                 .describe(
-                    `For a part of a workspace-wide task: true takes it out of that task, leaving it a task of its own in the workspace. Only true does anything.`,
+                    `For a subtask of a workspace-wide task: true takes it out of that task, leaving it a task of its own in the workspace. Only true does anything.`,
                 ),
         }),
         run: async ({ args }) => {
@@ -156,7 +156,7 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
 
             if (args.parent_task_id) {
                 if (args.unlink_parent) {
-                    return `Pass parent_task_id to make it a part of a task, or unlink_parent to take it out of one, not both.`;
+                    return `Pass parent_task_id to make it a subtask of a task, or unlink_parent to take it out of one, not both.`;
                 }
 
                 try {
@@ -167,17 +167,17 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                         by_bot_id: bot_id,
                         by_name: (await grabBotById({ bot_id }))?.name || `Bot ${bot_id}`,
                     });
-                    said.push(`it's a part of task #${args.parent_task_id} now`);
+                    said.push(`it's a subtask of task #${args.parent_task_id} now`);
                 } catch (error: unknown) {
                     return error instanceof Error
                         ? error.message
-                        : `Couldn't make task #${task.id} a part of task #${args.parent_task_id}.`;
+                        : `Couldn't make task #${task.id} a subtask of task #${args.parent_task_id}.`;
                 }
             }
 
             if (args.unlink_parent) {
                 if (!task.parent_task_id) {
-                    return `Task #${task.id} isn't a part of another task: nothing to unlink it from.`;
+                    return `Task #${task.id} isn't a subtask of another task: nothing to unlink it from.`;
                 }
 
                 await detachSubtask({

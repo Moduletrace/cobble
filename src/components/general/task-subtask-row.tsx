@@ -7,7 +7,7 @@ import TaskStatusChip from "./task-status-chip";
 
 type Props = {
     /**
-     * One part of a workspace-wide task.
+     * One subtask of a workspace-wide task.
      */
     subtask: TaskWithNames;
     /**
@@ -17,8 +17,8 @@ type Props = {
 };
 
 /**
- * One part under its workspace-wide task: its status, its title and the bot
- * that has it (or nobody yet). Clicking it opens the part.
+ * One subtask under its workspace-wide task: its status, its title and the bot
+ * that has it (or nobody yet). Clicking it opens the subtask.
  */
 export default function TaskSubtaskRow({ subtask, onOpen }: Props) {
     const done = subtask.status == "done" || subtask.status == "cancelled";

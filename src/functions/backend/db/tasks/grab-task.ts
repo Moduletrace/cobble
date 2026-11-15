@@ -19,7 +19,7 @@ type Params = {
 
 /**
  * One task with its notes (oldest first, each with the bot that wrote it),
- * its files, who added it and its parts when it is workspace-wide (each as a
+ * its files, who added it and its subtasks when it is workspace-wide (each as a
  * list shows it, only the ones the user reaches), only if the user
  * reaches the bot or workspace it belongs to (`taskScopesSql`, the same
  * condition the lists use).

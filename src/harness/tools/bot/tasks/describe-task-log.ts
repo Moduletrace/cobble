@@ -3,11 +3,11 @@ import type { TaskFile, TaskNote, TaskWithNames } from "@/src/types";
 
 type Params = {
     /**
-     * The task row, with `parent_title` when it is a part (`grab-tasks`).
+     * The task row, with `parent_title` when it is a subtask (`grab-tasks`).
      */
     task: BUN_SQLITE_COBBLE_TASKS & {
         /**
-         * Its parent's title, read for a part (`grab-tasks`' join, or the
+         * Its parent's title, read for a subtask (`grab-tasks`' join, or the
          * caller's lookup).
          */
         parent_title?: string | null;
@@ -19,7 +19,7 @@ type Params = {
      */
     files?: TaskFile[];
     /**
-     * Its parts, when it is workspace-wide: each with its status and
+     * Its subtasks, when it is workspace-wide: each with its status and
      * whose it is, so a bot sees what is already split off.
      */
     parts?: TaskWithNames[];
@@ -69,11 +69,11 @@ export default function describeTaskLog({ task, notes, files = [], parts = [], b
 
     const split = parts.length
         ? parts
-              .map((part) => {
-                  const owner = part.bot_id ? part.bot_name || `bot ${part.bot_id}` : "nobody";
-                  const open = part.status == "done" || part.status == "cancelled" ? "" : " (open)";
+              .map((subtask) => {
+                  const owner = subtask.bot_id ? subtask.bot_name || `bot ${subtask.bot_id}` : "nobody";
+                  const open = subtask.status == "done" || subtask.status == "cancelled" ? "" : " (open)";
 
-                  return `- #${part.id} [${part.status}]${open} ${part.title}, ${owner}${Number(part.bot_id || 0) == Number(bot_id) ? " (yours)" : ""}`;
+                  return `- #${subtask.id} [${subtask.status}]${open} ${subtask.title}, ${owner}${Number(subtask.bot_id || 0) == Number(bot_id) ? " (yours)" : ""}`;
               })
               .join("\n")
         : "";
@@ -81,11 +81,11 @@ export default function describeTaskLog({ task, notes, files = [], parts = [], b
     return [
         `#${task.id} [${task.status}] ${task.title} (${task.workspace_id ? `in workspace ${task.workspace_id}, ` : ""}${who})`,
         task.parent_task_id
-            ? `A part of task #${task.parent_task_id}${task.parent_title ? ` "${task.parent_title}"` : ""}: one piece of that work. The parent stays open until someone verifies all its parts, so don't mark it done from here.`
+            ? `A subtask of task #${task.parent_task_id}${task.parent_title ? ` "${task.parent_title}"` : ""}: one piece of that work. The parent stays open until someone verifies all its subtasks, so don't mark it done from here.`
             : "",
         task.status == "blocked" && task.blocked_reason ? `Blocked: ${task.blocked_reason}` : "",
         `Brief:\n${task.description?.trim() || "(none)"}`,
-        split ? `Parts (${parts.length}):\n${split}` : "",
+        split ? `Subtasks (${parts.length}):\n${split}` : "",
         filed ? `Files (${files.length}):\n${filed}` : "",
         `Log, oldest first:\n${log}`,
     ]

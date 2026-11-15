@@ -6,7 +6,7 @@ import grabTaskRow from "./grab-task-scope";
 type Params = {
     parent_task_id: number | string;
     /**
-     * Who would have the part (a part always belongs to one bot).
+     * Who would have the subtask (a subtask always belongs to one bot).
      */
     bot_id?: number | string | null;
     /**
@@ -16,8 +16,8 @@ type Params = {
 };
 
 /**
- * The task a new part would belong to, checked: a workspace-wide task that
- * isn't itself a part, open, in the part's workspace
+ * The task a new subtask would belong to, checked: a workspace-wide task that
+ * isn't itself a subtask, open, in the subtask's workspace
  * (`subtaskLinkProblem`). The caller checked who is asking reaches the
  * parent. Returns the parent's row.
  */

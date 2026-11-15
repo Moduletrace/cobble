@@ -9,7 +9,7 @@ type Params = {
     bot_id?: number | null;
     workspace_id?: number | null;
     /**
-     * The part's parent: two parts of different parents may share a title
+     * The subtask's parent: two subtasks of different parents may share a title
      * ("Write the intro" under two releases), the same parent's may not.
      */
     parent_task_id?: number | null;

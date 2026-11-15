@@ -34,7 +34,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
         }
 
         if (!canManageCrew({ user_types: user_types || [] })) {
-            throw new AppError(`Only an admin can make a task a part of another.`);
+            throw new AppError(`Only an admin can make a task a subtask of another.`);
         }
 
         const { task_id, parent_task_id } = parseWithSchema({ schema: LinkSubtaskRequestSchema, data: body });
@@ -50,7 +50,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
                 parent_task_id,
                 by_name: user.first_name || user.username || "The user",
             }),
-            msg: `It's a part of task #${parent_task_id} now.`,
+            msg: `It's a subtask of task #${parent_task_id} now.`,
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

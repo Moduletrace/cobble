@@ -50,12 +50,12 @@ describe("TaskListItem", () => {
         expect(plain).not.toContain("/media/");
     });
 
-    test("a part says which task it belongs to, and a split task how many parts are open", () => {
+    test("a subtask says which task it belongs to, and a split task how many subtasks are open", () => {
         const part = renderToString(
             <TaskListItem task={{ ...base_task, title: "The intro", parent_task_id: 12, parent_title: "Ship it" }} />,
         );
 
-        expect(part).toContain("Part of #12");
+        expect(part).toContain("Subtask of #12");
 
         const parent = renderToString(
             <TaskListItem
@@ -63,7 +63,7 @@ describe("TaskListItem", () => {
             />,
         );
 
-        expect(parent).toContain("2 of 3 parts open");
+        expect(parent).toContain("2 of 3 subtasks open");
 
         const finished = renderToString(
             <TaskListItem
@@ -71,6 +71,6 @@ describe("TaskListItem", () => {
             />,
         );
 
-        expect(finished).toContain("all 2 parts done");
+        expect(finished).toContain("all 2 subtasks done");
     });
 });

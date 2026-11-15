@@ -27,7 +27,7 @@ type Params = {
      */
     workspace_wide?: boolean;
     /**
-     * The workspace-wide task this one is a part of (`assertSubtaskParent`):
+     * The workspace-wide task this one is a subtask of (`assertSubtaskParent`):
      * one piece of that work, a bot's own task in the same workspace.
      */
     parent_task_id?: number | string | null;
@@ -74,7 +74,7 @@ export default async function createTask({
 
         if (linked >= AppData.TaskSubtaskMaxPerParent) {
             throw new AppError(
-                `Task #${parent_task_id} already has ${AppData.TaskSubtaskMaxPerParent} parts: work on one of those, or unlink one first.`,
+                `Task #${parent_task_id} already has ${AppData.TaskSubtaskMaxPerParent} subtasks: work on one of those, or unlink one first.`,
             );
         }
     }

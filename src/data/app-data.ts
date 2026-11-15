@@ -447,6 +447,11 @@ export const AppData = {
      */
     TaskSectionShown: 5,
     /**
+     * Subtasks a workspace-wide task's own panel lists inline, before its
+     * View all button opens every one of them in a modal.
+     */
+    TaskSubtasksShown: 7,
+    /**
      * Open tasks a chat reply carries as a digest for its reminder, and how
      * many `list_tasks` hands back at once.
      */

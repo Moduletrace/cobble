@@ -15,10 +15,12 @@ import BotAvatar from "@/src/components/general/bot-avatar";
 import TaskFactRow from "@/src/components/general/task-fact-row";
 import TaskNoteRow from "@/src/components/general/task-note-row";
 import TaskSubtaskRow from "@/src/components/general/task-subtask-row";
+import TaskSubtasksModal from "@/src/components/general/task-subtasks-modal";
 import SubtaskLinkForm from "@/src/components/general/subtask-link-form";
 import TaskMarkdown from "@/src/components/general/task-markdown";
 import type { BotFace } from "@/src/dict/bot-dict";
 import { AppContext } from "@/src/pages/__root";
+import { AppData } from "@/src/data/app-data";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import relativeTime from "@/src/utils/relative-time";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
@@ -31,9 +33,13 @@ type Props = {
      */
     can_manage?: boolean;
     /**
-     * Opens one of its parts in place, so a split task is one click deep.
+     * Opens one of its subtasks in place, so a split task is one click deep.
      */
     onOpenSubtask?: (subtask: TaskWithNames) => void;
+    /**
+     * Opens the workspace-wide task it is a subtask of, when it is one.
+     */
+    onOpenParent?: (parent: { id: number; title?: string }) => void;
     onChanged: (task: TaskDetail, msg?: string) => void;
     onDeleted: () => void;
 };
@@ -44,29 +50,41 @@ type Props = {
  * notes oldest first, a box to add a note, and edit or delete. A crew
  * manager can file a new deliverable straight onto it, hand an open one to
  * another bot, which starts on it, make a bot's open workspace task
- * workspace-wide, and split a workspace-wide one into parts: each piece a
+ * workspace-wide, and split a workspace-wide one into subtasks: each piece a
  * bot's own task, opened from here, or unlinked again to stand alone.
  */
-export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onChanged, onDeleted }: Props) {
+export default function TaskDetailPanel({
+    task,
+    can_manage,
+    onOpenSubtask,
+    onOpenParent,
+    onChanged,
+    onDeleted,
+}: Props) {
     const { pageProps } = useContext(AppContext);
     const [editing, setEditing] = useState(false);
     const [handing_over, setHandingOver] = useState(false);
     const [linking, setLinking] = useState(false);
+    const [showing_parts, setShowingParts] = useState(false);
     const [note, setNote] = useState("");
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<string>();
     const file_input = useRef<HTMLInputElement>(null);
 
-    const run = async (params: { path: string; body: Record<string, unknown>; done: string }) => {
+    const run = async (params: {
+        path: string;
+        body: Record<string, unknown>;
+        done: string;
+    }) => {
         if (busy) return;
 
         setBusy(true);
         setStatus(undefined);
 
-        const res = await fetchApi<Record<string, unknown>, APIResponseObject<TaskDetail>>(
-            `/api/admin/${params.path}`,
-            { method: "POST", body: params.body },
-        );
+        const res = await fetchApi<
+            Record<string, unknown>,
+            APIResponseObject<TaskDetail>
+        >(`/api/admin/${params.path}`, { method: "POST", body: params.body });
 
         setBusy(false);
 
@@ -82,7 +100,11 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
     const addNote = async () => {
         if (!note.trim()) return;
 
-        await run({ path: "tasks/add-note", body: { task_id: Number(task.id), text: note }, done: "Note added." });
+        await run({
+            path: "tasks/add-note",
+            body: { task_id: Number(task.id), text: note },
+            done: "Note added.",
+        });
         setNote("");
     };
 
@@ -103,13 +125,21 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
 
         await run({
             path: "tasks/attach-file",
-            body: { task_id: Number(task.id), data_url, name: file.name, kind: "deliverable" },
+            body: {
+                task_id: Number(task.id),
+                data_url,
+                name: file.name,
+                kind: "deliverable",
+            },
             done: `${file.name} added as a deliverable.`,
         });
     };
 
     const detach = async ({ file }: { file: TaskFile }) => {
-        if (!window.confirm(`Unlink ${file.name || "this file"} from the task?`)) return;
+        if (
+            !window.confirm(`Unlink ${file.name || "this file"} from the task?`)
+        )
+            return;
 
         await run({
             path: "tasks/detach-file",
@@ -165,7 +195,13 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
     const deliverables = task.files.filter((file) => file.kind != "reference");
     const references = task.files.filter((file) => file.kind == "reference");
     const subtasks = task.subtasks || [];
-    const open_parts = subtasks.filter((subtask) => (OpenTaskStatuses as readonly string[]).includes(subtask.status || "")).length;
+    const open_parts = subtasks.filter((subtask) =>
+        (OpenTaskStatuses as readonly string[]).includes(subtask.status || ""),
+    ).length;
+    const is_task_linked_to_another_task =
+        Boolean(task.parent_task_id) ||
+        Boolean(Number(task.subtask_count || 0));
+    const is_tasks_disabled = busy || is_task_linked_to_another_task;
 
     return (
         <Stack className="w-full gap-4! items-stretch">
@@ -178,7 +214,10 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                         onMove={(next) =>
                             run({
                                 path: "tasks/save-task",
-                                body: { task_id: Number(task.id), status: next },
+                                body: {
+                                    task_id: Number(task.id),
+                                    status: next,
+                                },
                                 done: "Status changed.",
                             })
                         }
@@ -186,14 +225,20 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                 ) : null}
                 {can_manage ? (
                     <Row className="ml-auto shrink-0 gap-1! flex-nowrap">
-                        {(OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
+                        {(OpenTaskStatuses as readonly string[]).includes(
+                            task.status || "",
+                        ) ? (
                             <Button
-                                title="Hand the task to another bot"
+                                title={
+                                    is_task_linked_to_another_task
+                                        ? "Task is linked to another task. Unlink first before handover"
+                                        : "Hand the task to another bot"
+                                }
                                 type="button"
                                 variant="ghost"
                                 color="gray"
                                 size="small"
-                                disabled={busy || Boolean(task.parent_task_id) || Boolean(Number(task.subtask_count || 0))}
+                                disabled={is_tasks_disabled}
                                 onClick={() => setHandingOver(true)}
                                 className="px-2! text-[12px]"
                             >
@@ -203,7 +248,9 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                         {task.workspace_id &&
                         task.bot_id &&
                         !task.parent_task_id &&
-                        (OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
+                        (OpenTaskStatuses as readonly string[]).includes(
+                            task.status || "",
+                        ) ? (
                             <Button
                                 title="Make it workspace-wide: every bot in the workspace works on it"
                                 type="button"
@@ -230,9 +277,12 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                                 Make workspace-wide
                             </Button>
                         ) : null}
-                        {can_manage && task.workspace_id && task.bot_id && !task.parent_task_id ? (
+                        {can_manage &&
+                        task.workspace_id &&
+                        task.bot_id &&
+                        !task.parent_task_id ? (
                             <Button
-                                title="Make it a part of a workspace-wide task: the piece this bot took on"
+                                title="Make it a subtask of a workspace-wide task: the piece this bot took on"
                                 type="button"
                                 variant="ghost"
                                 color="gray"
@@ -241,7 +291,7 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                                 onClick={() => setLinking(true)}
                                 className="px-2! text-[12px]"
                             >
-                                Make it a part of...
+                                Make it a subtask of...
                             </Button>
                         ) : null}
                         {task.parent_task_id ? (
@@ -253,7 +303,11 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                                 size="small"
                                 disabled={busy}
                                 onClick={() => {
-                                    if (!window.confirm(`Unlink "${task.title}" from task #${task.parent_task_id}? It becomes a task of its own.`))
+                                    if (
+                                        !window.confirm(
+                                            `Unlink "${task.title}" from task #${task.parent_task_id}? It becomes a task of its own.`,
+                                        )
+                                    )
                                         return;
 
                                     run({
@@ -287,13 +341,21 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                             size="small"
                             disabled={busy}
                             onClick={async () => {
-                                if (!window.confirm(`Delete "${task.title}"? Its notes and links go with it.`)) return;
+                                if (
+                                    !window.confirm(
+                                        `Delete "${task.title}"? Its notes and links go with it.`,
+                                    )
+                                )
+                                    return;
 
                                 setBusy(true);
-                                const res = await fetchApi<Record<string, unknown>, APIResponseObject>(
-                                    "/api/admin/tasks/delete-task",
-                                    { method: "POST", body: { task_id: Number(task.id) } },
-                                );
+                                const res = await fetchApi<
+                                    Record<string, unknown>,
+                                    APIResponseObject
+                                >("/api/admin/tasks/delete-task", {
+                                    method: "POST",
+                                    body: { task_id: Number(task.id) },
+                                });
                                 setBusy(false);
 
                                 if (!res.success) {
@@ -317,30 +379,58 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                         <>
                             <BotAvatar
                                 image_media_id={task.bot_image_media_id}
-                                {...botStoneProps({ color: task.bot_color, stone: task.bot_stone, hue: task.bot_hue })}
+                                {...botStoneProps({
+                                    color: task.bot_color,
+                                    stone: task.bot_stone,
+                                    hue: task.bot_hue,
+                                })}
                                 face={(task.bot_face || "idle") as BotFace}
                                 size={18}
                             />
-                            <Span className="min-w-0 truncate">{task.bot_name || `Bot ${task.bot_id}`}</Span>
+                            <Span className="min-w-0 truncate">
+                                {task.bot_name || `Bot ${task.bot_id}`}
+                            </Span>
                         </>
                     ) : (
                         <Span className="text-ink-secondary">
-                            {task.workspace_id ? "Every bot in the workspace (workspace-wide)" : "No bot"}
+                            {task.workspace_id
+                                ? "Every bot in the workspace (workspace-wide)"
+                                : "No bot"}
                         </Span>
                     )}
                 </TaskFactRow>
                 <TaskFactRow label="Where">
                     <Span className="min-w-0 truncate">
                         {task.workspace_id
-                            ? task.workspace_name || `Workspace ${task.workspace_id}`
+                            ? task.workspace_name ||
+                              `Workspace ${task.workspace_id}`
                             : `${task.bot_name || "The bot"}'s own list`}
                     </Span>
                 </TaskFactRow>
                 {task.parent_task_id ? (
-                    <TaskFactRow label="Part of">
-                        <Span className="min-w-0 truncate">
-                            {`#${task.parent_task_id}${task.parent_title ? ` ${task.parent_title}` : ""}`}
-                        </Span>
+                    <TaskFactRow label="Parent task">
+                        {onOpenParent ? (
+                            <Button
+                                title="Open the task this is a subtask of"
+                                type="button"
+                                variant="ghost"
+                                color="text"
+                                size="small"
+                                onClick={() =>
+                                    onOpenParent({
+                                        id: Number(task.parent_task_id),
+                                        title: task.parent_title || undefined,
+                                    })
+                                }
+                                className="px-0! h-auto! py-0! text-[13px]! font-normal! leading-[18px]! text-ink! hover:underline"
+                            >
+                                {`#${task.parent_task_id}${task.parent_title ? ` ${task.parent_title}` : ""}`}
+                            </Button>
+                        ) : (
+                            <Span className="min-w-0 truncate">
+                                {`#${task.parent_task_id}${task.parent_title ? ` ${task.parent_title}` : ""}`}
+                            </Span>
+                        )}
                     </TaskFactRow>
                 ) : null}
                 <TaskFactRow label="Added">
@@ -349,13 +439,16 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                             task.created_by_bot_id
                                 ? `By ${task.created_by_bot_name || `bot ${task.created_by_bot_id}`}`
                                 : task.created_by_user_id
-                                  ? task.created_by_user_id == pageProps?.user?.id
+                                  ? task.created_by_user_id ==
+                                    pageProps?.user?.id
                                       ? "By you"
                                       : `By ${task.created_by_user_name || "a user"}`
                                   : task.origin == "bot"
                                     ? "By a bot"
                                     : "By hand",
-                            task.created_at ? relativeTime({ at: Number(task.created_at) }) : null,
+                            task.created_at
+                                ? relativeTime({ at: Number(task.created_at) })
+                                : null,
                         ]
                             .filter(Boolean)
                             .join(" · ")}
@@ -363,12 +456,16 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                 </TaskFactRow>
                 {task.updated_at ? (
                     <TaskFactRow label="Last moved">
-                        <Span>{relativeTime({ at: Number(task.updated_at) })}</Span>
+                        <Span>
+                            {relativeTime({ at: Number(task.updated_at) })}
+                        </Span>
                     </TaskFactRow>
                 ) : null}
                 {task.completed_at ? (
                     <TaskFactRow label="Finished">
-                        <Span>{relativeTime({ at: Number(task.completed_at) })}</Span>
+                        <Span>
+                            {relativeTime({ at: Number(task.completed_at) })}
+                        </Span>
                     </TaskFactRow>
                 ) : null}
             </Stack>
@@ -377,38 +474,67 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                 <Span className="text-[13px] leading-[18px] text-ink">{`Waiting on you: ${task.blocked_reason}`}</Span>
             ) : null}
 
-            {task.description ? (
-                <TaskMarkdown text={task.description} />
-            ) : null}
+            {task.description ? <TaskMarkdown text={task.description} /> : null}
 
             {task.workspace_id && !task.bot_id ? (
                 <Stack className="w-full gap-1! items-stretch">
                     <Span className="text-[12px] font-bold leading-4 text-ink-secondary">
                         {subtasks.length
-                            ? `Parts (${subtasks.length}${open_parts ? `, ${open_parts} open` : ", all done"})`
-                            : "Parts"}
+                            ? `Subtasks (${subtasks.length}${open_parts ? `, ${open_parts} open` : ", all done"})`
+                            : "Subtasks"}
                     </Span>
                     {subtasks.length ? (
                         <Stack className="w-full gap-0! items-stretch">
-                            {subtasks.map((subtask) => (
-                                <TaskSubtaskRow
-                                    key={subtask.id}
-                                    subtask={subtask}
-                                    onOpen={() => onOpenSubtask?.(subtask)}
-                                />
-                            ))}
+                            {subtasks
+                                .slice(0, AppData.TaskSubtasksShown)
+                                .map((subtask) => (
+                                    <TaskSubtaskRow
+                                        key={subtask.id}
+                                        subtask={subtask}
+                                        onOpen={() => onOpenSubtask?.(subtask)}
+                                    />
+                                ))}
                         </Stack>
                     ) : (
                         <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                            Not split yet: every bot here works on it as one task.
+                            Not split yet: every bot here works on it as one
+                            task.
                         </Span>
                     )}
+                    {subtasks.length > AppData.TaskSubtasksShown ? (
+                        <Row className="justify-end">
+                            <Button
+                                title="Open every subtask of this task"
+                                type="button"
+                                variant="ghost"
+                                color="gray"
+                                size="small"
+                                onClick={() => setShowingParts(true)}
+                                className="px-2! text-[12px]"
+                            >
+                                {`View all ${subtasks.length} subtasks`}
+                            </Button>
+                        </Row>
+                    ) : null}
                 </Stack>
             ) : null}
 
+            <TaskSubtasksModal
+                open={showing_parts}
+                setOpen={setShowingParts}
+                task={task}
+                subtasks={subtasks}
+                onOpenSubtask={(subtask) => {
+                    setShowingParts(false);
+                    onOpenSubtask?.(subtask);
+                }}
+            />
+
             <Stack className="w-full gap-1! items-stretch">
                 <Span className="text-[12px] font-bold leading-4 text-ink-secondary">
-                    {task.files.length ? `Files (${task.files.length})` : "Files"}
+                    {task.files.length
+                        ? `Files (${task.files.length})`
+                        : "Files"}
                 </Span>
                 {deliverables.length || references.length ? (
                     <Stack className="w-full gap-0! items-stretch">
@@ -417,12 +543,18 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                                 key={file.id}
                                 file={file}
                                 busy={busy}
-                                onDetach={can_manage ? () => detach({ file }) : undefined}
+                                onDetach={
+                                    can_manage
+                                        ? () => detach({ file })
+                                        : undefined
+                                }
                             />
                         ))}
                     </Stack>
                 ) : (
-                    <Span className="text-[13px] leading-[18px] text-ink-secondary">Nothing filed yet.</Span>
+                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                        Nothing filed yet.
+                    </Span>
                 )}
                 {can_manage ? (
                     <Row className="gap-2! flex-nowrap items-center">
@@ -454,7 +586,9 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
 
             <Stack className="w-full gap-1! items-stretch">
                 <Span className="text-[12px] font-bold leading-4 text-ink-secondary">
-                    {task.notes.length ? `Notes (${task.notes.length})` : "Notes"}
+                    {task.notes.length
+                        ? `Notes (${task.notes.length})`
+                        : "Notes"}
                 </Span>
                 {task.notes.length ? (
                     <Stack className="w-full gap-0! items-stretch">
@@ -463,7 +597,9 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
                         ))}
                     </Stack>
                 ) : (
-                    <Span className="text-[13px] leading-[18px] text-ink-secondary">No notes yet.</Span>
+                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                        No notes yet.
+                    </Span>
                 )}
                 <Textarea
                     placeholder="Add a note"
@@ -489,7 +625,10 @@ export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onCha
             </Stack>
 
             {status ? (
-                <Span role="status" className="text-[13px] leading-[18px] text-ink-secondary">
+                <Span
+                    role="status"
+                    className="text-[13px] leading-[18px] text-ink-secondary"
+                >
                     {status}
                 </Span>
             ) : null}

@@ -6,7 +6,7 @@ type Params = {
 };
 
 /**
- * How many tasks are parts of this one, and how many of those still need
+ * How many tasks are subtasks of this one, and how many of those still need
  * work: what the move and delete checks read (`subtaskMoveProblem`,
  * `subtaskDeleteProblem`) and what a list shows as its progress.
  */

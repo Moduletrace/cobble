@@ -15,7 +15,7 @@ type Params = {
     user_id: number | string;
     task_id: number | string;
     /**
-     * The workspace-wide task it becomes a part of.
+     * The workspace-wide task it becomes a subtask of.
      */
     parent_task_id: number | string;
     /**
@@ -31,7 +31,7 @@ type Params = {
 
 /**
  * Attaches a bot's open task in a workspace to a workspace-wide task there:
- * the part of it that bot took on (`subtaskAttachProblem` says when it
+ * the subtask of it that bot took on (`subtaskAttachProblem` says when it
  * can't). Both logs say who joined which, since the parent's own log is
  * where a crew manager sees how the split work is going.
  */
@@ -58,7 +58,7 @@ export default async function linkSubtask({
 
     if (linked >= AppData.TaskSubtaskMaxPerParent) {
         throw new AppError(
-            `Task #${parent.id} already has ${AppData.TaskSubtaskMaxPerParent} parts: work on one of those, or unlink one first.`,
+            `Task #${parent.id} already has ${AppData.TaskSubtaskMaxPerParent} subtasks: work on one of those, or unlink one first.`,
         );
     }
 
@@ -76,14 +76,14 @@ export default async function linkSubtask({
 
     await addTaskNote({
         task_id: Number(task.id),
-        text: `${by_name} made this a part of ${parent_label}.`,
+        text: `${by_name} made this a subtask of ${parent_label}.`,
         author,
         bot_id: by_bot_id ? Number(by_bot_id) : null,
     });
 
     await addTaskNote({
         task_id: Number(parent.id),
-        text: `${by_name} took on task #${task.id}${task.title ? ` "${task.title}"` : ""} as a part.`,
+        text: `${by_name} took on task #${task.id}${task.title ? ` "${task.title}"` : ""} as a subtask.`,
         author,
         bot_id: by_bot_id ? Number(by_bot_id) : null,
     });

@@ -11,7 +11,7 @@ import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**
- * What a bot's task can be made a part of: its workspace's open
+ * What a bot's task can be made a subtask of: its workspace's open
  * workspace-wide tasks (`grabSubtaskParents`), loaded when the picker opens
  * so the page's props stay small. Crew managers only, since it's their
  * picker.
@@ -33,7 +33,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskWithNames>> = 
         }
 
         if (!canManageCrew({ user_types: user_types || [] })) {
-            throw new AppError(`Only an admin can make a task a part of another.`);
+            throw new AppError(`Only an admin can make a task a subtask of another.`);
         }
 
         const { task_id } = parseWithSchema({ schema: TaskIdRequestSchema, data: body });

@@ -36,7 +36,7 @@ export default function TaskDetailModal({ task, can_manage, onClose, onLoaded, o
     const [detail, set_detail] = useState<TaskDetail | null>(null);
     const [error, set_error] = useState<string>();
     /**
-     * A part opened from the task on show: the modal walks into it and back
+     * A subtask opened from the task on show: the modal walks into it and back
      * out with the list's own click.
      */
     const [opened, set_opened] = useState<Partial<TaskWithNames> | null>(null);
@@ -76,13 +76,20 @@ export default function TaskDetailModal({ task, can_manage, onClose, onLoaded, o
     }, [task_id]);
 
     const shown = detail || task;
+    /**
+     * The task it is a subtask of, when it is one: the modal walks into that as
+     * it walks into a subtask.
+     */
+    const part_of = detail?.parent_task_id
+        ? ` · Parent task #${detail.parent_task_id}${detail.parent_title ? ` ${detail.parent_title}` : ""}`
+        : "";
 
     return (
         <AddModalShell
             open={Boolean(task_id)}
             setOpen={(open) => !open && onClose()}
             title={shown?.title || (task_id ? `Task ${task_id}` : "Task")}
-            description={shown ? taskPlaceLabel({ task: shown }) : undefined}
+            description={shown ? `${taskPlaceLabel({ task: shown })}${part_of}` : undefined}
         >
             <Stack className="w-full mt-4 gap-0! items-stretch">
                 {detail ? (
@@ -91,6 +98,7 @@ export default function TaskDetailModal({ task, can_manage, onClose, onLoaded, o
                         task={detail}
                         can_manage={can_manage}
                         onOpenSubtask={(subtask) => set_opened(subtask)}
+                        onOpenParent={(parent) => set_opened(parent)}
                         onChanged={(saved, msg) => {
                             set_detail(saved);
                             onChanged({ task: saved, msg });

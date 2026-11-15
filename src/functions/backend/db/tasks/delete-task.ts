@@ -19,7 +19,7 @@ type Params = {
 
 /**
  * Deletes a task with its notes and file links (cascades), and with its
- * parts when they are all finished: refused while any part is still open
+ * subtasks when they are all finished: refused while any subtask is still open
  * (`subtaskDeleteProblem`), so a delete never throws away work someone is
  * on. The files themselves stay where they are: a `task_media` link is not
  * the bytes' owner, so a bot file's folder keeps its file and only the
@@ -66,7 +66,7 @@ export default async function deleteTask({ user_id, task_id, deleted_by_bot_id }
     }
 
     /**
-     * The parts go explicitly, children first: foreign keys are off outside
+     * The subtasks go explicitly, children first: foreign keys are off outside
      * the server process, so nothing cascades on its own.
      */
     if (child_ids.length) {

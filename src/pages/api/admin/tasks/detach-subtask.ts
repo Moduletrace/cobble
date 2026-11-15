@@ -12,8 +12,8 @@ import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**
- * Takes a part out of its workspace-wide task, leaving a task of its own
- * bot in the workspace (`detachSubtask`): the only way a parent with parts
+ * Takes a subtask out of its workspace-wide task, leaving a task of its own
+ * bot in the workspace (`detachSubtask`): the only way a parent with subtasks
  * is ever moved, and the button a crew manager has for it. Crew managers
  * only, like every other change to a task by hand. Returns the task as it
  * is now.
@@ -35,7 +35,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
         }
 
         if (!canManageCrew({ user_types: user_types || [] })) {
-            throw new AppError(`Only an admin can unlink a part from its task.`);
+            throw new AppError(`Only an admin can unlink a subtask from its task.`);
         }
 
         const { task_id } = parseWithSchema({ schema: DetachSubtaskRequestSchema, data: body });

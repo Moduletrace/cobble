@@ -36,7 +36,7 @@ type Params = {
      */
     only_workspace_id?: number | string | null;
     /**
-     * Only the tasks that are parts of this one, for a parent's detail.
+     * Only the tasks that are subtasks of this one, for a parent's detail.
      */
     only_parent_task_id?: number | string | null;
     /**

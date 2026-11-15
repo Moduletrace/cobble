@@ -181,13 +181,13 @@ export default function createTaskTool({
                 .int()
                 .optional()
                 .describe(
-                    `The workspace-wide task this one is one piece of (its id, which list_tasks shows): a part, in that task's workspace, with a bot of its own. Use it instead of workspace_wide: a part belongs to one bot, and only a workspace-wide task can be split.`,
+                    `The workspace-wide task this one is one piece of (its id, which list_tasks shows): a subtask, in that task's workspace, with a bot of its own. Use it instead of workspace_wide: a subtask belongs to one bot, and only a workspace-wide task can be split.`,
                 ),
             status: z.enum(TaskStatusValues).optional().describe(`Defaults to to do`),
         }),
         run: async ({ args }) => {
             if (args.parent_task_id && args.workspace_wide) {
-                return `A part belongs to one bot: leave workspace_wide out and pass parent_task_id with the bot it's for.`;
+                return `A subtask belongs to one bot: leave workspace_wide out and pass parent_task_id with the bot it's for.`;
             }
 
             const place = resolvePlace({ args, bot_id, workspace_id, is_coordinator, members });
@@ -241,7 +241,7 @@ export default function createTaskTool({
                   ? "to your list"
                   : `to bot ${place.bot_id}'s list`;
 
-            return `Task #${task.id} "${task.title}" added ${where}${parent_task_id ? `, as a part of task #${parent_task_id} (the parent stays open until someone verifies all the parts)` : ""}. Check it with list_tasks before you mention it to the user.`;
+            return `Task #${task.id} "${task.title}" added ${where}${parent_task_id ? `, as a subtask of task #${parent_task_id} (the parent stays open until someone verifies all the parts)` : ""}. Check it with list_tasks before you mention it to the user.`;
         },
     };
 }

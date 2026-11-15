@@ -17,17 +17,17 @@ type Params = {
 };
 
 /**
- * Takes a part out of its workspace-wide task, leaving an ordinary task of
+ * Takes a subtask out of its workspace-wide task, leaving an ordinary task of
  * its bot in that workspace, with a note saying it was unlinked. The only
- * way a part stops being one: a task that has parts can't be moved until
- * they are, and a part is never moved itself. The caller checked who is
+ * way a subtask stops being one: a task that has subtasks can't be moved until
+ * they are, and a subtask is never moved itself. The caller checked who is
  * asking may. Returns the row as it is now.
  */
 export default async function detachSubtask({ task_id, by_bot_id, by_name }: Params): Promise<BUN_SQLITE_COBBLE_TASKS> {
     const task = await grabTaskRow({ task_id });
 
     if (!task.parent_task_id) {
-        throw new AppError(`Task #${task.id} isn't a part of another task.`);
+        throw new AppError(`Task #${task.id} isn't a subtask of another task.`);
     }
 
     const res = await BunSQLite.sql({

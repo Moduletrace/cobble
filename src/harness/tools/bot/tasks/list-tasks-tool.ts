@@ -124,9 +124,9 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
                         task.title,
                         `(${where})`,
                         Number(task.subtask_count || 0)
-                            ? `a part of #${task.parent_task_id}`
+                            ? `a subtask of #${task.parent_task_id}`
                             : task.workspace_id && !task.bot_id && Number(task.subtask_open_count || 0)
-                              ? `split into ${task.subtask_count} parts, ${task.subtask_open_count} still open`
+                              ? `split into ${task.subtask_count} subtasks, ${task.subtask_open_count} still open`
                               : "",
                         Number(task.media_count || 0) ? `${task.media_count} file(s)` : "",
                         task.status == "blocked" && task.blocked_reason ? `blocked: ${task.blocked_reason}` : "",

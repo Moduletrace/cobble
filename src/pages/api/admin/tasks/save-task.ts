@@ -61,7 +61,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
         });
 
         /**
-         * A part hangs off a task the user has to reach too, or they could
+         * A subtask hangs off a task the user has to reach too, or they could
          * split another crew's task by id.
          */
         if (parent_task_id) {
@@ -80,7 +80,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
                 description,
                 status: status as never,
             }),
-            msg: parent_task_id ? `Part added.` : `Task added.`,
+            msg: parent_task_id ? `Subtask added.` : `Task added.`,
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

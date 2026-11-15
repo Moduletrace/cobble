@@ -3,6 +3,7 @@ import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import TopModalEscape from "@/src/components/general/top-modal-escape";
 
 type Props = {
     open: boolean;
@@ -23,6 +24,7 @@ export default function AddModalShell({ open, setOpen, title, description, child
             setOpen={(next) => setOpen(typeof next == "function" ? next(open) : next)}
             className="max-w-lg bg-paper p-6"
         >
+            {open ? <TopModalEscape onClose={() => setOpen(false)} /> : null}
             <Stack className="w-full gap-1! items-stretch">
                 <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">{title}</H2>
                 {description ? (

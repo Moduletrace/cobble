@@ -30,7 +30,7 @@ type Props = {
      */
     bots?: { id?: number | string | null; name?: string | null }[];
     /**
-     * The workspace-wide tasks here a new one can be a part of (only the
+     * The workspace-wide tasks here a new one can be a subtask of (only the
      * open ones: a closed task can't be split). Adding, never editing.
      */
     parents?: { id?: number | string | null; title?: string | null }[];
@@ -157,8 +157,8 @@ export default function TaskForm({
                 ) : null}
                 {pick_parent ? (
                     <Select
-                        title="Part of"
-                        label="Part of"
+                        title="Parent task"
+                        label="Parent task"
                         showLabel
                         options={[
                             {

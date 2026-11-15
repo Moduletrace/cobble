@@ -105,20 +105,20 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
                     </Span>
                     {task.parent_task_id ? (
                         <Span
-                            title={`Part of task ${task.parent_task_id}${task.parent_title ? `: ${task.parent_title}` : ""}`}
+                            title={`Subtask of task ${task.parent_task_id}${task.parent_title ? `: ${task.parent_title}` : ""}`}
                             className="shrink-0 text-[11px] leading-4 text-ink-secondary"
                         >
-                            {`Part of #${task.parent_task_id}`}
+                            {`Subtask of #${task.parent_task_id}`}
                         </Span>
                     ) : null}
                     {Number(task.subtask_count || 0) ? (
                         <Span
-                            title={`${task.subtask_count} part(s), ${task.subtask_open_count || 0} still open`}
+                            title={`${task.subtask_count} subtask(s), ${task.subtask_open_count || 0} still open`}
                             className="shrink-0 text-[11px] leading-4 text-ink-secondary"
                         >
                             {Number(task.subtask_open_count || 0)
-                                ? `${task.subtask_open_count} of ${task.subtask_count} parts open`
-                                : `all ${task.subtask_count} parts done`}
+                                ? `${task.subtask_open_count} of ${task.subtask_count} subtasks open`
+                                : `all ${task.subtask_count} subtasks done`}
                         </Span>
                     ) : null}
                     {task.status == "blocked" && task.blocked_reason ? (

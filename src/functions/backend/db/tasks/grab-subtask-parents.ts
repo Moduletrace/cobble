@@ -7,7 +7,7 @@ type Params = {
      */
     user_id: number | string;
     /**
-     * The task that would become a part: its own workspace's wide tasks are
+     * The task that would become a subtask: its own workspace's wide tasks are
      * the only ones it can join.
      */
     task: { id?: number | string | null; workspace_id?: number | string | null };

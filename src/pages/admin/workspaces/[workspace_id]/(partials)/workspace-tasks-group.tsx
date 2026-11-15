@@ -58,7 +58,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
     const shown = shownWorkspaceTasks({ tasks: items });
 
     /**
-     * The workspace-wide tasks here a new task can be a part of: the open
+     * The workspace-wide tasks here a new task can be a subtask of: the open
      * ones, a closed task having nothing left to split.
      */
     const parents = items
@@ -75,7 +75,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
 
     /**
      * Reads the workspace's tasks again: one change can move more than the
-     * task that was open, since a part joining or leaving reshapes its
+     * task that was open, since a subtask joining or leaving reshapes its
      * parent's counts.
      */
     const refresh = async () => {

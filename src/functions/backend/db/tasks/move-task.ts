@@ -23,7 +23,7 @@ type Params = {
  * Moves a task to another list or bot, with its notes and files. Refused
  * when it changes list and the destination already has an open task with
  * that title, so a hand-over never leaves two of the same, and when it's a
- * part of another task or has parts of its own (`subtaskMoveProblem`): only
+ * subtask of another task or has subtasks of its own (`subtaskMoveProblem`): only
  * a task that is neither moves. The caller checked who is
  * asking reaches both. Returns the row as it is now.
  */
