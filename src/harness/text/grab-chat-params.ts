@@ -15,7 +15,7 @@ type Params = {
 
 /**
  * A model's generation settings for one call: what is saved in the
- * harness's setting (the workspace's, the bot's, else the default), else
+ * harness's setting (the bot's, else its workspace's, else the default), else
  * `HarnessParameterDefaults` so a fresh install is ready to go. Keyed by
  * the field sent on the wire, keeping only what the model says it takes
  * (a default only where the model explicitly advertises it). `source`

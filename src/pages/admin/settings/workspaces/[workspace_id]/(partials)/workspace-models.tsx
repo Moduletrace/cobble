@@ -9,9 +9,9 @@ type Props = {
 };
 
 /**
- * Which model each harness uses in the workspace. These win over a bot's
- * own models; "Same as the default" leaves each bot on its own, else the
- * defaults.
+ * Which model each harness uses in the workspace. These are what its
+ * bots use without models of their own, "Same as the default" leaving
+ * them on the defaults.
  */
 export default function WorkspaceModels({ workspace_id, harnesses: initial }: Props) {
     const [harnesses, setHarnesses] = useState(initial);

@@ -56,7 +56,7 @@ export default function BotSettingsSection() {
                         description={
                             is_coordinator
                                 ? "The coordinator and every bot left on the default use these. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images."
-                                : "Uses the default models unless you pick its own. In a workspace, that workspace's models win. The text model chats, plans and drives computers; the others read, transcribe, speak and make images."
+                                : "Uses the default models unless you pick its own. In a workspace, its own still win, and it inherits the workspace's until then. The text model chats, plans and drives computers; the others read, transcribe, speak and make images."
                         }
                     />
                     <BotHarnessForm bot={bot} harnesses={harnesses} />

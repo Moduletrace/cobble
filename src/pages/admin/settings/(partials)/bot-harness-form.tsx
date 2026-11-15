@@ -8,8 +8,9 @@ import saveWorkspaceHarnessSettings from "@/src/functions/frontend/save-workspac
 type Props = {
     bot: BotWithLastMessage;
     /**
-     * In a workspace the form saves the workspace's models, for every bot
-     * working there.
+     * The workspace the bot is being set up in, when the form is opened
+     * from its conversation there: the bot's own models still win, and the
+     * workspace's are what it inherits.
      */
     workspace_id?: number | null;
     /**
@@ -30,9 +31,10 @@ type Props = {
 
 /**
  * The Models settings form (`HarnessSettingsForm`) for one bot. A worker
- * saves its own picks ("same as the default" drops one). The coordinator
- * runs on the defaults, so it saves the defaults themselves, which only a
- * super admin can.
+ * saves its own picks ("same as the default" drops one), in a workspace
+ * too: those win over the workspace's models, which it inherits until
+ * then. The coordinator runs on the defaults (or, in a workspace, on the
+ * workspace's models), which only a super admin can change.
  */
 export default function BotHarnessForm({
     bot,
@@ -62,21 +64,21 @@ export default function BotHarnessForm({
             notice={notice}
             onDirtyChange={onDirtyChange}
             save={async ({ settings }) => {
-                if (workspace_id) {
-                    const res = await saveWorkspaceHarnessSettings({
-                        workspace_id,
-                        settings: settings.map((setting) => ({
-                            ...setting,
-                            inherit: Boolean(setting.inherit),
-                        })),
-                    });
-
-                    if (res.success && res.singleRes) saved(res.singleRes.harnesses, res.msg);
-
-                    return res;
-                }
-
                 if (bot.kind == "coordinator") {
+                    if (workspace_id) {
+                        const res = await saveWorkspaceHarnessSettings({
+                            workspace_id,
+                            settings: settings.map((setting) => ({
+                                ...setting,
+                                inherit: Boolean(setting.inherit),
+                            })),
+                        });
+
+                        if (res.success && res.singleRes) saved(res.singleRes.harnesses, res.msg);
+
+                        return res;
+                    }
+
                     const res = await postHarnessApi({
                         path: "save-settings",
                         body: { settings },
@@ -89,6 +91,7 @@ export default function BotHarnessForm({
 
                 const res = await saveBotHarnessSettings({
                     bot_id: Number(bot.id),
+                    workspace_id: workspace_id || undefined,
                     settings: settings.map((setting) => ({
                         ...setting,
                         inherit: Boolean(setting.inherit),

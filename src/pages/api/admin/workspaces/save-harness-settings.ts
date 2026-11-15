@@ -19,8 +19,8 @@ import type {
 
 /**
  * Saves which model each harness uses in one of the session user's
- * workspaces. A workspace's models win over its bots' own, for the
- * coordinator too.
+ * workspaces. They are what its bots use without models of their own, the
+ * coordinator there too.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<BotHarnessOverviewPayload>

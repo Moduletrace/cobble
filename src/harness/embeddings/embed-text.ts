@@ -18,7 +18,7 @@ type Params = {
      */
     bot_id?: number | string;
     /**
-     * The workspace the call is in: its models win over the bot's.
+     * The workspace the call is in: its models apply to the bots with none of their own.
      */
     workspace_id?: number | string | null;
 };

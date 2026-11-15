@@ -93,6 +93,12 @@ export const SaveHarnessSettingsRequestSchema = z.object({
  */
 export const SaveBotHarnessSettingsRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive(),
+    /**
+     * The workspace the form was opened in. It changes nothing: the save
+     * is the bot's own, which wins there, and the workspace's models are
+     * what it inherits. Used to answer with the fresh overview in context.
+     */
+    workspace_id: z.coerce.number().int().positive().optional(),
     settings: z
         .array(
             SaveHarnessSettingsRequestSchema.shape.settings.element.extend({

@@ -1,5 +1,6 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserBot from "@/src/functions/backend/db/bots/grab-user-bot";
+import grabWorkspaceBot from "@/src/functions/backend/db/workspaces/grab-workspace-bot";
 import grabBotHarnessOverview from "@/src/functions/backend/db/harness/grab-bot-harness-overview";
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
 import saveBotHarnessSetting from "@/src/functions/backend/db/harness/save-bot-harness-setting";
@@ -43,7 +44,7 @@ export const handler: BunextAPIRouteHandler<
             throw new AppError(`Only an admin can do that.`);
         }
 
-        const { bot_id, settings } = parseWithSchema({
+        const { bot_id, workspace_id, settings } = parseWithSchema({
             schema: SaveBotHarnessSettingsRequestSchema,
             data: body,
         });
@@ -92,10 +93,24 @@ export const handler: BunextAPIRouteHandler<
             ip_address: grabRequestIP(req),
         });
 
+        /**
+         * The workspace the form was opened in, when the user works there:
+         * what the bot inherits there, shown with the fresh overview. The
+         * save is the bot's own either way.
+         */
+        const membership = workspace_id
+            ? await grabWorkspaceBot({ workspace_id, bot_id, user_id: user.id })
+            : null;
+
         return {
             success: true,
             msg: `Saved.`,
-            singleRes: await grabBotHarnessOverview({ bot_id: bot.id }),
+            singleRes: await grabBotHarnessOverview({
+                bot_id: bot.id,
+                workspace_id: membership?.workspace.id
+                    ? Number(membership.workspace.id)
+                    : undefined,
+            }),
         };
     } catch (error: unknown) {
         return {

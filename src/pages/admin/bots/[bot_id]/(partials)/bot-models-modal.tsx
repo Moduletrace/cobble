@@ -81,8 +81,13 @@ export default function BotModelsModal({
     const [form_key, setFormKey] = useState(0);
 
     const in_workspace = Boolean(workspace?.id);
-    const is_coordinator = bot.kind == "coordinator" && !in_workspace;
-    const can_edit = is_coordinator
+    /**
+     * The coordinator has no models of its own: outside a workspace the
+     * modal edits the defaults, inside one the workspace's.
+     */
+    const edits_defaults = bot.kind == "coordinator" && !in_workspace;
+    const edits_workspace = bot.kind == "coordinator" && in_workspace;
+    const can_edit = edits_defaults
         ? isPassThroughUser({ user_types: pageProps?.user_types })
         : canManageCrew({ user_types: pageProps?.user_types });
     const name = bot.name || "This bot";
@@ -106,14 +111,16 @@ export default function BotModelsModal({
     if (!bot.id) return null;
 
     const title = can_edit
-        ? in_workspace
+        ? edits_workspace
             ? `Change ${workspace?.name || "the workspace"}'s models`
-            : is_coordinator
+            : edits_defaults
               ? "Change the default models"
               : `Change ${name}'s models`
-        : is_coordinator
+        : edits_defaults
           ? `${name} uses the default models. A super admin can change them in Settings, under Models.`
-          : `An admin can change the models ${name} uses.`;
+          : edits_workspace
+            ? `An admin can change the models in ${workspace?.name || "this workspace"}.`
+            : `An admin can change the models ${name} uses.`;
 
     const target = meta_text ? (
         <HeaderMetaItem
@@ -155,18 +162,20 @@ export default function BotModelsModal({
         >
             <Stack className="w-full gap-1! items-stretch pb-2">
                 <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">
-                    {in_workspace
+                    {edits_workspace
                         ? `Models in ${workspace?.name || "this workspace"}`
-                        : is_coordinator
+                        : edits_defaults
                           ? "Default models"
                           : `${name}'s models`}
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    {in_workspace
-                        ? `Every bot working in ${workspace?.name || "this workspace"} uses these, the coordinator too. Left on "Same as the default", ${name} uses its own models, else the defaults.`
-                        : is_coordinator
+                    {edits_workspace
+                        ? `Every bot working in ${workspace?.name || "this workspace"} without models of its own uses these, the coordinator too. A bot's own models, set in its models here, win.`
+                        : edits_defaults
                         ? `${name} and every bot left on the default use these. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it. Providers are in Settings, under Models.`
-                        : `${name} uses the default models unless you pick its own. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it.`}
+                        : in_workspace
+                          ? `${name} inherits ${workspace?.name || "this workspace"}'s models here until you pick its own, and its own win wherever it works. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it.`
+                          : `${name} uses the default models unless you pick its own. The text model chats, plans and drives computers; the others read media, transcribe, speak and make images for it.`}
                 </Span>
             </Stack>
             {harnesses?.length ? (

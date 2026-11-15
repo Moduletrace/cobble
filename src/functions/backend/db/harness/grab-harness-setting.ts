@@ -7,6 +7,9 @@ import type {
 import { isInstallWideHarness, type HarnessKind } from "@/src/dict/harness-dict";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import grabDefaultHarnessProviderId from "./grab-default-harness-provider-id";
+import pickHarnessSettingRow, {
+    type HarnessSettingSource,
+} from "./pick-harness-setting-row";
 
 export type HarnessSetting = {
     harness: HarnessKind;
@@ -23,10 +26,10 @@ export type HarnessSetting = {
     enabled: boolean;
     options: Record<string, unknown>;
     /**
-     * `workspace` when the call's workspace sets this harness, `bot` when a
-     * worker bot overrides the default for it.
+     * `bot` when a worker bot sets this harness, `workspace` when the
+     * call's workspace does, `default` when neither does.
      */
-    source: "default" | "bot" | "workspace";
+    source: HarnessSettingSource;
 };
 
 type Params = {
@@ -37,8 +40,8 @@ type Params = {
      */
     bot_id?: number | string;
     /**
-     * The workspace the call is in. Its setting wins over the bot's, for
-     * the coordinator too.
+     * The workspace the call is in. Its setting applies to the bots that
+     * have none of their own, the coordinator too.
      */
     workspace_id?: number | string | null;
 };
@@ -49,8 +52,8 @@ type SettingRow = Pick<
 >;
 
 /**
- * A harness's setting for a call: the workspace's, else the bot's, else
- * the default. With no row it is automatic on the default provider
+ * A harness's setting for a call: the bot's own, else its workspace's,
+ * else the default. With no row it is automatic on the default provider
  * (OpenRouter), on, with fallback. Text is always on. An install-wide
  * harness (embeddings) always takes the default: rows a bot or workspace
  * saved before it was one are ignored.
@@ -62,37 +65,34 @@ export default async function grabHarnessSetting({
 }: Params): Promise<HarnessSetting> {
     const install_wide = isInstallWideHarness({ harness });
 
-    const workspace_row = workspace_id && !install_wide
-        ? await grabWorkspaceOverride({ harness, workspace_id })
-        : undefined;
+    const bot_row =
+        !install_wide && bot_id ? await grabBotOverride({ harness, bot_id }) : undefined;
 
-    if (workspace_row) {
-        return toSetting({ harness, row: workspace_row, source: "workspace" });
-    }
+    const workspace_row =
+        !bot_row && !install_wide && workspace_id
+            ? await grabWorkspaceOverride({ harness, workspace_id })
+            : undefined;
 
-    const bot_row = bot_id && !install_wide
-        ? await grabBotOverride({ harness, bot_id })
-        : undefined;
+    const default_row =
+        bot_row || workspace_row
+            ? undefined
+            : (
+                  await BunSQLite.sql<BUN_SQLITE_COBBLE_HARNESS_SETTINGS>({
+                      sql: `SELECT * FROM harness_settings WHERE harness = ? LIMIT 1`,
+                      values: [harness],
+                  })
+              ).payload?.[0];
 
-    if (bot_row) {
-        return toSetting({ harness, row: bot_row, source: "bot" });
-    }
+    const picked = pickHarnessSettingRow({ bot_row, workspace_row, default_row });
 
-    const row = (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_HARNESS_SETTINGS>({
-            sql: `SELECT * FROM harness_settings WHERE harness = ? LIMIT 1`,
-            values: [harness],
-        })
-    ).payload?.[0];
-
-    if (!row) {
+    if (!picked.row) {
         return {
-            ...toSetting({ harness, source: "default" }),
+            ...toSetting({ harness, source: picked.source }),
             provider_id: await grabDefaultHarnessProviderId(),
         };
     }
 
-    return toSetting({ harness, row, source: "default" });
+    return toSetting({ harness, row: picked.row, source: picked.source });
 }
 
 async function grabWorkspaceOverride({

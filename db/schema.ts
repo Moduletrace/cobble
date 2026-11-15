@@ -3030,7 +3030,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "workspace_harness_settings",
-            tableDescription: `A workspace's models. They win over the bot's own and the defaults for every run in the workspace`,
+            tableDescription: `A workspace's models. Bots there with none of their own use these instead of the defaults`,
             fields: [
                 {
                     fieldName: "workspace_id",

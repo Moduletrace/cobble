@@ -143,7 +143,7 @@ To make this rarer, a super admin can open **Settings, Models**:
 - Add a provider with your own API key (OpenRouter, OpenAI, Anthropic, Gemini and others), so paid models are there when free ones rest.
 - Pick a model for the text harness instead of automatic, and keep **fallback** on so the automatic picks still step in.
 
-A bot's own models (the model icon in its chat header) win over the defaults, and a workspace's win over a bot's.`,
+A bot's own models (the model icon in its chat header) win over the workspace's and the defaults.`,
     },
     {
         id: "routine-time",
