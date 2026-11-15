@@ -17,8 +17,8 @@ type Props = {
 };
 
 /**
- * Above the composer of a session a crew request opened: the way back to
- * the conversation the user was in before it, which `startBotSession`
+ * At the top of a session a crew request opened: the way back to the
+ * conversation the user was in before it, which `startBotSession`
  * closed to give the request a thread of its own.
  */
 export default function AskSessionBar({ bot_id, workspace_id, session_id }: Props) {
@@ -49,7 +49,7 @@ export default function AskSessionBar({ bot_id, workspace_id, session_id }: Prop
     if (!ask?.previous_session_id) return null;
 
     return (
-        <Stack className="shrink-0 gap-0! items-stretch border-0 border-t border-solid border-hairline">
+        <Stack className="shrink-0 gap-0! items-stretch border-0 border-b border-solid border-hairline">
             <Row className="w-full max-w-container mx-auto py-3 gap-3! md:gap-4! flex-nowrap items-center justify-between px-3 md:px-6">
                 <Span className="min-w-0 text-sm text-ink-secondary truncate">
                     {ask.requester_name

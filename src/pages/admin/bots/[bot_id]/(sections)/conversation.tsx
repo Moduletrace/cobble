@@ -434,6 +434,13 @@ export default function Conversation() {
                                     model={text_model}
                                     onModelChange={setTextModel}
                                 />
+                                {moved_to_session_id ? null : (
+                                    <AskSessionBar
+                                        bot_id={Number(bot.id)}
+                                        workspace_id={workspace_id}
+                                        session_id={session_id}
+                                    />
+                                )}
                                 {history.loading ? (
                                     <LoadingLine label="Loading the conversation" />
                                 ) : null}
@@ -475,67 +482,60 @@ export default function Conversation() {
                                         moved_to_session_id={moved_to_session_id}
                                     />
                                 ) : (
-                                <>
-                                <AskSessionBar
-                                    bot_id={Number(bot.id)}
-                                    workspace_id={workspace_id}
-                                    session_id={session_id}
-                                />
-                                <Composer
-                                    handle_ref={composer}
-                                    bot={bot}
-                                    workspace_id={workspace_id}
-                                    extensions={pageProps?.bot_extensions}
-                                    voice={pageProps?.bot_voice}
-                                    has_browsers={Boolean(pageProps?.has_browsers)}
-                                    max_chars={pageProps?.message_max_chars}
-                                    previous_messages={thread_messages}
-                                    reply_to={reply_to}
-                                    onCancelReply={() => setReplyTo(null)}
-                                    onSendStart={({ message }) =>
-                                        setPendingMessages((prev) => [
-                                            ...prev,
-                                            message,
-                                        ])
-                                    }
-                                    onSendFailed={({ temp_id }) =>
-                                        setPendingMessages((prev) =>
-                                            prev.filter(
-                                                (message) =>
-                                                    message.id != temp_id,
-                                            ),
-                                        )
-                                    }
-                                    onSent={({ message }) => {
-                                        setReplyTo(null);
-                                        setPendingMessages((prev) =>
-                                            dropSentMessage({
-                                                pending: prev,
+                                    <Composer
+                                        handle_ref={composer}
+                                        bot={bot}
+                                        workspace_id={workspace_id}
+                                        extensions={pageProps?.bot_extensions}
+                                        voice={pageProps?.bot_voice}
+                                        has_browsers={Boolean(pageProps?.has_browsers)}
+                                        max_chars={pageProps?.message_max_chars}
+                                        previous_messages={thread_messages}
+                                        reply_to={reply_to}
+                                        onCancelReply={() => setReplyTo(null)}
+                                        onSendStart={({ message }) =>
+                                            setPendingMessages((prev) => [
+                                                ...prev,
                                                 message,
-                                            }),
-                                        );
-
-                                        if (
-                                            startsNewSession(message) &&
-                                            message.session_id != session_id
-                                        ) {
-                                            following_send.current = true;
-                                            setSessionId(
-                                                Number(message.session_id),
-                                            );
-                                            setMessages([message]);
-                                            history.retry();
-                                            return;
+                                            ])
                                         }
+                                        onSendFailed={({ temp_id }) =>
+                                            setPendingMessages((prev) =>
+                                                prev.filter(
+                                                    (message) =>
+                                                        message.id != temp_id,
+                                                ),
+                                            )
+                                        }
+                                        onSent={({ message }) => {
+                                            setReplyTo(null);
+                                            setPendingMessages((prev) =>
+                                                dropSentMessage({
+                                                    pending: prev,
+                                                    message,
+                                                }),
+                                            );
 
-                                        setMessages((prev) =>
-                                            prev.some((m) => m.id == message.id)
-                                                ? prev
-                                                : [...prev, message],
-                                        );
-                                    }}
-                                />
-                                </>
+                                            if (
+                                                startsNewSession(message) &&
+                                                message.session_id != session_id
+                                            ) {
+                                                following_send.current = true;
+                                                setSessionId(
+                                                    Number(message.session_id),
+                                                );
+                                                setMessages([message]);
+                                                history.retry();
+                                                return;
+                                            }
+
+                                            setMessages((prev) =>
+                                                prev.some((m) => m.id == message.id)
+                                                    ? prev
+                                                    : [...prev, message],
+                                            );
+                                        }}
+                                    />
                                 )}
                             </Stack>
                         </BotMessageActionsContext.Provider>
