@@ -562,6 +562,15 @@ export const AppData = {
      */
     HarnessSameFailureRetries: 1,
     /**
+     * How many times the review may send an answer back to be written again
+     * before the run stops without an answer. A note fixes most answers; the
+     * second rewrite is for the one that dropped the claim but named a file
+     * that isn't there. Past this the answer is never sent and the job fails
+     * saying so (`reviewBotReply`): a reply claimed a resumed run was under
+     * way, was sent back for it, and came back byte for byte to the user.
+     */
+    HarnessReviewRewrites: 2,
+    /**
      * The working context: how many tokens (estimated) of system prompt,
      * tool definitions and transcript a run sends per turn before old tool
      * output is trimmed, whatever the model's window. Every turn resends

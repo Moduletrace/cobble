@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -700,7 +700,7 @@ describe("runTextLoop", () => {
         expect(last.indexOf("Late correction.")).toBeLessThan(last.indexOf("You've used every step"));
     });
 
-    test("writes an answer the review faults again, once, with its note and the tool calls", async () => {
+    test("writes an answer the review faults again, with its note and the tool calls", async () => {
         const { generate, seen } = scripted([
             { text: null, tool_calls: [{ id: "c1", name: "remember", arguments: '{"note":"x"}' }] },
             { text: "I'm scanning now. Scan done: 5 contests." },
@@ -717,16 +717,68 @@ describe("runTextLoop", () => {
             resolveCandidates,
             review: async ({ text, tool_uses }) => {
                 reviewed.push({ text, tools: tool_uses.map((use) => use.name) });
-                return "Not sent: nothing scanned.";
+                return text.includes("Scan done") ? "Not sent: nothing scanned." : null;
             },
         });
 
         expect(result.text).toBe("I haven't scanned yet.");
-        expect(reviewed).toEqual([{ text: "I'm scanning now. Scan done: 5 contests.", tools: ["remember"] }]);
+        expect(reviewed).toEqual([
+            { text: "I'm scanning now. Scan done: 5 contests.", tools: ["remember"] },
+            { text: "I haven't scanned yet.", tools: ["remember"] },
+        ]);
         expect(seen[2]!.messages.slice(-2)).toEqual([
             { role: "assistant", content: "I'm scanning now. Scan done: 5 contests." },
             { role: "user", content: "Not sent: nothing scanned." },
         ]);
+    });
+
+    test("stops without an answer once every rewrite is faulted, and says why", async () => {
+        const { generate } = scripted([
+            { text: "I'm resuming the export now." },
+            { text: "I'm still resuming the export." },
+            { text: "Resuming." },
+            { text: "never reached" },
+        ]);
+        let reviews = 0;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Export it." }],
+            generate,
+            resolveCandidates,
+            review: async () => {
+                reviews++;
+                return "Not sent: nothing is running.";
+            },
+        });
+
+        expect(reviews).toBe(AppData.HarnessReviewRewrites + 1);
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe("Not sent: nothing is running.");
+    });
+
+    test("tells a model that wrote the same message back it did, rather than spending a rewrite on a copy", async () => {
+        const { generate, seen } = scripted([
+            { text: "I'm resuming now and will report back." },
+            { text: "I'm resuming now and will report back." },
+            { text: "Nothing is running." },
+            { text: "never reached" },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Export it." }],
+            generate,
+            resolveCandidates,
+            review: async ({ text }) => (text === "Nothing is running." ? null : "Not sent: nothing is running."),
+        });
+
+        expect(result.text).toBe("Nothing is running.");
+        expect(seen[1]!.messages.at(-1)!.content).toBe("Not sent: nothing is running.");
+        expect(seen[2]!.messages.at(-1)!.content).toBe(
+            `Not sent: nothing is running.\n\n${repeatedAnswerNote}`,
+        );
+        expect(seen.length).toBe(3);
     });
 
     test("lets the answer through when the review passes it or throws", async () => {

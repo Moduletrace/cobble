@@ -30,6 +30,7 @@ import { grabContextBudgetTokens, grabReplyMaxToolSteps, grabRunMaxPromptTokens 
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
+import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
@@ -492,6 +493,14 @@ export default async function runBotReply({
             review: ({ text, tool_uses }) =>
                 reviewBotReply({ text, tool_uses, bot_id: bot.id!, user_id, session_id, scopes }),
         });
+
+        /**
+         * An answer the review kept faulting is never sent: the run stops
+         * with why instead (`review_note`), and the job fails saying so. The
+         * user gets an honest failure, not a claim the app knows is false.
+         */
+        if (result.review_note)
+            throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
 
         if (job.id && answering_id) {
             await markReplyAnswered({ job_id: job.id, message_id: answering_id });

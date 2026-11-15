@@ -441,6 +441,7 @@ Nothing has run since that could change that answer, so calling it once more onl
  * alone (Nov 2026).
  */
 export const answerNotSentNote = `The message you wrote before these tool results was never sent: a run sends only its final message, and you went on to call a tool after writing that one. If the user still needs any of it, write it again in your last message. Don't send work in progress as an answer and then carry on.`;
+export const repeatedAnswerNote = `This is the message the app just sent back, word for word: nothing has changed since, so it will not go out either. Write it again from what the app's record shows. Take out what that record cannot support, and if the work still needs doing, call the tool that does it now rather than saying it is under way.`;
 
 /**
  * Told once, when the prompt no longer fits the working context even after

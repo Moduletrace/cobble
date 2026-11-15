@@ -6,6 +6,7 @@ import {
     contextTrimmedNote,
     failedToolCallNote,
     oversizedRequestNote,
+    repeatedAnswerNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
@@ -113,9 +114,10 @@ type Params = {
     wrap_up_note?: () => Promise<string> | string;
     /**
      * Checks an answer before it's returned, with the tool calls the run
-     * made. A note sends the answer back to be written again with it, once
-     * per run; null lets it through. Not on the wrap up, and a check that
-     * throws lets the answer through.
+     * made. A note sends the answer back to be written again with it, up to
+     * `AppData.HarnessReviewRewrites` times; null lets it through. Past that
+     * the answer is never sent and the run returns its note (`review_note`).
+     * Not on the wrap up, and a check that throws lets the answer through.
      */
     review?: (params: { text: string; tool_uses: HarnessToolUse[] }) => Promise<string | null | undefined>;
     /**
@@ -123,7 +125,7 @@ type Params = {
      */
     bot_id?: number | string;
     /**
-     * The workspace the call is in: its models win over the bot's.
+     * The workspace the call is in: its models apply to the bots with none of their own.
      */
     workspace_id?: number | string | null;
     generate?: typeof generateText;
@@ -146,6 +148,13 @@ export type TextLoopResult = {
      * Every tool call the run made, in order, and whether it went through.
      */
     tool_uses: HarnessToolUse[];
+    /**
+     * Why there is no answer: `review` faulted every one the run wrote, up to
+     * `AppData.HarnessReviewRewrites`. `text` is empty and must not be shown;
+     * the caller fails the job with this instead of delivering an answer the
+     * app knows is wrong.
+     */
+    review_note?: string;
 };
 
 /**
@@ -273,7 +282,9 @@ Don't repeat tool calls you have already made.`;
  * then one with none. With neither set (unlimited), the run ends when the
  * model answers without calling a tool, or when its job's deadline or its
  * abort signal ends it. An answer `review` finds fault
- * with is written again once.
+ * with is written again, a bounded number of times
+ * (`AppData.HarnessReviewRewrites`); one it still finds fault with is never
+ * sent, and the run returns why instead (`review_note`).
  *
  * Every turn resends everything, so the run keeps it small: only the
  * newest page snapshot of each browser stays (`supersedeToolOutputs`),
@@ -387,7 +398,12 @@ export default async function runTextLoop({
 
     const warn_at = isUnlimitedLimit(max_steps) ? 0 : stepsLowWarningLeft({ max_steps });
     let prefer_key: string | undefined;
-    let reviewed = false;
+    /**
+     * How many answers the review has sent back, and the last one it faulted,
+     * whitespace collapsed, to see a model that wrote the same message back.
+     */
+    let review_rewrites = 0;
+    let faulted_answer: string | null = null;
     /**
      * A run that wrote a message and then called a tool has been told, once,
      * that the message never went out (`answerNotSentNote`).
@@ -452,6 +468,37 @@ export default async function runTextLoop({
         } catch {
             /* the debug view is never worth a failed run */
         }
+    };
+
+    /**
+     * The answer checked against the app's own record before it goes out:
+     * files, tasks and settings it names, and work it says is under way. A
+     * note comes back and the answer is written again with it, up to
+     * `AppData.HarnessReviewRewrites`; a model that writes the same message
+     * back is told it did (`repeatedAnswerNote`) rather than spending its
+     * next rewrite on a copy. Past that the run stops: an answer the app
+     * knows is wrong is never sent (`review_note`).
+     */
+    const checkAnswer = async ({ text, index }: { text: string; index: number }) => {
+        if (!review) return { verdict: "passed" as const };
+
+        const note = await review({ text, tool_uses }).catch(() => null);
+
+        if (!note) return { verdict: "passed" as const };
+
+        await traced({ kind: "event", index, name: "review", text: note });
+
+        const written = text.replace(/\s+/g, " ").trim();
+        const repeated = written !== "" && written === faulted_answer;
+
+        faulted_answer = written;
+        review_rewrites += 1;
+
+        if (review_rewrites > AppData.HarnessReviewRewrites) return { verdict: "refused" as const, note };
+
+        pushUserTurn({ transcript, content: repeated ? `${note}\n\n${repeatedAnswerNote}` : note });
+
+        return { verdict: "sent_back" as const };
     };
 
     for (let index = 0; index <= step_ceiling + 1 + WrapUpSavingTurns; index++) {
@@ -642,16 +689,22 @@ export default async function runTextLoop({
             continue;
         }
 
-        if (!tool_calls.length && !wrap_up && review && !reviewed) {
-            reviewed = true;
+        if (!tool_calls.length && !wrap_up) {
+            const check = await checkAnswer({ text: answer.text || "", index });
 
-            const note = await review({ text: answer.text || "", tool_uses }).catch(() => null);
-
-            if (note) {
-                await traced({ kind: "event", index, name: "review", text: note });
-                pushUserTurn({ transcript, content: note });
-                continue;
+            if (check.verdict === "refused") {
+                return {
+                    text: "",
+                    review_note: check.note,
+                    messages: transcript,
+                    steps: index + 1,
+                    candidate: answer.candidate,
+                    usage,
+                    tool_uses,
+                };
             }
+
+            if (check.verdict === "sent_back") continue;
         }
 
         if (!tool_calls.length) {
@@ -764,17 +817,21 @@ export default async function runTextLoop({
              * back and the answer is written again (the card stays on the
              * reply, its ref is already recorded).
              */
-            if (review && !reviewed) {
-                reviewed = true;
+            const check = await checkAnswer({ text: answer.text, index });
 
-                const note = await review({ text: answer.text, tool_uses }).catch(() => null);
-
-                if (note) {
-                    await traced({ kind: "event", index, name: "review", text: note });
-                    pushUserTurn({ transcript, content: note });
-                    continue;
-                }
+            if (check.verdict === "refused") {
+                return {
+                    text: "",
+                    review_note: check.note,
+                    messages: transcript,
+                    steps: index + 1,
+                    candidate: answer.candidate,
+                    usage,
+                    tool_uses,
+                };
             }
+
+            if (check.verdict === "sent_back") continue;
 
             return {
                 text: answer.text,
