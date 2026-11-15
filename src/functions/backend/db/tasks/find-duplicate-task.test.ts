@@ -36,4 +36,16 @@ describe("findDuplicateTask", () => {
         expect(findDuplicateTask({ tasks, title: "Check the invoices", bot_id: 2 })).toBeNull();
         expect(findDuplicateTask({ tasks, title: "Check the invoices", workspace_id: 9, bot_id: 3 })?.id).toBe(7);
     });
+
+    test("two parts of different parents may share a title, the same parent's may not", () => {
+        const tasks = [task({ id: 8, bot_id: 2, workspace_id: 9, parent_task_id: 12, title: "Write the intro" })];
+
+        expect(
+            findDuplicateTask({ tasks, title: "Write the intro", workspace_id: 9, bot_id: 2, parent_task_id: 12 })?.id,
+        ).toBe(8);
+        expect(
+            findDuplicateTask({ tasks, title: "Write the intro", workspace_id: 9, bot_id: 2, parent_task_id: 13 }),
+        ).toBeNull();
+        expect(findDuplicateTask({ tasks, title: "Write the intro", workspace_id: 9, bot_id: 2 })).toBeNull();
+    });
 });

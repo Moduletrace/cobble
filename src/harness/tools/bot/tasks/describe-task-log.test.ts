@@ -22,4 +22,31 @@ describe("describeTaskLog", () => {
     test("leaves the files out when there are none", () => {
         expect(describeTaskLog({ task, notes: [], bot_id: 21 })).not.toContain("Files");
     });
+
+    test("a part says which task it belongs to and that the parent stays open", () => {
+        const text = describeTaskLog({
+            task: { ...task, parent_task_id: 12, parent_title: "Ship the release" },
+            notes: [],
+            bot_id: 21,
+        });
+
+        expect(text).toContain('A part of task #12 "Ship the release"');
+        expect(text).toContain("don't mark it done from here");
+    });
+
+    test("a split task lists its parts with their owners and which are open", () => {
+        const text = describeTaskLog({
+            task: { ...task, bot_id: "", workspace_id: 3 },
+            notes: [],
+            bot_id: 21,
+            parts: [
+                { id: 31, status: "doing", title: "The intro", bot_id: 21, bot_name: "Software Engineer" },
+                { id: 32, status: "done", title: "The appendix", bot_id: 22, bot_name: "SEO Expert" },
+            ],
+        });
+
+        expect(text).toContain("Parts (2):");
+        expect(text).toContain("- #31 [doing] (open) The intro, Software Engineer (yours)");
+        expect(text).toContain("- #32 [done] The appendix, SEO Expert");
+    });
 });

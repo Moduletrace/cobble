@@ -535,6 +535,10 @@ export type BUN_SQLITE_COBBLE_TASKS = {
      * The workspace the task is in; null for a bot's own list
      */
     workspace_id?: number | "";
+    /** 
+     * The workspace-wide task this one is a part of: a bot's own task in the same workspace, one piece of that work. Null for a task that isn't a subtask; a subtask of a subtask is refused (one level, no nesting), and its parent always stays workspace-wide
+     */
+    parent_task_id?: number | "";
     title?: string;
     /** 
      * The brief (markdown): what to do, where, and how you'll know it's done

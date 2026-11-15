@@ -1,8 +1,10 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_TASKS } from "@/db/types/db";
 import AppError from "@/src/utils/app-error";
+import subtaskMoveProblem from "@/src/utils/task-subtasks/subtask-move-problem";
 import assertBotWorksThere from "./assert-bot-works-there";
 import findDuplicateTask from "./find-duplicate-task";
+import grabSubtaskCounts from "./grab-subtask-counts";
 import grabTaskRow from "./grab-task-scope";
 import taskScopeValues from "./task-scope-values";
 
@@ -20,12 +22,19 @@ type Params = {
 /**
  * Moves a task to another list or bot, with its notes and files. Refused
  * when it changes list and the destination already has an open task with
- * that title, so a hand-over never leaves two of the same. The caller checked who is
+ * that title, so a hand-over never leaves two of the same, and when it's a
+ * part of another task or has parts of its own (`subtaskMoveProblem`): only
+ * a task that is neither moves. The caller checked who is
  * asking reaches both. Returns the row as it is now.
  */
 export default async function moveTask({ task_id, bot_id, workspace_id, workspace_wide }: Params): Promise<BUN_SQLITE_COBBLE_TASKS> {
     const task = await grabTaskRow({ task_id });
     const place = taskScopeValues({ bot_id, workspace_id, workspace_wide });
+
+    const { linked } = await grabSubtaskCounts({ task_id: task.id! });
+    const problem = subtaskMoveProblem({ task, linked_subtasks: linked });
+
+    if (problem) throw new AppError(problem);
 
     if (Number(task.bot_id || 0) == Number(place.bot_id || 0) && Number(task.workspace_id || 0) == Number(place.workspace_id || 0)) {
         return task;

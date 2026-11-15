@@ -55,10 +55,18 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
             };
         }
 
-        const { bot_id, workspace_id, workspace_wide, title, description, status } = parseWithSchema({
+        const { bot_id, workspace_id, workspace_wide, parent_task_id, title, description, status } = parseWithSchema({
             schema: CreateTaskRequestSchema,
             data,
         });
+
+        /**
+         * A part hangs off a task the user has to reach too, or they could
+         * split another crew's task by id.
+         */
+        if (parent_task_id) {
+            await assertUserReachesTask({ user_id: user.id, task_id: parent_task_id });
+        }
 
         return {
             success: true,
@@ -67,11 +75,12 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<TaskDetail>> = asy
                 bot_id,
                 workspace_id,
                 workspace_wide,
+                parent_task_id,
                 title,
                 description,
                 status: status as never,
             }),
-            msg: `Task added.`,
+            msg: parent_task_id ? `Part added.` : `Task added.`,
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

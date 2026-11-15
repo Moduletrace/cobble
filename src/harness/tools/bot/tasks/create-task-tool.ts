@@ -45,6 +45,7 @@ type Args = {
     bot_id?: number;
     workspace_id?: number;
     workspace_wide?: boolean;
+    parent_task_id?: number;
     status?: TaskStatus;
 };
 
@@ -147,8 +148,8 @@ export default function createTaskTool({
     return {
         name: "create_task",
         description: is_coordinator
-            ? `Add a task: to a worker's own list (bot_id: ${crew || "no workers yet"}), to a workspace (workspace_id: ${places || "no workspaces yet"}) for one of its bots (with bot_id; without, it's yours there) or workspace-wide (workspace_wide: true, no bot_id), or to your own list (leave both ids out${workspace_id ? "; here, leaving them out makes it yours in this workspace" : ""}). A task belongs to one bot unless it's workspace-wide: then every bot in that workspace sees it, works on it and logs what it did. Write the description as a brief: what to do, where, and how you'll know it's done.`
-            : `Add a task: ${workspace_id ? `in this workspace, yours by default${team ? `, a member's as this workspace's admin (bot_id: ${team})` : ""}, or workspace-wide (workspace_wide: true) when it's work for the whole crew here: every bot in the workspace sees it, works on it and logs what it did` : `on your own list (bot_id ${bot_id}, the default)`}. Write the description as a brief: what to do, where, and how you'll know it's done.`,
+            ? `Add a task: to a worker's own list (bot_id: ${crew || "no workers yet"}), to a workspace (workspace_id: ${places || "no workspaces yet"}) for one of its bots (with bot_id; without, it's yours there) or workspace-wide (workspace_wide: true, no bot_id), or to your own list (leave both ids out${workspace_id ? "; here, leaving them out makes it yours in this workspace" : ""}). A task belongs to one bot unless it's workspace-wide: then every bot in that workspace sees it, works on it and logs what it did. When that workspace-wide task is too much for one bot, split it: add each piece with parent_task_id (the wide task's id), one bot per piece, and the parent stays open until you verify the parts. Write the description as a brief: what to do, where, and how you'll know it's done.`
+            : `Add a task: ${workspace_id ? `in this workspace, yours by default${team ? `, a member's as this workspace's admin (bot_id: ${team})` : ""}, or workspace-wide (workspace_wide: true) when it's work for the whole crew here: every bot in the workspace sees it, works on it and logs what it did` : `on your own list (bot_id ${bot_id}, the default)`}. To take one piece of a workspace-wide task here, add it with parent_task_id (that task's id), one bot per piece: the parent stays open until its parts are verified. Write the description as a brief: what to do, where, and how you'll know it's done.`,
         schema: z.object({
             title: z.string().trim().min(1).max(AppData.TaskTitleMaxLength).describe(`A short label`),
             description: z
@@ -175,12 +176,25 @@ export default function createTaskTool({
                 .boolean()
                 .optional()
                 .describe(`In a workspace: nobody's, for every bot there to work on and log. Only when the work is the whole crew's; defaults to false.`),
+            parent_task_id: z
+                .number()
+                .int()
+                .optional()
+                .describe(
+                    `The workspace-wide task this one is one piece of (its id, which list_tasks shows): a part, in that task's workspace, with a bot of its own. Use it instead of workspace_wide: a part belongs to one bot, and only a workspace-wide task can be split.`,
+                ),
             status: z.enum(TaskStatusValues).optional().describe(`Defaults to to do`),
         }),
         run: async ({ args }) => {
+            if (args.parent_task_id && args.workspace_wide) {
+                return `A part belongs to one bot: leave workspace_wide out and pass parent_task_id with the bot it's for.`;
+            }
+
             const place = resolvePlace({ args, bot_id, workspace_id, is_coordinator, members });
 
             if (typeof place == "string") return place;
+
+            const parent_task_id = args.parent_task_id ? Number(args.parent_task_id) : null;
 
             const existing = await grabTasks({
                 bot_id,
@@ -189,6 +203,7 @@ export default function createTaskTool({
                 only_bot_id: place.workspace_id ? undefined : place.bot_id,
                 only_workspace_id: place.workspace_id,
                 own_list: !place.workspace_id,
+                only_parent_task_id: parent_task_id || undefined,
                 open_only: true,
             });
 
@@ -197,6 +212,7 @@ export default function createTaskTool({
                 title: args.title,
                 bot_id: place.bot_id,
                 workspace_id: place.workspace_id || null,
+                parent_task_id,
             });
 
             if (twin) {
@@ -210,6 +226,7 @@ export default function createTaskTool({
                 bot_id: place.bot_id,
                 workspace_id: place.workspace_id,
                 workspace_wide: !place.bot_id,
+                parent_task_id,
                 title: args.title,
                 description: args.description,
                 status: args.status as never,
@@ -224,7 +241,7 @@ export default function createTaskTool({
                   ? "to your list"
                   : `to bot ${place.bot_id}'s list`;
 
-            return `Task #${task.id} "${task.title}" added ${where}. Check it with list_tasks before you mention it to the user.`;
+            return `Task #${task.id} "${task.title}" added ${where}${parent_task_id ? `, as a part of task #${parent_task_id} (the parent stays open until someone verifies all the parts)` : ""}. Check it with list_tasks before you mention it to the user.`;
         },
     };
 }

@@ -35,7 +35,16 @@ type Props = {
 export default function TaskDetailModal({ task, can_manage, onClose, onLoaded, onChanged, onDeleted }: Props) {
     const [detail, set_detail] = useState<TaskDetail | null>(null);
     const [error, set_error] = useState<string>();
-    const task_id = task?.id ? Number(task.id) : 0;
+    /**
+     * A part opened from the task on show: the modal walks into it and back
+     * out with the list's own click.
+     */
+    const [opened, set_opened] = useState<Partial<TaskWithNames> | null>(null);
+    const task_id = Number(opened?.id || task?.id || 0);
+
+    useEffect(() => {
+        set_opened(null);
+    }, [task?.id]);
 
     useEffect(() => {
         set_detail(null);
@@ -81,6 +90,7 @@ export default function TaskDetailModal({ task, can_manage, onClose, onLoaded, o
                         key={detail.id}
                         task={detail}
                         can_manage={can_manage}
+                        onOpenSubtask={(subtask) => set_opened(subtask)}
                         onChanged={(saved, msg) => {
                             set_detail(saved);
                             onChanged({ task: saved, msg });

@@ -7,6 +7,8 @@ import AppError from "@/src/utils/app-error";
 import grabCrewRole from "../access/grab-crew-role";
 import grabTask from "./grab-task";
 import assertBotWorksThere from "./assert-bot-works-there";
+import assertSubtaskParent from "./assert-subtask-parent";
+import grabSubtaskCounts from "./grab-subtask-counts";
 import taskScopeValues from "./task-scope-values";
 
 type Params = {
@@ -24,6 +26,11 @@ type Params = {
      * it (`taskScopeValues`). Only when asked for.
      */
     workspace_wide?: boolean;
+    /**
+     * The workspace-wide task this one is a part of (`assertSubtaskParent`):
+     * one piece of that work, a bot's own task in the same workspace.
+     */
+    parent_task_id?: number | string | null;
     /**
      * The bot creating it with its tool; none for a user's manual add.
      */
@@ -46,6 +53,7 @@ export default async function createTask({
     description,
     status,
     workspace_wide,
+    parent_task_id,
     created_by_bot_id,
 }: Params): Promise<TaskDetail> {
     const scope = taskScopeValues({ bot_id, workspace_id, workspace_wide });
@@ -57,6 +65,18 @@ export default async function createTask({
 
     if (scope.bot_id && scope.workspace_id) {
         await assertBotWorksThere({ bot_id: scope.bot_id, workspace_id: scope.workspace_id });
+    }
+
+    if (parent_task_id) {
+        await assertSubtaskParent({ parent_task_id, bot_id: scope.bot_id, workspace_id: scope.workspace_id });
+
+        const { linked } = await grabSubtaskCounts({ task_id: parent_task_id });
+
+        if (linked >= AppData.TaskSubtaskMaxPerParent) {
+            throw new AppError(
+                `Task #${parent_task_id} already has ${AppData.TaskSubtaskMaxPerParent} parts: work on one of those, or unlink one first.`,
+            );
+        }
     }
 
     const count = Number(
@@ -80,6 +100,7 @@ export default async function createTask({
             {
                 bot_id: scope.bot_id || undefined,
                 workspace_id: scope.workspace_id || undefined,
+                parent_task_id: parent_task_id ? Number(parent_task_id) : undefined,
                 title: title.trim().slice(0, AppData.TaskTitleMaxLength),
                 description: description || undefined,
                 status: status || "todo",

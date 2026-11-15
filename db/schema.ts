@@ -805,7 +805,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
         },
         {
             tableName: "tasks",
-            tableDescription: `The crew's to-do list: work that is tracked until it's done. A bot's own list (\`bot_id\` alone), or a workspace's tasks (\`workspace_id\`, with \`bot_id\` naming the bot there that has it, or null for a workspace-wide task every bot there works on, made only when asked for). A bot reaches its own list and, in each workspace it works in, its tasks there and the workspace-wide ones; a workspace admin every task in its workspace; the coordinator every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
+            tableDescription: `The crew's to-do list: work that is tracked until it's done. A bot's own list (\`bot_id\` alone), or a workspace's tasks (\`workspace_id\`, with \`bot_id\` naming the bot there that has it, or null for a workspace-wide task every bot there works on, made only when asked for). A workspace-wide task can be split into subtasks (\`parent_task_id\`): one piece is a bot's own task in the same workspace, and only one level of splitting exists. A bot reaches its own list and, in each workspace it works in, its tasks there and the workspace-wide ones; a workspace admin every task in its workspace; the coordinator every task. Not the same thing as \`bot_tasks\` or \`bots_queue\`: those record a queued job, this records the work`,
             fields: [
                 {
                     fieldName: "bot_id",
@@ -829,6 +829,18 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
                         foreignKeyName: "tasks_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "parent_task_id",
+                    fieldDescription: `The workspace-wide task this one is a part of: a bot's own task in the same workspace, one piece of that work. Null for a task that isn't a subtask; a subtask of a subtask is refused (one level, no nesting), and its parent always stays workspace-wide`,
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "tasks",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "tasks_parent_fk",
                     },
                 },
                 {
@@ -882,6 +894,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_tasks_workspace_id_status",
                     indexTableFields: ["workspace_id", "status"],
+                },
+                {
+                    indexName: "idx_tasks_parent_task_id",
+                    indexTableFields: ["parent_task_id"],
                 },
             ],
         },
@@ -1233,7 +1249,7 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "message_id",
-                    fieldDescription: `The message the run ended in, filled when the job completes: the debug logs tab of its Details modal reads them. No foreign key, so a message's rows wait for the prune rather than cascade`, 
+                    fieldDescription: `The message the run ended in, filled when the job completes: the debug logs tab of its Details modal reads them. No foreign key, so a message's rows wait for the prune rather than cascade`,
                     dataType: "INTEGER",
                 },
                 {
@@ -3267,7 +3283,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     alias: "one_browser_slug_per_user",
                     constraintName: "A user's browsers have different slugs",
-                    constraintTableFields: [{ value: "user_id" }, { value: "slug" }],
+                    constraintTableFields: [
+                        { value: "user_id" },
+                        { value: "slug" },
+                    ],
                 },
             ],
         },
@@ -3460,7 +3479,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "status",
                     dataType: "TEXT",
-                    options: ["pending", "confirmed", "rejected", "replaced", "failed"],
+                    options: [
+                        "pending",
+                        "confirmed",
+                        "rejected",
+                        "replaced",
+                        "failed",
+                    ],
                     defaultValue: "pending",
                 },
                 {
@@ -3815,7 +3840,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableName: "knowledgebases",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "knowledgebase_documents_knowledgebases_fk",
+                        foreignKeyName:
+                            "knowledgebase_documents_knowledgebases_fk",
                     },
                 },
                 {
@@ -4011,7 +4037,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableName: "workspaces",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "workspace_knowledgebases_workspaces_fk",
+                        foreignKeyName:
+                            "workspace_knowledgebases_workspaces_fk",
                     },
                 },
                 {
@@ -4022,7 +4049,8 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                         destinationTableName: "knowledgebases",
                         destinationTableColumnName: "id",
                         destinationTableColumnType: "INTEGER",
-                        foreignKeyName: "workspace_knowledgebases_knowledgebases_fk",
+                        foreignKeyName:
+                            "workspace_knowledgebases_knowledgebases_fk",
                     },
                 },
             ],

@@ -36,6 +36,10 @@ type Params = {
      */
     only_workspace_id?: number | string | null;
     /**
+     * Only the tasks that are parts of this one, for a parent's detail.
+     */
+    only_parent_task_id?: number | string | null;
+    /**
      * Only bots' own lists, outside any workspace.
      */
     own_list?: boolean;
@@ -63,6 +67,7 @@ export default async function grabTasks({
     only_bot_id,
     with_workspace_wide,
     only_workspace_id,
+    only_parent_task_id,
     own_list,
     statuses,
     open_only,
@@ -95,6 +100,11 @@ export default async function grabTasks({
         values.push(Number(only_workspace_id));
     }
 
+    if (only_parent_task_id) {
+        where.push(`t.parent_task_id = ?`);
+        values.push(Number(only_parent_task_id));
+    }
+
     const wanted = open_only ? [...OpenTaskStatuses] : statuses?.length ? statuses : null;
 
     if (wanted) {
@@ -106,7 +116,10 @@ export default async function grabTasks({
 
     const res = await BunSQLite.sql<TaskWithNames>({
         sql: `SELECT t.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone,
-                b.image_media_id AS bot_image_media_id, ${face.sql}, w.name AS workspace_name,
+                b.image_media_id AS bot_image_media_id, ${face.sql}, w.name AS workspace_name, w.image_media_id AS workspace_image_media_id,
+                p.title AS parent_title,
+                (SELECT COUNT(*) FROM tasks st WHERE st.parent_task_id = t.id) AS subtask_count,
+                (SELECT COUNT(*) FROM tasks st WHERE st.parent_task_id = t.id AND st.status IN (${OpenTaskStatuses.map(() => "?").join(", ")})) AS subtask_open_count,
                 (SELECT n.text FROM task_notes n WHERE n.task_id = t.id ORDER BY n.id DESC LIMIT 1) AS latest_note,
                 (SELECT CASE WHEN n.author = 'user' THEN NULL ELSE COALESCE(nb.name, 'Bot ' || n.bot_id) END
                     FROM task_notes n LEFT JOIN bots nb ON nb.id = n.bot_id
@@ -115,11 +128,12 @@ export default async function grabTasks({
             FROM tasks t
             LEFT JOIN bots b ON b.id = t.bot_id
             LEFT JOIN workspaces w ON w.id = t.workspace_id
+            LEFT JOIN tasks p ON p.id = t.parent_task_id
             ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
             ORDER BY CASE t.status WHEN 'blocked' THEN 0 WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'done' THEN 3 ELSE 4 END,
                 t.updated_at DESC, t.id DESC
             ${limit ? `LIMIT ${Number(limit)}` : ""}`,
-        values: [...face.values, ...values],
+        values: [...face.values, ...OpenTaskStatuses, ...values],
     });
 
     return res.payload || [];

@@ -19,6 +19,11 @@ const scope = {
 
 export const CreateTaskRequestSchema = z.object({
     ...scope,
+    /**
+     * The workspace-wide task it is a part of (`assertSubtaskParent`), when
+     * it is one.
+     */
+    parent_task_id: z.number().int().positive().optional(),
     title: z.string().trim().min(1).max(AppData.TaskTitleMaxLength),
     description: z.string().max(AppData.TaskDescriptionMaxLength).optional(),
     status: z.enum(status_values).optional(),
@@ -34,6 +39,21 @@ export const UpdateTaskRequestSchema = z.object({
 
 export const DeleteTaskRequestSchema = z.object({
     task_id: z.number().int().positive(),
+});
+
+/**
+ * Taking a part out of its workspace-wide task (`detachSubtask`).
+ */
+export const DetachSubtaskRequestSchema = z.object({
+    task_id: z.number().int().positive(),
+});
+
+/**
+ * Attaching a bot's task to a workspace-wide one (`linkSubtask`).
+ */
+export const LinkSubtaskRequestSchema = z.object({
+    task_id: z.number().int().positive(),
+    parent_task_id: z.number().int().positive(),
 });
 
 export const TaskNoteRequestSchema = z.object({

@@ -7,6 +7,7 @@ import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
 import grabTaskNotes from "@/src/functions/backend/db/tasks/grab-task-notes";
 import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import grabTaskMedia from "@/src/functions/backend/db/tasks/grab-task-media";
+import grabTaskRow from "@/src/functions/backend/db/tasks/grab-task-scope";
 import describeTaskLog from "./describe-task-log";
 import type { HarnessTool } from "../../../types";
 
@@ -69,10 +70,19 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
 
                 onTask?.({ task_id: Number(task.id) });
 
+                const [notes, files, parts] = await Promise.all([
+                    grabTaskNotes({ task_id: task.id! }),
+                    grabTaskMedia({ task_id: task.id! }),
+                    grabTasks({ bot_id, is_coordinator, admin_workspace_ids, only_parent_task_id: task.id! }),
+                ]);
+
+                const parent = task.parent_task_id ? await grabTaskRow({ task_id: task.parent_task_id }) : null;
+
                 return describeTaskLog({
-                    task,
-                    notes: await grabTaskNotes({ task_id: task.id! }),
-                    files: await grabTaskMedia({ task_id: task.id! }),
+                    task: parent ? { ...task, parent_title: parent.title } : task,
+                    notes,
+                    files,
+                    parts,
                     bot_id,
                 });
             }
@@ -113,6 +123,11 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
                         `[${task.status}]`,
                         task.title,
                         `(${where})`,
+                        Number(task.subtask_count || 0)
+                            ? `a part of #${task.parent_task_id}`
+                            : task.workspace_id && !task.bot_id && Number(task.subtask_open_count || 0)
+                              ? `split into ${task.subtask_count} parts, ${task.subtask_open_count} still open`
+                              : "",
                         Number(task.media_count || 0) ? `${task.media_count} file(s)` : "",
                         task.status == "blocked" && task.blocked_reason ? `blocked: ${task.blocked_reason}` : "",
                         task.latest_note

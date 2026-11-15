@@ -3,10 +3,12 @@ import { AppData } from "@/src/data/app-data";
 import { type TaskStatus, TaskStatusValues } from "@/src/dict/task-dict";
 import addTaskNote from "@/src/functions/backend/db/tasks/add-task-note";
 import attachTaskFile from "@/src/functions/backend/db/tasks/attach-task-file";
+import detachSubtask from "@/src/functions/backend/db/tasks/detach-subtask";
 import detachTaskFile from "@/src/functions/backend/db/tasks/detach-task-file";
 import findDuplicateTask from "@/src/functions/backend/db/tasks/find-duplicate-task";
 import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
+import linkSubtask from "@/src/functions/backend/db/tasks/link-subtask";
 import grabTaskMedia from "@/src/functions/backend/db/tasks/grab-task-media";
 import makeTaskWorkspaceWide from "@/src/functions/backend/db/tasks/make-task-workspace-wide";
 import grabBotById from "@/src/functions/backend/db/bots/grab-bot-by-id";
@@ -44,6 +46,8 @@ type Args = {
     reference_file_ids?: number[];
     unlink_file_ids?: number[];
     workspace_wide?: boolean;
+    parent_task_id?: number;
+    unlink_parent?: boolean;
 };
 
 /**
@@ -65,7 +69,7 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
 
     return {
         name: "update_task",
-        description: `Move a task along. Rename it with title or rewrite its brief with description (never create a second task for the same work just to fix its name). Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Call it as the work advances, not only at the end; every note is what the user sees on the task. A workspace-wide task is shared by every bot in its workspace: log a note for each part you do (it's recorded under your name and id, with the time) so the others see who did what, and don't mark it done while parts others are on are still open. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number. A task holds ${AppData.TaskMediaMaxPerTask} files: to make room, or to drop a superseded version, unlink files with unlink_file_ids (list_tasks with task_id shows what's filed; the file stays in its folder). Unlink first, then file, in the same call.${can_share ? ` As ${is_coordinator ? "the coordinator" : "a workspace's admin"}, workspace_wide: true turns a bot's open task in ${is_coordinator ? "a" : "your"} workspace into a workspace-wide one every bot there works on (hand it to one bot again with delegate_task).` : ""}`,
+        description: `Move a task along. Rename it with title or rewrite its brief with description (never create a second task for the same work just to fix its name). Set its status (blocked needs a reason: what the user has to do), log a note of what you did or found, and file the files it produced. Call it as the work advances, not only at the end; every note is what the user sees on the task. A workspace-wide task is shared by every bot in its workspace: log a note for each part you do (it's recorded under your name and id, with the time) so the others see who did what, and don't mark it done while parts others are on are still open. Mark done only once you've verified the work (see the check note): starting a task isn't finishing it. To file a deliverable, save it first with write_file, make_pdf or generate_image, then pass its [file:ID] number. A task holds ${AppData.TaskMediaMaxPerTask} files: to make room, or to drop a superseded version, unlink files with unlink_file_ids (list_tasks with task_id shows what's filed; the file stays in its folder). Unlink first, then file, in the same call. A part of a workspace-wide task (its row says so) is one piece of that work: log your notes on it like any task, and unlink_parent: true takes it out of the parent if it stops being part of it. parent_task_id: N makes a task of your own the part you took on of the workspace-wide task #N in its workspace (one piece each, and the parent stays open until someone verifies them all).${can_share ? ` As ${is_coordinator ? "the coordinator" : "a workspace's admin"}, workspace_wide: true turns a bot's open task in ${is_coordinator ? "a" : "your"} workspace into a workspace-wide one every bot there works on (hand it to one bot again with delegate_task).` : ""}`,
         schema: z.object({
             task_id: z.number().int(),
             title: z
@@ -111,6 +115,20 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                         ? `true to make a bot's open task in ${is_coordinator ? "a" : "a workspace you're admin of"} workspace workspace-wide: nobody's, for every bot there to work on and log. Only true does anything.`
                         : `Only the coordinator or a workspace's admin bot can use this; leave it out.`,
                 ),
+            parent_task_id: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe(
+                    `N attaches this task to the open workspace-wide task #N in its workspace: the piece of it you took on. Only tasks a bot has in a workspace can join one, and a task with parts of its own can't.`,
+                ),
+            unlink_parent: z
+                .boolean()
+                .optional()
+                .describe(
+                    `For a part of a workspace-wide task: true takes it out of that task, leaving it a task of its own in the workspace. Only true does anything.`,
+                ),
         }),
         run: async ({ args }) => {
             const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
@@ -134,6 +152,40 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                     by_name: (await grabBotById({ bot_id }))?.name || `Bot ${bot_id}`,
                 });
                 said.push(`it's workspace-wide now, every bot in workspace ${task.workspace_id} works on it`);
+            }
+
+            if (args.parent_task_id) {
+                if (args.unlink_parent) {
+                    return `Pass parent_task_id to make it a part of a task, or unlink_parent to take it out of one, not both.`;
+                }
+
+                try {
+                    await linkSubtask({
+                        user_id,
+                        task_id: task.id!,
+                        parent_task_id: args.parent_task_id,
+                        by_bot_id: bot_id,
+                        by_name: (await grabBotById({ bot_id }))?.name || `Bot ${bot_id}`,
+                    });
+                    said.push(`it's a part of task #${args.parent_task_id} now`);
+                } catch (error: unknown) {
+                    return error instanceof Error
+                        ? error.message
+                        : `Couldn't make task #${task.id} a part of task #${args.parent_task_id}.`;
+                }
+            }
+
+            if (args.unlink_parent) {
+                if (!task.parent_task_id) {
+                    return `Task #${task.id} isn't a part of another task: nothing to unlink it from.`;
+                }
+
+                await detachSubtask({
+                    task_id: task.id!,
+                    by_bot_id: bot_id,
+                    by_name: (await grabBotById({ bot_id }))?.name || `Bot ${bot_id}`,
+                });
+                said.push(`it's a task of its own now, out of task #${task.parent_task_id}`);
             }
 
             const title = args.title?.trim();

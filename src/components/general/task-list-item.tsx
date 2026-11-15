@@ -7,13 +7,14 @@ import Button from "@moduletrace/twui/layout/Button";
 import type { TaskWithNames } from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import BotAvatar from "@/src/components/general/bot-avatar";
+import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import relativeTime from "@/src/utils/relative-time";
 import taskPlaceLabel from "@/src/utils/task-place-label";
-import Center from "@moduletrace/twui/layout/Center";
-import { Trash2, Users } from "lucide-react";
+
+import { Trash2 } from "lucide-react";
 import RowIconButton from "./row-icon-button";
 import TaskStatusChip from "./task-status-chip";
 import TaskStatusMoves from "./task-status-moves";
@@ -37,8 +38,8 @@ type Props = {
 };
 
 /**
- * One task: whose it is (a bot's stone, or a crew mark when it's
- * workspace-wide), its title and status, where it
+ * One task: whose it is (a bot's stone, or the workspace's own picture when
+ * it's workspace-wide and nobody's), its title and status, where it
  * is and who has it, what it's blocked on, its latest note and how long ago it
  * moved. Its title opens it in a modal.
  */
@@ -57,9 +58,12 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
                     size={28}
                 />
             ) : (
-                <Center title="Workspace-wide: every bot here works on it" className="size-7 shrink-0 text-ink-secondary">
-                    <Users size={18} />
-                </Center>
+                <Span
+                    title="Workspace-wide: every bot here works on it"
+                    className="flex size-7 shrink-0 items-center justify-center"
+                >
+                    <WorkspaceAvatar image_media_id={task.workspace_image_media_id} size="md" />
+                </Span>
             )}
             <Stack className="grow min-w-0 gap-0.5! items-stretch">
                 <Row className="w-full gap-2! flex-nowrap items-center">
@@ -99,6 +103,24 @@ export default function TaskListItem({ task, onOpen, onStatusChange, onDelete, b
                     <Span className="shrink-0 text-xs leading-4 text-ink-secondary truncate">
                         {taskPlaceLabel({ task })}
                     </Span>
+                    {task.parent_task_id ? (
+                        <Span
+                            title={`Part of task ${task.parent_task_id}${task.parent_title ? `: ${task.parent_title}` : ""}`}
+                            className="shrink-0 text-[11px] leading-4 text-ink-secondary"
+                        >
+                            {`Part of #${task.parent_task_id}`}
+                        </Span>
+                    ) : null}
+                    {Number(task.subtask_count || 0) ? (
+                        <Span
+                            title={`${task.subtask_count} part(s), ${task.subtask_open_count || 0} still open`}
+                            className="shrink-0 text-[11px] leading-4 text-ink-secondary"
+                        >
+                            {Number(task.subtask_open_count || 0)
+                                ? `${task.subtask_open_count} of ${task.subtask_count} parts open`
+                                : `all ${task.subtask_count} parts done`}
+                        </Span>
+                    ) : null}
                     {task.status == "blocked" && task.blocked_reason ? (
                         <Span className="min-w-0 text-xs leading-4 text-ink truncate">
                             {`Waiting on you: ${task.blocked_reason}`}

@@ -5,6 +5,7 @@ import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Span from "@moduletrace/twui/layout/Span";
+import { OpenTaskStatuses } from "@/src/dict/task-dict";
 import type { TaskDetail, TaskWithNames } from "@/src/types";
 import TaskDetailModal from "@/src/components/general/task-detail-modal";
 import TaskForm from "@/src/components/general/task-form";
@@ -15,6 +16,9 @@ import SettingsList from "@/src/pages/admin/settings/(partials)/settings-list";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
+import compareTasks from "@/src/utils/task-sections/compare-tasks";
+import shownWorkspaceTasks from "@/src/utils/task-sections/shown-workspace-tasks";
+import WorkspaceTasksModal from "@/src/pages/admin/workspaces/[workspace_id]/(partials)/workspace-tasks-modal";
 
 type Props = {
     workspace_id: number;
@@ -31,7 +35,9 @@ type Props = {
 /**
  * Every task in a workspace, whichever bot has it: a task belongs to one
  * bot, which sees only its own, unless it's workspace-wide (every bot there
- * sees it; the workspace's admin bot sees all).
+ * sees it; the workspace's admin bot sees all). The list starts with the
+ * workspace-wide ones, then each bot's, and shows only the first few: the
+ * rest are a click away in View all.
  * Add and change one by hand here; the bots
  * keep it up to date themselves as they work.
  */
@@ -41,11 +47,45 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<{ error?: boolean; success?: boolean; msg: string }>();
     const [adding, setAdding] = useState(false);
+    const [showing_all, setShowingAll] = useState(false);
     const [open_task, setOpenTask] = useState<TaskWithNames | null>(null);
     const can_manage = canManageCrew({ user_types: pageProps?.user_types });
 
+    /**
+     * What the page lists: the order the all-tasks modal uses, cut to
+     * `AppData.TaskSectionShown` rows.
+     */
+    const shown = shownWorkspaceTasks({ tasks: items });
+
+    /**
+     * The workspace-wide tasks here a new task can be a part of: the open
+     * ones, a closed task having nothing left to split.
+     */
+    const parents = items
+        .filter(
+            (task) =>
+                !task.bot_id &&
+                Boolean(task.workspace_id) &&
+                (OpenTaskStatuses as readonly string[]).includes(task.status || ""),
+        )
+        .map((task) => ({ id: task.id, title: task.title }));
+
     const replace = ({ task }: { task: TaskWithNames }) =>
-        setItems((prev) => [task, ...prev.filter((item) => item.id != task.id)].sort(order));
+        setItems((prev) => [task, ...prev.filter((item) => item.id != task.id)].sort(compareTasks));
+
+    /**
+     * Reads the workspace's tasks again: one change can move more than the
+     * task that was open, since a part joining or leaving reshapes its
+     * parent's counts.
+     */
+    const refresh = async () => {
+        const res = await fetchApi<Record<string, unknown>, APIResponseObject<TaskWithNames>>(
+            `/api/admin/tasks/list-tasks?workspace_id=${workspace_id}`,
+            { method: "GET" },
+        );
+
+        if (res.success && res.payload) setItems(res.payload);
+    };
 
     const move = async ({ task, next }: { task: TaskWithNames; next: string }) => {
         if (busy) return;
@@ -113,7 +153,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
                     </Row>
                 ) : null}
                 <SettingsList is_empty={!items.length} empty="No tasks in this workspace yet.">
-                    {items.map((task) => (
+                    {shown.map((task) => (
                         <TaskListItem
                             key={task.id}
                             task={task}
@@ -124,8 +164,29 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
                         />
                     ))}
                 </SettingsList>
+                {items.length > shown.length ? (
+                    <Row className="justify-end">
+                        <Button
+                            title="Every task in this workspace, the workspace-wide ones first"
+                            type="button"
+                            variant="ghost"
+                            color="gray"
+                            size="small"
+                            onClick={() => setShowingAll(true)}
+                            className="px-2! text-[12px]"
+                        >
+                            View all {items.length} tasks
+                        </Button>
+                    </Row>
+                ) : null}
                 <SettingsStatus status={status} />
             </Stack>
+            <WorkspaceTasksModal
+                open={showing_all}
+                setOpen={setShowingAll}
+                tasks={items}
+                onOpenTask={(task) => setOpenTask(task)}
+            />
             <TaskDetailModal
                 task={open_task}
                 can_manage={can_manage}
@@ -133,6 +194,7 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
                 onChanged={({ task, msg }) => {
                     replace({ task });
                     setStatus(msg ? { success: true, msg } : undefined);
+                    refresh().catch(() => {});
                 }}
                 onDeleted={({ task_id }) => {
                     setItems((prev) => prev.filter((item) => item.id != task_id));
@@ -144,11 +206,12 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
                 open={adding}
                 setOpen={setAdding}
                 title="Add a task"
-                description="Pick the bot that has it, or make it workspace-wide: every bot here sees it, works on it and logs what it did. Hand it over later to give it to one bot."
+                description="Pick the bot that has it, or make it workspace-wide: every bot here sees it, works on it and logs what it did. Hand it over later to give it to one bot. To split a workspace-wide task into pieces, add each piece with 'Part of' set to it: one bot per piece, and the parent stays open until you verify them."
             >
                 <TaskForm
                     workspace_id={workspace_id}
                     bots={bots}
+                    parents={parents}
                     onCancel={() => setAdding(false)}
                     onSaved={(task, msg) => {
                         replace({ task });
@@ -159,16 +222,4 @@ export default function WorkspaceTasksGroup({ workspace_id, tasks, bots }: Props
             </AddModalShell>
         </SettingsGroup>
     );
-}
-
-/**
- * Blocked, then doing, then to do, then finished: the order a list reads
- * in.
- */
-function order(a: TaskWithNames, b: TaskWithNames) {
-    const rank = (task: TaskWithNames) =>
-        task.status == "blocked" ? 0 : task.status == "doing" ? 1 : task.status == "todo" ? 2 : 3;
-    const diff = rank(a) - rank(b);
-
-    return diff != 0 ? diff : Number(b.updated_at || b.id || 0) - Number(a.updated_at || a.id || 0);
 }

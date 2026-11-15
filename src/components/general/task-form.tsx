@@ -30,6 +30,11 @@ type Props = {
      */
     bots?: { id?: number | string | null; name?: string | null }[];
     /**
+     * The workspace-wide tasks here a new one can be a part of (only the
+     * open ones: a closed task can't be split). Adding, never editing.
+     */
+    parents?: { id?: number | string | null; title?: string | null }[];
+    /**
      * Edits this task; adds one when not given.
      */
     task?: TaskDetail | null;
@@ -46,6 +51,7 @@ export default function TaskForm({
     bot_id,
     workspace_id,
     bots = [],
+    parents = [],
     task,
     onSaved,
     onCancel,
@@ -65,6 +71,9 @@ export default function TaskForm({
     );
     const workspace_wide = pick_bot && picked == WorkspaceWideValue;
     const picked_bot_id = pick_bot && !workspace_wide ? Number(picked) || undefined : bot_id || undefined;
+    const pick_parent = !task && parents.length > 0;
+    const [picked_parent, setPickedParent] = useState<string>("");
+    const parent_task_id = pick_parent && picked_parent ? Number(picked_parent) || undefined : undefined;
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -94,6 +103,7 @@ export default function TaskForm({
                 bot_id: task || workspace_wide ? undefined : picked_bot_id,
                 workspace_id: task ? undefined : workspace_id || undefined,
                 workspace_wide: task ? undefined : workspace_wide || undefined,
+                parent_task_id,
                 title,
                 description,
                 status,
@@ -143,6 +153,32 @@ export default function TaskForm({
                             },
                         ]}
                         changeHandler={(value) => setPicked(String(value))}
+                    />
+                ) : null}
+                {pick_parent ? (
+                    <Select
+                        title="Part of"
+                        label="Part of"
+                        showLabel
+                        options={[
+                            {
+                                title: "A task of its own",
+                                value: "",
+                                default: !picked_parent,
+                            },
+                            ...parents.map((parent) => ({
+                                title: `#${parent.id} ${parent.title || ""}`.trim(),
+                                value: String(parent.id),
+                                default: String(parent.id) == picked_parent,
+                            })),
+                        ]}
+                        changeHandler={(value) => {
+                            const next = String(value);
+
+                            setPickedParent(next);
+
+                            if (next && workspace_wide && default_bot_id) setPicked(String(default_bot_id));
+                        }}
                     />
                 ) : null}
                 <CodeEditor

@@ -8,6 +8,11 @@ type Params = {
      */
     bot_id?: number | null;
     workspace_id?: number | null;
+    /**
+     * The part's parent: two parts of different parents may share a title
+     * ("Write the intro" under two releases), the same parent's may not.
+     */
+    parent_task_id?: number | null;
 };
 
 /**
@@ -15,7 +20,7 @@ type Params = {
  * `ActionCheckNote` gets real behaviour: a bot updates the existing task
  * instead of adding a second one for the same work.
  */
-export default function findDuplicateTask({ tasks, title, bot_id, workspace_id }: Params) {
+export default function findDuplicateTask({ tasks, title, bot_id, workspace_id, parent_task_id }: Params) {
     const wanted = title.trim().toLowerCase();
 
     return (
@@ -26,6 +31,8 @@ export default function findDuplicateTask({ tasks, title, bot_id, workspace_id }
             } else if (task.workspace_id || Number(task.bot_id || 0) != Number(bot_id || 0)) {
                 return false;
             }
+
+            if (Number(task.parent_task_id || 0) != Number(parent_task_id || 0)) return false;
 
             return (task.title || "").trim().toLowerCase() == wanted;
         }) || null

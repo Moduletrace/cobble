@@ -5,7 +5,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import Textarea from "@moduletrace/twui/form/Textarea";
 import { OpenTaskStatuses } from "@/src/dict/task-dict";
-import type { TaskDetail, TaskFile } from "@/src/types";
+import type { TaskDetail, TaskFile, TaskWithNames } from "@/src/types";
 import TaskFileRow from "@/src/components/general/task-file-row";
 import HandOverForm from "@/src/components/general/hand-over-form";
 import TaskForm from "@/src/components/general/task-form";
@@ -14,6 +14,8 @@ import TaskStatusMoves from "@/src/components/general/task-status-moves";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import TaskFactRow from "@/src/components/general/task-fact-row";
 import TaskNoteRow from "@/src/components/general/task-note-row";
+import TaskSubtaskRow from "@/src/components/general/task-subtask-row";
+import SubtaskLinkForm from "@/src/components/general/subtask-link-form";
 import TaskMarkdown from "@/src/components/general/task-markdown";
 import type { BotFace } from "@/src/dict/bot-dict";
 import { AppContext } from "@/src/pages/__root";
@@ -28,6 +30,10 @@ type Props = {
      * A crew manager can change it, file onto it and delete it.
      */
     can_manage?: boolean;
+    /**
+     * Opens one of its parts in place, so a split task is one click deep.
+     */
+    onOpenSubtask?: (subtask: TaskWithNames) => void;
     onChanged: (task: TaskDetail, msg?: string) => void;
     onDeleted: () => void;
 };
@@ -37,13 +43,15 @@ type Props = {
  * when it last moved, what it is, its files (each opening its bytes), its
  * notes oldest first, a box to add a note, and edit or delete. A crew
  * manager can file a new deliverable straight onto it, hand an open one to
- * another bot, which starts on it, or make a bot's open workspace task
- * workspace-wide.
+ * another bot, which starts on it, make a bot's open workspace task
+ * workspace-wide, and split a workspace-wide one into parts: each piece a
+ * bot's own task, opened from here, or unlinked again to stand alone.
  */
-export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted }: Props) {
+export default function TaskDetailPanel({ task, can_manage, onOpenSubtask, onChanged, onDeleted }: Props) {
     const { pageProps } = useContext(AppContext);
     const [editing, setEditing] = useState(false);
     const [handing_over, setHandingOver] = useState(false);
+    const [linking, setLinking] = useState(false);
     const [note, setNote] = useState("");
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<string>();
@@ -141,8 +149,23 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
         );
     }
 
+    if (linking) {
+        return (
+            <SubtaskLinkForm
+                task={task}
+                onCancel={() => setLinking(false)}
+                onLinked={(saved, msg) => {
+                    setLinking(false);
+                    onChanged(saved, msg);
+                }}
+            />
+        );
+    }
+
     const deliverables = task.files.filter((file) => file.kind != "reference");
     const references = task.files.filter((file) => file.kind == "reference");
+    const subtasks = task.subtasks || [];
+    const open_parts = subtasks.filter((subtask) => (OpenTaskStatuses as readonly string[]).includes(subtask.status || "")).length;
 
     return (
         <Stack className="w-full gap-4! items-stretch">
@@ -170,14 +193,17 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                                 variant="ghost"
                                 color="gray"
                                 size="small"
-                                disabled={busy}
+                                disabled={busy || Boolean(task.parent_task_id) || Boolean(Number(task.subtask_count || 0))}
                                 onClick={() => setHandingOver(true)}
                                 className="px-2! text-[12px]"
                             >
                                 Hand over
                             </Button>
                         ) : null}
-                        {task.workspace_id && task.bot_id && (OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
+                        {task.workspace_id &&
+                        task.bot_id &&
+                        !task.parent_task_id &&
+                        (OpenTaskStatuses as readonly string[]).includes(task.status || "") ? (
                             <Button
                                 title="Make it workspace-wide: every bot in the workspace works on it"
                                 type="button"
@@ -202,6 +228,43 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                                 className="px-2! text-[12px]"
                             >
                                 Make workspace-wide
+                            </Button>
+                        ) : null}
+                        {can_manage && task.workspace_id && task.bot_id && !task.parent_task_id ? (
+                            <Button
+                                title="Make it a part of a workspace-wide task: the piece this bot took on"
+                                type="button"
+                                variant="ghost"
+                                color="gray"
+                                size="small"
+                                disabled={busy}
+                                onClick={() => setLinking(true)}
+                                className="px-2! text-[12px]"
+                            >
+                                Make it a part of...
+                            </Button>
+                        ) : null}
+                        {task.parent_task_id ? (
+                            <Button
+                                title="Take it out of its workspace-wide task: it becomes a task of its own"
+                                type="button"
+                                variant="ghost"
+                                color="gray"
+                                size="small"
+                                disabled={busy}
+                                onClick={() => {
+                                    if (!window.confirm(`Unlink "${task.title}" from task #${task.parent_task_id}? It becomes a task of its own.`))
+                                        return;
+
+                                    run({
+                                        path: "tasks/detach-subtask",
+                                        body: { task_id: Number(task.id) },
+                                        done: "It's a task of its own now.",
+                                    }).catch(() => {});
+                                }}
+                                className="px-2! text-[12px]"
+                            >
+                                Unlink from parent
                             </Button>
                         ) : null}
                         <Button
@@ -273,6 +336,13 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
                             : `${task.bot_name || "The bot"}'s own list`}
                     </Span>
                 </TaskFactRow>
+                {task.parent_task_id ? (
+                    <TaskFactRow label="Part of">
+                        <Span className="min-w-0 truncate">
+                            {`#${task.parent_task_id}${task.parent_title ? ` ${task.parent_title}` : ""}`}
+                        </Span>
+                    </TaskFactRow>
+                ) : null}
                 <TaskFactRow label="Added">
                     <Span className="min-w-0 truncate">
                         {[
@@ -309,6 +379,31 @@ export default function TaskDetailPanel({ task, can_manage, onChanged, onDeleted
 
             {task.description ? (
                 <TaskMarkdown text={task.description} />
+            ) : null}
+
+            {task.workspace_id && !task.bot_id ? (
+                <Stack className="w-full gap-1! items-stretch">
+                    <Span className="text-[12px] font-bold leading-4 text-ink-secondary">
+                        {subtasks.length
+                            ? `Parts (${subtasks.length}${open_parts ? `, ${open_parts} open` : ", all done"})`
+                            : "Parts"}
+                    </Span>
+                    {subtasks.length ? (
+                        <Stack className="w-full gap-0! items-stretch">
+                            {subtasks.map((subtask) => (
+                                <TaskSubtaskRow
+                                    key={subtask.id}
+                                    subtask={subtask}
+                                    onOpen={() => onOpenSubtask?.(subtask)}
+                                />
+                            ))}
+                        </Stack>
+                    ) : (
+                        <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                            Not split yet: every bot here works on it as one task.
+                        </Span>
+                    )}
+                </Stack>
             ) : null}
 
             <Stack className="w-full gap-1! items-stretch">

@@ -7,6 +7,7 @@ import profileImageUrls from "@/src/utils/profile-image-urls";
 const WorkspaceAvatarSizes = {
     xs: { box: "size-[18px] min-w-[18px] rounded-[4px]", icon: 12 },
     sm: { box: "size-8 min-w-8 rounded-default-sm", icon: 16 },
+    md: { box: "size-7 min-w-7 rounded-default-sm", icon: 15 },
     lg: { box: "size-14 min-w-14 rounded-default", icon: 24 },
 } as const;
 

@@ -28,6 +28,13 @@ describe("updateTaskTool", () => {
         expect(tool.description).toContain(`holds ${AppData.TaskMediaMaxPerTask} files`);
     });
 
+    test("takes a parent to become a part of, and says so", () => {
+        expect(tool.schema?.safeParse({ task_id: 20, parent_task_id: 16 }).success).toBe(true);
+        expect(tool.schema?.safeParse({ task_id: 20, parent_task_id: 0 }).success).toBe(false);
+        expect(tool.description).toContain("parent_task_id");
+        expect(tool.description).toContain("unlink_parent");
+    });
+
     test("tells the bot to rename rather than add a second task", () => {
         expect(tool.description).toContain("Rename it with title");
         expect(tool.description).toContain("never create a second task");

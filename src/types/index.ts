@@ -210,6 +210,11 @@ export type TaskWithNames = BUN_SQLITE_COBBLE_TASKS & {
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
     /**
+     * The workspace's picture, for a workspace-wide task's mark: it is
+     * nobody's, so it wears the workspace's face rather than a bot's.
+     */
+    workspace_image_media_id?: number | null;
+    /**
      * Its newest note's text, for the row's second line.
      */
     latest_note?: string | null;
@@ -221,6 +226,17 @@ export type TaskWithNames = BUN_SQLITE_COBBLE_TASKS & {
      * How many files it carries.
      */
     media_count?: number | null;
+    /**
+     * The workspace-wide task it is a part of, when it is one.
+     */
+    parent_title?: string | null;
+    parent_status?: string | null;
+    /**
+     * Its parts, when it is workspace-wide: how many and how many still
+     * need work.
+     */
+    subtask_count?: number | null;
+    subtask_open_count?: number | null;
 };
 
 /**
@@ -253,14 +269,15 @@ export type TaskNote = BUN_SQLITE_COBBLE_TASK_NOTES & {
 };
 
 /**
- * A task with its notes and files and who added it: what the task modal
- * renders.
+ * A task with its notes and files and who added it, and its parts when it
+ * is workspace-wide: what the task modal renders.
  */
 export type TaskDetail = TaskWithNames & {
     created_by_bot_name?: string | null;
     created_by_user_name?: string | null;
     notes: TaskNote[];
     files: TaskFile[];
+    subtasks: TaskWithNames[];
 };
 
 /**

@@ -436,6 +436,17 @@ export const AppData = {
     TaskMaxPerScope: 200,
     TaskMediaMaxPerTask: 20,
     /**
+     * Parts one workspace-wide task can be split into, so a crew that keeps
+     * splitting never turns one task into a hundred. A part can't be split
+     * again, so this is the whole tree.
+     */
+    TaskSubtaskMaxPerParent: 12,
+    /**
+     * Tasks a workspace page lists at a time, before the View all button
+     * opens the rest in a modal: wide ones first, then each bot's.
+     */
+    TaskSectionShown: 5,
+    /**
      * Open tasks a chat reply carries as a digest for its reminder, and how
      * many `list_tasks` hands back at once.
      */
