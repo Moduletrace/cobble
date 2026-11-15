@@ -11,6 +11,7 @@ import messagePreview from "@/src/utils/message-preview";
 import relativeTime from "@/src/utils/relative-time";
 import UnreadDot from "./unread-dot";
 import AdminShield from "@/src/components/general/admin-shield";
+import WorkingSpinner from "./working-spinner";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -27,9 +28,10 @@ type Props = {
 };
 
 /**
- * 48px rail row. Status is the face and the subtitle (the bot's status
- * line while it has one): no badges, spinners or state dots. A workspace's
- * admin has its shield beside its name: a role, not a status.
+ * 48px rail row. Status is the face, the spinner that takes the time's slot
+ * while the bot has work running, and the subtitle (the bot's status line
+ * while it has one): no badges or state dots. A workspace's admin has its
+ * shield beside its name: a role, not a status.
  * The selected background (ink at 5%, never a hue) is painted by
  * RailBotCard, which also holds the sessions.
  */
@@ -42,6 +44,12 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
         bot.role ||
         "";
     const at = bot.last_message_at || bot.last_activity_at;
+    /**
+     * The face is the user's, not this conversation's: it says the bot has
+     * work running anywhere for them (a reply here or elsewhere, a task),
+     * which is what the row marks.
+     */
+    const working = bot.face == "working";
 
     return (
         <Link
@@ -68,7 +76,9 @@ export default function BotRow({ bot, href, selected, subtitle }: Props) {
                 </Span>
             </Stack>
             <Stack className="hidden @rail:flex shrink-0 self-stretch items-end justify-start gap-1.5! pt-1.5">
-                {at ? (
+                {working ? (
+                    <WorkingSpinner color={stone_props.color} />
+                ) : at ? (
                     <Span className="text-[11px] leading-4 text-ink-secondary">
                         {relativeTime({ at: Number(at) })}
                     </Span>

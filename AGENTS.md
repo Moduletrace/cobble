@@ -79,7 +79,7 @@ Enables SQLite foreign keys (`enableForeignKeys`), `bunextInit()`, `ensureDocker
 - Bots, workspaces and computers belong to the install; their `user_id` is only the creator. Users reach them only through grants: `bot_users` (a worker's own chat) and `workspace_users` (every bot in that workspace).
 - `crewRole` (`src/utils/rbac/crew-role.ts`): `super_admin` reaches everything and is the **only** one who chats with the coordinator; `admin` reaches every worker and workspace; `member` only their grants. `canManageCrew` (super admin + admin) creates/edits/deletes crew and grants access; DB helpers check it themselves (`assertCrewManager`).
 - Access SQL lives in `src/utils/crew-access/` (tested against SQLite) and backs `grabChatBot`, `grabUserBot`, `grabUserWorkspace(s)`, `grabWorkspaceBot`, `grabBots`, `grabUserComputer(s)`.
-- Conversations, faces and status lines are **per user** (`bot_sessions.user_id`, `bot_user_faces`). A job runs for its session's user, with that user's memory and reach. Page reads overlay the viewer's face (`botFaceSql`). Status lines never name a task.
+- Conversations, faces and status lines are **per user** (`bot_sessions.user_id`, `bot_user_faces`). A job runs for its session's user, with that user's memory and reach. Page reads overlay the viewer's face (`botFaceSql`). Status lines never name a task. The rail row marks work with a spinner (`WorkingSpinner`) in the time's slot, from the face alone (`working`, so work anywhere for that user), and the time returns when it ends; the unread dot stays beside it. Nothing goes on the stone: no ring, badge or corner mark.
 
 ### Bot types
 
@@ -275,7 +275,7 @@ Route-local code under `src/pages` goes in non-routed meta folders: `(sections)`
 - **Chunk classes with `twMerge`**, one chunk per claim: base first, one string per conditional, caller override last. Never concatenate conditional classes with template literals or `+`, never one long mixed string: `className={twMerge("w-full flex-col gap-0! rounded-default py-1", selected && "bg-ink/5")}`.
 - **twui `Checkbox` calls `changeHandler` on mount.** Harmless for local state; anything that saves or confirms goes on `clickDispatchHandler`.
 - **Theming:** colours, radii and fonts change only in `src/styles/main.css` (`:root`/`.dark` vars exposed as `paper`, `surface`, `sunken`, `ink`, `ink-secondary`, `ink-disabled`, `hairline`, `hairline-strong`, `on-ink`, `hue-<name>`, `shadow-popover`, `--m-fast/base/slow`). Never hardcode hex colours, radii or font stacks. Hues are bot identity only, never state.
-    - **The one exception:** a bot's user-chosen colour reaches `BotStone` and `UnreadDot` as an SVG `fill` attribute. Nothing else may take a colour that way, and `src/utils/bot-color.ts` is the only place a colour string is validated.
+    - **The one exception:** a bot's user-chosen colour reaches `BotStone`, `UnreadDot` and `WorkingSpinner` as an SVG `fill`/`stroke` attribute. Nothing else may take a colour that way, and `src/utils/bot-color.ts` is the only place a colour string is validated.
 - **Screenshots:** `docs/readme/{hero,workspace}-{light,dark}.png` are real screenshots (1440px at 2x, downscaled to 1600px). Retake them from a seeded dev instance when the UI changes, same names. Never use handoff screens.
 - **Logo:** `public/logos/logo.svg` is the single source; after changing it run `bun run gen:favicon`.
 - **Site name:** interpolate `SiteData["SiteName"]` in titles, emails and copy; never hardcode the brand.
