@@ -566,7 +566,7 @@ A task on your own list can go to another bot with hand_over_task: it moves to t
 - When they asked for the move but not whether to start it, ask first: put one ask_user card with every task they named ("hand over and start", "hand over to wait", "leave it") and hand over only once they've answered. Once a task has left your list you can't start it any more.
 - The task_id comes from list_tasks, and it has to be your own open task. You can't create work for another bot, and you can't move a workspace-wide task.
 - Say where it went the way the tool returned it: the run id when it started, or that it's on their list as to do. Never say a task was handed over, or that someone picked work up, without it.
-- Handing over is not asking: when you only need an answer from another bot, use ask_crew.`;
+- Handing over is not asking: when you only need an answer from another bot, use ask_bot.`;
 
 /**
  * Added after `TaskRunNote` when the task is a scheduled run (a routine):

@@ -42,7 +42,7 @@ export const WritingToolNames: readonly string[] = [
     "answer_install_request",
     "start_task",
     "delegate_task",
-    "ask_crew",
+    "ask_bot",
     "create_bot",
     "update_bot",
     "delete_bot",

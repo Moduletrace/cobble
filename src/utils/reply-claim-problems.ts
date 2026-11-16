@@ -1,6 +1,6 @@
 import type { HarnessToolUse } from "@/src/harness/types";
 import claimsWorkUnderWay from "./claims-work-under-way";
-import { AppRecordPrefix } from "./strip-app-records";
+import unsupportedAppRecordLines from "./app-record-claims";
 
 type Params = {
     text: string;
@@ -30,9 +30,11 @@ type Params = {
 
 /**
  * The tools whose work goes on after the reply and comes back to the
- * conversation.
+ * conversation. Every name here must be one the harness registers:
+ * `ask_crew` outlived the rename to `ask_bot` here, so a reply that really
+ * had asked the crew was still faulted for saying it was working.
  */
-const WorkStartingTools = ["start_task", "delegate_task", "ask_crew"];
+export const WorkStartingTools = ["start_task", "delegate_task", "ask_bot"];
 
 /**
  * What in a reply's answer the app's record contradicts: refs to files or
@@ -72,22 +74,25 @@ export default function replyClaimProblems({
     const started = tool_uses.some((use) => use.ok && WorkStartingTools.includes(use.name));
 
     /**
-     * The record line the answer wrote itself. Only when it claims tools:
-     * a model that mimics "called no tools" is stripped and harmless
-     * (`stripAppRecords`), one that writes the tools it never called makes
-     * the app vouch for it, which is what the user reads.
+     * A record line the answer wrote itself that claims work this reply
+     * never did. Only these are the app's word to the user, so only these
+     * are faulted: a mention of the line inside a sentence is the bot
+     * naming what it got wrong, and a line the record supports is the
+     * app's truth copied over (`unsupportedAppRecordLines`). Run #468
+     * faulted the correction three times running for the quoted phrase
+     * alone, so the fabrication went out and the apology never did.
      */
-    const forged = text.match(/\[App record:[^\]]*\]/i)?.[0];
+    const forged = unsupportedAppRecordLines({ text, tool_uses });
 
-    if (forged && !/called no tools/i.test(forged)) {
+    if (forged.length) {
         problems.push(
-            `It writes its own "${AppRecordPrefix} ...]" line claiming tools it never called. Only the app writes that line, from the tools it recorded; the user reads it as the app's word. Delete it and say only what the tools returned.`,
+            `It writes an app record line of its own, the note the app adds after a past message of yours naming the tools its run called, and it names tools this reply never called. Only the app writes that line, from the tools it recorded; the user reads it as the app's word. Take every line of that shape out of the answer and say only what the tools returned.`,
         );
     }
 
     if (!started && !has_open_work && claimsWorkUnderWay({ text })) {
         problems.push(
-            `It says work is under way or that a report will follow, but this reply started no run (start_task) and nothing of yours is open in this conversation. Nothing is running, so no result will come unless you call start_task now.`,
+            `It says work is going on beyond this reply, or that its findings are still to come, but this reply started no run (start_task) and nothing of yours is open in this conversation. Nothing is running, so no result arrives unless you call start_task now.`,
         );
     }
 

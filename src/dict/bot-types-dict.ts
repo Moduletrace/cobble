@@ -84,7 +84,7 @@ export const BotTypePermissionMatrix: Record<BotRole, BotPermission[]> = {
     /**
      * A worker can't hand out work: it passes on a task it already has
      * (`hand_over_task`), and asks the crew for anything else through the
-     * coordinator (`ask_crew`).
+     * coordinator (`ask_bot`).
      */
     worker: ["hand_over_task"],
 };
