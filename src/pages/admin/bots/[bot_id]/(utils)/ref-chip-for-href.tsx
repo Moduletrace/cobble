@@ -12,12 +12,14 @@ import {
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
 import { parseFolderRefHref } from "@/src/utils/folder-ref";
+import { botPlanRefId } from "@/src/utils/bot-plan-ref";
 import { botQuestionRefId } from "@/src/utils/bot-question-ref";
 import { botSuggestionRefId } from "@/src/utils/bot-suggestion-ref";
 import { graphicRefId } from "@/src/utils/graphic-ref";
 import { taskRefId } from "@/src/utils/task-ref";
 import { askRefId } from "@/src/utils/ask-ref";
 import { generalSettingsRefId } from "@/src/utils/general-settings-ref";
+import BotPlanCard from "../(partials)/bot-plan-card";
 import BotQuestionRefChip from "../(partials)/bot-question-ref-chip";
 import BotSuggestionsRef from "../(partials)/bot-suggestions-ref";
 import BotRefChip from "../(partials)/bot-ref-chip";
@@ -114,6 +116,9 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
 
     const suggestion_id = botSuggestionRefId({ href });
     if (suggestion_id) return <BotSuggestionsRef suggestion_id={suggestion_id} />;
+
+    const plan_id = botPlanRefId({ href });
+    if (plan_id) return <BotPlanCard plan_id={plan_id} />;
 
     const task_id = taskRefId({ href });
 

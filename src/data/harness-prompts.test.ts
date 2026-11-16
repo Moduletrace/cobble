@@ -17,6 +17,12 @@ import {
     TaskWrapUpIncomingNote,
     TasksNote,
     wrapUpWorktreeNote,
+    PlansNote,
+    PlanStepNote,
+    PlanWaitingNote,
+    PlanActiveNote,
+    PlanPausedNote,
+    ScheduledPlanNote,
 } from "./harness-prompts";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 
@@ -243,5 +249,62 @@ describe("AskGateRequest", () => {
         expect(text).toContain("It asked to send this to: [bot:4] Tben INC Admin");
         expect(text).toContain("Title: Open tasks");
         expect(text).toContain("List your open tasks.");
+    });
+});
+
+/**
+ * A plan is the answer to a bot that answers a long request with one wall of
+ * text: the notes hold it to one step per reply and a report of two or three
+ * sentences, and the card behind them shows the rest.
+ */
+const plan = {
+    id: 4,
+    title: "Audit the pricing pages",
+    goal: "Know which pages price badly",
+    status: "active" as const,
+    steps: [
+        { text: "Collect the pages", state: "done" as const, note: "14 pages" },
+        { text: "Score them", state: "pending" as const, note: "" },
+        { text: "Write it up", state: "pending" as const, note: "" },
+    ],
+    current_step: 1,
+};
+
+describe("plan notes", () => {
+    test("waits for the user's approval, and says a plan that is open stays open", () => {
+        expect(PlanWaitingNote({ plan: { ...plan, status: "planned", current_step: 1 } })).toContain(
+            "Plan #4 \"Audit the pricing pages\"",
+        );
+        expect(PlansNote).toContain("nothing of it starts until the user approves it");
+    });
+
+    test("tells the run to work its step only, then report in two or three sentences", () => {
+        const note = PlanStepNote({ plan });
+
+        expect(note).toContain("This reply works step 2 only: Score them");
+        expect(note).toContain("One step per reply");
+        expect(note).toContain("two or three sentences");
+        expect(note).toContain("complete_plan_step");
+    });
+
+    test("lists the steps with where each one stands and what it produced", () => {
+        const note = PlanStepNote({ plan });
+
+        expect(note).toContain("1. [done] Collect the pages - 14 pages");
+        expect(note).toContain("2. [now] Score them");
+        expect(note).toContain("3. [pending] Write it up");
+    });
+
+    test("an active plan elsewhere in the conversation leaves the plan where it is", () => {
+        expect(PlanActiveNote({ plan })).toContain("leave the plan where it is");
+    });
+
+    test("a paused plan is the user's to resume", () => {
+        expect(PlanPausedNote({ plan: { ...plan, status: "paused" } })).toContain("paused by the user");
+    });
+
+    test("a routine's plan is approved at once and worked through in the run", () => {
+        expect(ScheduledPlanNote).toContain("approved at once");
+        expect(ScheduledPlanNote).toContain("work its steps in this run");
     });
 });

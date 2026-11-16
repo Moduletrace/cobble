@@ -1,5 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import deleteUnlinkedAttachmentMedia from "../media/delete-unlinked-attachment-media";
+import deleteBotPlanRows from "../bot-plans/delete-bot-plan-rows";
 
 type Params = {
     session_ids: number[];
@@ -105,6 +106,7 @@ export default async function deleteSessionRows({ session_ids }: Params) {
         sql: `DELETE FROM bot_tasks WHERE session_id IN (${session_placeholders})`,
         values: ids,
     });
+    await deleteBotPlanRows({ session_ids: ids });
     await BunSQLite.sql({
         sql: `DELETE FROM bot_sessions WHERE id IN (${session_placeholders})`,
         values: ids,

@@ -74,6 +74,12 @@ export type BotJobOutcome = {
      * (`noteTrackerTask`).
      */
     exhausted?: boolean;
+    /**
+     * The plan this run worked a step of (`params.plan_id`): the app queues
+     * its next step once the reply is out (`continueBotPlan`), unless the
+     * run asked for the user or started work that runs on its own.
+     */
+    plan_id?: number;
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

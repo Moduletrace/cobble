@@ -1099,6 +1099,33 @@ export const AppData = {
      */
     BotSuggestionTitleMaxChars: 120,
     /**
+     * Most steps one plan may hold (`create_plan`). Short enough that a
+     * user reads the whole thing before approving it.
+     */
+    BotPlanMaxSteps: 10,
+    /**
+     * Longest title a plan may have.
+     */
+    BotPlanTitleMaxChars: 120,
+    /**
+     * Longest goal a plan may state (what "done" means).
+     */
+    BotPlanGoalMaxChars: 300,
+    /**
+     * Longest one plan step may be.
+     */
+    BotPlanStepMaxChars: 240,
+    /**
+     * Longest line a bot may keep on a finished step, saying what it
+     * produced.
+     */
+    BotPlanStepNoteMaxChars: 400,
+    /**
+     * Plans shown in a conversation's prompt as earlier ones, so a bot
+     * remembers work it already broke down.
+     */
+    BotPlanPastShown: 3,
+    /**
      * Longest dictation the composer records before it stops on its own.
      */
     ComposerVoiceMaxMs: 5 * 60 * 1000,

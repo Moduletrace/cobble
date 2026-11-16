@@ -31,6 +31,8 @@ import grabJobUserId from "@/src/functions/backend/db/bots-queue/grab-job-user-i
 import runBotJob from "./run-bot-job";
 import parseJobJson from "./parse-job-json";
 import nameBotSession from "./name-bot-session";
+import wakeBotsQueue from "./wake-bots-queue";
+import continueBotPlan from "@/src/functions/backend/db/bot-plans/continue-bot-plan";
 import pushBotSession from "./push-bot-session";
 import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
 import { registerJobAbort, unregisterJobAbort } from "./job-abort-registry";
@@ -298,6 +300,23 @@ export default async function processBotJob({
         });
 
         await pushBotNotice({ bot_id, ...completion });
+
+        /**
+         * A run that worked a step of a plan hands it on: the next step is
+         * queued here, once this reply is out, so each step is its own
+         * message (`continueBotPlan` holds it when the user is needed or
+         * the run started work of its own).
+         */
+        if (outcome.plan_id) {
+            await continueBotPlan({
+                plan_id: outcome.plan_id,
+                session_id: Number(completion.message?.session_id || job.session_id),
+                needs_you: Boolean(outcome.needs_you),
+                tool_names: (outcome.tool_log || []).map((use) => use.name),
+            }).then((job_id) => {
+                if (job_id) wakeBotsQueue();
+            });
+        }
 
         /**
          * Once the first exchange is sent, the bot names the session and

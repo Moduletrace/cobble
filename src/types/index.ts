@@ -36,6 +36,7 @@ import type { HarnessKind } from "../dict/harness-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dict";
 import type { BotQuestionKind, BotQuestionStatus } from "../dict/bot-question-dict";
+import type { BotPlanState, BotPlanStepState } from "../dict/bot-plan-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
 import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { BotTraceKind } from "../dict/bot-trace-dict";
@@ -889,6 +890,53 @@ export type BotSuggestionView = {
     steps: string[];
     bot_id: number;
     bot_name: string;
+};
+
+/**
+ * A plan a bot broke complex work into (`[plan:ID]`): its steps, how far it
+ * got, and what the user may do with it. The card reads it, and the run's
+ * prompt carries the same shape without the bot's name.
+ */
+export type BotPlanView = {
+    id: number;
+    title: string;
+    goal: string;
+    steps: BotPlanStep[];
+    status: BotPlanState;
+    /**
+     * The step being worked: the first one still pending, or null when
+     * none is left.
+     */
+    current_step: number | null;
+    finished_steps: number;
+    total_steps: number;
+    decided_at: number | null;
+    created_at: number;
+    updated_at: number;
+    user_id: number;
+    bot_id: number;
+    bot_name: string;
+    session_id: number;
+    workspace_id: number | null;
+};
+
+export type BotPlanStep = {
+    text: string;
+    state: BotPlanStepState;
+    /**
+     * What a finished step produced, in the bot's words.
+     */
+    note: string;
+};
+
+/**
+ * Pushed when a plan is written, moved on, or changed by the user, so every
+ * open card of it reloads what it shows.
+ */
+export type BotPlanChangedData = {
+    plan_id: number;
+    session_id: number;
+    bot_id: number;
 };
 
 export type SecretRequestView = {
@@ -2691,6 +2739,11 @@ export const WebSocketEvents = [
      * `BotTraceData`)
      */
     "server:bot-trace",
+    /**
+     * A plan a bot wrote was created, moved on a step, or changed by the
+     * user (`data`: `BotPlanChangedData`)
+     */
+    "server:bot-plan",
     /**
      * A call to one of the user's hooks came in or changed (`data`:
      * `{ hook_id }`)

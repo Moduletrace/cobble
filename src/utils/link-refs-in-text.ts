@@ -1,3 +1,4 @@
+import { BotPlanRefHrefPrefix } from "./bot-plan-ref";
 import { BotQuestionRefHrefPrefix } from "./bot-question-ref";
 import { BotSuggestionRefHrefPrefix } from "./bot-suggestion-ref";
 import { GeneralSettingsRefHrefPrefix } from "./general-settings-ref";
@@ -24,7 +25,7 @@ import {
  * (`[folder:computer:3:seo/raw]`), proposal ref (`[proposal:7]`) and hook
  * proposal ref (`[hook-proposal:4]`), secret ref (`[secret:12]`) and secret
  * request ref (`[secret-request:4]`), question ref (`[question:4]`), suggestion ref (`[suggestion:4]`),
- * graphic ref (`[graphic:5]`) and
+ * plan ref (`[plan:4]`), graphic ref (`[graphic:5]`) and
  * task ref (`[task:20]`), and a setting
  * ref (`[setting:run-limits:reply_steps]`, pointing at that section of
  * Settings > General) in a stretch of message text (never code) into a
@@ -72,6 +73,7 @@ export default function linkRefsInText({ text }: { text: string }) {
             /\[suggestion:(\d+)\](?!\()/g,
             (_, id: string) => `[next steps ${id}](${BotSuggestionRefHrefPrefix}${id})`,
         )
+        .replace(/\[plan:(\d+)\](?!\()/g, (_, id: string) => `[plan ${id}](${BotPlanRefHrefPrefix}${id})`)
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
         .replace(/\[task:(\d+)\](?!\()/g, (_, id: string) => `[task ${id}](${TaskRefHrefPrefix}${id})`)
         .replace(/\[ask:(\d+)\](?!\()/g, (_, id: string) => `[ask ${id}](${AskRefHrefPrefix}${id})`)

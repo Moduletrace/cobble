@@ -14,6 +14,7 @@ import {
     botFilesNote,
     ComputerFilesNote,
     ScheduledRunNote,
+    ScheduledPlanNote,
     HookRunNote,
     InstallRequestNote,
     TasksNote,
@@ -56,6 +57,7 @@ import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-too
 import importFileTool from "@/src/harness/tools/computer/import-file-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
+import grabBotPlanTools from "@/src/harness/tools/bot/plans/grab-bot-plan-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import answerInstallRequestTool from "@/src/harness/tools/bot/answer-install-request-tool";
@@ -348,6 +350,22 @@ export default async function runBotTask({
                 job_id: job.id || null,
                 onGraphic: ({ ref }) => shown.push(ref),
             }),
+            /**
+             * A routine's plan is approved at once and worked through in
+             * the run, since nobody is there to approve it on a card
+             * (`ScheduledPlanNote`). A hook call gets none: its thread is a
+             * log of calls, not a conversation to read a plan in.
+             */
+            ...(scheduled && session_id
+                ? grabBotPlanTools({
+                      user_id,
+                      bot_id: bot.id,
+                      session_id,
+                      workspace_id,
+                      approve: true,
+                      onPlan: ({ ref }) => shown.push(ref),
+                  })
+                : []),
         ];
 
         extensions = await openBotExtensions({
@@ -437,6 +455,7 @@ export default async function runBotTask({
             TaskRunNote,
             steps_note,
             scheduled ? ScheduledRunNote : "",
+            scheduled ? ScheduledPlanNote : "",
             hooked ? HookRunNote : "",
             install_request_id ? InstallRequestNote : "",
             botFilesNote({ bot_id: bot.id }),

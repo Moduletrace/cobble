@@ -1,4 +1,6 @@
 import { AppData } from "@/src/data/app-data";
+import type { BotPlanState } from "@/src/dict/bot-plan-dict";
+import type { BotPlanStepRecord } from "@/src/utils/parse-bot-plan-steps";
 import botRef from "@/src/utils/bot-ref";
 import folderRef from "@/src/utils/folder-ref";
 import computerWorkerAccount from "@/src/utils/computer-worker-account";
@@ -794,3 +796,119 @@ Title: ${title}
 The request:
 
 ${request}`;
+
+/**
+ * A plan as the prompts read it (`BotPlanView` without the bot's own name):
+ * its steps parsed and the one being worked.
+ */
+type PlanPrompt = {
+    id: number;
+    title: string;
+    goal: string;
+    status: BotPlanState;
+    steps: BotPlanStepRecord[];
+    current_step: number | null;
+};
+
+/**
+ * A plan's steps as a run reads them in its prompt: numbered, with what is
+ * done, what it is on, and what is left.
+ */
+const planStepLines = ({ plan }: { plan: PlanPrompt }) =>
+    plan.steps
+        .map((step, index) => {
+            const mark = index == plan.current_step ? "now" : step.state;
+
+            return `${index + 1}. [${mark}] ${step.text}${step.note ? ` - ${step.note}` : ""}`;
+        })
+        .join("\n");
+
+/**
+ * Added to a chat reply: when to break work into a plan instead of a long
+ * answer, and what to keep of a plan that will be used again.
+ */
+export const PlansNote = `# Plans, for work that comes in pieces
+
+Some requests are several pieces of work that build on each other, and answering them in one long message is how a reply ends up confusing: the user can't see where it is going, and nothing of it is checked. For those, call create_plan before starting:
+
+- the work has three or more pieces that depend on each other (find out, then decide, then change), or
+- the user's answer will cost real time or money and they should see the shape of it first, or
+- you would otherwise be listing everything you're about to do.
+
+Don't plan a question you can answer, one change, or work you're handing to a run (start_task): that is already broken down.
+
+A plan is a title, the goal that says what finished looks like, and 3 to 6 steps, one line each, in the order you'd do them, each naming what it produces in the user's words. The steps are what the user reads, so write them for them, not for you.
+
+It goes up as a card in the conversation and nothing of it starts until the user approves it (they can change the steps first). Say in one sentence that you wrote the plan and that it's theirs to change; don't repeat the steps in your text, the card shows them, and don't work a step in that reply.
+
+Then the app wakes you one step at a time, each step in its own reply, and the card ticks along as you go.
+
+## Plans worth keeping
+
+When a plan you worked through is one the same work comes back to (a new project, a new client, the same check every month), save it before the conversation moves on: put the steps in as a short checklist with update_memory, in your memory of this user when it's how they work, in your core memory when it's the install's way. Say in a line that you kept it. A job that repeats on a schedule isn't memory: that's a routine, and create_schedule makes one once the user agrees.`;
+
+/**
+ * A plan waiting on the user: the bot wrote it and may not start it yet,
+ * whatever the user writes in the meantime.
+ */
+export const PlanWaitingNote = ({ plan }: { plan: PlanPrompt }) => `# Your plan is waiting on the user
+
+Plan #${plan.id} "${plan.title}" is on its card in this conversation, waiting for the user to approve it or change its steps. Its steps are not work yet: don't start them, don't report on them, and don't write another plan. Answer what the user wrote; if they asked for changes to the plan, they make them on the card.`;
+
+/**
+ * Given to the run that works one step of an approved plan: that step only,
+ * a short report of it, and nothing else. This is where a reply stops being
+ * a wall of text.
+ */
+export const PlanStepNote = ({ plan }: { plan: PlanPrompt }) => {
+    const index = plan.current_step ?? 0;
+    const step = plan.steps[index];
+
+    return `# Your plan, step ${index + 1} of ${plan.steps.length}
+
+Plan #${plan.id} "${plan.title}".${plan.goal ? ` Goal: ${plan.goal}` : ""}
+
+${planStepLines({ plan })}
+
+This reply works step ${index + 1} only: ${step?.text || ""}
+
+- One step per reply. The app wakes you for the next one when this finishes, so don't start it now and don't do two.
+- Finish it with complete_plan_step: one or two lines on what it produced (the number, the path, the link). Then write your report to the user.
+- Your report is two or three sentences: what this step did and what it produced. No heading, no recap of the plan, and never "next, I'll...". The card above the report shows the plan and the step after this one, so repeating it only makes the reply longer than it needs to be.
+- If the step can't be done from here (it needs the user, a login or a decision they alone can make), don't finish it: ask one question with ask_user and say the plan is holding at this step.
+- If what you found means the rest of the plan is wrong, change it with update_plan, in the same reply, and say what changed.`;
+};
+
+/**
+ * Given to any other run in a conversation whose plan is approved and being
+ * worked: the plan is in the prompt, and the user's own message comes first.
+ */
+export const PlanActiveNote = ({ plan }: { plan: PlanPrompt }) => {
+    const index = plan.current_step;
+
+    return `# The plan in this conversation
+
+Plan #${plan.id} "${plan.title}" is approved and in progress${index == null ? "" : `, on step ${index + 1} of ${plan.steps.length}`}.
+
+${planStepLines({ plan })}
+
+- If the user's message is about this plan's work, work that step and only that step, then complete_plan_step with what it produced, then a short report.
+- If they asked something else, answer that and leave the plan where it is: it carries on from there.
+- The steps are theirs to change on the card. If the work moved on from one of them, update_plan and say what changed.`;
+};
+
+/**
+ * A paused plan: the user stopped it, so its steps wait until they say
+ * otherwise. The bot still answers them.
+ */
+export const PlanPausedNote = ({ plan }: { plan: PlanPrompt }) => `# A paused plan
+
+Plan #${plan.id} "${plan.title}" is paused by the user at step ${(plan.current_step ?? 0) + 1} of ${plan.steps.length}. Don't work its steps and don't finish them: answer what the user asks, and leave picking it back up to them (they resume it from the card).`;
+
+/**
+ * Added to a routine's run: nobody is there to approve a plan, so the bot
+ * writes one and works all of it in the run, reporting at the end.
+ */
+export const ScheduledPlanNote = `# A plan in a scheduled run
+
+Nobody is watching this run, so a plan can't wait for approval. If this run's work is several pieces that build on each other, write it with create_plan anyway (it is approved at once here) and work its steps in this run: complete_plan_step after each one, with what it produced, so the conversation shows how far it got. Nothing interleaves with your run, so don't stop after one step. Your report at the end covers the whole plan: what each step produced and what is left.`;

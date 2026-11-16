@@ -22,6 +22,11 @@ import {
     workspaceAdminNote,
     WorkspaceLearningNote,
     openRunsNote,
+    PlansNote,
+    PlanWaitingNote,
+    PlanStepNote,
+    PlanActiveNote,
+    PlanPausedNote,
 } from "@/src/data/harness-prompts";
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import workspaceAdminsNote from "./workspace-admins-note";
@@ -67,6 +72,10 @@ import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
+import grabBotPlanTools from "@/src/harness/tools/bot/plans/grab-bot-plan-tools";
+import grabSessionPlan from "@/src/functions/backend/db/bot-plans/grab-session-plan";
+import grabBotPlan from "@/src/functions/backend/db/bot-plans/grab-bot-plan";
+import toBotPlanView from "@/src/functions/backend/db/bot-plans/to-bot-plan-view";
 import type { BotMessageWithAttachments } from "@/src/types";
 import type { HarnessMessage } from "@/src/harness/types";
 import type { BotJobContext, BotJobOutcome } from "./types";
@@ -123,7 +132,32 @@ export default async function runBotReply({
 
     const answered_id = await grabAnsweredMessageId({ session_id });
 
-    if (!hasUnansweredMessage({ history, answered_id })) {
+    const job_params = parseJobJson({ text: job.params }) || {};
+    /**
+     * The plan this job was queued for (`enqueuePlanStep`): the run works
+     * that plan's current step, whether or not the user wrote anything.
+     */
+    const on_plan_step = Number(job_params.plan_id) > 0;
+
+    if (!on_plan_step && !hasUnansweredMessage({ history, answered_id })) {
+        return { result: "", silent: true };
+    }
+
+    /**
+     * The conversation's plan: the one this job works, else the one open
+     * here, which the run reads and reports on.
+     */
+    const plan_row = on_plan_step
+        ? await grabBotPlan({ plan_id: Number(job_params.plan_id) }).catch(() => null)
+        : await grabSessionPlan({ session_id });
+    const plan = plan_row ? toBotPlanView({ row: plan_row }) : null;
+
+    /**
+     * A step job queued before the user paused (or dropped) the plan has
+     * nothing to do: it ends without a word, rather than reporting a step
+     * nobody asked for any more.
+     */
+    if (on_plan_step && (plan?.status != "active" || plan?.current_step == null)) {
         return { result: "", silent: true };
     }
 
@@ -223,6 +257,11 @@ export default async function runBotReply({
      * always carries, without needing the user.
      */
     const shown: string[] = [];
+    /**
+     * The plan it wrote in this reply: on its card and waiting for the user
+     * to approve it, so the reply needs them.
+     */
+    const plan_refs: string[] = [];
     /**
      * Files the bot wrote and asked to send with its reply.
      */
@@ -384,6 +423,14 @@ export default async function runBotReply({
                 can_hand_over ? HandOverTaskNote : "",
                 ActionCheckNote,
                 RequestScopeNote({ can_ask: Boolean(attended) && !asked }),
+                attended && !asked ? PlansNote : "",
+                attended && !asked && plan?.status == "planned" ? PlanWaitingNote({ plan }) : "",
+                attended && !asked && plan?.status == "paused" ? PlanPausedNote({ plan }) : "",
+                attended && !asked && plan?.status == "active"
+                    ? on_plan_step
+                        ? PlanStepNote({ plan })
+                        : PlanActiveNote({ plan })
+                    : "",
                 attended ? QuestionsNote : "",
                 SecretsNote,
                 SettingsNote,
@@ -460,6 +507,21 @@ export default async function runBotReply({
                           }),
                       ]
                     : []),
+                ...(attended && !asked
+                    ? grabBotPlanTools({
+                          user_id,
+                          bot_id: bot.id,
+                          session_id,
+                          workspace_id,
+                          on_step: on_plan_step,
+                          /**
+                           * A plan nobody approved yet needs the user, so
+                           * it goes with the refs that set `needs_you`: the
+                           * bot is waiting on them, not on itself.
+                           */
+                          onPlan: ({ ref, waiting }) => (waiting ? plan_refs.push(ref) : shown.push(ref)),
+                      })
+                    : []),
                 ...(has_past_sessions
                     ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]
                     : []),
@@ -509,12 +571,13 @@ export default async function runBotReply({
         return {
             ...withTakeOverRefs({
                 text: stripAppRecords({ text: result.text }),
-                refs: [...take_overs, ...proposals],
+                refs: [...take_overs, ...proposals, ...plan_refs],
                 shown,
             }),
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,
+            plan_id: on_plan_step ? plan?.id : undefined,
         };
     } finally {
         await extensions.close();

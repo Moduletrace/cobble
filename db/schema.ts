@@ -38,6 +38,7 @@ import {
 import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/types";
 import { EnvParadigms, SecretRequestStatuses } from "@/src/dict/env-dict";
 import { BotQuestionStatuses } from "@/src/dict/bot-question-dict";
+import { BotPlanStates } from "@/src/dict/bot-plan-dict";
 import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
 import {
     CustomToolKinds,
@@ -1955,6 +1956,64 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
             indexes: [
                 {
                     indexName: "idx_bot_suggestions_session_id",
+                    indexTableFields: ["session_id"],
+                },
+            ],
+        },
+        {
+            tableName: "bot_plans",
+            tableDescription: `A plan a bot broke complex work into in a conversation (\`create_plan\`): an ordered list of steps it works one at a time, reporting each as it goes. Written as \`planned\` and approved on its card by the user, who may change the steps first; only one is open in a conversation at a time. Visible to the user it was made for`,
+            fields: [
+                {
+                    fieldName: "title",
+                    fieldDescription: `A short name for the work, in the bot's words`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "goal",
+                    fieldDescription: `What the plan is for, and what \"done\" means`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "steps",
+                    fieldDescription: `JSON array of { text, state (pending | done | skipped), note } in the order they're worked; the note is what a finished step produced`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: BotPlanStates.map((state) => state.value),
+                    defaultValue: "planned",
+                },
+                {
+                    fieldName: "decided_at",
+                    fieldDescription: `When the user approved (or stopped) it; null while it waits on them`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The user it was made for, who alone sees it and approves it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot that wrote it and works it. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The conversation it belongs to, which it never leaves. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "workspace_id",
+                    fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_plans_session_id",
                     indexTableFields: ["session_id"],
                 },
             ],
