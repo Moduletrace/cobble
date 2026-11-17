@@ -1,4 +1,5 @@
 import mediaFilePath from "@/src/utils/media-file-path";
+import mediaServeWritePath from "@/src/utils/media-serve-write-path";
 import servedFileHeaders from "@/src/utils/served-file-headers";
 import { existsSync } from "node:fs";
 import userAuth from "../../backend/auth/user-auth";
@@ -11,7 +12,8 @@ type Params = {
 
 /**
  * Serves a media file's bytes: `/media/<id>`, and `/media/<id>/thumbnail`
- * for an image's smaller copy.
+ * for an image's smaller copy. A thumbnail URL falls back to the original
+ * when no smaller copy was made (bot files keep none), so it always loads.
  *
  * There is no public media. Every URL is private, so the request has to be
  * signed in and the user has to reach the file (`grabUserMedia` decides
@@ -45,9 +47,7 @@ export default async function handleMediaServer({
     }
 
     const full_media_location = mediaFilePath({
-        write_path: thumbnail
-            ? media.media_thumbnail_write_path
-            : media.media_write_path,
+        write_path: mediaServeWritePath({ media, thumbnail: Boolean(thumbnail) }),
     });
 
     if (!full_media_location) {

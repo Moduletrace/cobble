@@ -1,10 +1,9 @@
 import { AppData } from "@/src/data/app-data";
 import type { BotFileScopesPayload } from "@/src/types";
-import grabMediaURL from "../../media/grab-media-url";
+import botFileToPublic from "./bot-file-to-public";
 import grabBotFileQuotaBytes, { grabBotFileQuotaMb } from "./grab-bot-file-quota-bytes";
 import grabStorageUsage from "./grab-storage-usage";
 import listBotFiles from "./list-bot-files";
-import botFileFullPath from "@/src/utils/bot-file-full-path";
 
 type Params = {
     bot_id: number;
@@ -42,23 +41,7 @@ export default async function grabConversationFiles({
     ]);
 
     return {
-        files: files.map((file) => {
-            const { media_url } = grabMediaURL({ media: { id: file.media_id } as any });
-
-            return {
-                id: Number(file.id),
-                name: file.name || "",
-                path: file.path || "",
-                size: Number(file.size) || 0,
-                media_type: String(file.media_type || "document"),
-                purpose: String(file.purpose || "writing"),
-                scope: String(file.scope || "bot"),
-                owner_id: Number(file.owner_id) || 0,
-                created_at: Number(file.created_at) || 0,
-                url: media_url || "",
-                full_path: botFileFullPath({ scope: file.scope, owner_id: file.owner_id, path: file.path }),
-            };
-        }),
+        files: files.map((file) => botFileToPublic({ file })),
         folders: [],
         usage,
         quota_bytes,

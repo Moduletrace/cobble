@@ -1645,6 +1645,11 @@ export type PublicBotFile = {
      */
     url: string;
     /**
+     * A smaller copy for an image (`/media/<media id>/thumbnail`), when it
+     * has one: what a thumbnail loads instead of the full picture.
+     */
+    thumbnail_url?: string;
+    /**
      * Where it sits on the data volume (`bots/3/reports/q3.md`), shown in
      * the file preview.
      */

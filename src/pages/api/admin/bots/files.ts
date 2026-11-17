@@ -1,4 +1,5 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
+import botFileToPublic from "@/src/functions/backend/db/bot-files/bot-file-to-public";
 import grabBotFile from "@/src/functions/backend/db/bot-files/grab-bot-file";
 import grabBotFileScope from "@/src/functions/backend/db/bot-files/grab-bot-file-scope";
 import userReachesFileScope from "@/src/functions/backend/db/bot-files/user-reaches-file-scope";
@@ -9,12 +10,10 @@ import grabStorageUsage from "@/src/functions/backend/db/bot-files/grab-storage-
 import listBotFiles, { listBotFolders } from "@/src/functions/backend/db/bot-files/list-bot-files";
 import grabUserBot from "@/src/functions/backend/db/bots/grab-user-bot";
 import grabUserWorkspace from "@/src/functions/backend/db/workspaces/grab-user-workspace";
-import grabMediaURL from "@/src/functions/backend/media/grab-media-url";
 import type { BotFileScopesPayload } from "@/src/types";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { BotFileScope } from "@/src/dict/bot-file-dict";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
-import botFileFullPath from "@/src/utils/bot-file-full-path";
 
 /**
  * A conversation's files: the bot's own, or a workspace's shared ones.
@@ -89,7 +88,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotFileScopesPaylo
             return {
                 success: true,
                 singleRes: {
-                    files: [toPublicFile({ file })],
+                    files: [botFileToPublic({ file })],
                     folders: [],
                     usage: { bytes: 0, files: 0 },
                     quota_bytes: 0,
@@ -109,7 +108,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotFileScopesPaylo
         return {
             success: true,
             singleRes: {
-                files: files.map((file) => toPublicFile({ file })),
+                files: files.map((file) => botFileToPublic({ file })),
                 folders,
                 usage,
                 quota_bytes,
@@ -119,36 +118,4 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<BotFileScopesPaylo
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };
     }
-};
-
-function toPublicFile({ file }: { file: BotFileWithMediaLite }) {
-    const { media_url } = grabMediaURL({ media: { ...(file.media || {}), id: file.media_id } as any });
-
-    return {
-        id: Number(file.id),
-        name: file.name || "",
-        path: file.path || "",
-        size: Number(file.size) || 0,
-        media_type: file.media_type || "document",
-        purpose: file.purpose || "writing",
-        scope: file.scope || "bot",
-        owner_id: Number(file.owner_id) || 0,
-        created_at: Number(file.created_at) || 0,
-        url: media_url || "",
-        full_path: botFileFullPath({ scope: file.scope, owner_id: file.owner_id, path: file.path }),
-    };
-}
-
-type BotFileWithMediaLite = {
-    id?: number | "";
-    media_id?: number | "";
-    name?: string;
-    path?: string;
-    size?: number | "";
-    media_type?: string;
-    purpose?: string;
-    scope?: string;
-    owner_id?: number | "";
-    created_at?: number | "";
-    media?: Record<string, unknown> | null;
 };

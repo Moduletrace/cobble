@@ -5,6 +5,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageWithAttachments } from "@/src/types";
 import linkComputerRefs from "@/src/utils/link-computer-refs";
 import { MessageMarkdownComponents } from "../(data)/message-markdown-components";
+import MessageImages from "./message-images";
 
 /**
  * Kept module-level: a new array on every render makes `react-markdown`
@@ -26,6 +27,7 @@ function CrewMessageLine({ message }: Props) {
             <Markdown remarkPlugins={RemarkPlugins} components={MessageMarkdownComponents}>
                 {linkComputerRefs({ text: message.text || "" })}
             </Markdown>
+            <MessageImages message={message} />
         </Stack>
     );
 }

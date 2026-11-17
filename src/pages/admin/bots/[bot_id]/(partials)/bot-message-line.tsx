@@ -13,6 +13,7 @@ import GroupTimestamp from "./group-timestamp";
 import MessageActions from "./message-actions";
 import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
+import MessageImages from "./message-images";
 import MessageNoToolsChip from "./message-no-tools-chip";
 import MessageTaskChips from "./message-task-chips";
 import MessageUsageChip from "./message-usage-chip";
@@ -39,7 +40,8 @@ type Props = {
  * One bot message, rendered from markdown (GFM; raw HTML is never
  * rendered). The summary opening a session the bot moved into is
  * headed by a link to the session it carries on from. Computers it names (`computerRef`) show as buttons that
- * switch the bot to them. A quoted reply sits above it, the tracker tasks
+ * switch the bot to them. A quoted reply sits above it, the images it's
+ * about (attached or named as files) under its text, the tracker tasks
  * it's about and its reactions below, and a row under it replies, reacts, reads it aloud and shows
  * why it needs you. Its text can be selected and quoted.
  *
@@ -76,6 +78,7 @@ function BotMessageLine({ message, bot_name, at }: Props) {
                     {linkComputerRefs({ text: message.text || "" })}
                 </Markdown>
             </Stack>
+            <MessageImages message={message} />
             <MessageTaskChips tasks={message.tasks} />
             {message.id ? (
                 <MessageReactions

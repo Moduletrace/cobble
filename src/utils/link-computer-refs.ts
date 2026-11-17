@@ -85,6 +85,27 @@ const LoneRefInCode = new RegExp(`(?<!\`)(\`{1,2})[ \\t]*(\\[(?:${RefKinds}):[^\
 const CodeParts = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]+`)/g;
 
 /**
+ * The message split into its code parts (odd indexes) and the text around
+ * them (even indexes), a ref quoted alone in a code span unwrapped into
+ * the text. The renderer links refs in the text parts only.
+ */
+function splitRefParts({ text }: { text: string }) {
+    return text
+        .replace(LoneRefInCode, (_, _ticks: string, ref: string) => ref)
+        .split(CodeParts);
+}
+
+/**
+ * The parts of a message the renderer links refs in: what a reader sees
+ * as a chip or card, never the refs written inside longer code. Kept apart
+ * (never joined) so text on either side of a code span can't merge into a
+ * ref that was never written.
+ */
+export function liveRefParts({ text }: { text: string }): string[] {
+    return splitRefParts({ text }).filter((_, index) => index % 2 == 0);
+}
+
+/**
  * Turns the refs in a message into markdown links the chat swaps for
  * buttons, chips and cards (`linkRefsInText`). A ref quoted alone in a code
  * span counts as the ref; one inside longer code (a span with other text, a
@@ -92,9 +113,7 @@ const CodeParts = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]+`)/g;
  * markdown.
  */
 export default function linkComputerRefs({ text }: { text: string }) {
-    return text
-        .replace(LoneRefInCode, (_, _ticks: string, ref: string) => ref)
-        .split(CodeParts)
+    return splitRefParts({ text })
         .map((part, index) => (index % 2 ? part : linkRefsInText({ text: part })))
         .join("");
 }
