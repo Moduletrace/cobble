@@ -9,6 +9,7 @@ import {
     AskGateRequest,
     crewRequestsNote,
     openRunsNote,
+    QuestionsNote,
     RequestScopeNote,
     TaskIncomingNote,
     TaskPlanPrompt,
@@ -127,6 +128,11 @@ describe("RequestScopeNote", () => {
         expect(note).toContain("delegating a task");
         expect(note).toContain("ask before it leaves: one ask_user card with every task they named");
         expect(note).toContain("don't offer it again in this conversation");
+        expect(note).toContain("The way they named is part of the request");
+        expect(note).toContain("ask before you start a different way");
+        expect(note).toContain("Never deliver the same result by a way they didn't ask for");
+        expect(note).toContain("A probe is work too");
+        expect(note).toContain("a test of what the tools can reach is not the deliverable");
         expect(note).not.toContain("the brief is what you may do");
         expect(note).not.toContain("\u2014");
     });
@@ -137,8 +143,18 @@ describe("RequestScopeNote", () => {
         expect(note).toContain("the brief is what you may do");
         expect(note).toContain("Say in your report what you would propose");
         expect(note).toContain("move it as to do and say in your report that it waits for the user to start it");
+        expect(note).toContain("say in your report what was blocked and what you would propose");
+        expect(note).not.toContain("ask before you start a different way");
         expect(note).not.toContain("ask_user");
         expect(note).not.toContain("\u2014");
+    });
+});
+
+describe("QuestionsNote", () => {
+    test("asks before working around the way the user named", () => {
+        expect(QuestionsNote).toContain("before changing the approach the user named");
+        expect(QuestionsNote).toContain("Ask before the substitute starts, never after");
+        expect(QuestionsNote).not.toContain("\u2014");
     });
 });
 
@@ -203,6 +219,14 @@ describe("TaskRunNote", () => {
 
     test("gives the plan permission to hand work on", () => {
         expect(TaskPlanPrompt).toContain("hands the rest on with start_task is following the plan");
+    });
+
+    test("says the user's own words win over the brief, and the way they named is the way it is done", () => {
+        expect(TaskRunNote).toContain("the run opens with their own words");
+        expect(TaskRunNote).toContain("the brief after it is your summary of it");
+        expect(TaskRunNote).toContain("the way they named (a tool, app, service or path) is the way it is done");
+        expect(TaskRunNote).toContain("never reach the same result some other way without asking first");
+        expect(TaskRunNote).not.toContain("\u2014");
     });
 });
 

@@ -80,6 +80,8 @@ import BotJobFatalError from "./bot-job-fatal-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import taskIncoming from "./task-incoming";
+import taskRequestNote from "./task-request-note";
+import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import planBotTask from "./plan-bot-task";
 import shouldPlanBotTask from "./should-plan-bot-task";
 import { AppData } from "@/src/data/app-data";
@@ -105,6 +107,9 @@ type Params = BotJobContext & {
  * A scheduled run acts on its own (`ScheduledRunNote`), as does a hook
  * call (`HookRunNote`, its payload only data); one that reports it failed
  * (`report_run_failed`) throws, so the queue retries it.
+ * One the user asked for in their chat opens with their own words, in
+ * front of the brief the bot wrote (`taskRequestNote`), so the way they
+ * named survives the summary.
  * A task the user follows takes in what they write in its conversation
  * from when it was queued (`taskIncoming`): already there at the start,
  * between steps, past a report not yet out, and by the wrap up. A
@@ -473,6 +478,19 @@ export default async function runBotTask({
                 ? await taskIncoming({ session_id, queued_at: Number(job.created_at) || Date.now(), user_id })
                 : null;
         const arrived = (await incoming?.take()) || [];
+        /**
+         * What the user asked for, in their own words. The brief is the
+         * bot's summary of it, and a summary can lose the way they named
+         * ("using the ArtCraft MCP"), which leaves the run free to reach the
+         * same result another way (`taskRequestNote`). Routines, hook calls
+         * and crew requests weren't asked for in a chat, so there is no
+         * request to put in front of the brief.
+         */
+        const request_message =
+            job.message_id && !scheduled && !hooked && !Number(params.ask_id)
+                ? await grabUserBotMessage({ user_id, message_id: job.message_id }).catch(() => null)
+                : null;
+        const request_note = taskRequestNote({ message: request_message });
         const brief: HarnessMessage = {
             role: "user",
             content: composeJobBrief({
@@ -481,7 +499,9 @@ export default async function runBotTask({
                 params,
             }),
         };
-        const opening: HarnessMessage[] = [brief];
+        const opening: HarnessMessage[] = request_note
+            ? [{ role: "user", content: request_note }, brief]
+            : [brief];
 
         if (arrived.length) {
             pushUserTurn({ transcript: opening, content: TaskIncomingNote });
