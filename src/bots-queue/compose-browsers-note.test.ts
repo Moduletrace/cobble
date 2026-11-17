@@ -34,4 +34,12 @@ describe("composeBrowsersNote", () => {
     test("a routine never does anything irreversible", () => {
         expect(composeBrowsersNote({ browsers: [browser], run_kind: "routine" })).toContain("No one is watching");
     });
+
+    test("sends the bot to the page's text before a screenshot", () => {
+        const note = composeBrowsersNote({ browsers: [browser], run_kind: "attended" });
+
+        expect(note).toContain("Read a page as text before you look at it");
+        expect(note).toContain("browser_snapshot");
+        expect(note).toContain("Take a screenshot only to confirm something visual at the end");
+    });
 });
