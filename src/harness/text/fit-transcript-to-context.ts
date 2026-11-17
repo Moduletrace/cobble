@@ -218,7 +218,11 @@ function toolNames({ transcript }: { transcript: HarnessMessage[] }) {
 }
 
 function isTrimmed({ text }: { text: string }) {
-    return text.startsWith("[Trimmed:");
+    // A result cut to its start and end keeps the head in front, so the
+    // marker sits in the middle, not at the start: `startsWith` missed it
+    // and the next pass cut the kept ends away into a bare stub, counting
+    // the same message twice (M4). The marker anywhere means already cut.
+    return text.includes("[Trimmed:");
 }
 
 function messageTokens({ message }: { message: HarnessMessage }) {

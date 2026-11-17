@@ -105,6 +105,10 @@ export default function runCommand({
         const onAbort = () => stop();
 
         signal?.addEventListener("abort", onAbort, { once: true });
+        // A signal that aborted before the command started never fires its
+        // event again, so the command would run on despite the caller having
+        // gone away (R2): stop it at once when it's already aborted.
+        if (signal?.aborted) stop();
 
         const finish = (exit_code: number | null) => {
             if (settled) return;

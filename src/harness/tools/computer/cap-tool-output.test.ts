@@ -11,7 +11,7 @@ describe("capToolOutput", () => {
 
         expect(out.startsWith("a")).toBe(true);
         expect(out.endsWith("b")).toBe(true);
-        expect(out).toContain("40 characters left out");
+        expect(out).toContain("76 characters left out");
     });
 
     test("stays inside max_chars, so the harness never cuts its end off again", () => {

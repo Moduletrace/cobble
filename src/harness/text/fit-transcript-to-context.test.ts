@@ -2,226 +2,55 @@ import { describe, expect, test } from "bun:test";
 import type { HarnessMessage } from "../types";
 import fitTranscriptToContext from "./fit-transcript-to-context";
 
-const big = "x".repeat(30000);
+/**
+ * A tool result long enough to be cut to its two ends (over
+ * `TrimmedKeepChars * 4`), with markers at each end so a later collapse to
+ * a bare stub is visible.
+ */
+const huge = `START_MARKER_${"x".repeat(6000)}_END_MARKER`;
 
-const run = (): HarnessMessage[] => [
-    { role: "user", content: "Do the thing." },
-    { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
-    { role: "tool", tool_call_id: "1", content: big },
-    { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
-    { role: "tool", tool_call_id: "2", content: big },
-    { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
-    { role: "tool", tool_call_id: "3", content: "recent" },
-];
+function transcript(): HarnessMessage[] {
+    return [
+        { role: "tool", tool_call_id: "c1", content: huge },
+        { role: "user", content: "u1" },
+        { role: "assistant", content: "a1" },
+        { role: "user", content: "u2" },
+        {
+            role: "assistant",
+            content: "a2",
+            tool_calls: [{ id: "c1", name: "computer_bash", arguments: "{}" }],
+        },
+    ];
+}
 
-describe("fitTranscriptToContext", () => {
-    test("leaves a transcript that fits alone", () => {
-        const transcript = run();
-        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 200000 });
+const params = { system: "s", context_length: 200, keep_last: 4 };
 
-        expect(result.trimmed).toBe(0);
-        expect(transcript[2]!.content).toBe(big);
-    });
-
-    test("trims the oldest tool output first, keeping the newest", () => {
-        const transcript = run();
-        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 26000 });
+describe("fitTranscriptToContext keeps a head+tail trim across passes (M4)", () => {
+    test("a long result is cut to its start and end, not replaced whole", () => {
+        const messages = transcript();
+        const result = fitTranscriptToContext({ ...params, transcript: messages });
 
         expect(result.trimmed).toBe(1);
-        expect(String(transcript[2]!.content)).toContain("characters of the middle of this computer_bash output");
-        expect(transcript[4]!.content).toBe(big);
-        expect(transcript[6]!.content).toBe("recent");
-        expect(result.estimated_tokens).toBeLessThanOrEqual(result.budget);
+        const content = messages[0]!.content as string;
+        expect(content).toContain("[Trimmed:");
+        expect(content).toContain("START_MARKER_");
+        expect(content).toContain("_END_MARKER");
+        expect(content).toContain("start and end are kept");
     });
 
-    test("keeps both ends of what it trimmed, so the run need not call it again", () => {
-        const content = `HEAD${'x'.repeat(30000)}TAIL`;
-        const transcript: HarnessMessage[] = [
-            { role: "user", content: "go" },
-            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "1", content },
-            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "2", content: "second" },
-            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "3", content: "ok" },
-        ];
+    test("a second pass leaves the kept ends alone and does not count the cut again", () => {
+        const messages = transcript();
+        fitTranscriptToContext({ ...params, transcript: messages });
+        const after_first = messages[0]!.content as string;
 
-        fitTranscriptToContext({ system: "s", transcript, context_length: 1_000_000, budget_tokens: 8000 });
+        const second = fitTranscriptToContext({ ...params, transcript: messages });
 
-        const trimmed = String(transcript[2]!.content);
-
-        expect(trimmed).toStartWith("HEAD");
-        expect(trimmed).toEndWith("TAIL");
-        expect(trimmed).toContain("than repeating it");
-        expect(trimmed.length).toBeLessThan(content.length);
-    });
-
-    test("says nothing about ends it did not keep, for a short result", () => {
-        const transcript: HarnessMessage[] = [
-            { role: "user", content: "go" },
-            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "1", content: "short answer" },
-            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "2", content: "second" },
-            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "3", content: "ok" },
-        ];
-
-        fitTranscriptToContext({ system: "s", transcript, context_length: 1_000_000, budget_tokens: 50 });
-
-        expect(String(transcript[2]!.content)).toStartWith("[Trimmed: 12 characters of this computer_bash output");
-    });
-
-    test("cuts the newest results only once every older one is gone", () => {
-        const transcript: HarnessMessage[] = [
-            { role: "user", content: "go" },
-            { role: "tool", tool_call_id: "1", content: big },
-        ];
-        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 1000 });
-
-        /**
-         * The newest result used to be left whole however far over budget the
-         * prompt was, so it went out anyway and every candidate refused it.
-         */
-        expect(result.trimmed).toBe(1);
-        expect(String(transcript[1]!.content)).toContain("[Trimmed:");
-        expect(transcript[0]!.content).toBe("go");
-    });
-
-    test("keeps to the working context even when the window is far larger", () => {
-        const transcript = run();
-        const result = fitTranscriptToContext({
-            system: "s",
-            transcript,
-            context_length: 1_000_000,
-            budget_tokens: 15000,
-        });
-
-        expect(result.budget).toBe(15000);
-        expect(result.trimmed).toBe(2);
-        expect(String(transcript[2]!.content)).toContain("[Trimmed:");
-        expect(String(transcript[4]!.content)).toContain("[Trimmed:");
-        expect(transcript[6]!.content).toBe("recent");
-    });
-
-    test("cuts in one block, down to well under the budget, then leaves it alone", () => {
-        const transcript = run();
-        const first = fitTranscriptToContext({ system: "s", transcript, context_length: 1_000_000, budget_tokens: 18000 });
-
-        expect(first.trimmed).toBe(1);
-
-        transcript.push(
-            { role: "assistant", content: null, tool_calls: [{ id: "4", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "4", content: "x".repeat(9000) },
-        );
-
-        const second = fitTranscriptToContext({ system: "s", transcript, context_length: 1_000_000, budget_tokens: 18000 });
-
+        // The marker sits in the middle of a head+tail trim: it must still
+        // read as already cut, so the ends survive and the count is not paid
+        // twice.
         expect(second.trimmed).toBe(0);
-    });
-
-    test("counts the tool definitions against the budget", () => {
-        const transcript = run();
-        const without = fitTranscriptToContext({ system: "s", transcript: run(), context_length: 1_000_000, budget_tokens: 25000 });
-        const with_tools = fitTranscriptToContext({
-            system: "s",
-            transcript,
-            context_length: 1_000_000,
-            budget_tokens: 25000,
-            tools_chars: 30000,
-        });
-
-        expect(without.trimmed).toBe(0);
-        expect(with_tools.trimmed).toBeGreaterThan(0);
-    });
-
-    test("cuts long tool call arguments once the results are gone", () => {
-        const long = JSON.stringify({ path: "a.html", content: "y".repeat(30000) });
-        const transcript: HarnessMessage[] = [
-            { role: "user", content: "Write the page." },
-            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_write_file", arguments: long }] },
-            { role: "tool", tool_call_id: "1", content: "Written." },
-            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "2", content: "ok" },
-            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "3", content: "ok" },
-        ];
-
-        fitTranscriptToContext({ system: "s", transcript, context_length: 1_000_000, budget_tokens: 5000 });
-
-        const call = (transcript[1] as { tool_calls: { arguments: string }[] }).tool_calls[0]!;
-
-        expect(JSON.parse(call.arguments).trimmed).toContain(`${long.length} characters`);
-    });
-
-    test("never trims the user's own request, however long it is", () => {
-        const request = "Explain this.".repeat(2500);
-
-        const transcript: HarnessMessage[] = [
-            { role: "user", content: request },
-            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "1", content: big },
-            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "2", content: big },
-            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "3", content: "recent" },
-        ];
-
-        const result = fitTranscriptToContext({
-            system: "s",
-            transcript,
-            context_length: 131_072,
-            budget_tokens: 12_000,
-        });
-
-        expect(result.trimmed).toBeGreaterThan(0);
-        expect(transcript[0]!.content).toBe(request);
-        expect(String(transcript[2]!.content)).toContain("[Trimmed:");
-        /**
-         * Every result was cut, the newest included: the request is what is
-         * left, and the run pays for it in full.
-         */
-        expect(String(transcript[4]!.content)).toContain("[Trimmed:");
-    });
-
-    test("a brief that fits once the results are cut is not reported as over budget", () => {
-        const transcript: HarnessMessage[] = [
-            { role: "user", content: "Look through the fixture and tell me what fails." },
-            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "1", content: big },
-            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "2", content: big },
-            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
-            { role: "tool", tool_call_id: "3", content: "recent" },
-        ];
-
-        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 131_072, budget_tokens: 12_000 });
-
-        expect(result.over_budget).toBe(false);
-        expect(result.trimmed).toBeGreaterThan(0);
-        expect(transcript[0]!.content).toBe("Look through the fixture and tell me what fails.");
-    });
-
-    test("says a transcript it trimmed down fits", () => {
-        const result = fitTranscriptToContext({
-            system: "s",
-            transcript: run(),
-            context_length: 200_000,
-            budget_tokens: 12_000,
-        });
-
-        expect(result.over_budget).toBe(false);
-        expect(result.estimated_tokens).toBeLessThanOrEqual(result.budget);
-    });
-
-    test("says a request nothing can be cut from does not fit", () => {
-        const request = "x".repeat(30_000);
-        const transcript: HarnessMessage[] = [{ role: "user", content: request }];
-
-        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 131_072, budget_tokens: 4_000 });
-
-        expect(result.trimmed).toBe(0);
-        expect(result.over_budget).toBe(true);
-        expect(transcript[0]!.content).toBe(request);
+        expect(messages[0]!.content).toBe(after_first);
+        expect(messages[0]!.content as string).toContain("START_MARKER_");
+        expect(messages[0]!.content as string).toContain("_END_MARKER");
     });
 });

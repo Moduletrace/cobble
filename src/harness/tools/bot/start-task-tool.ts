@@ -8,6 +8,7 @@ import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-comput
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import isComputerDown from "@/src/utils/computer-down";
 import type { HarnessTool } from "../../types";
+import type { BrowserRunKind } from "@/src/dict/browser-dict";
 
 type Params = {
     user_id: number | string;
@@ -24,6 +25,11 @@ type Params = {
      * The user message that asked for the work.
      */
     message_id?: number | string;
+    /**
+     * The parent run's browser kind, propagated to the child (H7) so work a
+     * hidden session's reply queues never reaches the user's real browsers.
+     */
+    run_kind?: BrowserRunKind;
 };
 
 type Args = {
@@ -57,6 +63,7 @@ export default function startTaskTool({
     session_id,
     computers,
     message_id,
+    run_kind,
 }: Params): HarnessTool<Args> {
     const listed = computers
         .map((computer) => `${computer.id} (${computer.name || computer.kind})`)
@@ -122,7 +129,10 @@ export default function startTaskTool({
                 instructions: args.instructions,
                 message_id,
                 computer_id: computer_id || undefined,
-                params: args.max_steps ? { max_steps: args.max_steps } : undefined,
+                params: {
+                    ...(args.max_steps ? { max_steps: args.max_steps } : {}),
+                    ...(run_kind ? { run_kind } : {}),
+                },
             });
 
             const ahead = computer_id ? await countComputerTaskJobs({ computer_id, except_job_id: job_id }) : 0;

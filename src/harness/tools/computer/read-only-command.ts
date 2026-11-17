@@ -88,7 +88,7 @@ const WritingFlags: readonly string[] = [
 const OutputFlagPrograms: readonly string[] = ["sort"];
 
 /** Anything that writes whatever follows, runs a program, or feeds one. */
-const WritesOrRuns = /(>>?|\$\(|`|\btee\b|\bxargs\b)/;
+const WritesOrRuns = /(>>?|[<>]\(|\$\(|`|\btee\b|\bxargs\b)/;
 
 /** git subcommands that only print. */
 const ReadOnlyGitSubcommands: readonly string[] = [
@@ -163,9 +163,9 @@ function segmentReads({ segment }: { segment: string }): boolean {
 
     if (leading.args.some((arg) => WritingFlags.some((flag) => arg.startsWith(flag)))) return false;
 
-    if (OutputFlagPrograms.includes(leading.program) && leading.args.includes("-o")) return false;
+    if (OutputFlagPrograms.includes(leading.program) && leading.args.some((arg) => arg.startsWith("-o"))) return false;
 
-    if (leading.program == "date" && leading.args.includes("-s")) return false;
+    if (leading.program == "date" && leading.args.some((arg) => arg.startsWith("-s") || arg.startsWith("--set"))) return false;
 
     return true;
 }

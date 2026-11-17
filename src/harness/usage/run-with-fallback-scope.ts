@@ -37,5 +37,17 @@ export default async function runWithFallbackScope<T>({
         return await task();
     }
 
-    return await runWithHarnessUsageScope({ scope: { ...scope, user_id }, task });
+    /**
+     * `own` reports under `scope` alone: every field it doesn't name is
+     * cleared, so the enclosing run's job, message and session are not
+     * merged in and charged to work that isn't theirs (the session namer,
+     * whose job is already complete). `enclosing` keeps what the run set
+     * and overrides only what `scope` knows (L10).
+     */
+    const base: HarnessUsageScope =
+        mode == "own"
+            ? { bot_id: null, workspace_id: null, session_id: null, job_id: null, message_id: null }
+            : {};
+
+    return await runWithHarnessUsageScope({ scope: { ...base, ...scope, user_id }, task });
 }

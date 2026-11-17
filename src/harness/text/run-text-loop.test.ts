@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -61,6 +61,36 @@ const suggestNextSteps: HarnessTool<{ steps: string[] }> = {
         return "Suggested. The buttons are under your message.";
     },
 };
+
+/**
+ * An `ask_user` that behaves like the real one (`ask-user-tool.ts:69-73`):
+ * once per run, and a re-ask throws. The shared `askUser` above always
+ * succeeds, which is what hid the closing loop - a model told its card "was
+ * not created" re-asks, the guard refuses it, and the note repeats. Each call
+ * gives a fresh run its own flag.
+ */
+function guardedAskUser() {
+    let asked = false;
+    const questions: string[] = [];
+    const tool: HarnessTool<{ question: string }> = {
+        name: "ask_user",
+        description: "Asks the user.",
+        schema: z.object({ question: z.string() }),
+        run: async ({ args }) => {
+            if (asked) {
+                throw new Error(
+                    "You already asked the user in this run. Put every question in one ask_user call, then wait for their answers.",
+                );
+            }
+
+            asked = true;
+            questions.push(args.question);
+            return "Asked. The card is under the user's message.";
+        },
+    };
+
+    return { tool, questions };
+}
 
 /**
  * A fake model that plays back scripted turns and records what it saw.
@@ -757,6 +787,35 @@ describe("runTextLoop", () => {
         expect(result.review_note).toBe("Not sent: nothing is running.");
     });
 
+    test("a repair that leaves a dead ref behind is checked again, not shipped (M3)", async () => {
+        const faulty = "I'm scanning now. [file:99] has the results.";
+        const { generate } = scripted([
+            { text: faulty },
+            { text: faulty },
+            { text: faulty },
+            { text: "never reached" },
+        ]);
+        let reviews = 0;
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan." }],
+            generate,
+            resolveCandidates,
+            review: async ({ text }) => {
+                reviews++;
+                return text.includes("[file:99]") ? "You named [file:99], which isn't there for the user." : null;
+            },
+        });
+
+        // The claim of work under way is repairable, but the dead ref is
+        // not: the repaired text is checked again and refused, so the dead
+        // ref never ships in the shortcut's output.
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe("You named [file:99], which isn't there for the user.");
+        expect(reviews).toBe(AppData.HarnessReviewRewrites + 2);
+    });
+
     test("tells a model that wrote the same message back it did, rather than spending a rewrite on a copy", async () => {
         const { generate, seen } = scripted([
             { text: "I'm resuming now and will report back." },
@@ -1198,7 +1257,9 @@ describe("runTextLoop repeated failures", () => {
             run: async () => {
                 counts.commands++;
 
-                return "Error: Exit code: 1\nFileNotFoundError: plan/0.json";
+                // A genuine tool failure (it throws), not a successful call
+                // whose output happens to start with "Error:" (L1).
+                throw new Error("Exit code: 1\nFileNotFoundError: plan/0.json");
             },
         };
         const write: HarnessTool<{ path: string }> = {
@@ -1260,6 +1321,41 @@ describe("runTextLoop repeated failures", () => {
 
         expect(counts.writes).toBe(1);
         expect(counts.commands).toBe(2);
+    });
+
+    test("a successful call whose output starts with 'Error:' is not a failure (L1)", async () => {
+        const counts = { commands: 0 };
+        const bash: HarnessTool<{ command: string }> = {
+            name: "computer_bash",
+            description: "Runs a command.",
+            schema: z.object({ command: z.string() }),
+            run: async () => {
+                counts.commands++;
+
+                // The tool worked; the command's own output begins with
+                // "Error:". The old prefix check counted this as a failure
+                // and gave up after a retry; the ok flag does not.
+                return "Error: Exit code: 1\nFileNotFoundError: plan/0.json";
+            },
+        };
+        const { generate } = scripted([
+            { tool_calls: [failing("c1")] },
+            { tool_calls: [failing("c2")] },
+            { tool_calls: [failing("c3")] },
+            { text: "Done." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "You are a bot.",
+            messages: [{ role: "user", content: "Run it." }],
+            tools: [bash],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(counts.commands).toBe(3);
+        expect(result.tool_uses.every((use) => use.ok)).toBe(true);
+        expect(result.text).toBe("Done.");
     });
 });
 
@@ -1435,7 +1531,8 @@ describe("runTextLoop closing tools", () => {
     });
 
     test("keeps going when the card comes with real work", async () => {
-        const { generate } = scripted([
+        asked.length = 0;
+        const { generate, seen } = scripted([
             {
                 text: "Saved your preference and put the question up.",
                 tool_calls: [
@@ -1456,6 +1553,15 @@ describe("runTextLoop closing tools", () => {
 
         expect(result.text).toBe("Noted. The question is under this message.");
         expect(result.steps).toBe(2);
+        /**
+         * The card worked, so the turn is mixed, not failed: the note says the
+         * card is up and never to re-ask, not that it "was not created" (H1).
+         * The model asks once and writes its answer next turn.
+         */
+        expect(asked).toEqual(["Which repo?"]);
+        const notes = seen[1]!.messages.filter((message) => message.role == "user").map((message) => message.content);
+        expect(notes).toContain(closingMixedNote);
+        expect(notes).not.toContain(closingFailedNote);
     });
 
     test("a card the tool refused is not the end of the run", async () => {
@@ -1522,6 +1628,102 @@ describe("runTextLoop closing tools", () => {
         expect(result.steps).toBe(2);
         expect(seen.length).toBe(2);
         expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: closingNoTextNote });
+    });
+
+    test("a mixed turn whose card worked is not a failed card, and never re-asks", async () => {
+        const { tool: ask, questions } = guardedAskUser();
+        const write_file: HarnessTool<{ path: string; content: string }> = {
+            name: "write_file",
+            description: "Writes a file.",
+            schema: z.object({ path: z.string(), content: z.string() }),
+            run: async () => "Wrote the file.",
+        };
+        const { generate, seen } = scripted([
+            {
+                text: "Saved the report and put the question up.",
+                tool_calls: [
+                    { id: "q1", name: "ask_user", arguments: `{"question":"Which repo?"}` },
+                    { id: "w1", name: "write_file", arguments: `{"path":"report.md","content":"hi"}` },
+                ],
+            },
+            { text: "The report is saved; the question is under this message." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Write the report and ask me which repo." }],
+            tools: [ask, write_file],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(result.text).toBe("The report is saved; the question is under this message.");
+        expect(result.steps).toBe(2);
+        expect(questions).toEqual(["Which repo?"]);
+        const notes = seen[1]!.messages.filter((message) => message.role == "user").map((message) => message.content);
+        expect(notes).toContain(closingMixedNote);
+        expect(notes).not.toContain(closingFailedNote);
+    });
+
+    test("re-asking into the once-per-run guard ends after the bounded retries", async () => {
+        const { tool: ask, questions } = guardedAskUser();
+        /**
+         * The card goes up with nothing said beside it (told once), then the
+         * model keeps re-asking: the guard refuses every re-ask, so each turn
+         * is a failed closing call. Without a bound this loops for the whole
+         * budget (H1); with it the run ends on the answer it wrote.
+         */
+        const { generate, seen } = scripted([
+            { text: "", tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` }] },
+            ...Array.from({ length: 5 }, (_, index) => ({
+                text: "Waiting on your answer.",
+                tool_calls: [{ id: `q${index + 2}`, name: "ask_user", arguments: `{"question":"Which date rule?"}` }],
+            })),
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Ask me which date rule." }],
+            tools: [ask],
+            generate,
+            resolveCandidates,
+        });
+
+        /** One no-text turn, then `MaxClosingRetries` failed retries, then the end. */
+        expect(result.steps).toBe(AppData.MaxClosingRetries + 2);
+        expect(seen.length).toBe(AppData.MaxClosingRetries + 2);
+        expect(result.text).toBe("Waiting on your answer.");
+        expect(questions).toEqual(["Which date rule?"]);
+        expect(seen.some((turn) => turn.messages.some((message) => message.content == closingFailedNote))).toBe(true);
+    });
+
+    test("a review sent back on a closing answer does not trap", async () => {
+        const { tool: ask, questions } = guardedAskUser();
+        const { generate } = scripted([
+            {
+                text: "Done: [file:99] has all of it.",
+                tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":"Next?"}` }],
+            },
+            { text: "Done: [file:12] has all of it." },
+        ]);
+        const notes = ["You named [file:99], which isn't there for the user."];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "File it." }],
+            tools: [ask],
+            generate,
+            resolveCandidates,
+            review: async () => notes.shift() || null,
+        });
+
+        /**
+         * The card is already up, so the rewrite answers without re-asking
+         * (the guard would refuse it); the run ends on the corrected answer.
+         */
+        expect(result.text).toBe("Done: [file:12] has all of it.");
+        expect(result.steps).toBe(2);
+        expect(questions).toEqual(["Next?"]);
     });
 });
 

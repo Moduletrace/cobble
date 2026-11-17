@@ -1,6 +1,7 @@
 import type { MessageDetails, MessageDetailsCall, MessageDetailsFailure, MessageDetailsModel } from "@/src/types";
 import describeCallSettings from "@/src/utils/describe-call-settings";
 import formatDuration from "@/src/utils/format-duration";
+import { ForeverRestUntil } from "@/src/utils/run-limit";
 import costLabel from "@/src/utils/cost-label";
 import failureSourceLabel from "./failure-source-label";
 import harnessLabel from "./harness-label";
@@ -167,9 +168,11 @@ function callTable({ calls, first_at }: { calls: MessageDetailsCall[]; first_at:
 function failureBlock({ failure, index, first_at }: { failure: MessageDetailsFailure; index: number; first_at: number }) {
     const model = `${failure.model_name || failure.model_slug || "Unknown model"}${failure.model_slug && failure.model_name ? ` (${failure.model_slug})` : ""}`;
     const rested =
-        failure.rests_until && failure.rests_until > failure.created_at
-            ? formatDuration({ ms: failure.rests_until - failure.created_at })
-            : "";
+        failure.rests_until === ForeverRestUntil
+            ? "until the run limits change or the app restarts"
+            : failure.rests_until && failure.rests_until > failure.created_at
+              ? formatDuration({ ms: failure.rests_until - failure.created_at })
+              : "";
 
     return [
         "",

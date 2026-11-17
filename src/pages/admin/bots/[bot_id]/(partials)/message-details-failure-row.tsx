@@ -3,6 +3,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { MessageDetailsFailure } from "@/src/types";
 import formatDuration from "@/src/utils/format-duration";
+import { ForeverRestUntil } from "@/src/utils/run-limit";
 import failureSourceLabel from "../(utils)/failure-source-label";
 import harnessLabel from "../(utils)/harness-label";
 import providerLabel from "../(utils)/provider-label";
@@ -28,9 +29,11 @@ export default function MessageDetailsFailureRow({ failure, index, first_at }: P
     const model = failure.model_name || failure.model_slug || "Unknown model";
     const provider = providerLabel({ name: failure.provider_name, kind: failure.provider_kind });
     const rested =
-        failure.rests_until && failure.rests_until > failure.created_at
-            ? ` Rested ${formatDuration({ ms: failure.rests_until - failure.created_at })}.`
-            : "";
+        failure.rests_until === ForeverRestUntil
+            ? " Benched until the run limits change or the app restarts."
+            : failure.rests_until && failure.rests_until > failure.created_at
+              ? ` Rested ${formatDuration({ ms: failure.rests_until - failure.created_at })}.`
+              : "";
 
     return (
         <Stack className="w-full py-1.5 gap-0.5! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">

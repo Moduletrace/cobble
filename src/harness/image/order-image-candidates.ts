@@ -32,10 +32,11 @@ type Params = {
 
 /**
  * The models an image call tries, in order. Without references: image
- * generation's. With them: image editing's pick, then (with fallback on)
- * the image generation models that take images; only those while image
- * editing has no usable model or is off. A model that can't take an image
- * is never tried with references, since it would drop them unseen.
+ * generation's. With them: image editing's pick, then - only with fallback
+ * on - the image generation models that take images, both after the pick
+ * fails and while image editing has no usable model or is off. A model
+ * that can't take an image is never tried with references, since it would
+ * drop them unseen.
  */
 export default function orderImageCandidates({ references, image, edit }: Params): ImageCandidate[] {
     if (!references) {
@@ -50,9 +51,10 @@ export default function orderImageCandidates({ references, image, edit }: Params
         ? edit.candidates.map((candidate) => ({ candidate, harness: "image_edit" as const }))
         : [];
 
-    const ordered = !edits.length
-        ? takes_images
-        : [...edits, ...(edit?.fallback ? takes_images : [])];
+    // The hand-over to image generation - whether the edit pick failed or
+    // there is none - happens only with fallback on, so a call with
+    // references never quietly leaves the harness it was picked for (L9).
+    const ordered = [...edits, ...(edit?.fallback ? takes_images : [])];
 
     const seen = new Set<string>();
 

@@ -117,7 +117,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.2",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.3",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
@@ -493,6 +493,14 @@ export const AppData = {
     HarnessMaxCandidates: 6,
     HarnessRequestTimeoutMs: 3 * 60 * 1000,
     /**
+     * How long a provider may take to send the whole response body once its
+     * headers have arrived. The request timeout above bounds only the wait
+     * for headers; a streamed answer (speech, a video) keeps sending past it,
+     * so the body gets this generous deadline of its own rather than being
+     * cut off mid-stream (M2).
+     */
+    HarnessBodyTimeoutMs: 10 * 60 * 1000,
+    /**
      * One tool call gives up after this long unless the tool names its own
      * deadline (`HarnessTool.timeout_ms`, `null` for none), so a tool that
      * ignores its own limits can't stall the run. Its result comes back as
@@ -516,6 +524,12 @@ export const AppData = {
     HarnessModelRestMs: 2 * 60 * 1000,
     HarnessModelRestMinSeconds: 10,
     HarnessModelRestMaxSeconds: 60 * 60,
+    /**
+     * The shortest bench a retryable failure earns, even when the provider
+     * sends `Retry-After: 0` or a date already past: without a floor the
+     * model is tried again on the very next turn and fails again (L2).
+     */
+    HarnessRetryAfterFloorMs: 5 * 1000,
     /**
      * Models the text harness tries, in order, after its pick and before
      * the automatic free picks (`fallback_model_ids` in its options).
@@ -586,6 +600,14 @@ export const AppData = {
      * way, was sent back for it, and came back byte for byte to the user.
      */
     HarnessReviewRewrites: 2,
+    /**
+     * How many turns a run may spend retrying a closing card (a failed
+     * `ask_user`/`suggest_next_steps`, or a card put up beside other work)
+     * before the run ends on the answer it wrote. Without a bound a model
+     * told its card "was not created" re-asks, the once-per-run guard refuses
+     * the re-ask, and the same note loops for the whole token budget.
+     */
+    MaxClosingRetries: 2,
     /**
      * The working context: how many tokens (estimated) of system prompt,
      * tool definitions and transcript a run sends per turn before old tool
@@ -678,6 +700,12 @@ export const AppData = {
     ImageReferenceMaxCount: 4,
     ImageReferenceMaxBytes: 10 * 1024 * 1024,
     /**
+     * The largest image downloaded from a URL a provider hands back (H4):
+     * a generated image is a few MB, so a body past this is refused rather
+     * than buffered whole into the app's memory.
+     */
+    HarnessImageDownloadMaxBytes: 25 * 1024 * 1024,
+    /**
      * `generate_video`: the still images one call passes on (first and
      * last frame, or references to follow), the videos it passes to change
      * and the largest each video may be (sent inline, as a `data:` URL).
@@ -693,6 +721,19 @@ export const AppData = {
      */
     VideoPollIntervalMs: 10 * 1000,
     VideoMaxWaitMs: 8 * 60 * 1000,
+    /**
+     * The largest video downloaded from a provider (M9): each output is
+     * streamed to disk and cut past this, so one call can't fill memory or
+     * the data volume with an unbounded body.
+     */
+    VideoOutputMaxBytes: 200 * 1024 * 1024,
+    /**
+     * Room left inside `HarnessToolTimeoutMs` for the video downloads after
+     * the job is ready (M9): the wait deadline is the tool's timeout minus
+     * this, so submitting, waiting and downloading all fit in one tool call
+     * rather than the wait running past it and being cut off mid-download.
+     */
+    VideoDownloadMarginMs: 2 * 60 * 1000,
     /**
      * `transform_image`: the largest source file and source (in pixels) it
      * opens, the longest side a result may have, the steps one call takes,
@@ -711,6 +752,13 @@ export const AppData = {
      * One MCP tool call gives up after this long without progress.
      */
     McpToolTimeoutMs: 5 * 60 * 1000,
+    /**
+     * Listing an MCP server's tools pages at most this many times and keeps
+     * at most this many tools (M11): a server that keeps handing back a
+     * cursor, or the same one again, would otherwise page forever.
+     */
+    McpToolListMaxPages: 50,
+    McpToolListMaxTools: 500,
     /**
      * A bash command on a computer (`computer_bash`) is killed there, with
      * everything it started, after at most this long: 0 leaves it no time
@@ -750,6 +798,12 @@ export const AppData = {
      */
     CustomToolDefaultTimeoutMs: 60 * 1000,
     CustomToolMaxTimeoutMs: 10 * 60 * 1000,
+    /**
+     * A custom tool's answer is read up to this many bytes (M11): an
+     * unbounded `res.text()` (then pretty-printed, doubling it) could fill
+     * memory. Past the cap the answer is cut and says so.
+     */
+    CustomToolResponseMaxBytes: 2 * 1024 * 1024,
     /**
      * Skills (Settings, under Skills): how long one's body may be, and how
      * much of it `load_skill` hands back in one call. A runbook past that

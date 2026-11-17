@@ -41,7 +41,7 @@ export default function UserBubble({ text }: { text: string }) {
                 componentRef={content_ref}
                 className={twMerge(
                     "min-w-0 items-stretch gap-2.5!",
-                    !expanded && "max-h-[25rem] overflow-hidden",
+                    !expanded && "max-h-[24rem] overflow-hidden",
                 )}
             >
                 <Markdown
@@ -58,9 +58,12 @@ export default function UserBubble({ text }: { text: string }) {
                     type="button"
                     variant="ghost"
                     color="white"
-                    size="small"
+                    size="smaller"
                     onClick={toggle}
-                    className="-ml-3 -mb-1 self-start text-on-ink/80 hover:text-on-ink"
+                    className={twMerge(
+                        "-ml-3 -mb-1 self-start text-on-ink/80 hover:text-on-ink underline",
+                        "decoration-dotted",
+                    )}
                 >
                     {expanded ? "Show less" : "Read more"}
                 </Button>

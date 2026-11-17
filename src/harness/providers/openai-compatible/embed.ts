@@ -54,7 +54,18 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
 
         prompt_tokens += Number(json?.usage?.prompt_tokens) || 0;
 
-        for (const item of items) {
+        /**
+         * Place each vector by the index the provider reports, not by the
+         * order it happens to send them in: an out-of-order batch would
+         * otherwise pair every text with the wrong vector (M5). A bare
+         * array (no index) falls back to its position. A repeated or
+         * out-of-range index, or a gap, is a failed batch.
+         */
+        const batch_vectors: number[][] = new Array(batch.length);
+        const seen = new Set<number>();
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
             const vector = Array.isArray(item) ? item : item?.embedding;
 
             if (!Array.isArray(vector) || !vector.length) {
@@ -65,7 +76,30 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
                 });
             }
 
-            vectors.push(vector.map(Number));
+            const index =
+                !Array.isArray(item) && Number.isInteger(item?.index) ? item.index : i;
+
+            if (index < 0 || index >= batch.length || seen.has(index)) {
+                throw new HarnessError({
+                    message: `${provider.name || preset.title} sent an embedding index out of range or twice.`,
+                    retryable: true,
+                    candidate_key: candidate.key,
+                });
+            }
+
+            seen.add(index);
+            batch_vectors[index] = vector.map(Number);
+        }
+
+        for (const vector of batch_vectors) {
+            if (!vector) {
+                throw new HarnessError({
+                    message: `${provider.name || preset.title} left a text without a vector.`,
+                    retryable: true,
+                    candidate_key: candidate.key,
+                });
+            }
+            vectors.push(vector);
         }
     }
 

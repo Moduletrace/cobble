@@ -46,6 +46,18 @@ const listModels: HarnessAdapter["listModels"] = async ({
           ? json.models
           : [];
 
+    /**
+     * An empty list is a failed sync too, not an empty catalog: a provider
+     * that answers 200 with `{}` or `data: []` must not mark every known
+     * model unavailable (M1). Keeping what is known beats wiping it.
+     */
+    if (items.length === 0) {
+        throw new HarnessError({
+            message: `${provider.name || preset.title} returned an empty model list.`,
+            retryable: true,
+        });
+    }
+
     if (is_openrouter) {
         return items
             .filter((item) => typeof item?.id == "string")

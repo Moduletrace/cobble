@@ -21,6 +21,10 @@ const chat: HarnessAdapter["chat"] = async ({
         provider,
         path: "/chat/completions",
         json: {
+            // Generation settings first, so the core fields below always win:
+            // a saved parameter must never override the model, the messages,
+            // the tools or the token ceiling (R12).
+            ...(params || {}),
             model: model.slug,
             messages: toWireMessages({ messages }),
             ...(tools?.length
@@ -32,7 +36,6 @@ const chat: HarnessAdapter["chat"] = async ({
                   }
                 : {}),
             ...(max_tokens ? { max_tokens } : {}),
-            ...(params || {}),
         },
         signal,
         candidate_key: candidate.key,

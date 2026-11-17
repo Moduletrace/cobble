@@ -141,7 +141,13 @@ export async function computerWorkspaceFullWarning({ computer, dirs, signal }: O
     const usage = await grabComputerUsage({ computer, signal }).catch(() => null);
 
     if (!usage) return null;
-    if (workspaceHasRoom({ used_bytes: usage.used_bytes, quota_bytes, incoming_bytes: 0 })) return null;
+    /**
+     * The warning is about what is already on disk, not a write about to
+     * happen: `workspaceHasRoom` always fits a write of 0 bytes (a shrink or
+     * a same-size rewrite must never be refused), so asking it with
+     * `incoming_bytes: 0` could never fire (H2). Compare the usage directly.
+     */
+    if (usage.used_bytes <= quota_bytes) return null;
 
     return computerWorkspaceFullNote({
         used_bytes: usage.used_bytes,

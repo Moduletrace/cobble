@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { grabHarnessUsageScope, runWithHarnessUsageScope } from "./harness-usage-scope";
 import runWithFallbackScope from "./run-with-fallback-scope";
 
-const owner = { user_id: 9, bot_id: 3, session_id: null, message_id: null, job_id: null };
+const owner = { user_id: 9, bot_id: 3, workspace_id: null, session_id: null, message_id: null, job_id: null };
 
 describe("runWithFallbackScope", () => {
     test("the enclosing run keeps the work it already owns", async () => {
@@ -57,6 +57,28 @@ describe("runWithFallbackScope", () => {
         });
 
         expect(seen).toEqual(owner);
+    });
+
+    test("own mode clears ambient fields the scope never named (L10)", async () => {
+        const seen = await runWithHarnessUsageScope({
+            scope: { user_id: 7, bot_id: 3, job_id: 5, message_id: 8, session_id: 2 },
+            task: () =>
+                runWithFallbackScope({
+                    // Only the user and bot: no session, message or job.
+                    scope: { user_id: 9, bot_id: 3 },
+                    mode: "own",
+                    task: async () => grabHarnessUsageScope(),
+                }),
+        });
+
+        expect(seen).toEqual({
+            user_id: 9,
+            bot_id: 3,
+            workspace_id: null,
+            session_id: null,
+            job_id: null,
+            message_id: null,
+        });
     });
 
     test("the work's result is passed through", async () => {

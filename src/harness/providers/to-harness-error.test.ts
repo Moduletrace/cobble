@@ -83,4 +83,37 @@ describe("toHarnessError", () => {
             "x: HTTP 500",
         );
     });
+
+    test("a key the provider echoes back is masked, not shown (M8)", () => {
+        const error = toHarnessError({
+            status: 401,
+            body: JSON.stringify({
+                error: {
+                    message:
+                        "Incorrect API key provided: sk-proj-abc123def456ghi789jkl012mno345pqr678. You can find your API key at https://platform.openai.com/account/api-keys.",
+                },
+            }),
+            provider_name: "LiteLLM",
+        });
+
+        expect(error.message).not.toContain("sk-proj-abc123");
+        expect(error.message).toContain("[redacted]");
+        expect(error.message).toContain("Incorrect API key provided");
+    });
+
+    test("a key nested in metadata.raw is masked too (M8)", () => {
+        const error = toHarnessError({
+            status: 400,
+            body: JSON.stringify({
+                error: {
+                    message: "Provider returned error",
+                    metadata: { raw: "auth failed for Bearer sk-or-v1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+                },
+            }),
+            provider_name: "OpenRouter",
+        });
+
+        expect(error.message).not.toContain("sk-or-v1-aaaa");
+        expect(error.message).toContain("[redacted]");
+    });
 });

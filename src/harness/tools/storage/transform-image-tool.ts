@@ -57,7 +57,7 @@ export default function transformImageTool(context: StorageToolContext): Harness
                 .positive()
                 .optional()
                 .describe(`An image the user uploaded, by media id`),
-            operations: z.array(ImageTransformOperationSchema).max(AppData.ImageTransformMaxOperations),
+            operations: z.array(ImageTransformOperationSchema).min(1).max(AppData.ImageTransformMaxOperations),
             path: z
                 .string()
                 .max(AppData.BotFilePathMaxChars)
@@ -71,7 +71,7 @@ export default function transformImageTool(context: StorageToolContext): Harness
             attach: z.boolean().optional().describe(`Send it to the user with this reply`),
             scope: z.string().optional().describe(`"bot:<id>" or "workspace:<id>"`),
         }),
-        run: async ({ args }) => {
+        run: async ({ args, signal }) => {
             const named = args.scope
                 ? findNamedScope({ scopes: context.scopes, name: args.scope })
                 : own;
@@ -123,6 +123,7 @@ export default function transformImageTool(context: StorageToolContext): Harness
                 operations: args.operations,
                 format,
                 quality: args.quality,
+                signal,
             });
 
             const path = args.path

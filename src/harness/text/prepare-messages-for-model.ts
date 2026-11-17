@@ -2,6 +2,7 @@ import { MediaReadNote } from "@/src/data/harness-prompts";
 import transcribeAudio from "../audio/transcribe-audio";
 import HarnessError from "../harness-error";
 import type { ReadingCache } from "../media/create-reading-cache";
+import audioReadingKey from "../media/audio-reading-key";
 import imageReadingKey from "../media/image-reading-key";
 import MediaReadings from "../media/media-readings";
 import readImage from "../media/read-image";
@@ -104,7 +105,7 @@ export default async function prepareMessagesForModel({
             return {
                 type: "text",
                 text: await readOnce({
-                    key: `audio:${Bun.hash(part.data)}`,
+                    key: audioReadingKey({ data: part.data }),
                     label: `Audio${part.name ? ` "${part.name}"` : ""}, transcribed`,
                     cache,
                     readings,
@@ -179,7 +180,12 @@ async function readOnce({
     signal: AbortSignal;
     read: () => Promise<string>;
 }) {
-    const cached = cache.get(key) ?? (share ? readings.get({ key }) : undefined);
+    // A reading made to cut a secret out (`redact`, so `share` is false)
+    // bypasses both caches: the within-run cache is keyed by image alone, so
+    // an earlier unredacted reading of the same image would otherwise be
+    // served back without the secret cut (H3). It is read fresh every time
+    // and never stored, so it can't leak into a later turn or run.
+    const cached = share ? cache.get(key) ?? readings.get({ key }) : undefined;
 
     if (cached !== undefined) {
         cache.set(key, cached);
@@ -188,8 +194,10 @@ async function readOnce({
 
     try {
         const text = `[${label}: ${await read()}]`;
-        cache.set(key, text);
-        if (share) readings.set({ key, text });
+        if (share) {
+            cache.set(key, text);
+            readings.set({ key, text });
+        }
         return text;
     } catch (error: unknown) {
         if (signal.aborted || (error instanceof HarnessError && error.code == "aborted")) {

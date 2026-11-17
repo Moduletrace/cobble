@@ -43,4 +43,35 @@ describe("redactSecrets", () => {
             redactSecrets({ text: "ab cd", secrets: [{ key: "PAIR", value: "cd" }] }),
         ).toBe("ab cd");
     });
+
+    test("masks a secret printed as base64 or hex (L6)", () => {
+        const value = "hunter2";
+        const base64 = Buffer.from(value, "utf8").toString("base64");
+        const hex = Buffer.from(value, "utf8").toString("hex");
+
+        expect(
+            redactSecrets({ text: `blob ${base64} end`, secrets: [{ key: "PASS", value }] }),
+        ).toBe("blob [PASS] end");
+        expect(
+            redactSecrets({ text: `digest ${hex} end`, secrets: [{ key: "PASS", value }] }),
+        ).toBe("digest [PASS] end");
+    });
+
+    test("masks a secret printed URL-encoded (L6)", () => {
+        const value = "p@ss word";
+        const encoded = encodeURIComponent(value);
+
+        expect(
+            redactSecrets({ text: `query ${encoded} end`, secrets: [{ key: "PASS", value }] }),
+        ).toBe("query [PASS] end");
+    });
+
+    test("masks a long secret a run folded to lower case (L6)", () => {
+        expect(
+            redactSecrets({
+                text: "logged supersecret123 here",
+                secrets: [{ key: "KEY", value: "SuperSecret123" }],
+            }),
+        ).toBe("logged [KEY] here");
+    });
 });

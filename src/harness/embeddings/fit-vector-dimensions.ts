@@ -24,7 +24,10 @@ export default function fitVectorDimensions({
     let sum = 0;
 
     for (let i = 0; i < length; i++) {
-        const value = Number(vector[i]) || 0;
+        const raw = Number(vector[i]);
+        // A non-finite value (Infinity, NaN) would turn the whole vector
+        // into NaN once normalized; treat it as zero instead (L8).
+        const value = Number.isFinite(raw) ? raw : 0;
 
         out[i] = value;
         sum += value * value;

@@ -2,6 +2,7 @@ import { readdir, rm, writeFile } from "fs/promises";
 import path from "path";
 import { AppData } from "@/src/data/app-data";
 import type { McpServerRecord } from "@/src/types";
+import redactSecrets from "@/src/utils/redact-secrets";
 import grabMcpDir from "./grab-mcp-dir";
 import hostShell from "./host-shell";
 
@@ -54,11 +55,25 @@ export default async function runMcpSetup({ server, env, force }: Params) {
     ]);
     const output = `${stdout}${stderr ? `\n${stderr}` : ""}`.trim();
 
-    await writeFile(path.join(dir, "setup.log"), `$ ${command}\n${output}\nExit code: ${exit_code}\n`);
+    /**
+     * The setup runs with the server's resolved environment, and its output
+     * (or the command itself) can echo a secret value. Mask the known
+     * values before anything is written to disk or thrown, so `setup.log`
+     * and the marker carry no secret - including into a data archive (L10).
+     */
+    const secrets = Object.entries(env).map(([key, value]) => ({ key, value }));
+    const redact = (text: string) => redactSecrets({ text, secrets });
+
+    await writeFile(
+        path.join(dir, "setup.log"),
+        redact(`$ ${command}\n${output}\nExit code: ${exit_code}\n`),
+    );
 
     if (exit_code !== 0) {
-        throw new Error(`The setup command failed (exit code ${exit_code}): ${output.slice(-2000) || "no output"}`);
+        throw new Error(
+            `The setup command failed (exit code ${exit_code}): ${redact(output.slice(-2000)) || "no output"}`,
+        );
     }
 
-    await writeFile(path.join(dir, marker), command);
+    await writeFile(path.join(dir, marker), redact(command));
 }

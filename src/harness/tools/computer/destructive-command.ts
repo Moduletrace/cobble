@@ -31,9 +31,18 @@ function discardsWork({ invocation }: { invocation: GitInvocation }): boolean {
         /**
          * Throws away every uncommitted change in the paths it names, which
          * is `.` or `--` followed by anything, or the whole tree with `-f`.
+         * A bare pathspec (`git checkout src/server.ts`) discards that path's
+         * edits too, with no flag to give it away: a non-flag argument that
+         * looks like a path (a separator or an extension) is treated as one.
+         * A branch switch whose name happens to look like that only costs a
+         * cheap snapshot; missing a real pathspec costs the work (M6).
          */
         case "checkout":
-            return args.some((arg) => arg == "--" || arg == "." || arg == "-f" || arg == "--force" || arg == "-B");
+            if (args.some((arg) => arg == "--" || arg == "." || arg == "-f" || arg == "--force" || arg == "-B")) {
+                return true;
+            }
+
+            return args.some((arg) => !arg.startsWith("-") && (arg.includes("/") || arg.includes(".")));
 
         /** Restores paths from the index or a commit: always a discard. */
         case "restore":

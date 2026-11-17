@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import writeComputerFile from "@/src/functions/backend/computers/write-computer-file";
+import statComputerFile from "@/src/functions/backend/computers/stat-computer-file";
 import { resolveComputerPath } from "@/src/utils/computer-work-dirs";
 import type { HarnessTool } from "../../types";
 import type { ComputerToolContext } from "./computer-tool-context";
@@ -25,10 +26,20 @@ export default function computerWriteFileTool({ computer, dirs }: ComputerToolCo
         }),
         run: async ({ args, signal }) => {
             const path = resolveComputerPath({ path: args.path, dirs });
+            const incoming = Buffer.byteLength(args.content, "utf8");
+            /**
+             * A rewrite only adds what it grows by (M7): counting the whole
+             * new content refused a same-size or shrinking rewrite near the
+             * limit, blocking the very cleanup that frees space. Stat what's
+             * there; a missing file (or a stat that fails) counts the whole
+             * write, as a new file does.
+             */
+            const existing = await statComputerFile({ computer, path, run_as: dirs.run_as, signal }).catch(() => null);
+            const existing_bytes = existing?.exists && existing.type == "file" ? existing.size : 0;
             const too_big = await computerWorkspaceRoomError({
                 computer,
                 dirs,
-                incoming_bytes: Buffer.byteLength(args.content, "utf8"),
+                incoming_bytes: Math.max(0, incoming - existing_bytes),
                 signal,
             });
 

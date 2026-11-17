@@ -1,5 +1,6 @@
 import AppError from "@/src/utils/app-error";
 import grabUserBot from "../bots/grab-user-bot";
+import grabBotWorkspaceIds from "../workspaces/grab-bot-workspace-ids";
 import grabAllEnvs from "./grab-all-envs";
 import saveEnv from "./save-env";
 
@@ -30,13 +31,37 @@ export default async function saveUserSecret({ user_id, bot_id, key, value, desc
 
     if (!value) throw new AppError(`Enter a value.`);
 
-    const existing = (await grabAllEnvs()).find(
+    const all = await grabAllEnvs();
+    const trimmed = key.trim();
+
+    const existing = all.find(
         (env) =>
             env.paradigm == "user" &&
             env.bot_id == Number(bot_id) &&
             env.user_id == Number(user_id) &&
-            env.key == key.trim(),
+            env.key == trimmed,
     );
+
+    // A personal secret overrides every wider scope for this user's runs
+    // (general < workspace < bot < user). Letting a member set a key a wider
+    // scope already holds would let them repoint where that scope's secrets
+    // are sent (an MCP URL or header reading `{{env.API_HOST}}`), so a key
+    // already set at a wider scope that reaches this bot is refused (H6).
+    const workspace_ids = bot.kind == "coordinator" ? null : await grabBotWorkspaceIds({ bot_id });
+    const collision = all.find(
+        (env) =>
+            env.key == trimmed &&
+            (env.paradigm == "general" ||
+                (env.paradigm == "bot" && env.bot_id == Number(bot_id)) ||
+                (env.paradigm == "workspace" &&
+                    (workspace_ids === null || workspace_ids.includes(Number(env.workspace_id))))),
+    );
+
+    if (collision) {
+        throw new AppError(
+            `"${trimmed}" is already set for this bot at a wider scope, so a personal secret can't replace it. Ask a super admin to change it in Settings > Environment.`,
+        );
+    }
 
     return await saveEnv({
         user_id: Number(user_id),

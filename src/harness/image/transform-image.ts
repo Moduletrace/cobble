@@ -22,6 +22,11 @@ type Params = {
      * 1 to 100, for JPEG and WebP.
      */
     quality?: number;
+    /**
+     * The run's abort: checked between operations so a stopped run doesn't
+     * keep transforming (M10).
+     */
+    signal?: AbortSignal;
 };
 
 type Raw = { data: Buffer; info: OutputInfo };
@@ -40,6 +45,7 @@ export default async function transformImage({
     operations,
     format,
     quality,
+    signal,
 }: Params): Promise<{
     data: Uint8Array;
     width: number;
@@ -47,12 +53,28 @@ export default async function transformImage({
     source_width: number;
     source_height: number;
 }> {
+    if (signal?.aborted) throw new AppError(`Cancelled.`);
+
     const meta = await sharp(data, { limitInputPixels: AppData.ImageTransformMaxInputPixels })
         .metadata()
         .catch(() => null);
 
     if (!meta?.format || !TransformableFormats.includes(meta.format)) {
         throw new AppError(`That file isn't an image this tool can transform (PNG, JPEG, WebP, GIF, AVIF or TIFF).`);
+    }
+
+    /**
+     * The size is checked from the metadata before the first raw decode (M10):
+     * a pixel bomb is refused here, not after sharp has already decoded it
+     * into hundreds of megabytes of raw pixels.
+     */
+    if (
+        (meta.width || 0) > AppData.ImageTransformMaxDimension ||
+        (meta.height || 0) > AppData.ImageTransformMaxDimension
+    ) {
+        throw new AppError(
+            `That image is ${meta.width}x${meta.height}; this tool transforms images up to ${AppData.ImageTransformMaxDimension}px on a side.`,
+        );
     }
 
     let current: Raw = await sharp(data, { limitInputPixels: AppData.ImageTransformMaxInputPixels })
@@ -65,6 +87,8 @@ export default async function transformImage({
     const source_height = current.info.height;
 
     for (let index = 0; index < operations.length; index++) {
+        if (signal?.aborted) throw new AppError(`Cancelled.`);
+
         const operation = operations[index]!;
 
         try {

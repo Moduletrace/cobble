@@ -35,7 +35,7 @@ describe("gitSnapshotScript", () => {
         const script = gitSnapshotScript({ dirs: dirs() });
 
         expect(script).toContain(`dir='/home/cb-2/workspace/bots/2/${GitSnapshotDir}'`);
-        expect(script).toContain(`patch="$dir/$(date +%Y%m%d-%H%M%S)-$(basename "$top").patch"`);
+        expect(script).toContain(`patch="$dir/$(date +%Y%m%d-%H%M%S)-$$-$RANDOM-$(basename "$top").patch"`);
     });
 
     test("captures untracked files, not only the tracked diff", () => {
@@ -64,7 +64,14 @@ describe("gitSnapshotScript", () => {
 
     test("keeps the newest snapshots and deletes the rest", () => {
         expect(KeepSnapshots).toBe(40);
-        expect(gitSnapshotScript({ dirs: dirs() })).toContain(`tail -n +${KeepSnapshots + 1}`);
+
+        const script = gitSnapshotScript({ dirs: dirs() });
+
+        expect(script).toContain(`tail -n +${KeepSnapshots + 1}`);
+        // Prunes whole snapshots (a patch and its listing), not loose
+        // entries, so it keeps KeepSnapshots patches rather than half (L7).
+        expect(script).toContain(`ls -1t "$dir"/*.patch`);
+        expect(script).toContain(`rm -f "$old" "$old.files"`);
     });
 
     test("writes nothing when the tree is clean, and never fails the call", () => {
@@ -72,5 +79,27 @@ describe("gitSnapshotScript", () => {
 
         expect(script).toContain('rm -f "$patch"');
         expect(script.trimEnd().endsWith("exit 0")).toBe(true);
+    });
+
+    test("saves every repository the command reaches, not only the cwd (M6)", () => {
+        const script = gitSnapshotScript({
+            dirs: dirs(),
+            roots: [dirs().cwd, "/home/cb-2/workspace/users/1/other-repo"],
+        });
+
+        expect(script).toContain(`root='${dirs().cwd}'`);
+        expect(script).toContain(`root='/home/cb-2/workspace/users/1/other-repo'`);
+        // Each root is its own subshell, so a non-repository exits alone.
+        expect(script.match(/top=\$\(git -C "\$root" rev-parse --show-toplevel/g)?.length).toBe(2);
+    });
+
+    test("captures ignored files too when a clean -x would delete them (M6)", () => {
+        const script = gitSnapshotScript({ dirs: dirs(), include_ignored: true });
+
+        expect(script).toContain("ls-files --others --ignored --exclude-standard");
+    });
+
+    test("leaves ignored files out of an ordinary snapshot", () => {
+        expect(gitSnapshotScript({ dirs: dirs() })).not.toContain("--ignored");
     });
 });

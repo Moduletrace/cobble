@@ -17,7 +17,7 @@ describe("UserBubble", () => {
     test("cuts the text to twenty lines, with no button before it's measured", () => {
         const html = render({ text: "a long prompt\n\n".repeat(60) });
 
-        expect(html).toContain("max-h-[25rem]");
+        expect(html).toContain("max-h-[24rem]");
         expect(html).toContain("overflow-hidden");
         // The server has no layout: "Read more" appears once measured.
         expect(html).not.toContain("Read more");

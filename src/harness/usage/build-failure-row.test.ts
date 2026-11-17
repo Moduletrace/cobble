@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { AppData } from "@/src/data/app-data";
+import { ForeverRestUntil } from "@/src/utils/run-limit";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate } from "../types";
 import buildFailureRow from "./build-failure-row";
@@ -67,5 +68,17 @@ describe("buildFailureRow", () => {
 
         expect(row?.error?.length).toBe(AppData.HarnessFailureErrorMaxChars);
         expect(row?.status).toBeUndefined();
+    });
+
+    test("carries the forever-rest sentinel so the Details modal reads it back (L3)", () => {
+        const row = buildFailureRow({
+            harness: "text",
+            candidate,
+            error: new HarnessError({ message: "Rate limited", status: 429, retryable: true }),
+            rests_until: ForeverRestUntil,
+            scope: { user_id: 1 },
+        });
+
+        expect(row?.rests_until).toBe(ForeverRestUntil);
     });
 });

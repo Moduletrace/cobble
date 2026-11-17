@@ -65,7 +65,22 @@ const transcribe: HarnessAdapter["transcribe"] = async ({
               }
             : undefined;
 
-    return { text: String(json?.text || "").trim(), ...(usage ? { usage } : {}) };
+    const text = String(json?.text || "").trim();
+
+    /**
+     * An empty transcript is a failed call, not silence: caching "" would
+     * hand every later reply an empty reading of the clip. Saying it
+     * failed lets the harness try the next model (L8).
+     */
+    if (!text) {
+        throw new HarnessError({
+            message: `${candidate.provider.name || "The provider"} returned an empty transcript.`,
+            retryable: true,
+            candidate_key: candidate.key,
+        });
+    }
+
+    return { text, ...(usage ? { usage } : {}) };
 };
 
 export default transcribe;

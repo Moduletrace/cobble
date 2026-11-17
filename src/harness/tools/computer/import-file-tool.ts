@@ -1,4 +1,4 @@
-import { lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { lstatSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
@@ -431,7 +431,7 @@ async function unpackArchive({
 
         await Bun.write(file, archive);
 
-        const proc = Bun.spawnSync(["tar", "-xzf", file, "-C", dir], {
+        const proc = Bun.spawnSync(["tar", "--no-absolute-filenames", "--no-same-owner", "-xzf", file, "-C", dir], {
             stdout: "ignore",
             stderr: "ignore",
         });
@@ -439,8 +439,17 @@ async function unpackArchive({
         if (proc.exitCode != 0) return saved;
 
         const base = archiveRoot({ dir });
+        const real_dir = realpathSync(dir);
 
         for (const entry of walkRegularFiles({ dir: base })) {
+            /**
+             * Only a file that really landed inside the unpack directory is
+             * read (R13): a member crafted to resolve elsewhere is skipped,
+             * never recorded from the app's own disk.
+             */
+            const real_entry = realpathSync(entry);
+            if (real_entry != real_dir && !real_entry.startsWith(real_dir + path.sep)) continue;
+
             const relative = path.relative(base, entry).split(path.sep).join("/");
             const row = await recordBotFile({
                 bot_id,

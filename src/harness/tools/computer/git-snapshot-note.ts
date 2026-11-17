@@ -1,4 +1,5 @@
 import type { GitWorktreeSnapshot } from "./parse-git-snapshot";
+import shellQuote from "@/src/utils/shell-quote";
 
 /**
  * The line a `computer_bash` result carries when the command it ran would
@@ -19,7 +20,7 @@ export default function gitSnapshotNote({
         ({ top, files, patch }) =>
             `- ${top}: ${files} uncommitted path${files == 1 ? "" : "s"} saved to ${patch} (and ${
                 files == 1 ? "a file listing it" : "a file listing them"
-            }: ${patch}.files). Restore with: git -C ${top} apply ${patch}`,
+            }: ${patch}.files). Restore with: git -C ${shellQuote({ text: top })} apply ${shellQuote({ text: patch })}`,
     );
 
     return `[This command would have discarded uncommitted work. It was saved first:]\n${lines.join("\n")}`;

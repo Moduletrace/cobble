@@ -37,4 +37,15 @@ describe("pushUserTurn", () => {
             },
         ]);
     });
+
+    test("joining leaves the caller's own message object untouched (L5)", () => {
+        const original: HarnessMessage = { role: "user", content: "One" };
+        const transcript: HarnessMessage[] = [original];
+
+        pushUserTurn({ transcript, content: "Two" });
+
+        expect(original.content).toBe("One");
+        expect(transcript[0]).not.toBe(original);
+        expect(transcript[0]).toEqual({ role: "user", content: "One\n\nTwo" });
+    });
 });

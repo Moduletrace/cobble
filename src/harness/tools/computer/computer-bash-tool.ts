@@ -12,6 +12,7 @@ import type { ComputerToolContext } from "./computer-tool-context";
 import { computerWorkspaceFullWarning } from "./computer-workspace-room";
 import isDestructiveGit from "./destructive-command";
 import gitSnapshotNote from "./git-snapshot-note";
+import type { GitWorktreeSnapshot } from "./parse-git-snapshot";
 import snapshotGitWorktree from "./snapshot-git-worktree";
 
 type Args = {
@@ -61,11 +62,20 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
              * Before anything that would throw uncommitted work away: keep it
              * outside the repository, and say where in the result, so a run
              * that just discarded its own edits can get them back instead of
-             * rediscovering the loss.
+             * rediscovering the loss. If the snapshot itself cannot be saved,
+             * the command still runs, but the result says the work it discards
+             * may be unrecoverable rather than implying it was kept (M6).
              */
-            const snapshots = isDestructiveGit({ command: args.command })
-                ? await snapshotGitWorktree({ computer, dirs, cwd, signal }).catch(() => [])
-                : [];
+            let snapshots: GitWorktreeSnapshot[] = [];
+            let snapshot_failed = false;
+
+            if (isDestructiveGit({ command: args.command })) {
+                try {
+                    snapshots = await snapshotGitWorktree({ computer, dirs, cwd, command: args.command, signal });
+                } catch {
+                    snapshot_failed = true;
+                }
+            }
 
             const result = await runComputerCommand({
                 computer,
@@ -91,6 +101,7 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
 
             return [
                 gitSnapshotNote({ snapshots }),
+                snapshot_failed ? `[The safety snapshot could not be saved before this command; any work it discards may be unrecoverable.]` : "",
                 `Exit code: ${result.exit_code ?? "unknown"}`,
                 output || "(no output)",
                 result.timed_out ? `[Stopped after ${seconds ?? 0}s: the command timed out. Run long work in the background and check its log.]` : "",

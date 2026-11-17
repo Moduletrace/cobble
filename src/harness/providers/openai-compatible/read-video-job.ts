@@ -1,3 +1,5 @@
+import redactProviderError from "../redact-provider-error";
+
 /**
  * A video job as the app reads it, whichever provider holds it.
  */
@@ -60,7 +62,13 @@ export default function readVideoJob({ json }: { json: any }): VideoJob | null {
     return {
         id,
         state: "failed",
-        error: error || (status == "expired" ? "It took too long and expired." : status == "cancelled" ? "It was cancelled." : `It ended as ${status}.`),
+        error: error
+            ? redactProviderError({ text: error })
+            : status == "expired"
+              ? "It took too long and expired."
+              : status == "cancelled"
+                ? "It was cancelled."
+                : `It ended as ${status}.`,
         outputs: 0,
         cost,
     };

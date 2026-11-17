@@ -13,6 +13,8 @@ describe("isDestructiveGit", () => {
             "git checkout -- .",
             "git checkout -- src/server.ts",
             "git checkout .",
+            "git checkout src/server.ts",
+            "git checkout HEAD src/server.ts",
             "git checkout -f main",
             "git restore src",
             "git reset --hard HEAD~1",

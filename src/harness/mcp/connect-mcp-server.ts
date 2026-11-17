@@ -3,6 +3,8 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { AppData } from "@/src/data/app-data";
 import { SiteData } from "@/src/data/site-data";
+import assertBrowserUrl from "@/src/functions/backend/db/browsers/assert-browser-url";
+import pinBrowserFetch from "./pin-browser-fetch";
 
 type Params = {
     /**
@@ -33,10 +35,15 @@ export default async function connectMcpServer({
         headers || no_redirects ? { headers, redirect: no_redirects ? "error" : undefined } : undefined;
     const options = { signal, timeout: AppData.McpConnectTimeoutMs };
 
+    // A user's browser URL is checked here and pinned to the addresses that
+    // passed, so the transport connects to those and never re-resolves the
+    // name (which a rebinding name would answer with a computer's address).
+    const fetch = no_redirects ? pinBrowserFetch({ endpoint, addresses: await assertBrowserUrl({ url }) }) : undefined;
+
     try {
         const client = newClient();
         await client.connect(
-            new StreamableHTTPClientTransport(endpoint, { requestInit: request_init }),
+            new StreamableHTTPClientTransport(endpoint, { requestInit: request_init, fetch }),
             options,
         );
         return client;
@@ -46,7 +53,7 @@ export default async function connectMcpServer({
         try {
             const client = newClient();
             await client.connect(
-                new SSEClientTransport(endpoint, { requestInit: request_init }),
+                new SSEClientTransport(endpoint, { requestInit: request_init, fetch }),
                 options,
             );
             return client;

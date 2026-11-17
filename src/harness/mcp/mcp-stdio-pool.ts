@@ -3,12 +3,14 @@ import type { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdi
 import { AppData } from "@/src/data/app-data";
 import type { McpServerRecord } from "@/src/types";
 import grabMcpStdioEnv from "./grab-mcp-stdio-env";
+import killProcessTree from "./kill-process-tree";
 import startStdioMcpClient from "./start-stdio-mcp-client";
 
 type Entry = {
+    server_id: number;
     /**
-     * The command, setup and environment it was started with: a change
-     * restarts it.
+     * The pool key: the server's identity and the environment it was
+     * started with. A change restarts it.
      */
     key: string;
     client: Promise<Client>;
@@ -17,10 +19,13 @@ type Entry = {
 };
 
 /**
- * The stdio MCP servers running in this process, one per server, shared by
- * every run.
+ * The stdio MCP servers running in this process, keyed by server AND
+ * environment (M12): two runs whose resolved envs differ each keep their
+ * own client instead of stopping each other's; runs with the same env
+ * share one. Each is kept until idle for `AppData.McpStdioIdleMs`, its
+ * configuration changes, or it exits.
  */
-const pool = new Map<number, Entry>();
+const pool = new Map<string, Entry>();
 
 type Params = {
     server: McpServerRecord;
@@ -29,44 +34,45 @@ type Params = {
 
 /**
  * A connected client for a stdio MCP server, started on first use
- * (`startStdioMcpClient`) and kept running for later calls until it's idle for `AppData.McpStdioIdleMs`,
- * its configuration changes, or it exits.
+ * (`startStdioMcpClient`) and kept running for later calls.
  */
 export default async function grabStdioMcpClient({ server, envs }: Params): Promise<Client> {
     const env = grabMcpStdioEnv({ server, envs });
-    const key = String(Bun.hash(JSON.stringify([server.command, server.setup_command, env])));
-    const existing = pool.get(server.id);
+    const key = `${server.id}:${Bun.hash(JSON.stringify([server.command, server.setup_command, env]))}`;
+    const existing = pool.get(key);
 
-    if (existing?.key == key) {
-        touch({ server_id: server.id, entry: existing });
+    if (existing) {
+        touch({ key, entry: existing });
         return existing.client;
     }
 
-    if (existing) stopStdioMcpServer({ server_id: server.id });
-
-    const entry = { key } as Entry;
+    const entry = { server_id: server.id, key } as Entry;
 
     entry.client = start({ server, env, entry }).catch((error) => {
-        if (pool.get(server.id) == entry) pool.delete(server.id);
+        if (pool.get(key) == entry) pool.delete(key);
         throw error;
     });
 
-    pool.set(server.id, entry);
-    touch({ server_id: server.id, entry });
+    pool.set(key, entry);
+    touch({ key, entry });
 
     return entry.client;
 }
 
 /**
- * Stops a stdio MCP server running in this process, if it is (on a
- * change, a delete, or idle).
+ * Stops every stdio MCP client running in this process for a server (on a
+ * change, a delete, or idle), whatever environment each was started with.
  */
 export function stopStdioMcpServer({ server_id }: { server_id: number }) {
-    const entry = pool.get(server_id);
+    for (const [key, entry] of pool) {
+        if (entry.server_id == server_id) stopEntry({ key, entry });
+    }
+}
 
-    if (!entry) return;
+function stopEntry({ key, entry }: { key: string; entry: Entry }) {
+    if (pool.get(key) != entry) return;
 
-    pool.delete(server_id);
+    pool.delete(key);
     clearTimeout(entry.timer);
     entry.client.then((client) => client.close()).catch(() => {});
 }
@@ -77,8 +83,8 @@ async function start({ server, env, entry }: { server: McpServerRecord; env: Rec
     entry.transport = transport;
 
     client.onclose = () => {
-        if (pool.get(server.id) == entry) {
-            pool.delete(server.id);
+        if (pool.get(entry.key) == entry) {
+            pool.delete(entry.key);
             clearTimeout(entry.timer);
         }
     };
@@ -86,24 +92,20 @@ async function start({ server, env, entry }: { server: McpServerRecord; env: Rec
     return client;
 }
 
-function touch({ server_id, entry }: { server_id: number; entry: Entry }) {
+function touch({ key, entry }: { key: string; entry: Entry }) {
     clearTimeout(entry.timer);
     entry.timer = setTimeout(() => {
-        if (pool.get(server_id) == entry) stopStdioMcpServer({ server_id });
+        if (pool.get(key) == entry) stopEntry({ key, entry });
     }, AppData.McpStdioIdleMs);
     entry.timer.unref?.();
 }
 
 /**
- * Children go with the app.
+ * Children go with the app, grandchildren too (M12).
  */
 process.once("exit", () => {
     for (const entry of pool.values()) {
         const pid = entry.transport?.pid;
-        if (pid) {
-            try {
-                process.kill(pid);
-            } catch {}
-        }
+        if (pid) killProcessTree({ pid });
     }
 });

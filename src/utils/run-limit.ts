@@ -12,6 +12,17 @@ export const UnlimitedLimit = "unlimited";
 export type RunLimit = number | typeof UnlimitedLimit;
 
 /**
+ * The `rests_until` timestamp written to a failed-call row when the model
+ * rests with no end (`harness_model_rest_seconds` unlimited). The column
+ * is a number, so the unlimited rest is recorded as this sentinel rather
+ * than left blank: the Details modal reads it back and says the model is
+ * benched until the run limits change or the app restarts, the same
+ * account the Activity log gives. No real bench is this far out, and it
+ * fits SQLite's 64-bit integer (L3).
+ */
+export const ForeverRestUntil = Number.MAX_SAFE_INTEGER;
+
+/**
  * Whether a saved or recorded limit is the unlimited one.
  */
 export function isUnlimitedLimit(value: unknown): value is typeof UnlimitedLimit {

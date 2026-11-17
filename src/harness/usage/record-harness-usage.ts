@@ -37,26 +37,26 @@ export default async function recordHarnessUsage({ scope, call }: Params) {
 
     if (!user_id) return;
 
-    const row: BUN_SQLITE_COBBLE_TOKEN_USAGES = {
-        user_id,
-        bot_id: numberOrNull(resolved?.bot_id),
-        workspace_id: numberOrNull(resolved?.workspace_id),
-        session_id: numberOrNull(resolved?.session_id),
-        message_id: numberOrNull(resolved?.message_id),
-        job_id: numberOrNull(resolved?.job_id),
-        harness: call.harness,
-        provider_id: call.provider_id,
-        provider_name: call.provider_name,
-        model_id: call.model_id,
-        model_slug: call.model_slug,
-        prompt_tokens: Math.max(0, Math.round(call.prompt_tokens || 0)),
-        cached_tokens: Math.max(0, Math.round(call.cached_tokens || 0)),
-        completion_tokens: Math.max(0, Math.round(call.completion_tokens || 0)),
-        cost: typeof call.cost == "number" && Number.isFinite(call.cost) ? call.cost : undefined,
-        settings: call.settings ? JSON.stringify(call.settings) : undefined,
-    };
-
     try {
+        const row: BUN_SQLITE_COBBLE_TOKEN_USAGES = {
+            user_id,
+            bot_id: numberOrNull(resolved?.bot_id),
+            workspace_id: numberOrNull(resolved?.workspace_id),
+            session_id: numberOrNull(resolved?.session_id),
+            message_id: numberOrNull(resolved?.message_id),
+            job_id: numberOrNull(resolved?.job_id),
+            harness: call.harness,
+            provider_id: call.provider_id,
+            provider_name: call.provider_name,
+            model_id: call.model_id,
+            model_slug: call.model_slug,
+            prompt_tokens: Math.max(0, Math.round(call.prompt_tokens || 0)),
+            cached_tokens: Math.max(0, Math.round(call.cached_tokens || 0)),
+            completion_tokens: Math.max(0, Math.round(call.completion_tokens || 0)),
+            cost: typeof call.cost == "number" && Number.isFinite(call.cost) ? call.cost : undefined,
+            settings: call.settings ? JSON.stringify(call.settings) : undefined,
+        };
+
         const res = await BunSQLite.insert<
             BUN_SQLITE_COBBLE_TOKEN_USAGES,
             (typeof BunSQLiteTables)[number]

@@ -42,6 +42,7 @@ import redactTrace from "@/src/harness/trace/redact-trace";
 import { isUnlimitedLimit, smallerRunLimit } from "@/src/utils/run-limit";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotBrowsers, { type OpenBotBrowsers } from "@/src/harness/tools/browsers/open-bot-browsers";
+import { BrowserRunKinds, type BrowserRunKind } from "@/src/dict/browser-dict";
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
@@ -73,6 +74,7 @@ import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import ScheduledRunFailedError from "./scheduled-run-failed-error";
+import BotJobFatalError from "./bot-job-fatal-error";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import taskIncoming from "./task-incoming";
@@ -186,15 +188,16 @@ export default async function runBotTask({
          */
         const hooked = Boolean(params.hook_id);
         /**
+         * A session nobody follows from this bot's chat: a crew request's or
+         * a hook's. Such a run acts on its own, like a routine.
+         */
+        const hidden = Boolean(session_id) && (await isHiddenSession({ session_id: Number(session_id) }));
+        /**
          * Only a task the user follows in their conversation asks them
          * questions: routines and hook calls act on their own, and a crew
          * request's run works in a session nobody reads from this bot's chat.
          */
-        const can_ask =
-            Boolean(session_id) &&
-            !scheduled &&
-            !hooked &&
-            !(await isHiddenSession({ session_id: Number(session_id) }));
+        const can_ask = Boolean(session_id) && !scheduled && !hooked && !hidden;
         /**
          * The coordinator weighing a worker's install request
          * (`request_install`): it answers it with answer_install_request.
@@ -384,7 +387,24 @@ export default async function runBotTask({
             signal,
         });
 
-        const browser_run_kind = hooked ? "unattended" : scheduled ? "routine" : "attended";
+        /**
+         * A run nobody follows (a hook call, or a crew request's child task in
+         * a hidden session) never reaches the user's real browsers: it acts
+         * unattended, like a routine without the owner's routine allowance
+         * (H7). A child task of a crew request inherits its parent's hidden
+         * session, so without this it would have been classed "attended".
+         * The parent reply also hands its kind down (`start_task` `run_kind`),
+         * so a child stays unattended even if the session check ever misses.
+         */
+        const inherited_kind = BrowserRunKinds.includes(params.run_kind as BrowserRunKind)
+            ? (params.run_kind as BrowserRunKind)
+            : null;
+        const browser_run_kind =
+            hooked || hidden || inherited_kind === "unattended"
+                ? "unattended"
+                : scheduled || inherited_kind === "routine"
+                  ? "routine"
+                  : "attended";
 
         browsers = await openBotBrowsers({
             user_id,
@@ -588,6 +608,17 @@ export default async function runBotTask({
         }
 
         const text = stripAppRecords({ text: result.text });
+
+        /**
+         * Nothing said is nothing to send: an empty report lands in the
+         * thread as a bubble with no text and the user has no idea what the
+         * run did. The job fails with why instead, which they do see - the
+         * same guard a reply has (`run-bot-reply`), since `completeBotJob`
+         * posts whatever text it is given (L5).
+         */
+        if (!text.trim() && !shown.length && !suggestions.length && !attachments.length) {
+            throw new BotJobFatalError(`The run ended without a report to send.`);
+        }
 
         return {
             ...withTakeOverRefs({

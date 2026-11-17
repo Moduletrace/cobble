@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessCallSettings } from "@/src/harness/usage/types";
 import type { MessageDetails, MessageDetailsCall, MessageDetailsFailure } from "@/src/types";
+import { ForeverRestUntil } from "@/src/utils/run-limit";
 import messageDetailsMarkdown from "./message-details-markdown";
 
 const format_time = (time: number) => `t${time}`;
@@ -115,6 +116,16 @@ describe("messageDetailsMarkdown", () => {
         expect(markdown).toContain("- **Status:** HTTP 429");
         expect(markdown).toContain("- **Rested for:** 1m");
         expect(markdown).toContain("> Rate limited\n> Try again later");
+    });
+
+    test("names an unlimited bench the same way the Activity log does (L3)", () => {
+        const markdown = messageDetailsMarkdown({
+            details: details({ failures: [failure({ rests_until: ForeverRestUntil })], failed_calls: 1 }),
+            now: 9_000,
+            format_time,
+        });
+
+        expect(markdown).toContain("- **Rested for:** until the run limits change or the app restarts");
     });
 
     test("sums each model with its settings in a table", () => {

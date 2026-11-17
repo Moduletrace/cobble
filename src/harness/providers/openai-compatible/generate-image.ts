@@ -2,6 +2,7 @@ import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
 import type { HarnessAdapter, HarnessImageOutput } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
+import downloadProviderFile from "./download-provider-file";
 import providerRequest from "./provider-request";
 import referenceBlob from "./reference-blob";
 
@@ -48,16 +49,18 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
                   prompt,
                   ...(n ? { n } : {}),
                   ...(size ? { size } : {}),
-                  ...(is_openrouter
-                      ? references?.length
-                          ? {
-                                input_references: references.map((url) => ({
-                                    type: "image_url",
-                                    image_url: { url },
-                                })),
-                            }
-                          : {}
-                      : { response_format: "b64_json" }),
+                  ...(is_openrouter && references?.length
+                      ? {
+                            input_references: references.map((url) => ({
+                                type: "image_url",
+                                image_url: { url },
+                            })),
+                        }
+                      : {}),
+                  // Ask for base64 on every provider, OpenRouter included: a
+                  // URL handed back is one more fetch to guard (H4), and the
+                  // bytes inline avoid it altogether.
+                  response_format: "b64_json",
               },
               signal,
               candidate_key: candidate.key,
@@ -74,21 +77,14 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
                 media_type: item.media_type || "image/png",
             });
         } else if (typeof item?.url == "string") {
-            const download = await fetch(item.url, {
-                signal: AbortSignal.any([
-                    signal,
-                    AbortSignal.timeout(AppData.HarnessRequestTimeoutMs),
-                ]),
+            const { data, media_type } = await downloadProviderFile({
+                url: item.url,
+                max_bytes: AppData.HarnessImageDownloadMaxBytes,
+                signal,
+                label: provider.name || preset.title,
             });
 
-            if (download.ok) {
-                images.push({
-                    data: new Uint8Array(await download.arrayBuffer()),
-                    media_type:
-                        download.headers.get("content-type")?.split(";")[0] ||
-                        "image/png",
-                });
-            }
+            images.push({ data, media_type });
         }
     }
 

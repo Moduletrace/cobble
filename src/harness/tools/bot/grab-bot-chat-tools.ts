@@ -32,6 +32,7 @@ import computerRunDirs from "@/src/utils/computer-work-dirs";
 import type { BotRunPowers } from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import grabWorkspaceAdminTools, { type WorkspaceAdminTools } from "./grab-workspace-admin-tools";
 import setBotTypeTool from "./set-bot-type-tool";
+import type { BrowserRunKind } from "@/src/dict/browser-dict";
 
 type Params = {
     bot: BUN_SQLITE_COBBLE_BOTS;
@@ -67,6 +68,11 @@ type Params = {
      * only then may the reply delete tasks.
      */
     attended?: boolean;
+    /**
+     * The run's browser kind, propagated to `start_task` children (H7) so a
+     * hidden session's reply never lets a child reach the user's browsers.
+     */
+    run_kind?: BrowserRunKind;
     /**
      * Called when the bot asks the user to take over a computer.
      */
@@ -124,6 +130,7 @@ export default async function grabBotChatTools({
     message_id,
     scopes = [],
     attended,
+    run_kind,
     onTakeOver,
     onPropose,
     onWorkspaceAdmin,
@@ -150,6 +157,7 @@ export default async function grabBotChatTools({
             session_id,
             computers,
             message_id,
+            run_kind,
         }),
         ...(computers.length
             ? [

@@ -62,7 +62,7 @@ describe("runToolCall", () => {
         const long = "x".repeat(AppData.HarnessToolResultMaxChars + 5);
         const result = await call("echo", JSON.stringify({ text: long }));
 
-        expect(result).toContain("[... 5 characters left out. ...]");
+        expect(result).toContain("[... 42 characters left out. ...]");
         expect(result).toStartWith("x".repeat(100));
         expect(result).toEndWith("x".repeat(100));
         expect(result.length).toBeLessThanOrEqual(AppData.HarnessToolResultMaxChars);
@@ -91,7 +91,7 @@ describe("runToolCall", () => {
         });
 
         expect(text).toStartWith("x".repeat(100));
-        expect(text).toContain("[... 7 characters left out. ...]");
+        expect(text).toContain("[... 127 characters left out. ...]");
         expect(text).toContain("Narrow the call");
         expect(text).toEndWith("x".repeat(100));
     });
@@ -99,7 +99,7 @@ describe("runToolCall", () => {
     test("passes images on, capped and marked as a tool's", async () => {
         const result = await run("shot", "{}");
 
-        expect(result.text).toContain("[... 5 characters left out. ...]");
+        expect(result.text).toContain("[... 42 characters left out. ...]");
         expect(result.images).toHaveLength(AppData.HarnessToolMaxImages);
         expect(result.images[0]).toEqual({
             url: "data:image/png;base64,0",

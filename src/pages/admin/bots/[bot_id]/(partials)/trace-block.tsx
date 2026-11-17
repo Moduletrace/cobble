@@ -29,7 +29,8 @@ type Props = {
 export default function TraceBlock({ label, text, kind = "text" }: Props) {
     const [expanded, setExpanded] = useState(false);
     const long = text.length > TracePreviewChars;
-    const shown = long && !expanded ? `${text.slice(0, TracePreviewChars)}` : text;
+    const shown =
+        long && !expanded ? `${text.slice(0, TracePreviewChars)}` : text;
 
     return (
         <Stack className="w-full gap-1 items-stretch">
@@ -41,7 +42,9 @@ export default function TraceBlock({ label, text, kind = "text" }: Props) {
             {kind == "code" ? (
                 <SunkenCodeBlock wrapAnywhere>{shown}</SunkenCodeBlock>
             ) : (
-                <P className="py-0 whitespace-pre-wrap text-[13px] leading-5 text-ink">{shown}</P>
+                <P className="py-0 whitespace-pre-wrap text-[13px] leading-5 text-ink">
+                    {shown}
+                </P>
             )}
             {long ? (
                 <Row className="w-full items-center gap-2">

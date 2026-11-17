@@ -34,6 +34,13 @@ export type ToolCallResult = {
      * How long the call took, for the debug view's trace.
      */
     duration_ms: number;
+    /**
+     * Whether the tool actually did its work. The loop reads this rather
+     * than guessing from an `Error:` prefix in the text: a tool's own
+     * answer can start with those words, and a failure must count as one
+     * even when its text doesn't (L1).
+     */
+    ok: boolean;
 };
 
 /**
@@ -43,25 +50,31 @@ export type ToolCallResult = {
  */
 export default async function runToolCall({ call, tools, signal }: Params): Promise<ToolCallResult> {
     const started_at = Date.now();
-    const text = await runTool({ call, tools, signal });
+    const result = await runTool({ call, tools, signal });
     const duration_ms = Date.now() - started_at;
 
-    if (typeof text == "string") return { text, images: [], duration_ms };
-
     return {
-        text: truncate({ text: text.text, name: call.name }),
-        images: text.images
+        text: result.text,
+        images: result.images
             .slice(0, AppData.HarnessToolMaxImages)
             .map((image) => ({ ...image, from_tool: true })),
         duration_ms,
+        ok: result.ok,
     };
 }
 
-async function runTool({ call, tools, signal }: Params) {
+/**
+ * What one tool call produced: its text, any images, and whether it
+ * worked. Every path returns this shape so the loop never has to infer
+ * success from the text's first words.
+ */
+type ToolOutput = { text: string; images: HarnessToolImage[]; ok: boolean };
+
+async function runTool({ call, tools, signal }: Params): Promise<ToolOutput> {
     const tool = tools.find((t) => t.name == call.name);
 
     if (!tool) {
-        return unknownToolMessage({ name: call.name, tools });
+        return { text: unknownToolMessage({ name: call.name, tools }), images: [], ok: false };
     }
 
     let raw: unknown;
@@ -69,23 +82,23 @@ async function runTool({ call, tools, signal }: Params) {
     try {
         raw = call.arguments.trim() ? JSON.parse(call.arguments) : {};
     } catch {
-        return `Error: The arguments for ${call.name} weren't valid JSON. Send a JSON object.`;
+        return { text: `Error: The arguments for ${call.name} weren't valid JSON. Send a JSON object.`, images: [], ok: false };
     }
 
     if (!raw || typeof raw != "object" || Array.isArray(raw)) {
-        return `Error: The arguments for ${call.name} must be a JSON object.`;
+        return { text: `Error: The arguments for ${call.name} must be a JSON object.`, images: [], ok: false };
     }
 
     const { unknown, known } = unknownToolArgs({ schema: tool.schema, args: raw as Record<string, unknown> });
 
     if (unknown.length) {
-        return `Error: ${call.name} doesn't take ${unknown.join(", ")}. Its arguments are: ${known.join(", ") || "none"}. Nothing was done; call it again with those names.`;
+        return { text: `Error: ${call.name} doesn't take ${unknown.join(", ")}. Its arguments are: ${known.join(", ") || "none"}. Nothing was done; call it again with those names.`, images: [], ok: false };
     }
 
     const parsed = tool.schema?.safeParse(raw);
 
     if (parsed && !parsed.success) {
-        return `Error: Wrong arguments for ${call.name}.\n${z.prettifyError(parsed.error)}`;
+        return { text: `Error: Wrong arguments for ${call.name}.\n${z.prettifyError(parsed.error)}`, images: [], ok: false };
     }
 
     try {
@@ -106,17 +119,21 @@ async function runTool({ call, tools, signal }: Params) {
                   task: (tool_signal) => tool.run({ args, signal: tool_signal }),
               });
 
-        return typeof output == "string" ? truncate({ text: output, name: call.name }) : output;
+        if (typeof output == "string") {
+            return { text: truncate({ text: output, name: call.name }), images: [], ok: true };
+        }
+
+        return { text: truncate({ text: output.text, name: call.name }), images: output.images || [], ok: true };
     } catch (error: unknown) {
         if (signal.aborted) {
             throw new HarnessError({ message: `Cancelled.`, code: "aborted" });
         }
 
         if (error instanceof TaskTimeoutError) {
-            return `Error: ${error.message}`;
+            return { text: `Error: ${error.message}`, images: [], ok: false };
         }
 
-        return `Error: ${error instanceof Error ? error.message : String(error)}`;
+        return { text: `Error: ${error instanceof Error ? error.message : String(error)}`, images: [], ok: false };
     }
 }
 
@@ -136,12 +153,36 @@ function truncate({ text, name }: { text: string; name: string }) {
     if (text.length <= max) return text;
 
     const hint = browser ? " Narrow the call (a selector, an element ref, a smaller evaluate) to see the rest." : "";
+    const note_for = (left_out: number) => `\n\n[... ${left_out} characters left out. ...]${hint}\n\n`;
     /**
-     * Sized before the two ends are cut, so the whole result stays inside
-     * the cap instead of the note pushing it over.
+     * The note reports what was actually cut (the text minus the two ends
+     * kept), and its own length fills part of the cap, so the count and the
+     * room settle together: a count of `text.length - max` was short by the
+     * note's length (L5). Sized so the whole result stays inside the cap.
      */
-    const note = `\n\n[... ${text.length - max} characters left out. ...]${hint}\n\n`;
-    const room = Math.max(0, max - note.length);
+    let left_out = text.length - max;
+    let note = note_for(left_out);
+    let room = Math.max(0, max - note.length);
+
+    for (let i = 0; i < 4 && room > 0; i++) {
+        const next_left = text.length - room;
+        const next_note = note_for(next_left);
+        const next_room = Math.max(0, max - next_note.length);
+
+        if (next_left === left_out && next_room === room) break;
+
+        left_out = next_left;
+        note = next_note;
+        room = next_room;
+    }
+
+    /**
+     * When the cap is smaller than the note itself there is no room for
+     * any of the text: return the note alone. `text.slice(-0)` would be
+     * the WHOLE text, the opposite of a cut (L7).
+     */
+    if (room === 0) return note_for(text.length);
+
     const head = Math.floor(room * TruncateHeadShare);
     const tail = room - head;
 

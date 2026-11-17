@@ -217,6 +217,44 @@ describe("prepareMessagesForModel", () => {
         expect(readings.size()).toBe(0);
     });
 
+    test("a redacted reading is never served from an earlier unredacted reading of the same image", async () => {
+        // The within-run cache is keyed by the image alone. An unredacted
+        // reading of an image (a storage read) must not be handed back when
+        // the same image is later read to cut a secret out (H3).
+        const cache = new Map<string, string>();
+        const url = "data:image/png;base64,EEEE";
+        const read_image = async () => "the password is hunter2";
+
+        const plain = await prepareMessagesForModel({
+            messages: [{ role: "user", content: [{ type: "image", url }] }],
+            model: { input_modalities: ["text"] },
+            cache,
+            signal,
+            read_image,
+        });
+        expect(plain[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: the password is hunter2]" }],
+        });
+
+        const redacted = await prepareMessagesForModel({
+            messages: [
+                {
+                    role: "user",
+                    content: [{ type: "image", url, redact: (text) => text.replaceAll("hunter2", "[secret]") }],
+                },
+            ],
+            model: { input_modalities: ["text"] },
+            cache,
+            signal,
+            read_image,
+        });
+        expect(redacted[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: the password is [secret]]" }],
+        });
+    });
+
     test("reads images for a model that sees when the setting is off", async () => {
         const fitted = await prepareMessagesForModel({
             messages: [

@@ -1,4 +1,5 @@
 import { AppData } from "@/src/data/app-data";
+import { ForeverRestUntil } from "@/src/utils/run-limit";
 import { Harnesses, type HarnessKind } from "@/src/dict/harness-dict";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate } from "../types";
@@ -10,6 +11,13 @@ import logCandidateFailure from "./log-candidate-failure";
 
 type Params<T> = {
     harness: HarnessKind;
+    /**
+     * The harness each candidate was actually picked for, when a call
+     * mixes them (an image call with references tries image_edit picks and
+     * image hand-overs). A failure is logged under the candidate's own
+     * harness, not the call's pick label (L9). Falls back to `harness`.
+     */
+    harness_of?: Map<string, HarnessKind>;
     candidates: HarnessCandidate[];
     run: (candidate: HarnessCandidate) => Promise<T>;
     /**
@@ -65,6 +73,7 @@ type Params<T> = {
  */
 export default async function withCandidates<T>({
     harness,
+    harness_of,
     candidates,
     run,
     prefer_key,
@@ -142,24 +151,28 @@ export default async function withCandidates<T>({
             const rests_until = coolDown({ candidate, error, cooldowns, now: now(), rest_ms: rest });
             /**
              * A rest with no end (`harness_model_rest_seconds` unlimited)
-             * never runs out: it's logged as such, never written as a
-             * timestamp nothing can read back.
+             * never runs out. The Activity log records it as unlimited; the
+             * failed-call row carries the `ForeverRestUntil` sentinel so the
+             * Details modal can read back the same account instead of a
+             * blank (L3).
              */
             const forever = typeof rests_until == "number" && !Number.isFinite(rests_until);
 
             if (log_failures) {
+                const failed_harness = harness_of?.get(candidate.key) || harness;
+
                 await logCandidateFailure({
-                    harness,
+                    harness: failed_harness,
                     candidate,
                     error,
                     rests_until: forever ? undefined : rests_until,
                     forever,
                 });
                 await recordHarnessFailure({
-                    harness,
+                    harness: failed_harness,
                     candidate,
                     error,
-                    rests_until: forever ? undefined : rests_until,
+                    rests_until: forever ? ForeverRestUntil : rests_until,
                 });
             }
         }
@@ -245,7 +258,15 @@ function coolDown({
     }
 
     if (error.retryable) {
-        const at = Math.min(Math.max(error.retry_at || until, now), until);
+        /**
+         * A `Retry-After` of 0 or a date already past would bench the model
+         * for no time at all, so the next turn hits it again at once. Floor
+         * the bench at a few seconds, still capped by the model's rest (L2).
+         */
+        const at = Math.min(
+            Math.max(error.retry_at || until, now + AppData.HarnessRetryAfterFloorMs),
+            until,
+        );
 
         cooldowns.set({ key: candidate.key, at });
         return at;

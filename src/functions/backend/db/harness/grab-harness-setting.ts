@@ -10,6 +10,7 @@ import grabDefaultHarnessProviderId from "./grab-default-harness-provider-id";
 import pickHarnessSettingRow, {
     type HarnessSettingSource,
 } from "./pick-harness-setting-row";
+import workspaceHarnessSettingSql from "./workspace-harness-setting-sql";
 
 export type HarnessSetting = {
     harness: HarnessKind;
@@ -40,8 +41,9 @@ type Params = {
      */
     bot_id?: number | string;
     /**
-     * The workspace the call is in. Its setting applies to the bots that
-     * have none of their own, the coordinator too.
+     * The workspace the call is in. Its setting applies to the worker
+     * bots that have none of their own; the coordinator always uses the
+     * default.
      */
     workspace_id?: number | string | null;
 };
@@ -70,7 +72,7 @@ export default async function grabHarnessSetting({
 
     const workspace_row =
         !bot_row && !install_wide && workspace_id
-            ? await grabWorkspaceOverride({ harness, workspace_id })
+            ? await grabWorkspaceOverride({ harness, workspace_id, bot_id })
             : undefined;
 
     const default_row =
@@ -98,15 +100,16 @@ export default async function grabHarnessSetting({
 async function grabWorkspaceOverride({
     harness,
     workspace_id,
+    bot_id,
 }: {
     harness: HarnessKind;
     workspace_id: number | string;
+    bot_id?: number | string;
 }) {
+    const query = workspaceHarnessSettingSql({ workspace_id, harness, bot_id });
+
     return (
-        await BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS>({
-            sql: `SELECT * FROM workspace_harness_settings WHERE workspace_id = ? AND harness = ? LIMIT 1`,
-            values: [workspace_id, harness],
-        })
+        await BunSQLite.sql<BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS>(query)
     ).payload?.[0];
 }
 

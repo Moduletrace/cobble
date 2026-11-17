@@ -17,9 +17,15 @@ import shellQuote from "@/src/utils/shell-quote";
  *  - `git diff --no-index --binary -- /dev/null <file>` for each untracked
  *    file, which is what `git clean` deletes and what a run creates most
  *    often (a new module, a test, a report).
+ *  - with `include_ignored`, the ignored untracked files too, which
+ *    `git clean -fdx` deletes and the plain listing skips (M6).
  *
- * One call, so the whole check costs one round trip, and the patch is written
- * where the run can read it back and `git apply` it.
+ * Every repository the command might touch is saved, not only the cwd: a
+ * `git -C <dir>` or a `cd <dir> &&` reaches another tree, and each root runs
+ * in its own subshell so one that is not a repository exits quietly without
+ * stopping the others (M6). One call, so the whole check costs one round
+ * trip, and each patch is written where the run can read it back and
+ * `git apply` it.
  */
 
 /** Where snapshots go, under the bot's folder. */
@@ -29,40 +35,66 @@ export const GitSnapshotDir = ".cobble/pre-destructive";
 export const KeepSnapshots = 40;
 
 /**
- * The repository the command works in: the folder the call asked for, else
- * the run's own folder, which is where a shell starts.
+ * The repositories the command works in: the folders `gitSnapshotRoots`
+ * collected, else the run's own folder, which is where a shell starts.
  */
 export default function gitSnapshotScript({
     dirs,
-    cwd,
+    roots,
+    include_ignored = false,
 }: {
     dirs: ComputerRunDirs;
-    cwd?: string | null;
+    roots?: string[];
+    include_ignored?: boolean;
 }): string {
-    const root = cwd || dirs.cwd;
+    const list = roots?.length ? roots : [dirs.cwd];
     const dir = `${dirs.bot_dir}/${GitSnapshotDir}`;
 
     return [
-        `root=${shellQuote({ text: root })}`,
         `dir=${shellQuote({ text: dir })}`,
         `mkdir -p "$dir" 2>/dev/null || exit 0`,
+        ...list.flatMap((root) => snapshotRoot({ root, include_ignored })),
+        // Prune by patch, not by entry: each snapshot is a `.patch` and its
+        // `.patch.files`, so counting entries kept only half as many
+        // snapshots as intended (L7). Keep the newest patches and delete
+        // each older one together with its listing.
+        `ls -1t "$dir"/*.patch 2>/dev/null | tail -n +${KeepSnapshots + 1} | while read -r old; do rm -f "$old" "$old.files"; done`,
+        `exit 0`,
+    ].join("\n");
+}
+
+/**
+ * One repository, in a subshell of its own: the `cd` stays here, every path
+ * inside the patch is relative to the repository root (what makes
+ * `git -C <top> apply <patch>` restore it), and a root that is not a
+ * repository exits this subshell only, leaving the others to run.
+ */
+function snapshotRoot({ root, include_ignored }: { root: string; include_ignored: boolean }): string[] {
+    return [
+        `(`,
+        `  root=${shellQuote({ text: root })}`,
         // `safe.directory=*` because a worker's account is not the
         // repository's owner, which git otherwise refuses ("dubious
         // ownership") and nothing would ever be saved.
-        `top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)`,
-        `[ -n "$top" ] || exit 0`,
-        // A subshell, so the `cd` stays here and every path inside the patch
-        // is relative to the repository root: that is what makes
-        // `git -C <top> apply <patch>` restore it.
-        `(`,
+        `  top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)`,
+        `  [ -n "$top" ] || exit 0`,
         `  cd "$top" || exit 0`,
-        `  patch="$dir/$(date +%Y%m%d-%H%M%S)-$(basename "$top").patch"`,
+        // The PID and a random number keep two snapshots taken in the same
+        // second from overwriting each other (L7).
+        `  patch="$dir/$(date +%Y%m%d-%H%M%S)-$$-$RANDOM-$(basename "$top").patch"`,
         `  {`,
         `    git -c safe.directory='*' diff`,
         `    git -c safe.directory='*' diff --cached`,
         `    git -c safe.directory='*' ls-files --others --exclude-standard -z | while IFS= read -r -d '' file; do`,
         `      git -c safe.directory='*' diff --no-index --binary -- /dev/null "$file" || true`,
         `    done`,
+        ...(include_ignored
+            ? [
+                  `    git -c safe.directory='*' ls-files --others --ignored --exclude-standard -z | while IFS= read -r -d '' file; do`,
+                  `      git -c safe.directory='*' diff --no-index --binary -- /dev/null "$file" || true`,
+                  `    done`,
+              ]
+            : []),
         `  } > "$patch" 2>/dev/null`,
         `  dirty=$(git -c safe.directory='*' status --porcelain 2>/dev/null | wc -l)`,
         `  if [ "$dirty" -gt 0 ] 2>/dev/null; then`,
@@ -74,7 +106,5 @@ export default function gitSnapshotScript({
         `    rm -f "$patch"`,
         `  fi`,
         `)`,
-        `ls -1t "$dir" 2>/dev/null | tail -n +${KeepSnapshots + 1} | while read -r old; do rm -f "$dir/$old"; done`,
-        `exit 0`,
-    ].join("\n");
+    ];
 }

@@ -1,5 +1,6 @@
 import HarnessError from "../harness-error";
 import parseRetryAt from "./parse-retry-at";
+import redactProviderError from "./redact-provider-error";
 
 type Params = {
     status: number;
@@ -29,7 +30,10 @@ export default function toHarnessError({
     provider_name,
     candidate_key,
 }: Params) {
-    const detail = readErrorMessage({ body }) || `HTTP ${status}`;
+    // The provider may echo the request's key in its error (LiteLLM does on
+    // a 401); this text reaches members, the logs and the next model, so the
+    // key's shapes are masked before it goes anywhere (M8).
+    const detail = redactProviderError({ text: readErrorMessage({ body }) || `HTTP ${status}` });
     const retryable = [408, 409, 425, 429].includes(status) || status >= 500;
 
     return new HarnessError({

@@ -454,6 +454,14 @@ export const repeatedAnswerNote = `This is the message the app just sent back, w
 export const closingFailedNote = `The card that call was meant to put up was not created: the tool refused it, and its error is above. Your message was written as if it had gone up, and it has not. Fix the call and make it again, or answer without it, and write your message for what actually exists.`;
 
 /**
+ * Told when a closing call worked but the turn did other work beside it: the
+ * card is up, so this is not a failure and the model must not re-ask (the
+ * once-per-run guard would refuse it). The turn isn't the reply yet, so the
+ * run carries on to the message that goes with the card already created.
+ */
+export const closingMixedNote = `The card you put up is there: that call worked. This turn also did other work, so it isn't the reply yet. Don't put another card up - a run asks once - and don't call ask_user or suggest_next_steps again. Write the message that goes with the card you already created, and stop there.`;
+
+/**
  * Told once when a closing call worked but the turn said nothing beside it:
  * a card alone leaves the user with buttons and no answer, and a run that
  * carries on from there works on the thing it just asked about.

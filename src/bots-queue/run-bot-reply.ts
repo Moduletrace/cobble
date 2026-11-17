@@ -311,6 +311,12 @@ export default async function runBotReply({
      */
     const attended = !(await isHiddenSession({ session_id }));
     /**
+     * The run's browser kind, also handed to `start_task` so a child run it
+     * queues inherits it (H7): a hidden session's reply never lets its
+     * children reach the user's real browsers either.
+     */
+    const browser_run_kind = attended ? "attended" : "unattended";
+    /**
      * Answering another bot's request, which came through the coordinator's
      * gate (`enqueueAskAnswer`).
      */
@@ -333,6 +339,7 @@ export default async function runBotReply({
         workspace_id,
         scopes,
         attended,
+        run_kind: browser_run_kind,
         message_id: job.message_id || undefined,
         onTakeOver: ({ ref }) => take_overs.push(ref),
         onPropose: ({ ref }) => proposals.push(ref),
@@ -361,7 +368,6 @@ export default async function runBotReply({
      * The user's own browsers, so a bot can browse from the chat with no
      * computer.
      */
-    const browser_run_kind = attended ? "attended" : "unattended";
     const browsers = await openBotBrowsers({
         user_id,
         bot_id: bot.id,

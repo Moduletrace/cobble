@@ -260,6 +260,28 @@ describe("withCandidates", () => {
         expect(cooldowns.get({ key: a.key, now })).toBe(now + 5_000);
     });
 
+    test("a Retry-After already past still benches for the floor, not zero (L2)", async () => {
+        const now = 1_000_000;
+
+        for (const retry_at of [now - 5_000, now, now + 1_000]) {
+            const cooldowns = createCooldowns();
+            const a = candidate("a");
+
+            await withCandidates({
+                harness: "text",
+                candidates: [a, candidate("b")],
+                cooldowns,
+                rest_ms: 120_000,
+                now: () => now,
+                run: async (c) => {
+                    if (c == a) throw rateLimited(a.key, retry_at);
+                },
+            });
+
+            expect(cooldowns.get({ key: a.key, now })).toBe(now + AppData.HarnessRetryAfterFloorMs);
+        }
+    });
+
     test("a refused request benches nothing", async () => {
         const cooldowns = createCooldowns();
         const a = candidate("a");

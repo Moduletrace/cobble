@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import sharp from "sharp";
+import { AppData } from "@/src/data/app-data";
 import transformImage from "./transform-image";
 import { ImageTransformOperationSchema } from "./image-transform-operations";
 
@@ -95,6 +96,39 @@ describe("transformImage", () => {
         );
 
         await expect(transformImage({ data: svg, operations: [], format: "png" })).rejects.toThrow("isn't an image");
+    });
+
+    test("refuses an oversized source before decoding it, even with no operations (M10)", async () => {
+        const wide = new Uint8Array(
+            await sharp({
+                create: {
+                    width: AppData.ImageTransformMaxDimension + 1000,
+                    height: 10,
+                    channels: 4,
+                    background: { r: 0, g: 0, b: 0, alpha: 1 },
+                },
+            })
+                .png()
+                .toBuffer(),
+        );
+
+        await expect(transformImage({ data: wide, operations: [], format: "png" })).rejects.toThrow(
+            `up to ${AppData.ImageTransformMaxDimension}px on a side`,
+        );
+    });
+
+    test("honors an aborted signal before transforming (M10)", async () => {
+        const controller = new AbortController();
+        controller.abort();
+
+        await expect(
+            transformImage({
+                data: await halves(),
+                operations: [{ op: "flip", direction: "horizontal" }],
+                format: "png",
+                signal: controller.signal,
+            }),
+        ).rejects.toThrow("Cancelled.");
     });
 });
 

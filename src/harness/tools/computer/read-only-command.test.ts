@@ -73,6 +73,24 @@ describe("isReadOnlyCommand", () => {
         expect(isReadOnlyCommand({ command: "ls && $(rm -rf .)" })).toBe(false);
     });
 
+    test("doesn't miss a writing flag's attached or long form (M13)", () => {
+        for (const command of [
+            "sort -oFILE in.txt",
+            "date --set='2020-01-01'",
+            "date --set '2020-01-01'",
+            "cat <(rm -rf x)",
+            "cat >(rm -rf x)",
+        ]) {
+            expect({ command, reads: isReadOnlyCommand({ command }) }).toEqual({ command, reads: false });
+        }
+    });
+
+    test("still reads the forms that only print (M13)", () => {
+        for (const command of ["sort -r in.txt", "sort in.txt", "date", "date -u", "date +%s"]) {
+            expect({ command, reads: isReadOnlyCommand({ command }) }).toEqual({ command, reads: true });
+        }
+    });
+
     test("treats a program it doesn't know as one that may write", () => {
         expect(isReadOnlyCommand({ command: "npm run build" })).toBe(false);
         expect(isReadOnlyCommand({ command: "python3 -c 'print(1)'" })).toBe(false);

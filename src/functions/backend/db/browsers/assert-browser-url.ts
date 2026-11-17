@@ -12,9 +12,11 @@ type Params = {
 /**
  * Refuses a browser URL that would reach something inside the install
  * (`checkBrowserAddress`). Runs on save, on test and on every connection,
- * since what a name resolves to can change.
+ * since what a name resolves to can change. Returns the addresses that
+ * passed the check, so the connection can be pinned to them rather than
+ * resolving the name again (which a rebinding name would answer differently).
  */
-export default async function assertBrowserUrl({ url }: Params) {
+export default async function assertBrowserUrl({ url }: Params): Promise<string[]> {
     const parsed = (() => {
         try {
             return new URL(url);
@@ -35,15 +37,25 @@ export default async function assertBrowserUrl({ url }: Params) {
     const network = await dockerRequest<{ IPAM?: { Config?: { Subnet?: string; Gateway?: string }[] } }>({
         path: `/networks/${encodeURIComponent(AppData.DockerNetworkName)}`,
     }).catch(() => null);
-    const config = network?.ok ? network.data?.IPAM?.Config?.find((c) => c.Subnet) : undefined;
+
+    // Fail closed: without the network's own subnets we can't tell a
+    // computer's address from a browser's, so a docker read we couldn't
+    // make refuses the URL rather than waving every address through.
+    if (!network?.ok) throw new AppError(`Couldn't check that address against the computers' network. Try again.`);
+
+    const networks = (network.data?.IPAM?.Config ?? [])
+        .filter((config) => config.Subnet)
+        .map((config) => ({ subnet: config.Subnet, gateway: config.Gateway }));
 
     for (const address of addresses) {
         const problem = checkBrowserAddress({
             address,
-            network: config ? { subnet: config.Subnet, gateway: config.Gateway } : null,
+            networks,
             allow_loopback: process.env.NODE_ENV != "production",
         });
 
         if (problem) throw new AppError(problem);
     }
+
+    return addresses;
 }

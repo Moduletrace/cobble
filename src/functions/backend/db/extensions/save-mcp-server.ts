@@ -3,6 +3,8 @@ import attachToAllBots from "./attach-to-all-bots";
 import type { BUN_SQLITE_COBBLE_MCP_SERVERS, BunSQLiteTables } from "@/db/types/db";
 import { stopStdioMcpServer } from "@/src/harness/mcp/mcp-stdio-pool";
 import type { SaveMcpServerRequest } from "@/src/schemas/extension-schema";
+import AppError from "@/src/utils/app-error";
+import mcpUrlHostProblem from "@/src/utils/mcp-url-host";
 import mcpServerSlug from "@/src/utils/mcp-server-slug";
 import grabMcpServer from "./grab-mcp-server";
 
@@ -21,6 +23,16 @@ type Params = {
  * saved.
  */
 export default async function saveMcpServer({ user_id, data }: Params) {
+    // The host must be fixed: a template there (`{{env.HOST}}`) would let a
+    // run pick where the server's secrets are sent, and a member's personal
+    // env could repoint it (H6). Templates belong in the path, query or
+    // headers, never the host.
+    if (data.transport == "remote") {
+        const problem = mcpUrlHostProblem({ url: data.url });
+
+        if (problem) throw new AppError(problem);
+    }
+
     const fields = {
         name: data.name,
         description: data.description,

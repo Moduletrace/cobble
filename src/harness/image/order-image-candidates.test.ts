@@ -49,9 +49,21 @@ describe("orderImageCandidates", () => {
         ).toEqual(["image:flux"]);
     });
 
-    test("image editing off goes to image generation", () => {
+    test("image editing off with no fallback has nothing to try with references (L9)", () => {
         expect(
             slugs(orderImageCandidates({ references: true, image: [recraft, flux] })),
+        ).toEqual([]);
+    });
+
+    test("image editing off but fallback on goes to image generation (L9)", () => {
+        expect(
+            slugs(
+                orderImageCandidates({
+                    references: true,
+                    image: [recraft, flux],
+                    edit: { picked: false, fallback: true, candidates: [] },
+                }),
+            ),
         ).toEqual(["image:flux"]);
     });
 
@@ -79,13 +91,25 @@ describe("orderImageCandidates", () => {
         ).toEqual(["image_edit:qwen-image-edit"]);
     });
 
-    test("an edit pick that can't run falls to image generation", () => {
+    test("an edit pick that can't run, fallback off, has nothing to try (L9)", () => {
         expect(
             slugs(
                 orderImageCandidates({
                     references: true,
                     image: [flux],
                     edit: { picked: true, fallback: false, candidates: [] },
+                }),
+            ),
+        ).toEqual([]);
+    });
+
+    test("an edit pick that can't run falls to image generation with fallback on (L9)", () => {
+        expect(
+            slugs(
+                orderImageCandidates({
+                    references: true,
+                    image: [flux],
+                    edit: { picked: true, fallback: true, candidates: [] },
                 }),
             ),
         ).toEqual(["image:flux"]);

@@ -3,6 +3,7 @@ import {
     alreadyRanToolNote,
     answerNotSentNote,
     closingFailedNote,
+    closingMixedNote,
     closingNoTextNote,
     commitEarlyNote,
     contextTrimmedNote,
@@ -422,6 +423,13 @@ export default async function runTextLoop({
      */
     let told_closing_text = false;
     /**
+     * How many turns the run has spent retrying a closing card: a closing
+     * call that failed, or a card put up beside other work. Bounded
+     * (`AppData.MaxClosingRetries`) so a model that keeps re-asking into the
+     * once-per-run guard ends the run instead of looping on the same note.
+     */
+    let closing_retries = 0;
+    /**
      * A run whose prompt no longer fits the working context, with nothing
      * trimmable left, has been told, once (`oversizedRequestNote`).
      */
@@ -736,21 +744,31 @@ export default async function runTextLoop({
                 const repaired = repairAnswerText({ text: answer.text || "" });
 
                 if (repaired.changed && repaired.text) {
-                    await traced({
-                        kind: "event",
-                        index,
-                        name: "repaired",
-                        text: repairedAnswerNote,
-                    });
+                    /**
+                     * The repair only takes out claims of work under way; a
+                     * dead file or task ref it leaves behind would still ship
+                     * (M3). So the repaired text is checked again, and goes
+                     * out only once the app's record supports all of it.
+                     */
+                    const recheck = await checkAnswer({ text: repaired.text, index });
 
-                    return {
-                        text: `${repaired.text}\n\n${repairedAnswerNote}`,
-                        messages: transcript,
-                        steps: index + 1,
-                        candidate: answer.candidate,
-                        usage,
-                        tool_uses,
-                    };
+                    if (recheck.verdict === "passed") {
+                        await traced({
+                            kind: "event",
+                            index,
+                            name: "repaired",
+                            text: repairedAnswerNote,
+                        });
+
+                        return {
+                            text: `${repaired.text}\n\n${repairedAnswerNote}`,
+                            messages: transcript,
+                            steps: index + 1,
+                            candidate: answer.candidate,
+                            usage,
+                            tool_uses,
+                        };
+                    }
                 }
 
                 return {
@@ -810,6 +828,7 @@ export default async function runTextLoop({
                           text: alreadyRanToolNote({ name: call.name, step: already_read }),
                           images: [],
                           duration_ms: 0,
+                          ok: true,
                       }
                     : give_up
                       ? {
@@ -821,11 +840,12 @@ export default async function runTextLoop({
                             }),
                             images: [],
                             duration_ms: 0,
+                            ok: false,
                         }
                       : await runToolCall({ call, tools: run_tools, signal });
 
             const { text: content, images } = result;
-            const ok = !give_up && !content.startsWith("Error:");
+            const ok = result.ok;
 
             /**
              * A deferred tool called without loading it ran all the same;
@@ -852,13 +872,13 @@ export default async function runTextLoop({
             if (!repeat_key) {
                 repeated_reads.clear();
             } else if (already_read === undefined) {
-                if (content.startsWith("Error:")) repeated_reads.delete(repeat_key);
+                if (!ok) repeated_reads.delete(repeat_key);
                 else if (remembered) repeated_reads.delete(repeat_key);
             }
 
             if (give_up) {
                 failed_calls.set(call_key!, { ...failed_before, attempts: failed_before.attempts + 1 });
-            } else if (content.startsWith("Error:")) {
+            } else if (!ok) {
                 if (call_key) {
                     const earlier = failed_calls.get(call_key);
 
@@ -876,7 +896,7 @@ export default async function runTextLoop({
 
             transcript.push(tool_message);
 
-            if (repeat_key && already_read === undefined && !content.startsWith("Error:")) {
+            if (repeat_key && already_read === undefined && ok) {
                 repeated_reads.set(repeat_key, { step: index, message: tool_message });
             }
 
@@ -893,15 +913,43 @@ export default async function runTextLoop({
         const called_card = tool_calls.some((call) => isClosingTool({ name: call.name }));
         const closing = tool_calls.every((call) => isClosingTool({ name: call.name }));
         /**
-         * The card has to be there: a closing call whose arguments the tool
-         * refused put nothing up, and a message written as if it had is a
-         * reply that points at a card no one can see.
+         * Only a closing call the tool refused is a failure: it put nothing
+         * up, and a message written as if it had points at a card no one can
+         * see. A turn that did other work beside a card it created is mixed,
+         * not failed - saying "the card was not created" there sent the model
+         * to ask again, which the once-per-run guard refuses, and the same
+         * note looped for the whole budget (H1).
          */
-        const closing_worked = closing && tool_uses.slice(-tool_calls.length).every((use) => use.ok);
+        const closing_uses = tool_uses.slice(-tool_calls.length).filter((use) => isClosingTool({ name: use.name }));
+        const closing_failed = closing_uses.some((use) => !use.ok);
+        const closing_worked = closing && !closing_failed;
 
-        if (called_card && !closing_worked) {
-            pushUserTurn({ transcript, content: closingFailedNote });
-            await traced({ kind: "event", index, name: "closing_failed", text: closingFailedNote });
+        if (called_card && (closing_failed || !closing)) {
+            /**
+             * Bounded: past the retries the run ends on the answer it wrote,
+             * reviewed like any reply, rather than looping on a card it can't
+             * put up or a turn it won't finish.
+             */
+            if (closing_retries >= AppData.MaxClosingRetries) {
+                const check = await checkAnswer({ text: answer.text || "", index });
+
+                return {
+                    text: check.verdict === "refused" ? "" : answer.text || "",
+                    ...(check.verdict === "refused" ? { review_note: check.note } : {}),
+                    messages: transcript,
+                    steps: index + 1,
+                    candidate: answer.candidate,
+                    usage,
+                    tool_uses,
+                };
+            }
+
+            closing_retries++;
+
+            const note = closing_failed ? closingFailedNote : closingMixedNote;
+
+            pushUserTurn({ transcript, content: note });
+            await traced({ kind: "event", index, name: closing_failed ? "closing_failed" : "closing_mixed", text: note });
             continue;
         }
 
@@ -940,21 +988,27 @@ export default async function runTextLoop({
                 const repaired = repairAnswerText({ text: answer.text });
 
                 if (repaired.changed && repaired.text) {
-                    await traced({
-                        kind: "event",
-                        index,
-                        name: "repaired",
-                        text: repairedAnswerNote,
-                    });
+                    // Checked again, as the reply path is: a dead ref the
+                    // repair leaves behind must not ship (M3).
+                    const recheck = await checkAnswer({ text: repaired.text, index });
 
-                    return {
-                        text: `${repaired.text}\n\n${repairedAnswerNote}`,
-                        messages: transcript,
-                        steps: index + 1,
-                        candidate: answer.candidate,
-                        usage,
-                        tool_uses,
-                    };
+                    if (recheck.verdict === "passed") {
+                        await traced({
+                            kind: "event",
+                            index,
+                            name: "repaired",
+                            text: repairedAnswerNote,
+                        });
+
+                        return {
+                            text: `${repaired.text}\n\n${repairedAnswerNote}`,
+                            messages: transcript,
+                            steps: index + 1,
+                            candidate: answer.candidate,
+                            usage,
+                            tool_uses,
+                        };
+                    }
                 }
 
                 return {

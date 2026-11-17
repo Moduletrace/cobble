@@ -33,6 +33,14 @@ const generateVideo: HarnessAdapter["generateVideo"] = async ({
     const preset = grabProviderPreset({ kind: provider.kind });
     const provider_name = provider.name || preset.title;
     const is_openrouter = provider.kind == "openrouter";
+    /**
+     * One deadline for the whole call, derived from the tool's timeout (M9):
+     * the wait may not run past `HarnessToolTimeoutMs` minus room for the
+     * downloads, so submitting, waiting and downloading fit in one tool call
+     * instead of the wait being cut off mid-download by the tool's own abort.
+     */
+    const call_started = Date.now();
+    const deadline = call_started + AppData.HarnessToolTimeoutMs - AppData.VideoDownloadMarginMs;
 
     if (!is_openrouter && videos?.length) {
         throw new HarnessError({
@@ -83,7 +91,7 @@ const generateVideo: HarnessAdapter["generateVideo"] = async ({
         });
     }
 
-    const job = await waitForJob({ candidate, job: started, signal });
+    const job = await waitForJob({ candidate, job: started, signal, deadline });
     const count = Math.min(job.outputs, 4);
     const videos_made: HarnessVideoOutput[] = [];
 
@@ -97,7 +105,7 @@ const generateVideo: HarnessAdapter["generateVideo"] = async ({
         });
 
         videos_made.push({
-            data: new Uint8Array(await res.arrayBuffer()),
+            data: await readVideoBytes({ res, provider_name, candidate_key: candidate.key }),
             media_type: res.headers.get("content-type")?.split(";")[0] || "video/mp4",
         });
     }
@@ -121,25 +129,33 @@ type WaitParams = {
     candidate: HarnessCandidate;
     job: VideoJob;
     signal: AbortSignal;
+    /**
+     * The whole call's deadline (tool timeout minus download room, M9): the
+     * wait stops here even if `VideoMaxWaitMs` would allow longer.
+     */
+    deadline: number;
 };
 
 /**
  * Checks on a job until it's done or failed. A check that fails on the way
  * (a timeout, a hiccup) doesn't end the wait: the job runs on at the
- * provider. A job still working at `AppData.VideoMaxWaitMs` fails without
- * benching the model (it may just be slow), and is left to the provider.
+ * provider. A job still working at the deadline fails without benching the
+ * model (it may just be slow), and is left to the provider. The deadline is
+ * the smaller of `VideoMaxWaitMs` from now and the call's own deadline, so
+ * the wait never runs past the tool's timeout (M9).
  */
-async function waitForJob({ candidate, job, signal }: WaitParams): Promise<VideoJob> {
+async function waitForJob({ candidate, job, signal, deadline }: WaitParams): Promise<VideoJob> {
     const { provider } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
     const provider_name = provider.name || preset.title;
-    const deadline = Date.now() + AppData.VideoMaxWaitMs;
+    const wait_deadline = Math.min(deadline, Date.now() + AppData.VideoMaxWaitMs);
+    const wait_started = Date.now();
     let current = job;
 
     while (current.state == "working") {
-        if (Date.now() >= deadline) {
+        if (Date.now() >= wait_deadline) {
             throw new HarnessError({
-                message: `${provider_name}: The video still wasn't ready after ${Math.round(AppData.VideoMaxWaitMs / 60000)} minutes.`,
+                message: `${provider_name}: The video still wasn't ready after ${Math.max(1, Math.round((Date.now() - wait_started) / 60000))} minutes.`,
                 candidate_key: candidate.key,
             });
         }
@@ -207,4 +223,60 @@ async function openAiForm({ model, prompt, duration, size, image, signal }: Form
     }
 
     return form;
+}
+
+/**
+ * Reads a finished video's bytes with a ceiling (M9): a provider that hands
+ * back an unbounded body is cut at `AppData.VideoOutputMaxBytes` rather than
+ * buffered whole into memory. The body is streamed and accumulated up to the
+ * cap, so an oversized video is refused as soon as it passes it.
+ */
+async function readVideoBytes({
+    res,
+    provider_name,
+    candidate_key,
+}: {
+    res: Response;
+    provider_name: string;
+    candidate_key: string;
+}): Promise<Uint8Array<ArrayBuffer>> {
+    const max_bytes = AppData.VideoOutputMaxBytes;
+    const fail = (message: string) => new HarnessError({ message: `${provider_name}: ${message}`, candidate_key });
+
+    if (!res.body) {
+        const buffer = new Uint8Array(await res.arrayBuffer());
+        if (buffer.byteLength > max_bytes) throw fail("the video is larger than allowed.");
+        return buffer;
+    }
+
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+
+    try {
+        for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+
+            total += value.byteLength;
+            if (total > max_bytes) {
+                await reader.cancel().catch(() => {});
+                throw fail("the video is larger than allowed.");
+            }
+            chunks.push(value);
+        }
+    } catch (error: unknown) {
+        if (error instanceof HarnessError) throw error;
+        throw fail("the video download was interrupted.");
+    }
+
+    const data = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+        data.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+
+    return data;
 }

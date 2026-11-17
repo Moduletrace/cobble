@@ -1,6 +1,7 @@
 import HarnessError from "../../harness-error";
 import type { HarnessChatResult, HarnessToolCall } from "../../types";
 import readReasoning from "./read-reasoning";
+import redactProviderError from "../redact-provider-error";
 
 type WireToolCall = {
     id?: string;
@@ -29,7 +30,7 @@ export default function readChatResponse({
         const status = Number(json.error.code) || undefined;
 
         throw new HarnessError({
-            message: `${provider_name}: ${json.error.message || "The model failed."}`,
+            message: `${provider_name}: ${redactProviderError({ text: json.error.message || "The model failed." })}`,
             status,
             retryable: !status || status == 429 || status >= 500,
             candidate_key,
