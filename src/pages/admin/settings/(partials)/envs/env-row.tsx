@@ -68,7 +68,12 @@ export default function EnvRow({
 
     if (editing) {
         return (
-            <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
+            <Stack
+                className={twMerge(
+                    "w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0",
+                    "px-4",
+                )}
+            >
                 <EnvForm
                     scope={scope}
                     env={env}

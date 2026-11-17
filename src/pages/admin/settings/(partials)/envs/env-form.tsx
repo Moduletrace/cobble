@@ -5,7 +5,12 @@ import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { EnvScope, EnvsMutationResult, KnownEnvStatus, PublicEnv } from "@/src/types";
+import type {
+    EnvScope,
+    EnvsMutationResult,
+    KnownEnvStatus,
+    PublicEnv,
+} from "@/src/types";
 import postEnvApi from "../../(functions)/post-env-api";
 import SettingsStatus from "../settings-status";
 
@@ -27,10 +32,18 @@ type Props = {
  * Adds or edits an env in one scope. A saved secret is never shown; typing
  * a new value replaces it, leaving it empty keeps it.
  */
-export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props) {
+export default function EnvForm({
+    scope,
+    env,
+    known,
+    onSaved,
+    onCancel,
+}: Props) {
     const is_known = Boolean(known || env?.known);
     const [key, setKey] = useState(env?.key || known?.key || "");
-    const [value, setValue] = useState(env && !env.secret ? env.value || "" : "");
+    const [value, setValue] = useState(
+        env && !env.secret ? env.value || "" : "",
+    );
     const [description, setDescription] = useState(env?.description || "");
     const [secret, setSecret] = useState(env?.secret ?? known?.secret ?? true);
     const [expose, setExpose] = useState(env?.expose_to_computers ?? true);
@@ -42,7 +55,12 @@ export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props)
 
     const submit = async () => {
         if (loading) return;
-        if (!window.confirm(env?.id ? `Save ${env.key}?` : `Add ${key || "this env"}?`)) return;
+        if (
+            !window.confirm(
+                env?.id ? `Save ${env.key}?` : `Add ${key || "this env"}?`,
+            )
+        )
+            return;
 
         setLoading(true);
         setError(undefined);
@@ -58,7 +76,8 @@ export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props)
                 workspace_id: scope.paradigm == "workspace" ? scope.id : null,
                 computer_id: scope.paradigm == "computer" ? scope.id : null,
                 bot_id: scope.paradigm == "bot" ? scope.id : null,
-                scoped: scope.paradigm == "bot" || scope.paradigm == "workspace",
+                scoped:
+                    scope.paradigm == "bot" || scope.paradigm == "workspace",
                 secret,
                 expose_to_computers: expose,
             },
@@ -95,7 +114,9 @@ export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props)
                 type={secret ? "password" : "text"}
                 autoComplete="off"
                 defaultValue={value}
-                placeholder={keeps_secret ? "Saved. Type a new value to replace it." : ""}
+                placeholder={
+                    keeps_secret ? "Saved. Type a new value to replace it." : ""
+                }
                 info="Encrypted before it's stored."
                 onChange={(e) => setValue(e.target.value)}
             />
@@ -126,7 +147,9 @@ export default function EnvForm({ scope, env, known, onSaved, onCancel }: Props)
                 </>
             )}
             <Stack className="gap-3! items-stretch">
-                <SettingsStatus status={error ? { error: true, msg: error } : undefined} />
+                <SettingsStatus
+                    status={error ? { error: true, msg: error } : undefined}
+                />
                 <Row className="gap-2! flex-nowrap justify-end">
                     <Button
                         title="Cancel"
