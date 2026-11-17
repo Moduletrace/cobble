@@ -39,7 +39,7 @@ import type { BUN_SQLITE_DatabaseSchemaType } from "@moduletrace/bun-sqlite/type
 import { EnvParadigms, SecretRequestStatuses } from "@/src/dict/env-dict";
 import { BotQuestionStatuses } from "@/src/dict/bot-question-dict";
 import { BotPlanStates } from "@/src/dict/bot-plan-dict";
-import { McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
+import { McpAuthSchemes, McpServerStatuses, McpTransports } from "@/src/dict/mcp-dict";
 import {
     CustomToolKinds,
     CustomToolStatuses,
@@ -3215,6 +3215,18 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `remote: request headers, {"Authorization":"Bearer {{env.KEY}}"}. Values are templates`,
                     dataType: "TEXT",
                     json: true,
+                },
+                {
+                    fieldName: "auth_scheme",
+                    fieldDescription: `remote: how its authorization was set up (none, bearer, header), so the form reads it back the same way. The token itself is in headers`,
+                    dataType: "TEXT",
+                    options: McpAuthSchemes.map((s) => s.value),
+                    defaultValue: "none",
+                },
+                {
+                    fieldName: "auth_header",
+                    fieldDescription: `remote: the header an "header" scheme's token goes in (X-API-Key), empty otherwise`,
+                    dataType: "TEXT",
                 },
                 {
                     fieldName: "command",

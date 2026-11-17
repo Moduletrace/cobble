@@ -5,7 +5,7 @@ import {
     CustomToolScriptLanguages,
     type CustomToolScriptLanguage,
 } from "@/src/dict/custom-tool-dict";
-import { McpTransports, type McpTransport } from "@/src/dict/mcp-dict";
+import { McpAuthSchemes, McpTransports, type McpAuthScheme, type McpTransport } from "@/src/dict/mcp-dict";
 import checkCustomToolName from "@/src/utils/check-custom-tool-name";
 import checkSkillSlug from "@/src/utils/check-skill-slug";
 
@@ -28,6 +28,10 @@ const McpServerFields = z.object({
     transport: z.enum(McpTransports.map((t) => t.value) as [McpTransport, ...McpTransport[]]),
     url: z.string().trim().max(2000).default(""),
     headers: TemplateMap,
+    auth_scheme: z
+        .enum(McpAuthSchemes.map((s) => s.value) as [McpAuthScheme, ...McpAuthScheme[]])
+        .default("none"),
+    auth_header: z.string().trim().max(200).default(""),
     command: z.string().trim().max(4000).default(""),
     setup_command: z.string().trim().max(8000).default(""),
     env: TemplateMap,

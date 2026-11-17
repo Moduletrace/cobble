@@ -39,6 +39,8 @@ export default async function saveMcpServer({ user_id, data }: Params) {
         transport: data.transport,
         url: data.transport == "remote" ? data.url : "",
         headers: JSON.stringify(data.transport == "remote" ? data.headers : {}),
+        auth_scheme: data.transport == "remote" ? data.auth_scheme : "none",
+        auth_header: data.transport == "remote" ? data.auth_header : "",
         command: data.transport == "stdio" ? data.command : "",
         setup_command: data.transport == "stdio" ? data.setup_command : "",
         env: JSON.stringify(data.transport == "stdio" ? data.env : {}),

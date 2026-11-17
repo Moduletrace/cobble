@@ -18,6 +18,28 @@ export const McpTransports = [
 export type McpTransport = (typeof McpTransports)[number]["value"];
 
 /**
+ * How a remote MCP server or a browser is told who is calling: not at all,
+ * a bearer token in `Authorization`, or a token in a header named here.
+ * Basic and other schemes are hand-added headers.
+ */
+export const McpAuthSchemes = [
+    {
+        title: "None",
+        value: "none",
+    },
+    {
+        title: "Bearer token",
+        value: "bearer",
+    },
+    {
+        title: "API key header",
+        value: "header",
+    },
+] as const;
+
+export type McpAuthScheme = (typeof McpAuthSchemes)[number]["value"];
+
+/**
  * The last time the app listed a server's tools: `ok`, `error` (see its
  * `last_error`), or `untested` before the first time.
  */

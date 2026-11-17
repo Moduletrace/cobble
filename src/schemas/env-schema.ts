@@ -27,6 +27,16 @@ export const SaveEnvRequestSchema = z.object({
     scoped: z.boolean().optional(),
 });
 
+/**
+ * A key and token added from an MCP server's or browser's form: always
+ * general, secret, and never set on computers.
+ */
+export const SaveGeneralEnvRequestSchema = z.object({
+    key: z.string().trim().min(1, "Enter a key").max(128),
+    value: z.string().min(1, "Enter a value").max(20000, "Keep values under 20,000 characters"),
+    description: z.string().trim().max(500).optional(),
+});
+
 export const EnvIdRequestSchema = z.object({
     env_id: z.coerce.number().int().positive(),
     /**

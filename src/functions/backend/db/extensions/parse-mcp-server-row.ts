@@ -1,5 +1,5 @@
 import type { BUN_SQLITE_COBBLE_MCP_SERVERS } from "@/db/types/db";
-import type { McpServerStatus, McpTransport } from "@/src/dict/mcp-dict";
+import type { McpAuthScheme, McpServerStatus, McpTransport } from "@/src/dict/mcp-dict";
 import type { McpServerRecord, McpToolInfo } from "@/src/types";
 import parseJsonColumn from "./parse-json-column";
 
@@ -19,6 +19,8 @@ export default function parseMcpServerRow({ row }: Params): McpServerRecord {
         transport: (row.transport || "remote") as McpTransport,
         url: row.url || "",
         headers: parseJsonColumn<Record<string, string>>({ text: row.headers, fallback: {} }),
+        auth_scheme: (row.auth_scheme || "none") as McpAuthScheme,
+        auth_header: row.auth_header || "",
         command: row.command || "",
         setup_command: row.setup_command || "",
         env: parseJsonColumn<Record<string, string>>({ text: row.env, fallback: {} }),

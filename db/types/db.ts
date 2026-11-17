@@ -2010,6 +2010,14 @@ export type BUN_SQLITE_COBBLE_MCP_SERVERS = {
      */
     headers?: string;
     /** 
+     * remote: how its authorization was set up (none, bearer, header), so the form reads it back the same way. The token itself is in headers
+     */
+    auth_scheme?: "none" | "bearer" | "header" | "";
+    /** 
+     * remote: the header an "header" scheme's token goes in (X-API-Key), empty otherwise
+     */
+    auth_header?: string;
+    /** 
      * stdio: the command that starts the server, run with the host's shell in DATA_DIR/mcp/<id>
      */
     command?: string;

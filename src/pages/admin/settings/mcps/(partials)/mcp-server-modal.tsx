@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
@@ -12,10 +12,20 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { McpTransports, type McpTransport } from "@/src/dict/mcp-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
-import type { McpServersOverviewPayload, McpServerTestPayload, PublicMcpServer } from "@/src/types";
+import type { EnvKeyOption, McpServersOverviewPayload, McpServerTestPayload, PublicMcpServer } from "@/src/types";
 import SettingsStatus from "../../(partials)/settings-status";
 import parseTemplateLines, { templateLines } from "@/src/utils/parse-template-lines";
+import parseMcpHeaders, { composeMcpHeaders, envTemplate } from "@/src/utils/mcp-headers";
+import McpAuthFields from "../../(partials)/mcp-auth-fields";
+import NewEnvModal from "../../(partials)/envs/new-env-modal";
+import listGeneralEnvs from "../../(functions)/list-general-envs";
 import McpToolToggle from "./mcp-tool-toggle";
+
+/**
+ * Which value a new env is for: the authorization token or one added
+ * header's value.
+ */
+type EnvTarget = { kind: "auth" } | { kind: "additional"; index: number };
 
 type Props = {
     /**
@@ -32,19 +42,28 @@ type Props = {
 };
 
 /**
- * Adds or edits an MCP server (super admins): a remote one by URL and
- * headers, or a stdio one by the command that starts it on this server,
- * the setup that installs what it needs, and the env it gets. Values can
- * use `{{env.KEY}}`. Test connection checks the form as it is, saved or
- * not, and lists its tools, so they can be left out before saving; saving
- * connects again.
+ * Adds or edits an MCP server (super admins): a remote one by URL and how
+ * it authorizes (a bearer token, a header's own, or any other header, each
+ * typed in or pointed at an env), or a stdio one by the command that
+ * starts it on this server, the setup that installs what it needs, and the
+ * env it gets. Test connection checks the form as it is, saved or not, and
+ * lists its tools, so they can be left out before saving; saving connects
+ * again.
  */
 export default function McpServerModal({ server, busy, onReinstall, onSaved, onCancel }: Props) {
     const [name, setName] = useState(server?.name || "");
     const [description, setDescription] = useState(server?.description || "");
     const [transport, setTransport] = useState<McpTransport>(server?.transport || "remote");
     const [url, setUrl] = useState(server?.url || "");
-    const [headers, setHeaders] = useState(templateLines({ map: server?.headers, separator: ":" }));
+    const [header_fields, setHeaderFields] = useState(() =>
+        parseMcpHeaders({
+            headers: server?.headers,
+            scheme: server?.auth_scheme,
+            header_name: server?.auth_header,
+        }),
+    );
+    const [envs, setEnvs] = useState<EnvKeyOption[]>([]);
+    const [new_env_for, setNewEnvFor] = useState<EnvTarget>();
     const [command, setCommand] = useState(server?.command || "");
     const [setup_command, setSetupCommand] = useState(server?.setup_command || "");
     const [env, setEnv] = useState(templateLines({ map: server?.env, separator: "=" }));
@@ -59,13 +78,47 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
 
     const id = `mcp-${server?.id || "new"}`;
 
+    useEffect(() => {
+        listGeneralEnvs()
+            .then((res) => {
+                if (res.success && res.singleRes) setEnvs(res.singleRes);
+            })
+            .catch(() => {});
+    }, []);
+
+    /**
+     * Points the field that asked at the env just saved.
+     */
+    const pickNewEnv = (list: EnvKeyOption[], key: string) => {
+        const target = new_env_for;
+
+        setEnvs(list);
+        setNewEnvFor(undefined);
+
+        if (!target) return;
+
+        if (target.kind == "auth") {
+            setHeaderFields((prev) => ({ ...prev, auth: { ...prev.auth, secret: envTemplate(key) } }));
+            return;
+        }
+
+        setHeaderFields((prev) => ({
+            ...prev,
+            additional: prev.additional.map((line, index) =>
+                index == target.index ? { ...line, value: envTemplate(key) } : line,
+            ),
+        }));
+    };
+
     const body = () => ({
         mcp_server_id: server?.id,
         name,
         description,
         transport,
         url,
-        headers: parseTemplateLines({ text: headers, separator: ":" }),
+        headers: composeMcpHeaders(header_fields),
+        auth_scheme: header_fields.auth.scheme,
+        auth_header: header_fields.auth.scheme == "header" ? header_fields.auth.name.trim() : "",
         command,
         setup_command,
         env: parseTemplateLines({ text: env, separator: "=" }),
@@ -167,14 +220,16 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
                             info="Streamable HTTP, or SSE for older servers."
                             onChange={(e) => setUrl(e.target.value)}
                         />
-                        <CodeEditor
-                            mode="properties"
-                            className="h-24"
-                            title="Headers"
-                            placeholder={"Authorization: Bearer {{env.GITHUB_TOKEN}}"}
-                            content={headers}
-                            info="One per line. Put secrets in Settings, under Environment, and use them as {{env.KEY}}."
-                            onChange={(value) => setHeaders(value)}
+                        <McpAuthFields
+                            id={id}
+                            auth={header_fields.auth}
+                            additional={header_fields.additional}
+                            onChange={setHeaderFields}
+                            envs={envs}
+                            onNewEnv={(at: "auth" | number) =>
+                                setNewEnvFor(at == "auth" ? { kind: "auth" } : { kind: "additional", index: at })
+                            }
+                            info="Put secrets in Settings, under Environment, and point a value at one. It's filled in when a bot connects, so it never sits here."
                         />
                     </>
                 ) : (
@@ -274,6 +329,7 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
                     onCancel={onCancel}
                 />
             </Form>
+            {new_env_for ? <NewEnvModal onSaved={pickNewEnv} onCancel={() => setNewEnvFor(undefined)} /> : null}
         </AddModalShell>
     );
 }

@@ -12,6 +12,8 @@ describe("extensionEnvUses", () => {
                     transport: "remote",
                     url: "https://api.githubcopilot.com/mcp/?region={{env.REGION}}",
                     headers: { Authorization: "Bearer {{ env.GITHUB_TOKEN }}", Accept: "application/json" },
+                    auth_scheme: "bearer",
+                    auth_header: "",
                     command: "",
                     setup_command: "",
                     env: {},

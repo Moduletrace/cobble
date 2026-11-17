@@ -43,7 +43,7 @@ import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict
 import type { BotTraceKind } from "../dict/bot-trace-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { RunLimit } from "../utils/run-limit";
-import type { McpServerStatus, McpTransport } from "../dict/mcp-dict";
+import type { McpAuthScheme, McpServerStatus, McpTransport } from "../dict/mcp-dict";
 import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
 import type { HookProposalAction } from "../dict/bot-hook-dict";
 import type { PwaInstallIcon } from "../data/pwa-data";
@@ -812,6 +812,16 @@ export type PublicEnv = {
 };
 
 /**
+ * An env an MCP server's or browser's form can point at, from the general
+ * scope: its key and description, never its value.
+ */
+export type EnvKeyOption = {
+    key: string;
+    description: string;
+    secret: boolean;
+};
+
+/**
  * Somewhere envs can be set: general, or one of the user's workspaces,
  * computers or bots.
  */
@@ -1065,6 +1075,15 @@ export type McpServerRecord = {
     transport: McpTransport;
     url: string;
     headers: Record<string, string>;
+    /**
+     * How the Authorization section was filled in, so editing it reads back
+     * the same fields. The token itself lives in `headers`.
+     */
+    auth_scheme: McpAuthScheme;
+    /**
+     * The header an `header` scheme's token goes in, empty for the others.
+     */
+    auth_header: string;
     command: string;
     setup_command: string;
     env: Record<string, string>;

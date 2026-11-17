@@ -29,6 +29,8 @@ export default async function testMcpDraft({
                 transport: data.transport,
                 url: data.url,
                 headers: data.headers,
+                auth_scheme: data.auth_scheme,
+                auth_header: data.auth_header,
                 command: data.command,
                 setup_command: data.setup_command,
                 env: data.env,

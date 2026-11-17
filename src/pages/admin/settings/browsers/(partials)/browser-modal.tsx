@@ -4,15 +4,15 @@ import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
-import CodeEditor from "@/src/components/general/code-editor";
 import Button from "@moduletrace/twui/layout/Button";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { BrowserDefaultExcludedTools } from "@/src/dict/browser-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { BrowserRecord, McpServerTestPayload } from "@/src/types";
-import parseTemplateLines from "@/src/utils/parse-template-lines";
+import parseMcpHeaders, { composeMcpHeaders } from "@/src/utils/mcp-headers";
 import SettingsStatus from "../../(partials)/settings-status";
+import McpAuthFields from "../../(partials)/mcp-auth-fields";
 import McpToolToggle from "../../mcps/(partials)/mcp-tool-toggle";
 
 type Props = {
@@ -33,7 +33,7 @@ export default function BrowserModal({ browser, onSaved, onCancel }: Props) {
     const [name, setName] = useState(browser?.name || "");
     const [description, setDescription] = useState(browser?.description || "");
     const [url, setUrl] = useState(browser?.url || "");
-    const [headers, setHeaders] = useState("");
+    const [header_fields, setHeaderFields] = useState(() => parseMcpHeaders());
     const [clear_headers, setClearHeaders] = useState(false);
     const [excluded, setExcluded] = useState<string[]>(browser?.excluded_tools || [...BrowserDefaultExcludedTools]);
     const [enabled, setEnabled] = useState(browser?.enabled ?? true);
@@ -51,7 +51,7 @@ export default function BrowserModal({ browser, onSaved, onCancel }: Props) {
         name,
         description,
         url,
-        headers: parseTemplateLines({ text: headers, separator: ":" }),
+        headers: composeMcpHeaders(header_fields),
         clear_headers,
         excluded_tools: excluded,
         enabled,
@@ -134,18 +134,16 @@ export default function BrowserModal({ browser, onSaved, onCancel }: Props) {
                     info="Streamable HTTP, or SSE for older servers."
                     onChange={(e) => setUrl(e.target.value)}
                 />
-                <CodeEditor
-                    mode="properties"
-                    className="h-20"
-                    title="Headers"
-                    placeholder="Authorization: Bearer your-token"
-                    content={headers}
+                <McpAuthFields
+                    id={id}
+                    auth={header_fields.auth}
+                    additional={header_fields.additional}
+                    onChange={setHeaderFields}
                     info={
                         browser?.has_headers
-                            ? "Saved and hidden. Leave blank to keep them. One per line."
-                            : "Optional, for a token in front of the server. One per line. Stored encrypted."
+                            ? "Saved and hidden. Set them again here, or leave all of this empty to keep them."
+                            : "Optional, for a token in front of the server. Stored encrypted."
                     }
-                    onChange={(value) => setHeaders(value)}
                 />
                 {browser?.has_headers ? (
                     <Checkbox
