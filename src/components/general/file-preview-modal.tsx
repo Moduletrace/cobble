@@ -14,6 +14,7 @@ import filePreviewKind from "@/src/utils/file-preview-kind";
 import galleryIndex from "@/src/utils/gallery-index";
 import FilePreviewBody from "./file-preview-body";
 import FilePreviewDetails from "./file-preview-details";
+import FilePreviewSideArrow from "./file-preview-side-arrow";
 import FilePreviewStepper from "./file-preview-stepper";
 
 type Props = {
@@ -26,9 +27,10 @@ type Props = {
      */
     full_path?: string;
     /**
-     * The images it was opened among (a folder's, a message's). When the
-     * file is one of them, Previous and Next (and the arrow keys) step
-     * through them without closing the preview.
+     * The images it was opened among (a folder's, a conversation's). When
+     * the file is one of them, Previous and Next (the side arrows, the
+     * header's stepper and the arrow keys) step through them without
+     * closing the preview.
      */
     gallery?: FilePreviewItem[];
     onClose: () => void;
@@ -41,11 +43,18 @@ const ActionClassName =
  * A file over the page, its full path beside its size: markdown rendered, a CSV as a table, an image,
  * PDF, audio or video in place, other text as code, with ways to download
  * it or open it in a new tab. A file it can't show offers those only.
- * Opened from a gallery, it steps through its images; each one opens fresh
- * (fitted, scrolled to the top), and its neighbours load ahead.
+ * Opened from a gallery, it steps through its images with arrows at the
+ * middle left and right (and the header's stepper and arrow keys); each one
+ * opens fresh (fitted, scrolled to the top), and its neighbours load ahead.
  */
-export default function FilePreviewModal({ gallery, onClose, ...opened }: Props) {
-    const [index, set_index] = useState(() => galleryIndex({ gallery, url: opened.url }));
+export default function FilePreviewModal({
+    gallery,
+    onClose,
+    ...opened
+}: Props) {
+    const [index, set_index] = useState(() =>
+        galleryIndex({ gallery, url: opened.url }),
+    );
     const stepping = Boolean(gallery && index >= 0 && gallery.length > 1);
     const shown: FilePreviewItem = (stepping && gallery?.[index]) || opened;
     const { name, url, media_type, size, full_path } = shown;
@@ -62,7 +71,9 @@ export default function FilePreviewModal({ gallery, onClose, ...opened }: Props)
         onNext: () => step({ by: 1 }),
     });
     usePreloadImages({
-        urls: stepping ? [gallery?.[index + 1]?.url || "", gallery?.[index - 1]?.url || ""] : [],
+        urls: stepping
+            ? [gallery?.[index + 1]?.url || "", gallery?.[index - 1]?.url || ""]
+            : [],
     });
 
     return (
@@ -111,13 +122,29 @@ export default function FilePreviewModal({ gallery, onClose, ...opened }: Props)
                     <SquareArrowOutUpRight size={16} aria-hidden />
                 </Link>
             </Row>
-            <FilePreviewBody
-                key={url}
-                kind={kind}
-                name={base_name}
-                url={url}
-                size={size}
-            />
+            <Stack className="relative grow min-h-0 gap-0! items-stretch w-full">
+                <FilePreviewBody
+                    key={url}
+                    kind={kind}
+                    name={base_name}
+                    url={url}
+                    size={size}
+                />
+                {stepping ? (
+                    <>
+                        <FilePreviewSideArrow
+                            side="previous"
+                            disabled={index <= 0}
+                            onClick={() => step({ by: -1 })}
+                        />
+                        <FilePreviewSideArrow
+                            side="next"
+                            disabled={index >= count - 1}
+                            onClick={() => step({ by: 1 })}
+                        />
+                    </>
+                ) : null}
+            </Stack>
         </Modal>
     );
 }

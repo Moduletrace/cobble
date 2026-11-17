@@ -9,7 +9,9 @@ import type {
 } from "@/src/types";
 import useMessageSelection from "../(hooks)/use-message-selection";
 import usePullToRefresh from "../(hooks)/use-pull-to-refresh";
+import useSessionGallery from "../(hooks)/use-session-gallery";
 import useThreadScroll from "../(hooks)/use-thread-scroll";
+import { SessionGalleryContext } from "../(data)/session-gallery-context";
 import groupMessages from "../(utils)/group-messages";
 import BotThinkingRow from "./bot-thinking-row";
 import MessageGroupBlock from "./message-group-block";
@@ -123,6 +125,7 @@ export default function MessageThread({
     older,
 }: Props) {
     const groups = useMemo(() => groupMessages({ messages }), [messages]);
+    const session_gallery = useSessionGallery({ messages });
     const scroll = useThreadScroll({ messages });
     const pull_state = usePullToRefresh({
         column_ref: scroll.column_ref,
@@ -164,13 +167,15 @@ export default function MessageThread({
                             manual
                         />
                     ) : null}
-                    {groups.map((group) => (
-                        <MessageGroupBlock
-                            key={group.key}
-                            bot={bot}
-                            group={group}
-                        />
-                    ))}
+                    <SessionGalleryContext.Provider value={session_gallery}>
+                        {groups.map((group) => (
+                            <MessageGroupBlock
+                                key={group.key}
+                                bot={bot}
+                                group={group}
+                            />
+                        ))}
+                    </SessionGalleryContext.Provider>
                     {notice}
                     <BotThinkingRow
                         bot={bot}

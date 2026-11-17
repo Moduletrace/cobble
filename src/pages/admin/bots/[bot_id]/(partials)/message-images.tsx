@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import type { BotMessageAttachment, BotMessageWithAttachments, MediaType, PublicBotFile } from "@/src/types";
 import filePreviewKind from "@/src/utils/file-preview-kind";
 import imagePreviewGallery from "@/src/utils/image-preview-gallery";
 import liveFileRefIds from "@/src/utils/live-file-ref-ids";
+import { SessionGalleryContext } from "../(data)/session-gallery-context";
 import useReferencedFiles from "../(hooks)/use-referenced-files";
 import MessageAttachment from "./message-attachment";
 
@@ -32,12 +33,15 @@ function fileToImage({ file }: { file: PublicBotFile }): BotMessageAttachment {
 /**
  * The images a bot message is about, under its text: the pictures attached
  * to it and the image files it names (`[file:ID]`), each a thumbnail that
- * opens the file preview. One gallery, so opening one steps through the
- * others. A file named twice (attached and referenced) shows once; refs
- * inside longer code never render as chips, so they show no picture
- * either. Nothing renders when the message names no image.
+ * opens the file preview. In a thread they open the conversation's gallery
+ * (every image in the session, bot and user); on their own, one gallery of
+ * this message's images, so opening one steps through the others. A file
+ * named twice (attached and referenced) shows once; refs inside longer code
+ * never render as chips, so they show no picture either. Nothing renders
+ * when the message names no image.
  */
 export default function MessageImages({ message }: Props) {
+    const session_gallery = useContext(SessionGalleryContext);
     const attachments = message.attachments || [];
     const ref_ids = useMemo(
         () =>
@@ -69,7 +73,7 @@ export default function MessageImages({ message }: Props) {
 
     if (!images.length) return null;
 
-    const gallery = imagePreviewGallery({ items: images.map((it) => it.image) });
+    const gallery = session_gallery ?? imagePreviewGallery({ items: images.map((it) => it.image) });
 
     return (
         <Row itemsStart className="max-w-full gap-2!">

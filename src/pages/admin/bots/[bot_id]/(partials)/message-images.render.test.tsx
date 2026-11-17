@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
 import { AppContext } from "@/src/pages/__root";
 import type { AppContextObject, BotMessageAttachment, BotMessageWithAttachments, PublicBotFile } from "@/src/types";
+import { SessionGalleryContext } from "../(data)/session-gallery-context";
 import MessageImages from "./message-images";
 
 const shot: PublicBotFile = {
@@ -98,5 +99,18 @@ describe("MessageImages", () => {
     test("renders nothing without images", () => {
         expect(render({ message: { text: "Just text." } })).toBe("");
         expect(render({ message: { text: "[file:99] is gone." }, files: [shot] })).toBe("");
+    });
+
+    test("with the conversation's gallery provided it still shows its thumbnails", () => {
+        const context = { pageProps: { bot_files: { files: [shot] } } } as unknown as AppContextObject;
+        const html = renderToString(
+            <AppContext.Provider value={context}>
+                <SessionGalleryContext.Provider value={[{ name: "other.png", url: "/media/77" }]}>
+                    <MessageImages message={{ id: 1, text: "Saved [file:12].", attachments: [attached] } as BotMessageWithAttachments} />
+                </SessionGalleryContext.Provider>
+            </AppContext.Provider>,
+        );
+
+        expect(html).toContain('src="/media/40/thumbnail"');
     });
 });

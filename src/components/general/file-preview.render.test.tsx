@@ -5,6 +5,7 @@ import FilePreviewBody from "./file-preview-body";
 import FilePreviewDetails from "./file-preview-details";
 import FilePreviewLink from "./file-preview-link";
 import FilePreviewMarkdown from "./file-preview-markdown";
+import FilePreviewSideArrow from "./file-preview-side-arrow";
 import FilePreviewTable from "./file-preview-table";
 import FilePreviewStepper from "./file-preview-stepper";
 import FolderPreviewLink from "./folder-preview-link";
@@ -86,6 +87,20 @@ test("a gallery's stepper says where the image stands and stops at the ends", ()
     expect(last).toContain("3 of 3");
     expect((first.match(/disabled=""/g) || []).length).toBe(1);
     expect((last.match(/disabled=""/g) || []).length).toBe(1);
+});
+
+test("a gallery's side arrows sit at the middle left and right and stop at the ends", () => {
+    const previous = renderToString(<FilePreviewSideArrow side="previous" disabled onClick={() => {}} />);
+    const next = renderToString(<FilePreviewSideArrow side="next" onClick={() => {}} />);
+
+    expect(previous).toContain("Previous image");
+    expect(previous).toContain("left-3");
+    expect(previous).toContain("top-1/2");
+    expect(previous).toContain('disabled=""');
+    expect(next).toContain("Next image");
+    expect(next).toContain("right-3");
+    expect(next).toContain("top-1/2");
+    expect(next).not.toContain('disabled=""');
 });
 
 test("the preview names the file's full path beside its size", () => {
