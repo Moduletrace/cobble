@@ -217,6 +217,45 @@ describe("prepareMessagesForModel", () => {
         expect(readings.size()).toBe(0);
     });
 
+    test("a redacted reading is kept within the run, so the image isn't read again every turn", async () => {
+        // Every browser screenshot carries a redactor (secrets are cut from
+        // what the vision model reads), so turning caching off to keep H3
+        // once re-read the same screenshot on every turn of a run. The run's
+        // own cache serves it, keyed apart from a plain reading, and nothing
+        // of it outlives the run.
+        const readings = createReadingCache({ max: 4 });
+        const cache = new Map<string, string>();
+        const url = "data:image/png;base64,FFFF";
+        let reads = 0;
+        const turn = () =>
+            prepareMessagesForModel({
+                messages: [
+                    {
+                        role: "user",
+                        content: [{ type: "image", url, redact: (text) => text.replaceAll("hunter2", "[secret]") }],
+                    },
+                ],
+                model: { input_modalities: ["text"] },
+                cache,
+                readings,
+                signal,
+                read_image: async () => {
+                    reads++;
+                    return "Signed in as hunter2.";
+                },
+            });
+
+        await turn();
+        const second = await turn();
+
+        expect(reads).toBe(1);
+        expect(second[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: Signed in as [secret].]" }],
+        });
+        expect(readings.size()).toBe(0);
+    });
+
     test("a redacted reading is never served from an earlier unredacted reading of the same image", async () => {
         // The within-run cache is keyed by the image alone. An unredacted
         // reading of an image (a storage read) must not be handed back when
@@ -229,6 +268,7 @@ describe("prepareMessagesForModel", () => {
             messages: [{ role: "user", content: [{ type: "image", url }] }],
             model: { input_modalities: ["text"] },
             cache,
+            readings: MediaReadings,
             signal,
             read_image,
         });
@@ -246,12 +286,29 @@ describe("prepareMessagesForModel", () => {
             ],
             model: { input_modalities: ["text"] },
             cache,
+            readings: MediaReadings,
             signal,
             read_image,
         });
         expect(redacted[0]).toEqual({
             role: "user",
             content: [{ type: "text", text: "[Image: the password is [secret]]" }],
+        });
+
+        // The plain reading stays the only one kept: the redacted one is the
+        // run's business alone, and the plain one is still served untouched.
+        expect(MediaReadings.size()).toBe(1);
+        const again = await prepareMessagesForModel({
+            messages: [{ role: "user", content: [{ type: "image", url }] }],
+            model: { input_modalities: ["text"] },
+            cache,
+            readings: MediaReadings,
+            signal,
+            read_image,
+        });
+        expect(again[0]).toEqual({
+            role: "user",
+            content: [{ type: "text", text: "[Image: the password is hunter2]" }],
         });
     });
 

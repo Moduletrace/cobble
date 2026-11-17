@@ -12,6 +12,13 @@ import type {
     HarnessModelInfo,
 } from "../types";
 
+/**
+ * How a reading made to cut secrets out is keyed apart from the plain one:
+ * the two are never served for each other, and the run's cache keeps them
+ * both (H3).
+ */
+const RedactedReadingSuffix = ":redacted";
+
 type Params = {
     messages: HarnessMessage[];
     model: Pick<HarnessModelInfo, "input_modalities">;
@@ -79,7 +86,12 @@ export default async function prepareMessagesForModel({
             return {
                 type: "text",
                 text: await readOnce({
-                    key: imageReadingKey({ url: part.url, focus: part.focus }),
+                    /**
+                     * A reading cut for a secret is kept apart: an earlier
+                     * unredacted reading of the same image must never be
+                     * served back without the secret cut (H3).
+                     */
+                    key: `${imageReadingKey({ url: part.url, focus: part.focus })}${part.redact ? RedactedReadingSuffix : ""}`,
                     label: `Image${part.name ? ` "${part.name}"` : ""}`,
                     cache,
                     readings,
@@ -180,12 +192,14 @@ async function readOnce({
     signal: AbortSignal;
     read: () => Promise<string>;
 }) {
-    // A reading made to cut a secret out (`redact`, so `share` is false)
-    // bypasses both caches: the within-run cache is keyed by image alone, so
-    // an earlier unredacted reading of the same image would otherwise be
-    // served back without the secret cut (H3). It is read fresh every time
-    // and never stored, so it can't leak into a later turn or run.
-    const cached = share ? cache.get(key) ?? readings.get({ key }) : undefined;
+    /**
+     * The run's own cache serves both kinds, since its key carries the kind
+     * (`RedactedReadingSuffix`): one run, one set of secrets, so a redacted
+     * reading is reused within it and never mistaken for an unredacted one.
+     * Only an unredacted reading goes on to `readings`, which outlives the
+     * run (H3).
+     */
+    const cached = cache.get(key) ?? (share ? readings.get({ key }) : undefined);
 
     if (cached !== undefined) {
         cache.set(key, cached);
@@ -194,10 +208,11 @@ async function readOnce({
 
     try {
         const text = `[${label}: ${await read()}]`;
-        if (share) {
-            cache.set(key, text);
-            readings.set({ key, text });
-        }
+
+        cache.set(key, text);
+
+        if (share) readings.set({ key, text });
+
         return text;
     } catch (error: unknown) {
         if (signal.aborted || (error instanceof HarnessError && error.code == "aborted")) {
