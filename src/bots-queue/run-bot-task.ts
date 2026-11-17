@@ -81,6 +81,7 @@ import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import taskIncoming from "./task-incoming";
 import taskRequestNote from "./task-request-note";
+import namedFilesNote from "./named-files-note";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import planBotTask from "./plan-bot-task";
 import shouldPlanBotTask from "./should-plan-bot-task";
@@ -140,6 +141,12 @@ export default async function runBotTask({
      * The tracker tasks the run worked on, linked under its report.
      */
     const task_ids: number[] = [];
+    /**
+     * The files the run may read, and what its computer tools export from
+     * them (`export_file`): read before the computer is opened, since its
+     * tool list needs them.
+     */
+    const scopes = await grabRunScopes({ bot, user_id, workspace_id });
 
     const computer = job.computer_id
         ? await openComputerTools({
@@ -148,6 +155,7 @@ export default async function runBotTask({
               user_id,
               workspace_id,
               dirs,
+              scopes,
               onSecretRef: ({ ref }) => shown.push(ref),
               signal,
           })
@@ -219,12 +227,6 @@ export default async function runBotTask({
             ...computers.filter((c) => c.id == job.computer_id),
             ...computers.filter((c) => c.id != job.computer_id),
         ];
-        /**
-         * The files this run reaches, for its file tools, an import and the
-         * pictures it may set: one answer, where `grabRunScopes` decides.
-         */
-        const scopes = await grabRunScopes({ bot, user_id, workspace_id });
-
         /**
          * A workspace admin's task keeps the workspace's context and its
          * members' instructions; it hands nothing over (no session to report
@@ -499,6 +501,21 @@ export default async function runBotTask({
                 params,
             }),
         };
+        /**
+         * The brief names the files the work is about. Where they actually
+         * stand is the app's to check, once, rather than the run's to find
+         * out: a source a rebuild took off the computer is still in the
+         * bot's files, and this is what says so (`namedFilesNote`).
+         */
+        const named_files_note = computer
+            ? await namedFilesNote({
+                  computer: computer.computer,
+                  dirs,
+                  scopes,
+                  text: [request_note, String(brief.content)].filter(Boolean).join("\n\n"),
+                  signal,
+              })
+            : "";
         const opening: HarnessMessage[] = request_note
             ? [{ role: "user", content: request_note }, brief]
             : [brief];
@@ -523,6 +540,7 @@ export default async function runBotTask({
             Number(params.ask_id) ? AskTaskRunNote : "",
             botFilesNote({ bot_id: bot.id }),
             ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
+            named_files_note,
             TasksNote,
             ActionCheckNote,
             RequestScopeNote({ can_ask }),

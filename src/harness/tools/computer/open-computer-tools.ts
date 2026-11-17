@@ -9,6 +9,7 @@ import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import isComputerDown from "@/src/utils/computer-down";
 import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import type { StorageScope } from "@/src/utils/storage-access";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import grabMcpTools from "../../mcp/grab-mcp-tools";
@@ -20,6 +21,7 @@ import computerEditFileTool from "./computer-edit-file-tool";
 import computerReadFileTool from "./computer-read-file-tool";
 import type { ComputerToolContext } from "./computer-tool-context";
 import computerWriteFileTool from "./computer-write-file-tool";
+import exportFileTool from "./export-file-tool";
 import withBrowserOutputs from "./with-browser-outputs";
 import withComputerDirs from "./with-computer-dirs";
 import withWorkerBrowserFiles from "./with-worker-browser-files";
@@ -44,6 +46,11 @@ type Params = {
      * kept inside them.
      */
     dirs: ComputerRunDirs;
+    /**
+     * The bot files this run may read (`grabRunScopes`): what `export_file`
+     * can copy onto the computer.
+     */
+    scopes: StorageScope[];
     /**
      * Called with the ref of each secret the bot captures on the computer
      * (`capture_secret`), so the run's message always carries its chip.
@@ -99,6 +106,7 @@ export default async function openComputerTools({
     user_id,
     workspace_id,
     dirs,
+    scopes,
     onSecretRef,
     browser = true,
     signal,
@@ -160,6 +168,7 @@ export default async function openComputerTools({
                 computerReadFileTool(context),
                 computerWriteFileTool(context),
                 computerEditFileTool(context),
+                exportFileTool({ computer: target, dirs, scopes }),
                 ...browser_tools.map((tool) =>
                     withBrowserOutputs({
                         tool: withComputerDirs({ tool: withWorkerBrowserFiles({ tool, computer: target, dirs }), dirs }),

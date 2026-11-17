@@ -1263,6 +1263,20 @@ export const AppData = {
      */
     BotFileImportMaxBytes: 20 * 1024 * 1024,
     /**
+     * The most a bot copies from its own files onto a computer in one call
+     * (`export_file`), the other direction of `BotFileImportMaxBytes`. The
+     * bytes go base64 encoded in one request, so this stays well under the
+     * agent's own body limit.
+     */
+    BotFileExportMaxBytes: 20 * 1024 * 1024,
+    /**
+     * The most file paths one brief is checked for at the start of a task
+     * run (`namedFiles`), the reconciliation that says where a source the
+     * brief names actually is. A brief naming more than this is not about
+     * its files.
+     */
+    NamedFilesMax: 5,
+    /**
      * Ingesting a knowledgebase document: how much text one chunk holds,
      * how much of the previous chunk it repeats, and the largest file it
      * reads at all (also the largest attachment a reply reads).

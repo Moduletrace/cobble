@@ -74,7 +74,7 @@ export default function importFileTool({
         name: "import_file",
         description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, relative to your folder there (${dirs.cwd}), e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
             own?.scope == "workspace" ? " The copies land in the workspace's shared files." : ""
-        } Imports are readable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit.`,
+        } Imports are readable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit. The other direction is export_file, which puts one of your own files back on the computer.`,
         schema: z.object({
             path: z
                 .string()
