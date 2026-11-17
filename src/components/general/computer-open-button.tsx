@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import type {
     TWUIButtonColorType,
@@ -7,7 +7,11 @@ import type {
 } from "@moduletrace/twui/layout/Button";
 import { AppWindow } from "lucide-react";
 import { twMerge } from "tailwind-merge";
-import ComputerViewerModal from "./computer-viewer-modal";
+/**
+ * The screen itself (noVNC, its websocket and transport) loads with the
+ * click, not with the button that opens it.
+ */
+const ComputerViewerModal = lazy(() => import("./computer-viewer-modal"));
 
 type Props = {
     computer_id: number;
@@ -65,12 +69,14 @@ export default function ComputerOpenButton({
                 <AppWindow size={16} aria-hidden />
                 {label}
             </Button>
-            <ComputerViewerModal
-                open={open}
-                onClose={() => setOpen(false)}
-                computer_id={computer_id}
-                name={name}
-            />
+            <Suspense fallback={null}>
+                <ComputerViewerModal
+                    open={open}
+                    onClose={() => setOpen(false)}
+                    computer_id={computer_id}
+                    name={name}
+                />
+            </Suspense>
         </>
     );
 }

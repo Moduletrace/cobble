@@ -1,8 +1,14 @@
-import { useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import Link from "@moduletrace/twui/layout/Link";
 import type { FilePreviewItem } from "@/src/types";
 import isPlainClick from "@/src/utils/is-plain-click";
-import FilePreviewModal from "./file-preview-modal";
+
+/**
+ * The preview is markdown rendering, CSV tables, the image viewer and PDF,
+ * audio and video playback: none of it is needed until a file is clicked,
+ * so it loads as its own chunk rather than with the conversation.
+ */
+const FilePreviewModal = lazy(() => import("./file-preview-modal"));
 
 type Props = {
     name: string;
@@ -59,15 +65,17 @@ export default function FilePreviewLink({
                 {children}
             </Link>
             {open ? (
-                <FilePreviewModal
-                    name={name}
-                    url={url}
-                    media_type={media_type}
-                    size={size}
-                    full_path={full_path}
-                    gallery={gallery}
-                    onClose={() => setOpen(false)}
-                />
+                <Suspense fallback={null}>
+                    <FilePreviewModal
+                        name={name}
+                        url={url}
+                        media_type={media_type}
+                        size={size}
+                        full_path={full_path}
+                        gallery={gallery}
+                        onClose={() => setOpen(false)}
+                    />
+                </Suspense>
             ) : null}
         </>
     );

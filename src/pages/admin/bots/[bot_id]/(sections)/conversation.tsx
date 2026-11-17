@@ -1,5 +1,5 @@
 import isCrewMessage from "@/src/utils/is-crew-message";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import awaitsReply from "../(utils)/awaits-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
@@ -36,7 +36,13 @@ import ConversationHeader from "../(partials)/conversation-header";
 import useDebugOpen from "../(hooks)/use-debug-open";
 import MessageThread from "../(partials)/message-thread";
 import Composer, { type ComposerHandle } from "../(partials)/composer";
-import ComputerViewerModal from "../(partials)/computer-viewer-modal";
+/**
+ * A computer's live screen (noVNC, its websocket and transport) is only
+ * needed once the user opens one, so it loads as its own chunk.
+ */
+const ComputerViewerModal = lazy(
+    () => import("../(partials)/computer-viewer-modal"),
+);
 import HistoryErrorRow from "../(partials)/history-error-row";
 import useConversationHistory from "../(hooks)/use-conversation-history";
 import mergeLoadedHistory from "../(utils)/merge-loaded-history";
@@ -607,7 +613,9 @@ export default function Conversation() {
                                 )}
                             </Stack>
                         </BotMessageActionsContext.Provider>
-                        <ComputerViewerModal bot={live_bot} />
+                        <Suspense fallback={null}>
+                            <ComputerViewerModal bot={live_bot} />
+                        </Suspense>
                     </SpeakMessageContext.Provider>
                 </BotComputersContext.Provider>
             </CrewWorkspacesContext.Provider>
