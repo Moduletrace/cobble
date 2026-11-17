@@ -8,6 +8,7 @@ import grabChatParams from "../text/grab-chat-params";
 import flattenSentParams from "../usage/flatten-sent-params";
 import buildUsageCall from "../usage/build-usage-call";
 import recordHarnessUsage from "../usage/record-harness-usage";
+import shrinkImageForReading from "./shrink-image-for-reading";
 
 type Params = {
     /**
@@ -34,6 +35,12 @@ type Params = {
  * it sees, as text for a model that can't see.
  */
 export default async function readImage({ url, focus, signal, bot_id, workspace_id }: Params) {
+    /**
+     * Read at a size a reading still reads: a full screenshot is three
+     * times the image tokens of a smaller one and no more use.
+     */
+    const read_url = await shrinkImageForReading({ url });
+
     const candidates = await resolveHarnessCandidates({
         harness: "vision",
         bot_id,
@@ -89,7 +96,7 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
                                     ? `${ReadImagePrompt}\n\nPay special attention to: ${focus}`
                                     : ReadImagePrompt,
                             },
-                            { type: "image", url },
+                            { type: "image", url: read_url },
                         ],
                     },
                 ],

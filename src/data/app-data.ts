@@ -690,6 +690,13 @@ export const AppData = {
      */
     HarnessMediaReadingsCached: 100,
     /**
+     * Longest side, in pixels, of an image before a vision read: a 1920
+     * screenshot is read as a 1024 one, which is a third of the image
+     * tokens and two to three times as quick, and still shows the text a
+     * reading is for. Images already within it are sent untouched.
+     */
+    HarnessVisionImageMaxSide: 1024,
+    /**
      * Upload cap for audio sent to transcription.
      */
     HarnessMaxAudioBytes: 25 * 1024 * 1024,
