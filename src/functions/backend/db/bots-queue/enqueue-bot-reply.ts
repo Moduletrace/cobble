@@ -15,7 +15,8 @@ type Params = {
      */
     message_id: number | string;
     /**
-     * Extra job params (`retry_of` for a retried reply).
+     * Extra job params (`retry_of`, the message whose answer the user
+     * asked for again: that run answers afresh instead of finishing silently).
      */
     params?: Record<string, unknown>;
 };

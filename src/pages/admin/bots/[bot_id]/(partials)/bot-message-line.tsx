@@ -34,6 +34,11 @@ type Props = {
      * button.
      */
     at?: number;
+    /**
+     * This is the bot's last word in the conversation, so it can be run
+     * again.
+     */
+    rerun?: boolean;
 };
 
 /**
@@ -48,7 +53,7 @@ type Props = {
  * Memoized: a message only renders (and parses its markdown) again when
  * it changes, not on every live step of the thread.
  */
-function BotMessageLine({ message, bot_name, at }: Props) {
+function BotMessageLine({ message, bot_name, at, rerun }: Props) {
     const { onReact } = useContext(BotMessageActionsContext);
     const can_speak = Boolean(message.id && message.text?.trim());
 
@@ -95,7 +100,7 @@ function BotMessageLine({ message, bot_name, at }: Props) {
                 {can_speak ? (
                     <SpeakMessageButton message_id={Number(message.id)} />
                 ) : null}
-                <MessageActions message={message} />
+                <MessageActions message={message} rerun={rerun} />
             </Row>
         </Stack>
     );

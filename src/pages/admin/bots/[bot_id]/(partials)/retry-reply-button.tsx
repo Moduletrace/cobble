@@ -7,15 +7,28 @@ import MessageActionButton from "./message-action-button";
 
 type Props = {
     message: BotMessageWithAttachments;
+    /**
+     * What the action says it does, on its tooltip and to a screen reader.
+     */
+    title?: string;
+    /**
+     * What a refusal or a failure says when the route sends no reason.
+     */
+    failed_text?: string;
 };
 
 /**
- * Queues the bot's reply again after one failed, shown on the failure
- * notice while it still needs the user. A refusal (a reply already on its
- * way, the message already answered) shows in the tooltip, the way the
- * stop button shows its own.
+ * Queues the bot's reply again: on the failure notice while it still needs
+ * the user (Retry), and on the bot's last word in the conversation whatever
+ * it was (Run again), which answers the newest user message afresh. A
+ * refusal (a reply already on its way, the message already answered) shows
+ * in the tooltip, the way the stop button shows its own.
  */
-export default function RetryReplyButton({ message }: Props) {
+export default function RetryReplyButton({
+    message,
+    title = `Retry this reply`,
+    failed_text = `Couldn't retry the reply.`,
+}: Props) {
     const { onRetry } = useContext(BotMessageActionsContext);
     const [retrying, setRetrying] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -31,14 +44,14 @@ export default function RetryReplyButton({ message }: Props) {
         if (res.success) {
             onRetry({ message });
         } else {
-            setError(res.msg || `Couldn't retry the reply.`);
+            setError(res.msg || failed_text);
         }
     };
 
     return (
         <MessageActionButton
-            title={error || `Retry this reply`}
-            aria_label="Retry this reply"
+            title={error || title}
+            aria_label={title}
             onClick={() => void retry()}
             disabled={retrying}
             loading={retrying}

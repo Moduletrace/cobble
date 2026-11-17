@@ -10,13 +10,17 @@ import BotMessageLine from "./bot-message-line";
 type Props = {
     bot: BotWithLastMessage;
     group: MessageGroup;
+    /**
+     * The bot's own last word in the conversation, which can be run again.
+     */
+    last_bot_id?: number | null;
 };
 
 /**
  * Plain text, no bubble. A 28px stone sits on the group's first line only;
  * the group's time sits beside the last message's play button.
  */
-export default function BotMessageGroup({ bot, group }: Props) {
+export default function BotMessageGroup({ bot, group, last_bot_id }: Props) {
     return (
         <Row className="w-full gap-3! flex-nowrap items-start">
             <BotAvatar
@@ -33,6 +37,7 @@ export default function BotMessageGroup({ bot, group }: Props) {
                         message={message}
                         bot_name={bot.name || "the bot"}
                         at={index == group.messages.length - 1 ? group.at : undefined}
+                        rerun={Boolean(last_bot_id) && Number(message.id) == last_bot_id}
                     />
                 ))}
             </Stack>

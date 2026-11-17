@@ -93,6 +93,19 @@ Your answer and that card go out together: ask_user and suggest_next_steps end t
  * that they persist, and how to search them. `bot_id` is the bot itself,
  * so the folder-ref example it reads is its own folder.
  */
+/**
+ * Added to a reply run the user asked to run again (Run again under the
+ * bot's last message, or Retry under a failure notice): the same request
+ * answered afresh, or a stopped attempt picked up.
+ */
+export const RerunReplyNote = `# Answering again
+
+The user asked for this reply again. Work from their latest messages and write it afresh: don't say you already answered, and don't send them back to your last message.
+
+- If your last run was stopped partway, whatever it did in chat is gone: pick the work up where it stopped and finish it, or say plainly what is left and what you need from the user to go on.
+- If the answer did go out, write it again for what they asked, as if it were the first time. The earlier one stays in the thread, so don't repeat it word for word if you have something better to say, and don't assume they missed it.
+- Start the work now, in this reply or with start_task: never answer that you'll look into it.`;
+
 export const botFilesNote = ({ bot_id }: { bot_id: number | string }) => `# Your files
 
 You have a folder of your own, kept with the app (not on a computer), and it stays between runs and conversations.

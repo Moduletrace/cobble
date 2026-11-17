@@ -13,15 +13,20 @@ import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bune
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
+import rerunReplyProblem from "@/src/utils/rerun-reply-problem";
 import retryReplyProblem from "@/src/utils/retry-reply-problem";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 
 /**
- * Queues the bot's reply again after one failed, from its failure notice
- * (`failed_job_id`, a reply job only). The bot, session and message to
- * answer are read from the notice, never the request. The notice's
+ * Runs the bot's last reply again, queues a failed reply after its failure
+ * notice, or answers the user's own last message again when a stopped run
+ * left it with nothing on its way. The bot, session and message to answer
+ * are read from the message clicked, never the request. A failure notice's
  * `needs_you` is cleared (the bot is on it again), which takes the Retry
  * action off it, and the change is pushed to the user's other open tabs.
+ * Eligibility is in `retryReplyProblem` (a failure notice of a reply) and
+ * `rerunReplyProblem` (the bot's last word, or the user's own last message,
+ * in an active conversation).
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, body }) => {
     try {
@@ -84,14 +89,58 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
 
         const answered_id = await grabAnsweredMessageId({ session_id: Number(message.session_id) });
 
-        const problem = retryReplyProblem({
-            message,
-            job_kind: job?.kind,
-            session_status: session?.status,
-            open_reply_id: open?.id,
-            latest_user_id: latest_user?.id,
-            answered_id,
-        });
+        /**
+         * The bot's own last word, which is what the action runs again. A
+         * crew message and an install request's answer sit in the
+         * conversation too, but they are not the bot's reply.
+         */
+        const last_bot = (
+            await BunSQLite.sql<{ id: number }>({
+                sql: `SELECT id FROM bot_messages
+                    WHERE session_id = ? AND author = 'bot'
+                        AND from_ask_id IS NULL AND from_install_request_id IS NULL
+                    ORDER BY id DESC LIMIT 1`,
+                values: [Number(message.session_id)],
+            })
+        ).payload?.[0];
+
+        /**
+         * The session's newest message, whatever it is: a user message is
+         * only asked again while nothing followed it.
+         */
+        const last_message = (
+            await BunSQLite.sql<{ id: number }>({
+                sql: `SELECT id FROM bot_messages WHERE session_id = ? ORDER BY id DESC LIMIT 1`,
+                values: [Number(message.session_id)],
+            })
+        ).payload?.[0];
+
+        /**
+         * A failed reply is retried as before (its notice's `needs_you` is
+         * cleared); anything else the bot said last (an answer, a stopped
+         * run's notice, a task's failure) is run again the same way: a
+         * reply answering the newest user message afresh. The user's own
+         * message is answered again too when a stopped or pruned run left it
+         * last with nothing on its way.
+         */
+        const problem =
+            job?.kind == "reply"
+                ? retryReplyProblem({
+                      message,
+                      job_kind: job.kind,
+                      session_status: session?.status,
+                      open_reply_id: open?.id,
+                      latest_user_id: latest_user?.id,
+                      answered_id,
+                  })
+                : rerunReplyProblem({
+                      message,
+                      last_bot_id: last_bot?.id,
+                      last_message_id: last_message?.id,
+                      session_status: session?.status,
+                      open_reply_id: open?.id,
+                      latest_user_id: latest_user?.id,
+                  });
 
         if (problem) {
             throw new AppError(problem);
@@ -105,20 +154,28 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
             params: { retry_of: Number(message.id) },
         });
 
-        await BunSQLite.sql({
-            sql: `UPDATE bot_messages SET needs_you = 0, updated_at = ? WHERE id = ?`,
-            values: [Date.now(), Number(message.id)],
-        });
-
         wakeBotsQueue();
 
-        await pushToSessionUser({
-            session_id: message.session_id,
-            data: {
-                event: "server:bot-message",
-                data: { ...message, needs_you: 0 },
-            },
-        });
+        /**
+         * A failure notice the bot is on again no longer needs the user, and
+         * the change goes out so the Retry action leaves it in every open
+         * tab. A reply the user simply asked to run again has nothing to
+         * clear.
+         */
+        if (message.needs_you) {
+            await BunSQLite.sql({
+                sql: `UPDATE bot_messages SET needs_you = 0, updated_at = ? WHERE id = ?`,
+                values: [Date.now(), Number(message.id)],
+            });
+
+            await pushToSessionUser({
+                session_id: message.session_id,
+                data: {
+                    event: "server:bot-message",
+                    data: { ...message, needs_you: 0 },
+                },
+            });
+        }
 
         return {
             success: true,

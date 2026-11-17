@@ -1,6 +1,6 @@
 import isCrewMessage from "@/src/utils/is-crew-message";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import isAwaitingReply from "../(utils)/is-awaiting-reply";
+import awaitsReply from "../(utils)/awaits-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
 import type {
@@ -104,6 +104,15 @@ export default function Conversation() {
      * thread would wait on an answer that is never coming.
      */
     const [open_reply_jobs, setOpenReplyJobs] = useState<number | null>(null);
+    /**
+     * The bot's message the user asked to run again, while its answer is on
+     * its way. The new reply lands as another message, so this stands the
+     * thinking row up until one does, whether or not the thread looks
+     * unanswered. Only a newer bot message clears it: a run queued a moment
+     * ago has no job yet, so a read of the open jobs would put the message
+     * back while the bot is still thinking.
+     */
+    const [rerun_after_id, setRerunAfterId] = useState<number | null>(null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
     /**
      * The debug logs under the thinking row, which its bug button toggles.
@@ -220,6 +229,7 @@ export default function Conversation() {
             progress.reset({ task: history.task });
             setReplyStep(history.step || null);
             setOpenReplyJobs(null);
+            setRerunAfterId(null);
         },
     });
 
@@ -234,12 +244,16 @@ export default function Conversation() {
      * A session moved on from gets no reply here: the bot answered in the
      * new one. The face is the live one, as the thinking row reads it: the
      * page's is from when it rendered, so after an interim message the
-     * catch-up would stop while the row stays up.
+     * catch-up would stop while the row stays up. See `awaitsReply` for the
+     * open replies: a message a stopped run left unanswered is not waited on.
      */
-    const awaiting_reply =
-        !moved_to_session_id &&
-        isAwaitingReply({ last_message: last_thread_message, face: live_bot?.face }) &&
-        (open_reply_jobs == null || open_reply_jobs > 0);
+    const awaiting_reply = awaitsReply({
+        moved_on: Boolean(moved_to_session_id),
+        rerun_message_id: rerun_after_id,
+        last_message: last_thread_message,
+        face: live_bot?.face,
+        open_reply_jobs,
+    });
 
     const reply_progress = useReplyProgress({
         bot_id: bot?.id || 0,
@@ -348,6 +362,15 @@ export default function Conversation() {
              * it) fills in the tokens, and a changed `needs_you` (a retried
              * failure notice) is taken from the push.
              */
+            /**
+             * The answer the user asked to run again is the bot's next word:
+             * anything else landing (an interim note, a crew request's
+             * outcome) ends the wait too.
+             */
+            setRerunAfterId((current) =>
+                current && Number(message.id) != current ? null : current,
+            );
+
             setMessages((prev) =>
                 prev.some((m) => m.id == message.id)
                     ? prev.map((m) =>
@@ -416,8 +439,9 @@ export default function Conversation() {
             onRetry: ({ message }: { message: BotMessageWithAttachments }) => {
                 /**
                  * The bot is on it again: the notice no longer needs the
-                 * user, and the read of open replies from before the retry
-                 * is stale.
+                 * user, the read of open replies from before the retry is
+                 * stale, and the thinking row stands until the answer lands
+                 * (a reply run again doesn't look unanswered).
                  */
                 setMessages((prev) =>
                     prev.map((m) =>
@@ -425,6 +449,7 @@ export default function Conversation() {
                     ),
                 );
                 setOpenReplyJobs(null);
+                setRerunAfterId(Number(message.id));
             },
             onUseSuggestion: ({ text }: { text: string }) =>
                 composer.current?.insertText({ text }),
@@ -492,8 +517,9 @@ export default function Conversation() {
                                     progress={progress.text}
                                     reply_progress={reply_progress}
                                     receiving={pending_messages.length > 0}
+                                    awaiting_reply={awaiting_reply}
                                     has_task={Boolean(progress.task_id)}
-                                    moved_on={Boolean(moved_to_session_id)}
+                                    rerun_message_id={rerun_after_id}
                                     session_id={session_id}
                                     debug_open={debug_open}
                                     on_toggle_debug={() =>

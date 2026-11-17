@@ -1,21 +1,23 @@
 import { useMemo, type ReactNode, type RefObject } from "react";
 import { twMerge } from "tailwind-merge";
-import isAwaitingReply from "../(utils)/is-awaiting-reply";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type {
     BotMessageWithAttachments,
     BotWithLastMessage,
     PagePropsType,
 } from "@/src/types";
+import isCrewMessage from "@/src/utils/is-crew-message";
 import useMessageSelection from "../(hooks)/use-message-selection";
 import usePullToRefresh from "../(hooks)/use-pull-to-refresh";
 import useSessionGallery from "../(hooks)/use-session-gallery";
 import useThreadScroll from "../(hooks)/use-thread-scroll";
 import { SessionGalleryContext } from "../(data)/session-gallery-context";
 import groupMessages from "../(utils)/group-messages";
+import threadMessages from "../(utils)/thread-messages";
 import BotThinkingRow from "./bot-thinking-row";
 import MessageGroupBlock from "./message-group-block";
 import OlderMessagesLoader from "./older-messages-loader";
+import UnansweredReplyRow from "./unanswered-reply-row";
 import PullToRefreshIndicator from "./pull-to-refresh-indicator";
 import QuoteSelectionButton from "./quote-selection-button";
 import ScrollToBottomButton from "./scroll-to-bottom-button";
@@ -37,6 +39,13 @@ type Props = {
      */
     receiving?: boolean;
     /**
+     * A reply is due here, as the conversation reads it: that read also
+     * knows how many replies the session still has to come, so a message a
+     * run left unanswered (a stopped reply, a job pruned) doesn't wait on a
+     * thinking row that will never move.
+     */
+    awaiting_reply?: boolean;
+    /**
      * This session has an active task.
      */
     has_task?: boolean;
@@ -46,9 +55,12 @@ type Props = {
      */
     answer_ask?: PagePropsType["answer_ask"];
     /**
-     * The conversation went on in another session: no reply is due here.
+     * The bot message the user asked to run again, while its answer is on
+     * its way: the message itself steps out of the thread (a stopped run's
+     * notice would otherwise say the bot stopped right above the row), and
+     * the row stands whether or not the thread looks unanswered.
      */
-    moved_on?: boolean;
+    rerun_message_id?: number | null;
     /**
      * The session shown: the debug logs read the run it's working on.
      */
@@ -113,20 +125,50 @@ export default function MessageThread({
     progress,
     reply_progress,
     receiving,
+    awaiting_reply,
     session_id,
     debug_open,
     on_toggle_debug,
     has_task,
     answer_ask,
-    moved_on,
+    rerun_message_id,
     notice,
     onQuote,
     onReload,
     older,
 }: Props) {
-    const groups = useMemo(() => groupMessages({ messages }), [messages]);
-    const session_gallery = useSessionGallery({ messages });
-    const scroll = useThreadScroll({ messages });
+    /**
+     * What the thread shows: the message being run again is left out while
+     * that run works, and comes back above the answer it writes.
+     */
+    const shown = useMemo(
+        () => threadMessages({ messages, rerun_message_id }),
+        [messages, rerun_message_id],
+    );
+    const groups = useMemo(() => groupMessages({ messages: shown }), [shown]);
+    /**
+     * The bot's own last word, when it is the thread's last too, so it can
+     * be run again. A crew message and an install request's answer are not
+     * the bot's reply.
+     */
+    const last_bot_id = useMemo(() => {
+        const newest = shown[shown.length - 1];
+
+        if (!newest || newest.author != "bot" || isCrewMessage({ message: newest }))
+            return null;
+
+        return Number(newest.id) || null;
+    }, [shown]);
+    const session_gallery = useSessionGallery({ messages: shown });
+    /**
+     * The user's own message the thread ends on, with nothing on its way: a
+     * stopped run, or one that ended without a word, leaves it waiting
+     * forever. The row under it says so and offers to answer it again.
+     */
+    const last_shown = shown[shown.length - 1];
+    const unanswered =
+        !awaiting_reply && !receiving && last_shown?.author == "user" ? last_shown : null;
+    const scroll = useThreadScroll({ messages: shown });
     const pull_state = usePullToRefresh({
         column_ref: scroll.column_ref,
         content_ref: scroll.content_ref,
@@ -149,7 +191,7 @@ export default function MessageThread({
                     aria-label={`Conversation with ${bot.name}`}
                     className={twMerge(
                         "w-full max-w-container mx-auto gap-4! items-stretch px-3 md:px-6 pt-6 pb-6",
-                        notice && !messages.length && "grow justify-center",
+                        notice && !shown.length && "grow justify-center",
                     )}
                 >
                     {older?.has_more ? (
@@ -173,6 +215,7 @@ export default function MessageThread({
                                 key={group.key}
                                 bot={bot}
                                 group={group}
+                                last_bot_id={last_bot_id}
                             />
                         ))}
                     </SessionGalleryContext.Provider>
@@ -183,19 +226,16 @@ export default function MessageThread({
                         answer_ask={answer_ask}
                         answering_ask={Boolean(answer_ask) && bot.face == "working"}
                         reply_progress={reply_progress}
-                        awaiting_reply={
-                            !moved_on &&
-                            isAwaitingReply({
-                                last_message: messages[messages.length - 1],
-                                face: bot.face,
-                            })
-                        }
+                        awaiting_reply={Boolean(awaiting_reply)}
                         receiving={receiving}
                         has_task={has_task}
                         session_id={session_id}
                         debug_open={debug_open}
                         on_toggle_debug={on_toggle_debug}
                     />
+                    {unanswered ? (
+                        <UnansweredReplyRow bot={bot} message={unanswered} />
+                    ) : null}
                 </Stack>
             </Stack>
             {scroll.jump_visible ? (
