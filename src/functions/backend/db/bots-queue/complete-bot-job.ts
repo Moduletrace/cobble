@@ -209,7 +209,7 @@ export default async function completeBotJob({
             ? null
             : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
 
-        await onAskJobEnded({ job, text: silent ? "" : result });
+        await onAskJobEnded({ job, text: silent ? "" : result, tool_uses: tool_log });
 
         await settleInstallRequest({ job, text: result });
     } catch (error) {

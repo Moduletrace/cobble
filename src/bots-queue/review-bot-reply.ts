@@ -1,5 +1,4 @@
-import BunSQLite from "@moduletrace/bun-sqlite";
-import openWorkSql from "@/src/functions/backend/db/bots-queue/open-work-sql";
+import hasOpenWork from "@/src/functions/backend/db/bots-queue/has-open-work";
 import grabBotFile from "@/src/functions/backend/db/bot-files/grab-bot-file";
 import grabBotFileScope from "@/src/functions/backend/db/bot-files/grab-bot-file-scope";
 import userReachesFileScope from "@/src/functions/backend/db/bot-files/user-reaches-file-scope";
@@ -90,22 +89,3 @@ async function fileExistsForUser({
     return Boolean((await grabBotFile({ scopes: [elsewhere], file_id }))?.id);
 }
 
-/**
- * A run of the bot's in this session, a job it handed over from here, or
- * a room it asked from here, still open: its result is still to come. A
- * plan step is an ordinary reply job carrying `params.plan_id`, so it
- * counts too - an honest "step 2 is running" line is not a false claim
- * while that step works (L5).
- */
-async function hasOpenWork({ bot_id, session_id }: { bot_id: number | string; session_id: number | string }) {
-    const jobs = await BunSQLite.sql<{ id: number }>(openWorkSql({ bot_id, session_id }));
-
-    if (jobs.payload?.[0]) return true;
-
-    const asks = await BunSQLite.sql<{ id: number }>({
-        sql: `SELECT id FROM bot_asks WHERE status IN ('pending', 'working') AND requester_bot_id = ? AND origin_session_id = ? LIMIT 1`,
-        values: [Number(bot_id), Number(session_id)],
-    });
-
-    return Boolean(asks.payload?.[0]);
-}

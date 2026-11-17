@@ -9,9 +9,11 @@ import referenceBlob from "./reference-blob";
 /**
  * Image generation at the provider's `image_path` (`/images` on
  * OpenRouter, `/images/generations` elsewhere). With reference images,
- * OpenRouter takes them on the same call (`input_references`); the others
- * get them as a multipart upload at `image_edit_path` (`/images/edits`).
- * Images come back as base64, or as URLs that are downloaded here.
+ * OpenRouter takes them on the same call (`input_references`); Alibaba's
+ * DashScope/Model Studio hosts take them as the `image` extension field on
+ * that same generations call; the others get them as a multipart upload at
+ * `image_edit_path` (`/images/edits`). Images come back as base64, or as
+ * URLs that are downloaded here (DashScope only ever returns URLs).
  */
 const generateImage: HarnessAdapter["generateImage"] = async ({
     candidate,
@@ -24,7 +26,8 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
     const { provider, model } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
     const is_openrouter = provider.kind == "openrouter";
-    const edits = Boolean(references?.length) && !is_openrouter;
+    const dashscope = isDashScopeHost({ base_url: provider.base_url });
+    const edits = Boolean(references?.length) && !is_openrouter && !dashscope;
 
     const res = edits
         ? await providerRequest({
@@ -57,9 +60,15 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
                             })),
                         }
                       : {}),
+                  // DashScope/Model Studio takes references as the `image`
+                  // extension field (`data:` URLs or public URLs) on the
+                  // generations call, never as a multipart /images/edits
+                  // upload.
+                  ...(dashscope && references?.length ? { image: references } : {}),
                   // Ask for base64 on every provider, OpenRouter included: a
                   // URL handed back is one more fetch to guard (H4), and the
-                  // bytes inline avoid it altogether.
+                  // bytes inline avoid it altogether. DashScope ignores this
+                  // and returns URLs, which are downloaded below.
                   response_format: "b64_json",
               },
               signal,
@@ -144,4 +153,28 @@ async function editForm({ model, prompt, n, size, references, signal }: EditForm
     }
 
     return form;
+}
+
+/**
+ * Alibaba's DashScope and Model Studio (`maas`) hosts serve the OpenAI
+ * images protocol with their own quirks: references go in the `image`
+ * extension field on `/images/generations` (no multipart `/images/edits`),
+ * and the response is always URLs. The shared `dashscope` hosts and the
+ * workspace `maas` hosts both count; a custom provider pointed elsewhere
+ * keeps the standard behaviour.
+ */
+function isDashScopeHost({ base_url }: { base_url?: string | null }) {
+    if (!base_url) return false;
+
+    try {
+        const host = new URL(base_url).hostname;
+
+        return (
+            host == "dashscope.aliyuncs.com" ||
+            host == "dashscope-intl.aliyuncs.com" ||
+            host.endsWith(".maas.aliyuncs.com")
+        );
+    } catch {
+        return false;
+    }
 }

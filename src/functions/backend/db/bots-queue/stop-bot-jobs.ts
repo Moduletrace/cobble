@@ -12,6 +12,7 @@ import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import stopAsk from "../asks/stop-ask";
 import stopAsks from "../asks/stop-asks";
+import grabOpenAskBySession from "../asks/grab-open-ask-by-session";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
@@ -145,6 +146,18 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
         const asked = Number(parseJobJson({ text: job.params })?.ask_id) || 0;
 
         if (asked) ask_ids.add(asked);
+
+        /**
+         * A follow-up reply in the answer session carries no `ask_id` of its
+         * own: the open request is found by the session it answers in.
+         */
+        if (!asked && !from_session && job.session_id) {
+            const open = await grabOpenAskBySession({ session_id: Number(job.session_id) }).catch(
+                () => null,
+            );
+
+            if (open?.id) ask_ids.add(Number(open.id));
+        }
     }
 
     for (const ask_id of ask_ids) {

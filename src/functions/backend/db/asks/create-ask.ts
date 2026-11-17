@@ -6,6 +6,7 @@ import grabUserBotSession from "../bot-sessions/grab-user-bot-session";
 import askableBots from "./askable-bots";
 import askAncestry from "./ask-ancestry";
 import countOpenAsks from "./count-open-asks";
+import grabOpenAskBySession from "./grab-open-ask-by-session";
 import enqueueAskReview from "./enqueue-ask-review";
 import { truncateText } from "@/src/utils/truncate-text";
 
@@ -65,7 +66,16 @@ export default async function createAsk({
         );
     }
 
-    const parent_ask_id = origin.ask_id || null;
+    /**
+     * The request this one comes from: a hidden session carries `ask_id`,
+     * while an answer session is a normal conversation, so the open request
+     * it answers is found by `bot_asks.session_id`. Either way a follow-up
+     * ask is one hop deeper, and can't go back up the chain.
+     */
+    const parent_ask_id =
+        origin.ask_id ||
+        (await grabOpenAskBySession({ session_id: origin_session_id, user_id }).catch(() => null))?.id ||
+        null;
 
     if (parent_ask_id) {
         const chain = await askAncestry({ ask_id: parent_ask_id });

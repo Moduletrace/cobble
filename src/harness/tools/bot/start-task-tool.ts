@@ -4,6 +4,7 @@ import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import countComputerTaskJobs from "@/src/functions/backend/db/bots-queue/count-computer-task-jobs";
 import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
+import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
 import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import isComputerDown from "@/src/utils/computer-down";
@@ -121,6 +122,13 @@ export default function startTaskTool({
                 );
             }
 
+            /**
+             * When this run is part of a crew request being answered, it
+             * carries the ask_id so its result goes back to the bot that
+             * asked, not just to this conversation.
+             */
+            const ask = await grabOpenAskBySession({ session_id, user_id });
+
             const job_id = await enqueueBotJob({
                 user_id,
                 bot_id,
@@ -132,16 +140,21 @@ export default function startTaskTool({
                 params: {
                     ...(args.max_steps ? { max_steps: args.max_steps } : {}),
                     ...(run_kind ? { run_kind } : {}),
+                    ...(ask?.id ? { ask_id: Number(ask.id) } : {}),
                 },
             });
 
             const ahead = computer_id ? await countComputerTaskJobs({ computer_id, except_job_id: job_id }) : 0;
 
+            const closing = ask?.id
+                ? `This run is part of the request another bot passed on: its result goes back to that bot when it's done. Acknowledge in one sentence and carry on; don't promise a separate report.`
+                : `Tell the user in one sentence, in the first person, what you're doing (e.g. "I'm checking your inbox now. I'll report back when I'm done."); the result will be posted here when it's done.`;
+
             return `Run #${job_id} queued${args.max_steps ? ` with at most ${args.max_steps} steps` : ""}; you'll work on it yourself in the background. It's not on the task list (list_tasks), so never tell the user to look for it there. ${
                 ahead
                     ? `The computer has ${ahead} other ${ahead == 1 ? "run" : "runs"} queued or working (they go one at a time), so it waits for ${ahead == 1 ? "it" : "them"} first: tell the user it's queued behind other work, not that it's running. `
                     : ""
-            }Tell the user in one sentence, in the first person, what you're doing (e.g. "I'm checking your inbox now. I'll report back when I'm done."); the result will be posted here when it's done.`;
+            }${closing}`;
         },
     };
 }

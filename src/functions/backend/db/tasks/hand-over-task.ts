@@ -6,6 +6,7 @@ import grabUserConversation from "../bot-sessions/grab-user-conversation";
 import ensureBotSession from "../bot-sessions/ensure-bot-session";
 import enqueueBotJob from "../bots-queue/enqueue-bot-job";
 import grabOpenBotTask from "../bots-queue/grab-open-bot-task";
+import grabOpenAskBySession from "../asks/grab-open-ask-by-session";
 import grabBotById from "../bots/grab-bot-by-id";
 import insertBotMessage from "../bots/insert-bot-message";
 import grabBotComputers from "../computers/grab-bot-computers";
@@ -146,6 +147,15 @@ export default async function handOverTask({
         .filter(Boolean)
         .join("\n\n");
 
+    /**
+     * When the hand-over comes from a crew request being answered, the run
+     * carries the ask_id too, so its result goes back to the bot that asked.
+     */
+    const ask =
+        start && requested_by_session_id
+            ? await grabOpenAskBySession({ session_id: requested_by_session_id, user_id })
+            : null;
+
     const job_id = start
         ? await enqueueBotJob({
               user_id,
@@ -153,7 +163,7 @@ export default async function handOverTask({
               session_id: Number(session.id),
               title,
               instructions: brief,
-              params: { tracker_task_id: Number(task.id) },
+              params: { tracker_task_id: Number(task.id), ...(ask?.id ? { ask_id: Number(ask.id) } : {}) },
               computer_id: computers[0]?.id || undefined,
               requested_by_bot_id: requested_by_bot_id || undefined,
               requested_by_session_id: requested_by_session_id || undefined,

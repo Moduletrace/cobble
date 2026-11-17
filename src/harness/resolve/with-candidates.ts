@@ -109,10 +109,40 @@ export default async function withCandidates<T>({
             ),
         );
 
+        /**
+         * The call never reached a model: every candidate is benched from an
+         * earlier failure. Record the call against each resting model so the
+         * message its job posts shows why nothing was tried (a generate_image
+         * that only ever hit benched models once left no failed-call row at
+         * all). The outage itself was logged when the model first failed, so
+         * it isn't logged again here: a benched model is skipped on every
+         * call until it rests out, and re-logging would spam the activity log.
+         */
+        if (log_failures) {
+            for (const candidate of ordered) {
+                const rests_until = Math.max(
+                    cooldowns.get({ key: candidate.key, now: now() }) || 0,
+                    cooldowns.get({ key: providerKey(candidate), now: now() }) || 0,
+                );
+
+                await recordHarnessFailure({
+                    harness: harness_of?.get(candidate.key) || harness,
+                    candidate,
+                    error: new HarnessError({
+                        message: "Resting after an earlier failure; this call didn't try it.",
+                        retryable: true,
+                        resting: true,
+                        candidate_key: candidate.key,
+                    }),
+                    rests_until: Number.isFinite(rests_until) ? rests_until : ForeverRestUntil,
+                });
+            }
+        }
+
         throw new HarnessError({
             message: Number.isFinite(next)
                 ? `Every ${title.toLowerCase()} model is resting after errors or rate limits. Trying again shortly.`
-                : `Every ${title.toLowerCase()} model is resting after errors or rate limits. They stay benched until the run limits change or the app restarts.`,
+                : `Every ${title.toLowerCase()} model is resting after errors or rate limits. They stay benched until the run limits change or the app restarts. A super admin can pick a working model or add a fallback in Settings, under Models.`,
             retryable: true,
             retry_at: Number.isFinite(next) ? next : now() + AppData.HarnessMaxCooldownMs,
             resting: true,

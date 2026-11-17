@@ -31,10 +31,10 @@ export type ConversationAsk = {
 };
 
 /**
- * The crew request the bot is answering for this user, if one is open. Its
- * answer runs in a hidden session, so without this the thread would show
- * nothing at all while the bot's stone says it's working: the row under the
- * last message reads this to say who it's answering.
+ * The crew request the bot is answering for this user, if one is open. The
+ * answer runs in the bot's own conversation, and stays `working` while any
+ * run it started is still open, so the row under the last message reads this
+ * to say who it's answering for as long as the work is under way.
  */
 export default async function grabConversationAsk({
     user_id,

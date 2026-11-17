@@ -1,14 +1,8 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_ASKS } from "@/db/types/db";
 import type { AskStatus } from "@/src/dict/ask-dict";
-import AppError from "@/src/utils/app-error";
-import pushBotNotice from "@/src/bots-queue/push-bot-notice";
-import enqueueBotReply from "../bots-queue/enqueue-bot-reply";
-import ensureBotSession from "../bot-sessions/ensure-bot-session";
-import grabUserBot from "../bots/grab-user-bot";
-import grabUserBotSession from "../bot-sessions/grab-user-bot-session";
-import insertUserMessage from "../bots/insert-user-message";
 import askOutcomeMessage from "./ask-outcome-message";
+import tellAskRequester from "./tell-ask-requester";
 import stripQuestionRefs from "@/src/utils/strip-question-refs";
 
 type Params = {
@@ -50,70 +44,18 @@ export default async function finishAsk({
 
     if (!finished?.id) return null;
 
-    await tellRequester({ ask: finished, status, outcome, wake });
+    /**
+     * A question the answer names stays in the conversation it was asked
+     * in: its card here would answer into this one.
+     */
+    const text = askOutcomeMessage({
+        ask: finished,
+        status,
+        outcome: outcome ? stripQuestionRefs({ text: outcome }).text : outcome,
+    });
+
+    await tellAskRequester({ ask: finished, text, wake });
 
     return finished;
 }
 
-/**
- * Posts the outcome into the asking bot's conversation. The origin session
- * when it is still the active one (the user is still there); otherwise the
- * bot's current conversation, so the outcome isn't lost in a closed thread.
- */
-async function tellRequester({
-    ask,
-    status,
-    outcome,
-    wake,
-}: {
-    ask: BUN_SQLITE_COBBLE_BOT_ASKS;
-    status: AskStatus;
-    outcome?: string | null;
-    wake: boolean;
-}) {
-    const requester = await grabUserBot({ bot_id: Number(ask.requester_bot_id)!, user_id: Number(ask.user_id)! });
-
-    if (!requester?.id) return;
-
-    const origin = await grabUserBotSession({ session_id: ask.origin_session_id!, user_id: Number(ask.user_id)! });
-
-    const session =
-        origin?.status == "active"
-            ? origin
-            : await ensureBotSession({
-                  user_id: Number(ask.user_id)!,
-                  bot_id: requester.id,
-                  workspace_id: Number(ask.workspace_id) || null,
-              });
-
-    if (!session?.id) {
-        throw new AppError(`Couldn't find the conversation this request came from.`);
-    }
-
-    const message = await insertUserMessage({
-        bot_id: requester.id,
-        session_id: session.id,
-        workspace_id: Number(ask.workspace_id) || null,
-        /**
-         * A question the answer names stays in the conversation it was
-         * asked in: its card here would answer into this one.
-         */
-        text: askOutcomeMessage({
-            ask,
-            status,
-            outcome: outcome ? stripQuestionRefs({ text: outcome }).text : outcome,
-        }),
-        from_ask_id: Number(ask.id),
-    });
-
-    await pushBotNotice({ bot_id: requester.id, message });
-
-    if (wake) {
-        await enqueueBotReply({
-            user_id: Number(ask.user_id)!,
-            bot_id: requester.id,
-            session_id: session.id,
-            message_id: message.id!,
-        });
-    }
-}

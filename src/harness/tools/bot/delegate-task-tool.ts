@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
+import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
 import ensureBotInWorkspace from "@/src/functions/backend/db/workspaces/ensure-bot-in-workspace";
 import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
 import handOverTask from "@/src/functions/backend/db/tasks/hand-over-task";
@@ -245,6 +246,13 @@ export default function delegateTaskTool({
                 );
             }
 
+            /**
+             * When the hand-over comes from a crew request being answered,
+             * the worker's run carries the ask_id so its result also goes
+             * back to the bot that asked, not just to this conversation.
+             */
+            const ask = await grabOpenAskBySession({ session_id, user_id });
+
             const job_id = await enqueueBotJob({
                 user_id,
                 bot_id: worker.id,
@@ -254,6 +262,7 @@ export default function delegateTaskTool({
                 computer_id: computers[0]?.id || undefined,
                 requested_by_bot_id: requester_id,
                 requested_by_session_id: session_id,
+                params: ask?.id ? { ask_id: Number(ask.id) } : undefined,
             });
 
             await pushBotNotice({

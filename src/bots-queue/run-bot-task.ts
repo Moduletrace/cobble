@@ -20,6 +20,7 @@ import {
     TasksNote,
     TaskRunNote,
     AskRulesNote,
+    AskTaskRunNote,
     crewRequestsNote,
     WorkspaceLearningNote,
     TaskIncomingNote,
@@ -62,6 +63,7 @@ import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotPlanTools from "@/src/harness/tools/bot/plans/grab-bot-plan-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
+import updateRequesterTool from "@/src/harness/tools/bot/update-requester-tool";
 import answerInstallRequestTool from "@/src/harness/tools/bot/answer-install-request-tool";
 import requestInstallTool from "@/src/harness/tools/computer/request-install-tool";
 import worktreeSummary from "@/src/harness/tools/computer/worktree-summary";
@@ -249,6 +251,20 @@ export default async function runBotTask({
                 onTask: ({ task_id }) => task_ids.push(task_id),
             })),
             ...admin_tools,
+            /**
+             * Part of a crew request (`start_task`/`delegate_task` in an
+             * answer session): the bot can send the asker an interim word
+             * while the work is open; the result itself goes back on its own.
+             */
+            ...(Number(params.ask_id)
+                ? [
+                      updateRequesterTool({
+                          user_id,
+                          session_id: Number(session_id),
+                          ask_id: Number(params.ask_id),
+                      }),
+                  ]
+                : []),
             ...(powers.is_coordinator
                 ? [
                       createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
@@ -484,6 +500,7 @@ export default async function runBotTask({
             scheduled ? ScheduledPlanNote : "",
             hooked ? HookRunNote : "",
             install_request_id ? InstallRequestNote : "",
+            Number(params.ask_id) ? AskTaskRunNote : "",
             botFilesNote({ bot_id: bot.id }),
             ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
             TasksNote,

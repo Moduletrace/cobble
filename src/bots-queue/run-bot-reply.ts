@@ -46,6 +46,7 @@ import openBotBrowsers from "@/src/harness/tools/browsers/open-bot-browsers";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
+import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
 import deleteBotQuestion from "@/src/functions/backend/db/bot-questions/delete-bot-question";
 import parseJobJson from "./parse-job-json";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
@@ -71,6 +72,7 @@ import reviewBotReply from "./review-bot-reply";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
+import updateRequesterTool from "@/src/harness/tools/bot/update-requester-tool";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
@@ -317,17 +319,26 @@ export default async function runBotReply({
      */
     const browser_run_kind = attended ? "attended" : "unattended";
     /**
-     * Answering another bot's request, which came through the coordinator's
-     * gate (`enqueueAskAnswer`).
-     */
-    /**
      * A crew request's answer: the brief sits in the user's own conversation
      * with the bot, so the run reads the request note and answers it, and the
-     * asker is woken with the answer (`finishAsk`).
+     * asker is woken with the answer (`finishAsk`). The first answer job
+     * carries `params.ask_id`; a follow-up reply in the same thread finds the
+     * open request by its answer session, so it stays part of the request too.
      */
+    const job_ask_id = Number(parseJobJson({ text: job.params })?.ask_id) || 0;
+    const open_ask =
+        session_id && !job_ask_id
+            ? await grabOpenAskBySession({ session_id, user_id }).catch(() => null)
+            : null;
     const asked =
-        Boolean(Number(parseJobJson({ text: job.params })?.ask_id) || 0) ||
+        Boolean(job_ask_id) ||
+        Boolean(open_ask?.id) ||
         (session_id ? Boolean(await grabSessionAskId({ session_id }).catch(() => null)) : false);
+    /**
+     * The request this run answers, for `update_requester` (an interim word
+     * back to the bot that asked while the work is still open).
+     */
+    const ask_id_for_updates = job_ask_id || (open_ask?.id ? Number(open_ask.id) : 0);
     let led: WorkspaceAdminTools | null = null;
 
     const tools = await grabBotChatTools({
@@ -490,6 +501,15 @@ export default async function runBotReply({
             tools: [
                 ...tools,
                 sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
+                ...(ask_id_for_updates
+                    ? [
+                          updateRequesterTool({
+                              user_id,
+                              session_id: Number(session_id),
+                              ask_id: ask_id_for_updates,
+                          }),
+                      ]
+                    : []),
                 continueInNewSessionTool({
                     bot_id: bot.id!,
                     user_id,
