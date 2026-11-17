@@ -88,6 +88,16 @@ export const ReactToBotMessageRequestSchema = z.object({
 
 export type ReactToBotMessageRequest = z.infer<typeof ReactToBotMessageRequestSchema>;
 
+/**
+ * Retrying a failed reply: the failure notice's message id. Everything
+ * else (the bot, the session, the message to answer) is read from it.
+ */
+export const RetryReplyRequestSchema = z.object({
+    message_id: z.coerce.number().int().positive("Pick a message"),
+});
+
+export type RetryReplyRequest = z.infer<typeof RetryReplyRequestSchema>;
+
 export const BotIdRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot"),
 });

@@ -149,9 +149,8 @@ export function harnessParameterDefault({
 
 /**
  * A setting's value for a harness: what it was saved as, else the app's
- * default. `saved` says which, since a default is only used on a model
- * that says it takes the field (a saved one is sent to any model whose
- * catalog doesn't rule it out).
+ * default. `saved` says which, for the form's summary line. On the wire
+ * both are treated alike: only a field the model advertises is sent.
  */
 export function harnessParameterValue({
     harness,
@@ -172,7 +171,9 @@ export function harnessParameterValue({
 }
 
 /**
- * Whether a model's provider says it takes a setting (no guessing).
+ * Whether a model's provider says it takes a setting (no guessing). A
+ * model whose provider lists no parameters (a custom provider's `/models`
+ * returns ids only) takes none: a field it rejects would fail every call.
  */
 export function modelAdvertisesParameter({
     parameter,
@@ -225,20 +226,3 @@ export function withHarnessParameters({
     return { ...rest, ...params };
 }
 
-/**
- * Whether a model advertises a setting. A model whose provider lists no
- * parameters (anything but OpenRouter) is taken to accept them all.
- */
-export function modelTakesParameter({
-    parameter,
-    supported,
-}: {
-    parameter: HarnessParameter;
-    supported?: string[];
-}) {
-    if (!supported?.length) return true;
-
-    return supported.includes(
-        "advertised" in parameter ? parameter.advertised : parameter.key,
-    );
-}

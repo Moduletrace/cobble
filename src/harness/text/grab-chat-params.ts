@@ -2,7 +2,6 @@ import {
     HarnessParameters,
     harnessParameterValue,
     modelAdvertisesParameter,
-    modelTakesParameter,
 } from "@/src/dict/harness-parameter-dict";
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
 import type { HarnessModelInfo } from "../types";
@@ -17,9 +16,10 @@ type Params = {
  * A model's generation settings for one call: what is saved in the
  * harness's setting (the bot's, else its workspace's, else the default), else
  * `HarnessParameterDefaults` so a fresh install is ready to go. Keyed by
- * the field sent on the wire, keeping only what the model says it takes
- * (a default only where the model explicitly advertises it). `source`
- * says whose setting it was, for the call's usage row.
+ * the field sent on the wire, keeping only what the model advertises,
+ * saved or default alike: a model whose provider lists no parameters
+ * (a custom provider) gets none, since a field it rejects would fail the
+ * call. `source` says whose setting it was, for the call's usage row.
  */
 export default async function grabChatParams({
     harness,
@@ -38,7 +38,7 @@ export default async function grabChatParams({
     const paramsFor = (model: HarnessModelInfo) =>
         Object.fromEntries(
             HarnessParameters.flatMap((parameter) => {
-                const { value, saved } = harnessParameterValue({
+                const { value } = harnessParameterValue({
                     harness,
                     params: setting.options,
                     key: parameter.key,
@@ -47,14 +47,6 @@ export default async function grabChatParams({
                 if (typeof value != "number" && typeof value != "string") return [];
                 if (!value && value !== 0) return [];
                 if (
-                    !modelTakesParameter({
-                        parameter,
-                        supported: model.supported_parameters,
-                    })
-                )
-                    return [];
-                if (
-                    !saved &&
                     !modelAdvertisesParameter({
                         parameter,
                         supported: model.supported_parameters,

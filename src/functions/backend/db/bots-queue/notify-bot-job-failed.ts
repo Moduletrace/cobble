@@ -66,6 +66,7 @@ export default async function notifyBotJobFailed({
                 .join(" "),
         needs_you: true,
         task_ids,
+        failed_job_id: job.id,
     });
 
     /**

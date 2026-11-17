@@ -9,6 +9,7 @@ const base_value: HarnessFormValue = {
     fallback: true,
     enabled: true,
     voice: "george",
+    params: { temperature: 0.7 },
     inherit: false,
 };
 
@@ -28,6 +29,8 @@ describe("nextHarnessProviderValue", () => {
         expect(result.provider_id).toBe(2);
         // Voice is cleared
         expect(result.voice).toBeUndefined();
+        // Generation settings are cleared: the new provider's models may not take them
+        expect(result.params).toBeUndefined();
     });
 
     test("resets fallback models when changing to any provider while keeping model if valid", () => {
@@ -84,5 +87,17 @@ describe("nextHarnessProviderValue", () => {
 
         expect(result.model_id).toBe(10);
         expect(result.fallback_model_ids).toEqual([11, 12]);
+        expect(result.params).toEqual({ temperature: 0.7 });
+    });
+
+    test("clears generation settings even when the picked model stays valid", () => {
+        const result = nextHarnessProviderValue({
+            value: base_value,
+            next: { provider_id: null, inherit: false },
+            picked_provider_id: 1,
+        });
+
+        expect(result.model_id).toBe(10);
+        expect(result.params).toBeUndefined();
     });
 });

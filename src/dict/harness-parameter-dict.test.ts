@@ -3,7 +3,8 @@ import {
     harnessParameterDefault,
     HarnessParameters,
     harnessParametersFromOptions,
-    modelTakesParameter,
+    harnessParameterValue,
+    modelAdvertisesParameter,
     withHarnessParameters,
 } from "./harness-parameter-dict";
 
@@ -31,10 +32,10 @@ describe("harness parameters", () => {
     test("only offers what the model advertises", () => {
         const supported = ["tools", "temperature", "reasoning"];
 
-        expect(modelTakesParameter({ parameter: temperature, supported })).toBe(true);
-        expect(modelTakesParameter({ parameter: reasoning, supported })).toBe(true);
+        expect(modelAdvertisesParameter({ parameter: temperature, supported })).toBe(true);
+        expect(modelAdvertisesParameter({ parameter: reasoning, supported })).toBe(true);
         expect(
-            modelTakesParameter({
+            modelAdvertisesParameter({
                 parameter: temperature,
                 supported: ["tools", "top_p"],
             }),
@@ -47,12 +48,24 @@ describe("harness parameters", () => {
         expect(harnessParameterDefault({ harness: "text", key: "seed" })).toBeUndefined();
     });
 
-    test("a model that lists no parameters takes them all", () => {
+    test("a model that lists no parameters takes none", () => {
         expect(
-            modelTakesParameter({ parameter: temperature, supported: [] }),
-        ).toBe(true);
+            modelAdvertisesParameter({ parameter: temperature, supported: [] }),
+        ).toBe(false);
         expect(
-            modelTakesParameter({ parameter: temperature, supported: undefined }),
-        ).toBe(true);
+            modelAdvertisesParameter({ parameter: temperature, supported: undefined }),
+        ).toBe(false);
+    });
+
+    test("a saved value beats the default, and the default fills an empty one", () => {
+        expect(
+            harnessParameterValue({ harness: "text", params: { temperature: 0.7 }, key: "temperature" }),
+        ).toEqual({ value: 0.7, saved: true });
+        expect(
+            harnessParameterValue({ harness: "text", params: {}, key: "temperature" }),
+        ).toEqual({ value: 0.3, saved: false });
+        expect(
+            harnessParameterValue({ harness: "text", params: { temperature: 0 }, key: "temperature" }),
+        ).toEqual({ value: 0, saved: true });
     });
 });

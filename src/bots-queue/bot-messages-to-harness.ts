@@ -20,6 +20,7 @@ type Params = {
         | "reactions"
         | "from_ask_id"
         | "from_install_request_id"
+        | "failed_job_id"
     >[];
     /**
      * Loaded files by message id (`loadAttachmentParts`). Files of other
@@ -48,11 +49,15 @@ type Turn = { role: "user" | "assistant"; parts: HarnessContentPart[] };
  * back to the bot, or the coordinator's answer to its install request
  * (`isCrewMessage`), is a user turn fenced as what the
  * coordinator passed on (`crewMessageBlock`), never the user's words.
+ * The app's failure notices (`failed_job_id`) are left out: they are the
+ * app's record of a run that never answered, not the bot's words.
  */
 export default function botMessagesToHarness({ messages, parts, refs }: Params): HarnessMessage[] {
     const turns: Turn[] = [];
 
     for (const message of messages) {
+        if (message.failed_job_id) continue;
+
         const role = message.author == "user" ? "user" : "assistant";
         const content = messageParts({ message, role, parts, refs });
 

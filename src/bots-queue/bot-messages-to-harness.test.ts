@@ -48,6 +48,21 @@ describe("botMessagesToHarness", () => {
             }),
         ).toEqual([{ role: "user", content: "hi" }]);
     });
+
+    test("a failure notice is the app's record, never the bot's words", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "hi"),
+                    {
+                        author: "bot" as const,
+                        text: "I couldn't reply. The model refused the request.",
+                        failed_job_id: 7,
+                    },
+                ],
+            }),
+        ).toEqual([{ role: "user", content: "hi" }]);
+    });
 });
 
 describe("botMessagesToHarness with replies", () => {

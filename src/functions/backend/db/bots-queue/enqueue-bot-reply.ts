@@ -14,6 +14,10 @@ type Params = {
      * The user message to answer.
      */
     message_id: number | string;
+    /**
+     * Extra job params (`retry_of` for a retried reply).
+     */
+    params?: Record<string, unknown>;
 };
 
 /**
@@ -27,6 +31,7 @@ export default async function enqueueBotReply({
     bot_id,
     session_id,
     message_id,
+    params,
 }: Params) {
     const pending = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_BOTS_QUEUE>({
@@ -54,5 +59,6 @@ export default async function enqueueBotReply({
         title: BotReplyJobTitle,
         instructions: "Reply to the user's latest messages.",
         message_id,
+        params,
     });
 }

@@ -2,6 +2,7 @@ import { harnessFallbackTitle } from "@/src/dict/harness-dict";
 import type { HarnessFormValue, HarnessOverview } from "@/src/types";
 import SettingsGroup from "../../(partials)/settings-group";
 import harnessDefaultName from "../(utils)/harness-default-name";
+import nextHarnessModelValue from "../(utils)/next-harness-model-value";
 import nextHarnessProviderValue from "../(utils)/next-harness-provider-value";
 import HarnessCurrentModel from "./harness-current-model";
 import HarnessModelSelect from "./harness-model-select";
@@ -62,7 +63,7 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     provider_name={provider?.name}
                     automatic={harness.automatic}
                     falls_back_title={falls_back_title}
-                    onChange={(model_id) => onChange({ ...value, model_id, voice: undefined })}
+                    onChange={(model_id) => onChange(nextHarnessModelValue({ value, model_id }))}
                 />
             )}
             <HarnessTextFallbacks id={id} harness={harness} value={value} onChange={onChange} />

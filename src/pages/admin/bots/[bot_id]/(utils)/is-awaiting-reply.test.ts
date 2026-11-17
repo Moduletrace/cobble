@@ -23,6 +23,21 @@ describe("isAwaitingReply", () => {
         expect(isAwaitingReply({ last_message: { author: "bot" }, face: "working" })).toBe(false);
     });
 
+    test("a retried failure notice owes a reply while the bot works", () => {
+        expect(
+            isAwaitingReply({ last_message: { author: "bot", failed_job_id: 7 }, face: "working" }),
+        ).toBe(true);
+    });
+
+    test("a failure notice left alone owes nothing", () => {
+        expect(
+            isAwaitingReply({ last_message: { author: "bot", failed_job_id: 7 }, face: "needs-you" }),
+        ).toBe(false);
+        expect(
+            isAwaitingReply({ last_message: { author: "bot", failed_job_id: 7 }, face: "idle" }),
+        ).toBe(false);
+    });
+
     test("an empty thread owes nothing", () => {
         expect(isAwaitingReply({ last_message: null, face: "working" })).toBe(false);
     });

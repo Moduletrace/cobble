@@ -8,6 +8,8 @@ type Props = {
      * Left out when a wrapper (a modal's target) handles the click.
      */
     onClick?: () => void;
+    disabled?: boolean;
+    loading?: boolean;
     children: ReactNode;
 };
 
@@ -15,7 +17,14 @@ type Props = {
  * A small ghost icon button under a message, for its reply and reaction
  * actions. Quiet until hovered, and readable in both themes.
  */
-export default function MessageActionButton({ title, aria_label, onClick, children }: Props) {
+export default function MessageActionButton({
+    title,
+    aria_label,
+    onClick,
+    disabled,
+    loading,
+    children,
+}: Props) {
     return (
         <Button
             title={title}
@@ -24,6 +33,9 @@ export default function MessageActionButton({ title, aria_label, onClick, childr
             variant="ghost"
             color="text"
             onClick={onClick}
+            disabled={disabled}
+            loading={loading}
+            loadingIconSize="small"
             className="shrink-0 p-1! -mx-1 text-ink-secondary dark:text-ink-secondary hover:text-ink rounded-default-xs focus-visible:ring-2 focus-visible:ring-ink"
         >
             {children}

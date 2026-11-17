@@ -345,17 +345,22 @@ export default function Conversation() {
             /**
              * A copy already shown keeps its place; one that arrives with
              * its usage (the relay or the catch-up, after a push without
-             * it) fills in the tokens.
+             * it) fills in the tokens, and a changed `needs_you` (a retried
+             * failure notice) is taken from the push.
              */
             setMessages((prev) =>
                 prev.some((m) => m.id == message.id)
-                    ? message.usage
-                        ? prev.map((m) =>
-                              m.id == message.id && !m.usage
-                                  ? { ...m, usage: message.usage }
-                                  : m,
-                          )
-                        : prev
+                    ? prev.map((m) =>
+                          m.id == message.id &&
+                          ((message.usage && !m.usage) ||
+                              message.needs_you != m.needs_you)
+                              ? {
+                                    ...m,
+                                    usage: m.usage || message.usage,
+                                    needs_you: message.needs_you,
+                                }
+                              : m,
+                      )
                     : [...prev, message],
             );
 
@@ -408,6 +413,19 @@ export default function Conversation() {
             onReply: ({ message }: { message: BotMessageWithAttachments }) =>
                 setReplyTo(message),
             onReact: reactToMessage,
+            onRetry: ({ message }: { message: BotMessageWithAttachments }) => {
+                /**
+                 * The bot is on it again: the notice no longer needs the
+                 * user, and the read of open replies from before the retry
+                 * is stale.
+                 */
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.id == message.id ? { ...m, needs_you: 0 } : m,
+                    ),
+                );
+                setOpenReplyJobs(null);
+            },
             onUseSuggestion: ({ text }: { text: string }) =>
                 composer.current?.insertText({ text }),
         }),

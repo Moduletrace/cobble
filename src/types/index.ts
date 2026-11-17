@@ -22,6 +22,7 @@ import type {
 import type { UserTypes } from "../dict/user-types-dict";
 import type { AppNetworkStatus } from "../dict/app-network-dict";
 import type { BotPermissions, BotTypes } from "../dict/bot-types-dict";
+import type { BotJobKind } from "../dict/bot-queue-dict";
 import type { StorageVolume } from "../utils/storage-volumes";
 import type { RunningVersion } from "../utils/running-version";
 import type { WebsocketRooms } from "../dict/websocket-rooms";
@@ -1929,6 +1930,12 @@ export type BotMessageWithAttachments = BUN_SQLITE_COBBLE_BOT_MESSAGES & {
      * name one.
      */
     tasks?: MessageTask[];
+    /**
+     * The kind of job behind a failure notice (\`failed_job_id\`): the
+     * thread offers Retry on a failed reply. Only on failure notices whose
+     * job still exists.
+     */
+    failed_job_kind?: BotJobKind;
 };
 
 /**

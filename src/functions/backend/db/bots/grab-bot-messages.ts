@@ -2,6 +2,7 @@ import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
 import type { BotMessageWithAttachments, MessageTask } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import grabMessageUsage from "../usage/grab-message-usage";
+import grabMessagesFailedJobs from "./grab-messages-failed-jobs";
 import grabMessagesMedia from "./grab-messages-media";
 import grabMessagesReactions from "./grab-messages-reactions";
 import grabMessagesReplies from "./grab-messages-replies";
@@ -79,7 +80,7 @@ export default async function grabBotMessages({
     const messages = res.payload || [];
     const message_ids = messages.map((message) => Number(message.id));
 
-    const [media, replies, reactions, usage, tasks] = await Promise.all([
+    const [media, replies, reactions, usage, tasks, failed_jobs] = await Promise.all([
         grabMessagesMedia({ message_ids }),
         grabMessagesReplies({ message_ids }),
         user_id
@@ -89,6 +90,7 @@ export default async function grabBotMessages({
         user_id
             ? grabMessagesTasks({ messages, user_id })
             : Promise.resolve(new Map<number, MessageTask[]>()),
+        grabMessagesFailedJobs({ messages }),
     ]);
 
     /**
@@ -106,6 +108,7 @@ export default async function grabBotMessages({
 
         const spent = usage.get(id);
         const linked = tasks.get(id);
+        const failed_kind = failed_jobs.get(id);
 
         return {
             ...message,
@@ -123,6 +126,7 @@ export default async function grabBotMessages({
             ...(user_id ? { reactions: reactions.get(id) || [] } : {}),
             ...(spent ? { usage: spent } : {}),
             ...(linked ? { tasks: linked } : {}),
+            ...(failed_kind ? { failed_job_kind: failed_kind } : {}),
         };
     });
 }

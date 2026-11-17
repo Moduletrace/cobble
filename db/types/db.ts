@@ -425,6 +425,10 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     task_ids?: string;
     /** 
+     * Set on the app's failure notice ("I couldn't reply..."): the job that failed (`bots_queue`). The thread offers Retry on a failed reply, and the model's history skips the notice (the app's record, not the bot's words). Not a foreign key
+     */
+    failed_job_id?: number | "";
+    /** 
      * Set on the message that brings a crew request's outcome back into the asking bot's conversation: the ask. Such a message is stored as the user's side of the conversation (the bot answers it) but shown as coming from the coordinator, and the model reads it as data. Not a foreign key
      */
     from_ask_id?: number | "";

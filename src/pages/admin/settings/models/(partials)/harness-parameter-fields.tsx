@@ -2,7 +2,7 @@ import {
     HarnessParameterHarnesses,
     harnessParameterValue,
     HarnessParameters,
-    modelTakesParameter,
+    modelAdvertisesParameter,
     type HarnessParameterKey,
 } from "@/src/dict/harness-parameter-dict";
 import type { HarnessKind } from "@/src/dict/harness-dict";
@@ -25,11 +25,11 @@ type Props = {
 
 /**
  * The generation settings the picked model takes: temperature, sampling
- * limits, penalties, seed and reasoning effort. A model whose provider
- * lists no parameters (anything but OpenRouter) gets them all. An empty
- * one shows the value it actually runs on (the harness's default). A model
- * whose provider lists nothing gets the app's default in its box, but the
- * call only sends a default to a model that advertises the field.
+ * limits, penalties, seed and reasoning effort. Only what the model's
+ * provider advertises is offered; a model whose provider lists nothing
+ * (a custom provider) gets no fields at all. An empty one shows the value
+ * it actually runs on (the harness's default), which is only sent when
+ * the model advertises the field.
  */
 export default function HarnessParameterFields({
     id,
@@ -40,7 +40,7 @@ export default function HarnessParameterFields({
 }: Props) {
     const shown = HarnessParameters.filter((parameter) =>
         model
-            ? modelTakesParameter({
+            ? modelAdvertisesParameter({
                   parameter,
                   supported: model.supported_parameters,
               })

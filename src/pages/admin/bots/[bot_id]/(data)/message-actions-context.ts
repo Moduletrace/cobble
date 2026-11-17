@@ -10,6 +10,11 @@ export type BotMessageActions = {
     onReply: (params: { message: BotMessageWithAttachments }) => void;
     onReact: (params: { message_id: number; emoji: BotMessageReactionEmoji }) => void;
     /**
+     * A failed reply the user asked for again: queue it from its failure
+     * notice.
+     */
+    onRetry: (params: { message: BotMessageWithAttachments }) => void;
+    /**
      * A suggested next step the user clicked (`[suggestion:ID]`): put it
      * in their input, never send it.
      */
@@ -19,5 +24,6 @@ export type BotMessageActions = {
 export const BotMessageActionsContext = React.createContext<BotMessageActions>({
     onReply: () => {},
     onReact: () => {},
+    onRetry: () => {},
     onUseSuggestion: () => {},
 });

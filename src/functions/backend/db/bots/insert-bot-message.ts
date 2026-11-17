@@ -39,6 +39,12 @@ type Params = {
      * (`carryOverBotSession`): the session it carries on from.
      */
     carried_from_session_id?: number;
+    /**
+     * Set on the app's failure notice: the job that failed
+     * (`notifyBotJobFailed`). The thread offers Retry on a failed reply,
+     * and the model's history skips the notice.
+     */
+    failed_job_id?: number;
 };
 
 /**
@@ -56,6 +62,7 @@ export default async function insertBotMessage({
     tool_log,
     task_ids,
     carried_from_session_id,
+    failed_job_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
     const needs_you_flag = needs_you ? 1 : 0;
@@ -81,6 +88,7 @@ export default async function insertBotMessage({
                 tool_log: tool_log_json,
                 task_ids: task_ids_json,
                 carried_from_session_id,
+                failed_job_id,
             },
         ],
     });
@@ -124,6 +132,7 @@ export default async function insertBotMessage({
         tool_log: tool_log_json,
         task_ids: task_ids_json,
         carried_from_session_id,
+        failed_job_id,
         created_at: now,
         updated_at: now,
     };

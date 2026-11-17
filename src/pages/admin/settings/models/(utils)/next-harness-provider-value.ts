@@ -20,7 +20,9 @@ type Params = {
  *
  * When the provider changes (including switching between specific providers,
  * 'any provider', or inherit mode), fallback models are reset to empty to avoid
- * retaining fallback models from the previous provider configuration.
+ * retaining fallback models from the previous provider configuration, and
+ * generation settings are cleared: they were picked for the old provider's
+ * models, and the new ones may not take the same fields.
  *
  * The selected model is also cleared if a specific provider is chosen and the
  * currently picked model does not belong to that provider.
@@ -47,6 +49,8 @@ export default function nextHarnessProviderValue({
         model_id: should_clear_model ? null : value.model_id,
         // Reset fallback models when the provider changes
         fallback_model_ids: provider_changed ? [] : (value.fallback_model_ids || []),
+        // Generation settings are cleared on provider change: the new models may not take them
+        params: provider_changed ? undefined : value.params,
         // Voice is cleared on provider change as voices are provider/model-specific
         voice: undefined,
     };

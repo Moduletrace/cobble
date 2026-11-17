@@ -7,13 +7,15 @@ import CopyMessageButton from "./copy-message-button";
 import MessageActionButton from "./message-action-button";
 import MessageDetailsModal from "./message-details-modal";
 import MessageReactionPicker from "./message-reaction-picker";
+import RetryReplyButton from "./retry-reply-button";
 
 type Props = {
     message: BotMessageWithAttachments;
 };
 
 /**
- * A message's copy, reply, reaction and details actions, shown under it. A message
+ * A message's copy, reply, reaction and details actions, shown under it. A
+ * failed reply still needing the user offers Retry beside Reply. A message
  * still on its way to the server has no id yet, so it can only be copied.
  */
 export default function MessageActions({ message }: Props) {
@@ -33,6 +35,11 @@ export default function MessageActions({ message }: Props) {
                     >
                         <Reply size={14} aria-hidden />
                     </MessageActionButton>
+                    {message.author == "bot" &&
+                    message.failed_job_kind == "reply" &&
+                    message.needs_you ? (
+                        <RetryReplyButton message={message} />
+                    ) : null}
                     <MessageReactionPicker
                         message_id={message.id}
                         onReact={onReact}

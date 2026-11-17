@@ -140,8 +140,14 @@ export default async function runBotReply({
      * that plan's current step, whether or not the user wrote anything.
      */
     const on_plan_step = Number(job_params.plan_id) > 0;
+    /**
+     * A retried reply (`retry-reply`): the user asked for the answer again
+     * after a failure, so it runs even when the failure notice is the
+     * session's last message and nothing looks unanswered.
+     */
+    const is_retry = Number(job_params.retry_of) > 0;
 
-    if (!on_plan_step && !hasUnansweredMessage({ history, answered_id })) {
+    if (!on_plan_step && !is_retry && !hasUnansweredMessage({ history, answered_id })) {
         return { result: "", silent: true };
     }
 

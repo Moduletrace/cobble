@@ -1,4 +1,8 @@
-import { HarnessParameterHarnesses } from "@/src/dict/harness-parameter-dict";
+import {
+    HarnessParameterHarnesses,
+    HarnessParameters,
+    modelAdvertisesParameter,
+} from "@/src/dict/harness-parameter-dict";
 import type { HarnessKind } from "@/src/dict/harness-dict";
 import type { HarnessModelOption } from "@/src/types";
 import HarnessParameterModal from "./harness-parameter-modal";
@@ -14,6 +18,8 @@ type Props = {
 
 /**
  * Parameter modal trigger for harnesses supporting generation settings.
+ * Hidden when the picked model's provider advertises none of them (a
+ * custom provider's model): there would be nothing to set.
  */
 export default function HarnessParamsButton({
     id,
@@ -28,6 +34,17 @@ export default function HarnessParamsButton({
     );
 
     if (inherit || !is_supported || !model) {
+        return null;
+    }
+
+    const takes_any = HarnessParameters.some((parameter) =>
+        modelAdvertisesParameter({
+            parameter,
+            supported: model.supported_parameters,
+        }),
+    );
+
+    if (!takes_any) {
         return null;
     }
 

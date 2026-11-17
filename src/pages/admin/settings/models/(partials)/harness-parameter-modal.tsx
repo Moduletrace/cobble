@@ -8,6 +8,7 @@ import {
     harnessParameterValue,
     HarnessParameterKeys,
     HarnessParameters,
+    modelAdvertisesParameter,
     type HarnessParameterKey,
 } from "@/src/dict/harness-parameter-dict";
 import type { HarnessKind } from "@/src/dict/harness-dict";
@@ -51,6 +52,14 @@ export default function HarnessParameterModal({
             HarnessParameterKeys.includes(key as HarnessParameterKey),
     );
     const set = HarnessParameters.flatMap((parameter) => {
+        if (
+            !modelAdvertisesParameter({
+                parameter,
+                supported: model.supported_parameters,
+            })
+        )
+            return [];
+
         const { value } = harnessParameterValue({
             harness: harness as (typeof HarnessParameterHarnesses)[number],
             params,
@@ -95,9 +104,10 @@ export default function HarnessParameterModal({
                     {model.name} settings
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    How this model answers. The filled-in values are what it
-                    runs on now (the app's default for this harness, else the
-                    provider's own); a lower temperature keeps a bot literal
+                    How this model answers. Only the settings its provider
+                    lists are offered; the filled-in values are what it runs
+                    on now (the app's default for this harness, else the
+                    provider's own). A lower temperature keeps a bot literal
                     and repeatable.
                 </Span>
             </Stack>

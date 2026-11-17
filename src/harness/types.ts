@@ -141,8 +141,9 @@ export type HarnessModelInfo = {
     voices?: string[];
     /**
      * The request fields the provider says it takes (OpenRouter's
-     * `supported_parameters`). Undefined when the provider doesn't say:
-     * then every generation setting is sent.
+     * `supported_parameters`). Undefined when the provider doesn't say
+     * (a custom provider's `/models` returns ids only): then no
+     * generation setting is sent, since one it rejects would fail the call.
      */
     supported_parameters?: string[];
 };

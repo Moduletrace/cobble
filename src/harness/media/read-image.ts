@@ -70,12 +70,11 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
         run: async (candidate) => {
             /**
              * Reading is a lookup, so it stays literal unless a
-             * temperature was set for the vision harness.
+             * temperature was set for the vision harness. The literal
+             * default comes from `grabChatParams` (the vision harness's
+             * own), which only sends it to a model that advertises it.
              */
-            const sent_params = {
-                temperature: 0,
-                ...saved_params.paramsFor(candidate.model),
-            };
+            const sent_params = saved_params.paramsFor(candidate.model);
             const answer = await grabHarnessAdapter({
                 kind: candidate.provider.kind,
             }).chat({
