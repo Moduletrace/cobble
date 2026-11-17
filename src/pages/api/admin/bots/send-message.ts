@@ -3,6 +3,9 @@ import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-u
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 import insertUserMessage from "@/src/functions/backend/db/bots/insert-user-message";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
+import grabMessageIdByClientId from "@/src/functions/backend/db/bots/grab-message-id-by-client-id";
+import deleteBotMessage from "@/src/functions/backend/db/bots/delete-bot-message";
+import { logError } from "@/src/functions/backend/logger";
 import grabAttachableMedia from "@/src/functions/backend/db/bots/grab-attachable-media";
 import storeChatAttachments from "@/src/functions/backend/db/bot-files/store-chat-attachments";
 import enqueueBotReply from "@/src/functions/backend/db/bots-queue/enqueue-bot-reply";
@@ -51,10 +54,11 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             throw new AppError(`This user can only read records.`);
         }
 
-        const { bot_id, workspace_id, text, media_ids, reply_to_message_id } = parseWithSchema({
-            schema: SendBotMessageRequestSchema,
-            data: body,
-        });
+        const { bot_id, workspace_id, text, media_ids, reply_to_message_id, client_id } =
+            parseWithSchema({
+                schema: SendBotMessageRequestSchema,
+                data: body,
+            });
 
         const max_chars = await grabBotMessageMaxChars();
 
@@ -64,6 +68,44 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
 
         const conversation = await grabUserConversation({ user_id: user.id, bot_id, workspace_id });
         const bot = conversation.bot;
+
+        /**
+         * A send whose answer never arrived is sent again with the same
+         * client id, and the message it stored is already there: answering
+         * that one, with its reply still queued (`enqueueBotReply` reuses the
+         * open job), keeps the thread from showing the message twice with
+         * the bot answering both copies.
+         */
+        if (client_id) {
+            const stored_id = await grabMessageIdByClientId({
+                user_id: user.id,
+                bot_id: bot.id,
+                workspace_id: conversation.workspace_id,
+                client_id,
+            }).catch(() => null);
+
+            const stored = stored_id
+                ? await grabUserBotMessage({ user_id: user.id, message_id: stored_id }).catch(
+                      () => null,
+                  )
+                : null;
+
+            if (stored?.id && stored.session_id) {
+                await enqueueBotReply({
+                    user_id: user.id,
+                    bot_id: bot.id,
+                    session_id: Number(stored.session_id),
+                    message_id: Number(stored.id),
+                });
+
+                wakeBotsQueue();
+
+                return {
+                    success: true,
+                    singleRes: stored,
+                };
+            }
+        }
 
         const media = await grabAttachableMedia({ user_id: Number(user.id), media_ids });
         const session = await ensureBotSession({
@@ -100,24 +142,44 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             text,
             reply_to,
             media,
+            client_id,
         });
+
+        try {
+            await enqueueBotReply({
+                user_id: user.id,
+                bot_id: bot.id,
+                session_id: Number(session.id),
+                message_id: message.id || 0,
+            });
+        } catch (error: unknown) {
+            /**
+             * A message with no reply queued would sit in the thread with
+             * nothing ever answering it, while the composer has already
+             * taken its pending bubble down: it is taken back out, so the
+             * send fails where the user can see it and send it again.
+             */
+            await deleteBotMessage({ message_id: Number(message.id) }).catch(() => null);
+
+            throw error;
+        }
 
         /**
          * The files join the conversation's folder, so a later run can
-         * search what the user sent now.
+         * search what the user sent now. The message and its reply are
+         * stored and queued by now: a folder that can't be written costs a
+         * search hit, never the message.
          */
         await storeChatAttachments({
             bot_id: bot.id,
             workspace_id: conversation.workspace_id,
             user_id: user.id,
             media,
-        });
-
-        await enqueueBotReply({
-            user_id: user.id,
-            bot_id: bot.id,
-            session_id: Number(session.id),
-            message_id: message.id || 0,
+        }).catch(async (error: unknown) => {
+            await logError({
+                title: `Files of message #${message.id} not added to its conversation`,
+                error,
+            }).catch(() => {});
         });
 
         wakeBotsQueue();

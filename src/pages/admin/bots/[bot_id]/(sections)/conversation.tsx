@@ -97,6 +97,13 @@ export default function Conversation() {
      * session, which the composer gives way to a link to.
      */
     const [moved_to_session_id, setMovedToSessionId] = useState<number | null>(null);
+    /**
+     * How many replies the session still has to come, as the last catch-up
+     * read found them, or null while that isn't known yet. A reply that ends
+     * without a message leaves the last word the user's, so without this the
+     * thread would wait on an answer that is never coming.
+     */
+    const [open_reply_jobs, setOpenReplyJobs] = useState<number | null>(null);
     const [has_other_unread, setHasOtherUnread] = useState(false);
     /**
      * The debug logs under the thinking row, which its bug button toggles.
@@ -212,6 +219,7 @@ export default function Conversation() {
             });
             progress.reset({ task: history.task });
             setReplyStep(history.step || null);
+            setOpenReplyJobs(null);
         },
     });
 
@@ -230,7 +238,8 @@ export default function Conversation() {
      */
     const awaiting_reply =
         !moved_to_session_id &&
-        isAwaitingReply({ last_message: last_thread_message, face: live_bot?.face });
+        isAwaitingReply({ last_message: last_thread_message, face: live_bot?.face }) &&
+        (open_reply_jobs == null || open_reply_jobs > 0);
 
     const reply_progress = useReplyProgress({
         bot_id: bot?.id || 0,
@@ -243,6 +252,7 @@ export default function Conversation() {
         session_id,
         awaiting_reply,
         last_message_id: last_saved_id,
+        on_open_jobs: ({ open_jobs }) => setOpenReplyJobs(open_jobs),
     });
 
     /**
@@ -278,6 +288,13 @@ export default function Conversation() {
             setPendingMessages((prev) =>
                 dropSentMessage({ pending: prev, message }),
             );
+
+            /**
+             * A message the user sent, here or in another tab, has a reply
+             * queued behind it: what the last read said about open replies is
+             * out of date.
+             */
+            if (message.author == "user") setOpenReplyJobs(null);
 
             /**
              * Before the history lands the thread has no session yet: the
@@ -493,12 +510,19 @@ export default function Conversation() {
                                         previous_messages={thread_messages}
                                         reply_to={reply_to}
                                         onCancelReply={() => setReplyTo(null)}
-                                        onSendStart={({ message }) =>
+                                        onSendStart={({ message }) => {
+                                            /**
+                                             * A reply is queued for it, so
+                                             * the thread waits on one again
+                                             * (a session that had none left
+                                             * stopped polling).
+                                             */
+                                            setOpenReplyJobs(null);
                                             setPendingMessages((prev) => [
                                                 ...prev,
                                                 message,
-                                            ])
-                                        }
+                                            ]);
+                                        }}
                                         onSendFailed={({ temp_id }) =>
                                             setPendingMessages((prev) =>
                                                 prev.filter(

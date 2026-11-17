@@ -616,11 +616,20 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `Set on the message that opens a session the bot moved the conversation into (\`continue_in_new_session\`): the session it carries on from, whose summary is the message's text. Not a foreign key`,
                     dataType: "INTEGER",
                 },
+                {
+                    fieldName: "client_id",
+                    fieldDescription: `The composer's own id for a message it sent, so a send whose answer never arrived is recognised as the one already stored rather than posted twice`,
+                    dataType: "TEXT",
+                },
             ],
             indexes: [
                 {
                     indexName: "idx_bot_messages_bot_id_created_at",
                     indexTableFields: ["bot_id", "created_at"],
+                },
+                {
+                    indexName: "idx_bot_messages_client_id",
+                    indexTableFields: ["client_id"],
                 },
                 {
                     indexName: "idx_bot_messages_session_id_created_at",

@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import grabWorkspaceComputers from "./grab-workspace-computers";
 import grabUserWorkspace from "./grab-user-workspace";
+import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
 
 type Params = {
     user_id: number | string;
@@ -12,12 +13,18 @@ type Params = {
 /**
  * Makes one of a workspace's computers its default, where its tasks run.
  * Returns the workspace's computers, the new default first.
+ *
+ * Where a whole workspace's work runs is a crew decision, like linking the
+ * computer in the first place: a member's bot deciding it needs another one
+ * would move every bot there, for everyone, from one conversation.
  */
 export default async function setWorkspaceComputer({
     user_id,
     workspace_id,
     computer_id,
 }: Params) {
+    await assertCrewManager({ user_id });
+
     const workspace = await grabUserWorkspace({ workspace_id, user_id });
 
     if (!workspace?.id) {

@@ -13,6 +13,8 @@ import onAskJobEnded from "../asks/on-ask-job-ended";
 import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import jobTrackerTaskId from "./job-tracker-task-id";
+import pauseFailedPlanStep from "../bot-plans/pause-failed-plan-step";
+import pushBotPlan from "@/src/bots-queue/push-bot-plan";
 import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
 
@@ -76,6 +78,16 @@ export default async function notifyBotJobFailed({
     }
 
     const user_id = await grabJobUserId({ job });
+
+    /**
+     * A plan whose step this run was working is paused with it: nothing
+     * would ever advance it, so its card would show that step in progress
+     * forever and every later reply would be told the plan is running and
+     * may not move it.
+     */
+    const paused_plan = await pauseFailedPlanStep({ job }).catch(() => null);
+
+    if (paused_plan) await pushBotPlan(paused_plan);
 
     /**
      * A hook's run is followed by nobody, so it never shows on the bot's

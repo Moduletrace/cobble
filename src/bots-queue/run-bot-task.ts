@@ -46,6 +46,7 @@ import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/e
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
+import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
@@ -186,9 +187,14 @@ export default async function runBotTask({
         const hooked = Boolean(params.hook_id);
         /**
          * Only a task the user follows in their conversation asks them
-         * questions: routines and hook calls act on their own.
+         * questions: routines and hook calls act on their own, and a crew
+         * request's run works in a session nobody reads from this bot's chat.
          */
-        const can_ask = Boolean(session_id) && !scheduled && !hooked;
+        const can_ask =
+            Boolean(session_id) &&
+            !scheduled &&
+            !hooked &&
+            !(await isHiddenSession({ session_id: Number(session_id) }));
         /**
          * The coordinator weighing a worker's install request
          * (`request_install`): it answers it with answer_install_request.

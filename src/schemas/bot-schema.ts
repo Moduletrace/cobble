@@ -63,6 +63,12 @@ export const SendBotMessageRequestSchema = z.object({
      * The message this one replies to, quoted above it.
      */
     reply_to_message_id: z.coerce.number().int().positive().nullish(),
+    /**
+     * The composer's own id for this send, so a send whose answer never
+     * arrived is recognised as the message already stored instead of
+     * being posted a second time.
+     */
+    client_id: z.string().trim().max(64).optional(),
 }).refine((body) => body.text || body.media_ids.length, "Write a message or attach a file first");
 
 export type SendBotMessageRequest = z.infer<typeof SendBotMessageRequestSchema>;

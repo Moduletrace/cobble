@@ -258,7 +258,7 @@ export default async function grabBotChatTools({
 
     tools.push(findBotTool(), findWorkspaceTool({ user_id }), listWorkspaceBotsTool({ user_id }));
 
-    tools.push(deleteWorkspaceTool({ user_id, workspaces }));
+    tools.push(deleteWorkspaceTool({ user_id, workspaces, attended }));
 
     if (!workers.length) return tools;
 
@@ -284,7 +284,7 @@ export default async function grabBotChatTools({
         }),
     );
 
-    tools.push(updateBotTool({ user_id, workers }), deleteBotTool({ user_id, workers }));
+    tools.push(updateBotTool({ user_id, workers }), deleteBotTool({ user_id, workers, attended }));
 
     if (computers.length) {
         const access = Object.fromEntries(

@@ -17,6 +17,12 @@ type Params = {
      * the workspace unless it picks another scope.
      */
     workspace_id?: number | string | null;
+    /**
+     * Whether the run's user manages the crew: core memory is shared with
+     * every user the bot works for, so a member's run writes only what is
+     * theirs (`user`) or the workspace's.
+     */
+    can_manage_crew?: boolean;
 };
 
 type Args = {
@@ -41,8 +47,10 @@ export default function updateMemoryTool({
     user_id,
     bot_id,
     workspace_id,
+    can_manage_crew = false,
 }: Params): HarnessTool<Args> {
     const memory = z.string().max(AppData.PromptMaxLength);
+    const may_write_core = Boolean(can_manage_crew);
 
     return {
         name: "update_memory",
@@ -54,6 +62,14 @@ export default function updateMemoryTool({
             : z.object({ memory, scope: z.enum(["user", "core"]).default("user") }),
         run: async ({ args }) => {
             if (args.scope == "core") {
+                /**
+                 * Core memory starts every user's run of this bot: one
+                 * member's conversation must not rewrite it for the rest.
+                 */
+                if (!may_write_core) {
+                    return `Your core memory is shared with every user you work for, so only an admin can change it. Nothing was saved: what holds for this user goes in your memory of them (scope "user"${workspace_id ? `, or "workspace" for what holds for the work here` : ""}).`;
+                }
+
                 await updateBotMemory({ user_id, bot_id, memory: args.memory });
                 await checkSavedText({ kind: "core_memory", bot_id, expected: args.memory });
                 return `Core memory saved and checked.`;

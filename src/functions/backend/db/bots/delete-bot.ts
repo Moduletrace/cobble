@@ -4,6 +4,8 @@ import purgeStorage, { grabStorageMediaIds } from "@/src/functions/backend/db/bo
 import { grabTaskMediaIds } from "@/src/functions/backend/db/tasks/purge-task-media";
 import passOnBotTasks from "@/src/functions/backend/db/tasks/pass-on-bot-tasks";
 import AppError from "@/src/utils/app-error";
+import { logError } from "@/src/functions/backend/logger";
+import endAsksForBot from "../asks/end-asks-for-bot";
 import { clearEnvCache } from "../envs/grab-all-envs";
 import grabUserBot from "./grab-user-bot";
 import assertCrewManager from "@/src/functions/backend/db/access/assert-crew-manager";
@@ -68,6 +70,17 @@ export default async function deleteBot({ user_id, bot_id }: Params) {
     }
 
     clearEnvCache();
+
+    /**
+     * After the row is gone, so a request it asked isn't answered into a
+     * conversation that no longer exists. Left open, a request tied to this
+     * bot is never pruned and spends the other bot's open-request allowance
+     * for good.
+     */
+    await endAsksForBot({ bot_id: bot.id! }).catch(async (error: unknown) => {
+        await logError({ title: `Requests of bot #${bot.id} not ended`, error }).catch(() => {});
+        return [];
+    });
 
     if (bot.image_media_id) {
         await deleteMedia({ id: bot.image_media_id, user_id: Number(user_id) }).catch(() => {});

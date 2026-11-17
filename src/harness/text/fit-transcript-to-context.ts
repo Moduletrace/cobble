@@ -175,6 +175,30 @@ export default function fitTranscriptToContext({
         });
     }
 
+    /**
+     * The newest results were never cut, and a run still over budget with
+     * nothing older to trim sent the whole prompt anyway: one 60k-character
+     * sweep plus a pasted brief went out every turn, and every candidate
+     * refused it. The newest results are what the run is working from, so
+     * they are cut last, and only once everything older is gone. A user's
+     * own text is never touched.
+     */
+    for (let index = Math.max(trimmable, 0); index < transcript.length && total > target; index++) {
+        const message = transcript[index]!;
+
+        if (message.role != "tool" || isTrimmed({ text: message.content })) continue;
+
+        const name = names.get(message.tool_call_id);
+
+        replace({
+            index,
+            message: {
+                ...message,
+                content: trimResult({ index, content: message.content, name }),
+            },
+        });
+    }
+
     return { trimmed, estimated_tokens: total, budget, over_budget: total > budget };
 }
 

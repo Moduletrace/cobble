@@ -87,6 +87,14 @@ export default async function processBotJob({
     const schedule_id = Number(params.schedule_id) || null;
     const hook_id = Number(params.hook_id) || null;
 
+    const controller = new AbortController();
+    /**
+     * Registered before the first read below: those queries can wait on a
+     * busy database, and a Stop that arrived while they ran found nothing
+     * to abort, so a stopped job went on running until its own next write.
+     */
+    registerJobAbort({ job_id, abort: () => controller.abort() });
+
     /**
      * Its face changes only for the user it works for.
      */
@@ -102,7 +110,10 @@ export default async function processBotJob({
     );
     const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }).catch(() => null));
 
-    const controller = new AbortController();
+    if (controller.signal.aborted) {
+        unregisterJobAbort({ job_id });
+        return;
+    }
     /**
      * The deadline is the one abort that is a failure, not a cancellation:
      * the job's error is then the timeout's, not the "Cancelled." an
@@ -110,6 +121,10 @@ export default async function processBotJob({
      */
     const timeout_message = `"${job.title || "The job"}" took too long and was stopped.`;
     let timed_out = false;
+    /**
+     * Set once the run reports a step (a tool call): its attempt is spent.
+     */
+    let worked = false;
 
     /**
      * A stopped job never touches the face again: `stopBotJobs` already set
@@ -128,8 +143,6 @@ export default async function processBotJob({
      * is already failed in the queue, so an abort is a cancellation and its
      * result is dropped (`controller.signal.aborted` below).
      */
-    registerJobAbort({ job_id, abort: () => controller.abort() });
-
     const update: BotJobContext["update"] = async (params) => {
         if (controller.signal.aborted) return false;
 
@@ -147,6 +160,14 @@ export default async function processBotJob({
 
         try {
             if (!(await update({ progress: described.text }))) return;
+
+            /**
+             * The run has done real work: a later wait for the models to
+             * come back must not give its attempt back, or a run that
+             * wrote files and then met a resting model replays from turn 1
+             * as many times as the outage lasts.
+             */
+            worked = true;
 
             const row = await insertBotJobUpdate({ job_id, bot_id, ...described });
 
@@ -363,14 +384,15 @@ export default async function processBotJob({
          * wait for the first to come back without using an attempt.
          */
         if (error instanceof HarnessError && error.resting) {
-            await deferBotJob({
+            const deferred = await deferBotJob({
                 job_id,
                 worker,
                 until: error.retry_at || Date.now() + AppData.HarnessCooldownMs,
-                refund: true,
+                refund: !worked,
             });
 
-            await setFace({ face: "asleep", status_line: BotWaitingStatusLine });
+            if (deferred) await setFace({ face: "asleep", status_line: BotWaitingStatusLine });
+
             return;
         }
 

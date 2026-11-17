@@ -25,6 +25,12 @@ type Params = {
  *
  * bun-sqlite's `queue.claim` takes no filter, so the claim is its same
  * single statement (atomic: two workers never claim one job) plus `kind`.
+ *
+ * One job per computer: only one task can work on a computer at a time, so
+ * claiming several of its tasks filled every task slot with jobs waiting on
+ * that computer's lock, and a second computer sat idle while its pending
+ * tasks were already claimed. A computer with a task in flight is skipped
+ * here instead, so the slots go to work that can run now.
  */
 export default async function claimBotJobs({ worker, limit = 1, kind }: Params) {
     const released = await BunSQLite.queue.release_stale<
@@ -44,9 +50,17 @@ export default async function claimBotJobs({ worker, limit = 1, kind }: Params) 
         sql: `UPDATE bots_queue SET status = 'processing', attempts = attempts + 1,
             locked_at = ?, locked_by = ?, updated_at = ?
             WHERE id IN (
-                SELECT id FROM bots_queue
+                SELECT MIN(id) FROM bots_queue
                 WHERE status = 'pending' AND available_at <= ? AND kind = ?
-                ORDER BY id LIMIT ?
+                AND (
+                    computer_id IS NULL
+                    OR computer_id NOT IN (
+                        SELECT computer_id FROM bots_queue
+                        WHERE status = 'processing' AND kind = 'task' AND computer_id IS NOT NULL
+                    )
+                )
+                GROUP BY COALESCE(computer_id, -id)
+                ORDER BY MIN(id) LIMIT ?
             ) RETURNING *`,
         values: [now, worker, now, now, kind, Math.floor(limit)],
     });

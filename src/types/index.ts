@@ -579,6 +579,13 @@ export type SessionMessagesResponse = APIResponseObject<BotMessageWithAttachment
      * step's push replays it and keeps its thinking row's line.
      */
     step?: BotJobUpdateData | null;
+    /**
+     * How many replies the session still has to come (queued or being
+     * written). Zero says nothing will answer there any more: a thread whose
+     * last word is the user's stops waiting instead of thinking forever,
+     * which is what a run that ended without a message looks like.
+     */
+    open_jobs?: number | null;
 };
 
 /**

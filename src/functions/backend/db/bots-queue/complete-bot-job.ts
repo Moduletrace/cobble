@@ -2,18 +2,19 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
 import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
 import insertBotMessage from "../bots/insert-bot-message";
+import deleteBotMessage from "../bots/delete-bot-message";
 import setBotFace from "../bots/set-bot-face";
-import countOpenBotJobs from "./count-open-bot-jobs";
+import botFaceAfterJob from "./bot-face-after-job";
 import grabLockedBotJob from "./grab-locked-bot-job";
 import relayJobToRequester from "./relay-job-to-requester";
 import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import noteTrackerTask from "./note-tracker-task";
 import jobSessionId from "./job-session-id";
 import grabJobUserId from "./grab-job-user-id";
-import grabRunningBotJobFace from "./grab-running-bot-job-face";
 import withMessageUsage from "../usage/with-message-usage";
 import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
+import { logError } from "@/src/functions/backend/logger";
 import type { HarnessToolUse } from "@/src/harness/types";
 import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
 import onAskJobEnded from "../asks/on-ask-job-ended";
@@ -62,8 +63,8 @@ type Params = {
  * to the user in the bot's conversation. Unless it has other jobs open
  * for that user, the bot shows that user needs-you if asked, else done
  * after a task and idle after a reply; with others open, it shows the one
- * still running (a reply in another session mustn't hide a task's row).
- * Nobody else's face changes. A handed-over job's result also goes to the bot that handed
+ * still running (a reply in another session mustn't hide a task's row) or
+ * waits for one held back by the queue. Nobody else's face changes. A handed-over job's result also goes to the bot that handed
  * it over (`relay`), and a handed-over task left open says so, or is blocked when the run used
  * its whole step budget without finishing (`noteTrackerTask`). A hook
  * run's result is kept on the calls it answered (`recordHookCallResponse`). A job working a crew
@@ -86,34 +87,19 @@ export default async function completeBotJob({
         throw new AppError(`This job is no longer held by ${worker}.`);
     }
 
-    const res = await BunSQLite.queue.complete({
-        table: "bots_queue",
-        id: job.id,
-    });
-
-    if (!res.success) {
-        throw new Error(`Couldn't complete the job: ${res.msg || res.error}`);
-    }
-
     const now = Date.now();
-
-    await BunSQLite.sql({
-        sql: `UPDATE bots_queue SET result = ?, finished_at = ? WHERE id = ?`,
-        values: [result, now, job.id],
-    });
 
     /**
      * A handed-over task's run is about that task, whatever its tools did.
      */
     const message_task_ids = [jobTrackerTaskId({ job }), ...task_ids];
 
-    if (job.task_id) {
-        await BunSQLite.sql({
-            sql: `UPDATE bot_tasks SET status = 'done', updated_at = ? WHERE id = ?`,
-            values: [now, job.task_id],
-        });
-    }
-
+    /**
+     * The answer is written while this handler still holds the job: with
+     * the job marked done first, a throw here reached `failBotJob`, which
+     * found the job gone and swallowed it, so the answer was lost with no
+     * notice and the bot stayed at working.
+     */
     const inserted = silent
         ? null
         : await insertBotMessage({
@@ -145,6 +131,34 @@ export default async function completeBotJob({
         }).catch(() => {});
     }
 
+    const res = await BunSQLite.queue.complete({
+        table: "bots_queue",
+        id: job.id,
+    });
+
+    if (!res.success) {
+        /**
+         * The job never ended, so its answer would sit under a run with no
+         * end: it's taken back out (its files stay) and the caller fails
+         * the job, which tells the user instead.
+         */
+        if (inserted?.id) await deleteBotMessage({ message_id: inserted.id }).catch(() => {});
+
+        throw new Error(`Couldn't complete the job: ${res.msg || res.error}`);
+    }
+
+    await BunSQLite.sql({
+        sql: `UPDATE bots_queue SET result = ?, finished_at = ? WHERE id = ?`,
+        values: [result, now, job.id],
+    });
+
+    if (job.task_id) {
+        await BunSQLite.sql({
+            sql: `UPDATE bot_tasks SET status = 'done', updated_at = ? WHERE id = ?`,
+            values: [now, job.task_id],
+        });
+    }
+
     /**
      * Pushed live as it is returned, so it carries its usage now: the
      * thread shows the tokens without a reload.
@@ -161,41 +175,49 @@ export default async function completeBotJob({
      */
     const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }));
 
-    const bot = !user_id || in_hook
-        ? null
-        : needs_you
-          ? await setBotFace({
-                bot_id: job.bot_id,
-                user_id,
-                face: "needs-you",
-                status_line: BotNeedsYouStatusLine,
-            })
-          : (await countOpenBotJobs({ bot_id: job.bot_id, user_id, conversations_only: true }))
-            ? await restoreRunningFace({ bot_id: job.bot_id, user_id })
-            : await setBotFace({
-                  bot_id: job.bot_id,
-                  user_id,
-                  face: job.kind == "reply" ? "idle" : "done",
-              });
+    /**
+     * The job is done and its answer saved, so what is left is clearing up:
+     * a throw in here is logged rather than failing a job that already
+     * ended and holding the answer back from the live push.
+     */
+    let bot: Awaited<ReturnType<typeof setBotFace>> | null = null;
+    let relay: Awaited<ReturnType<typeof relayJobToRequester>> | null = null;
 
-    await noteTrackerTask({ job, exhausted });
+    try {
+        bot =
+            !user_id || in_hook
+                ? null
+                : needs_you
+                  ? await setBotFace({
+                        bot_id: job.bot_id,
+                        user_id,
+                        face: "needs-you",
+                        status_line: BotNeedsYouStatusLine,
+                    })
+                  : await botFaceAfterJob({ bot_id: job.bot_id, user_id, kind: job.kind });
 
-    await recordHookCallResponse({ job, status: "done", response: result, message_id: inserted?.id });
+        await noteTrackerTask({ job, exhausted });
 
-    const relay = silent ? null : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
+        await recordHookCallResponse({
+            job,
+            status: "done",
+            response: result,
+            message_id: inserted?.id,
+        });
 
-    await onAskJobEnded({ job, text: silent ? "" : result });
+        relay = silent
+            ? null
+            : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
 
-    await settleInstallRequest({ job, text: result });
+        await onAskJobEnded({ job, text: silent ? "" : result });
+
+        await settleInstallRequest({ job, text: result });
+    } catch (error) {
+        await logError({
+            title: `Bot job #${job.id} completed, its clearing up didn't`,
+            error,
+        }).catch(() => {});
+    }
 
     return { message, bot, relay };
-}
-
-/**
- * Puts back the face of a job still running for the user, if any.
- */
-async function restoreRunningFace({ bot_id, user_id }: { bot_id: number; user_id: number }) {
-    const running = await grabRunningBotJobFace({ bot_id, user_id });
-
-    return running ? await setBotFace({ bot_id, user_id, ...running }) : null;
 }

@@ -72,6 +72,12 @@ export default function replyClaimProblems({
     }
 
     const started = tool_uses.some((use) => use.ok && WorkStartingTools.includes(use.name));
+    /**
+     * A run that reached for `start_task` and was refused was not making the
+     * claim up: it is reporting what the app told it. Faulting that note sent
+     * an honest "I couldn't start it" back as a lie.
+     */
+    const tried = tool_uses.some((use) => WorkStartingTools.includes(use.name));
 
     /**
      * A record line the answer wrote itself that claims work this reply
@@ -90,7 +96,7 @@ export default function replyClaimProblems({
         );
     }
 
-    if (!started && !has_open_work && claimsWorkUnderWay({ text })) {
+    if (!started && !tried && !has_open_work && claimsWorkUnderWay({ text })) {
         problems.push(
             `It says work is going on beyond this reply, or that its findings are still to come, but this reply started no run (start_task) and nothing of yours is open in this conversation. Nothing is running, so no result arrives unless you call start_task now.`,
         );

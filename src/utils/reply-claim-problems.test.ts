@@ -22,8 +22,16 @@ describe("replyClaimProblems", () => {
         expect(replyClaimProblems({ text: underWay, tool_uses: [], has_open_work: true })).toEqual([]);
     });
 
-    test("a start_task call that failed doesn't count", () => {
-        expect(replyClaimProblems({ text: underWay, tool_uses: [{ name: "start_task", ok: false }] }).length).toBe(1);
+    test("a start_task a run was refused for is not the answer's fault", () => {
+        /**
+         * An honest "I couldn't start it" names no work it made up: the app
+         * refused the start, and faulting the note sent it back as a lie.
+         */
+        expect(replyClaimProblems({ text: underWay, tool_uses: [{ name: "start_task", ok: false }] })).toEqual([]);
+    });
+
+    test("a claim with no start attempt at all is still faulted", () => {
+        expect(replyClaimProblems({ text: underWay, tool_uses: [{ name: "read_file", ok: true }] }).length).toBe(1);
     });
 
     test("names files and tasks that don't exist", () => {

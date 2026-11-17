@@ -9,12 +9,13 @@ export default async function sendBotMessage({
     text,
     media_ids,
     reply_to_message_id,
+    client_id,
 }: SendBotMessageRequest) {
     return await fetchApi<
         SendBotMessageRequest,
         APIResponseObject<BotMessageWithAttachments>
     >(`/api/admin/bots/send-message`, {
         method: "POST",
-        body: { bot_id, workspace_id, text, media_ids, reply_to_message_id },
+        body: { bot_id, workspace_id, text, media_ids, reply_to_message_id, client_id },
     });
 }

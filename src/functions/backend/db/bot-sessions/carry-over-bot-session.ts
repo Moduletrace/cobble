@@ -119,5 +119,16 @@ export default async function carryOverBotSession({
         });
     }
 
+    /**
+     * Everything else still to come for the closed session moves with it.
+     * A queued job left behind answers into a session the conversation has
+     * left (`SessionMovedBar` where its reply should be), sets unread on a
+     * thread nobody opens again, and pushes nothing the user is looking at.
+     */
+    await BunSQLite.sql({
+        sql: `UPDATE bots_queue SET session_id = ? WHERE session_id = ? AND status IN ('pending', 'processing')`,
+        values: [next.id!, active.id],
+    });
+
     return message;
 }

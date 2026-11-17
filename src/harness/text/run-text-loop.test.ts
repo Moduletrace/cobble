@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -1435,7 +1435,6 @@ describe("runTextLoop closing tools", () => {
     });
 
     test("keeps going when the card comes with real work", async () => {
-        asked.length = 0;
         const { generate } = scripted([
             {
                 text: "Saved your preference and put the question up.",
@@ -1457,6 +1456,72 @@ describe("runTextLoop closing tools", () => {
 
         expect(result.text).toBe("Noted. The question is under this message.");
         expect(result.steps).toBe(2);
+    });
+
+    test("a card the tool refused is not the end of the run", async () => {
+        asked.length = 0;
+
+        const { generate, seen } = scripted([
+            {
+                text: "Here are my questions:",
+                tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":5}` }],
+            },
+            {
+                text: "Which date rule should the articles follow?",
+                tool_calls: [{ id: "q2", name: "ask_user", arguments: `{"question":"Which date rule?"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Ask me which date rule." }],
+            tools: [askUser, remember],
+            generate,
+            resolveCandidates,
+        });
+
+        /**
+         * The card was never put up, so the answer promising one never went
+         * out: the run was told and asked again.
+         */
+        expect(result.text).toBe("Which date rule should the articles follow?");
+        expect(result.steps).toBe(2);
+        expect(asked).toEqual(["Which date rule?"]);
+        expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: closingFailedNote });
+    });
+
+    test("a card with nothing said beside it is told once, then ends where it is", async () => {
+        asked.length = 0;
+
+        const { generate, seen } = scripted([
+            {
+                text: "",
+                tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` }],
+            },
+            {
+                text: "  ",
+                tool_calls: [{ id: "q2", name: "ask_user", arguments: `{"question":"Which date rule?"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Ask me which date rule." }],
+            tools: [askUser, remember],
+            generate,
+            resolveCandidates,
+        });
+
+        /**
+         * A card alone answers nothing, and going on would work on the very
+         * thing it just asked about. Told once, then the run ends: an empty
+         * answer fails the job with a reason the user can see, rather than
+         * starting work nobody asked for.
+         */
+        expect(result.text).toBe("");
+        expect(result.steps).toBe(2);
+        expect(seen.length).toBe(2);
+        expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: closingNoTextNote });
     });
 });
 

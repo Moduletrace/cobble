@@ -446,6 +446,28 @@ export const answerNotSentNote = `The message you wrote before these tool result
 export const repeatedAnswerNote = `This is the message the app just sent back, word for word: nothing has changed since, so it will not go out either. Write it again from what the app's record shows. Take out what that record cannot support, and if the work still needs doing, call the tool that does it now rather than saying it is under way.`;
 
 /**
+ * Told when a turn tried to end on a card and the card's tool refused it
+ * (wrong arguments, an answered card): nothing went up, so the answer must
+ * not read as if it had. The run carries on, which is what gives the model
+ * the turn it needs to fix the call.
+ */
+export const closingFailedNote = `The card that call was meant to put up was not created: the tool refused it, and its error is above. Your message was written as if it had gone up, and it has not. Fix the call and make it again, or answer without it, and write your message for what actually exists.`;
+
+/**
+ * Told once when a closing call worked but the turn said nothing beside it:
+ * a card alone leaves the user with buttons and no answer, and a run that
+ * carries on from there works on the thing it just asked about.
+ */
+export const closingNoTextNote = `The card you just put up has no message beside it, and a card on its own leaves the user nothing to read. Write the sentence that goes with it now, and stop there: what comes next waits on their answer.`;
+
+/**
+ * Put under an answer the review kept faulting once its unsupported parts
+ * were taken out (`repairAnswerText`): the user is told part of it is gone
+ * rather than losing the whole answer, and knows what to ask again.
+ */
+export const repairedAnswerNote = `_Part of this answer was left out: it described work no tool of this run did._`;
+
+/**
  * Told once, when the prompt no longer fits the working context even after
  * everything trimmable was trimmed: what is left is what the user wrote,
  * which the app never cuts. A run that keeps reading whole files into the

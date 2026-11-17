@@ -1,3 +1,4 @@
+import BunSQLite from "@moduletrace/bun-sqlite";
 import grabUnreportedFailedBotJobs from "@/src/functions/backend/db/bots-queue/grab-unreported-failed-bot-jobs";
 import notifyBotJobFailed from "@/src/functions/backend/db/bots-queue/notify-bot-job-failed";
 import { logError } from "@/src/functions/backend/logger";
@@ -11,7 +12,19 @@ export default async function reportLostBotJobs() {
     const jobs = await grabUnreportedFailedBotJobs();
 
     for (const job of jobs) {
-        if (!job.bot_id) continue;
+        if (!job.bot_id) {
+            /**
+             * A job whose bot was deleted has nobody to tell, but it is
+             * stamped all the same: left unstamped, the same rows are read
+             * on every poll and never pruned.
+             */
+            await BunSQLite.sql({
+                sql: `UPDATE bots_queue SET finished_at = ? WHERE id = ? AND finished_at IS NULL`,
+                values: [Date.now(), Number(job.id)],
+            }).catch(() => {});
+
+            continue;
+        }
 
         const notice = await notifyBotJobFailed({
             job,

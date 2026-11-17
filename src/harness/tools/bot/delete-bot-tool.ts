@@ -13,6 +13,12 @@ type Params = {
      * The user's worker bots.
      */
     workers: BUN_SQLITE_COBBLE_BOTS[];
+    /**
+     * Whether the run is one the user is following in a conversation. A run
+     * nobody watches acts on a brief alone, and a brief can be written by
+     * any bot.
+     */
+    attended?: boolean;
 };
 
 type Args = {
@@ -26,7 +32,7 @@ type Args = {
  * Irreversible, so it only runs when the user asked for that exact bot to
  * go.
  */
-export default function deleteBotTool({ user_id, workers }: Params): HarnessTool<Args> {
+export default function deleteBotTool({ user_id, workers, attended = false }: Params): HarnessTool<Args> {
     const crew = workers.map((bot) => `${bot.id}: ${bot.name}`).join("; ");
 
     return {
@@ -36,6 +42,17 @@ export default function deleteBotTool({ user_id, workers }: Params): HarnessTool
             bot_id: z.number().int(),
         }),
         run: async ({ args }) => {
+            /**
+             * Nothing here can be undone, so it happens where the user can
+             * see it and say stop: a routine, a hook call or a task another
+             * bot handed over only has a brief to go on.
+             */
+            if (!attended) {
+                throw new Error(
+                    `Deleting a bot can't be undone, so it is done only in a conversation with the user, where they can confirm it. Nothing was deleted: say that it has to be asked for in the chat with them.`,
+                );
+            }
+
             const fresh = await grabCrewWorkers();
             const worker = fresh.find((bot) => bot.id == args.bot_id);
 

@@ -313,7 +313,19 @@ export default function Composer({
         temp_id.current -= 1;
 
         const client_id = temp_id.current;
-        const text_sent = text;
+        /**
+         * The text goes as the server will store it, trimmed: a message
+         * with a trailing newline was saved without it, and the bubble
+         * waiting for it never matched the saved one.
+         */
+        const text_sent = text.trim();
+        /**
+         * The server's own handle for this send, so a send whose answer
+         * never arrived is recognised as the message already stored. Not
+         * the thread's temp id: that restarts after a reload and would
+         * match an older message of the same conversation.
+         */
+        const request_id = crypto.randomUUID();
         const media_ids = files.media_ids;
         const attachments = files.pending.flatMap((item) =>
             item.status == "ready" && item.attachment ? [item.attachment] : [],
@@ -356,6 +368,7 @@ export default function Composer({
             text: text_sent,
             media_ids,
             reply_to_message_id: reply_to?.id || null,
+            client_id: request_id,
         });
 
         if (!res.success || !res.singleRes) {

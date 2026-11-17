@@ -13,6 +13,12 @@ type Params = {
      * The user's live workspaces.
      */
     workspaces: BUN_SQLITE_COBBLE_WORKSPACES[];
+    /**
+     * Whether the run is one the user is following in a conversation. A run
+     * nobody watches acts on a brief alone, and a brief can be written by
+     * any bot.
+     */
+    attended?: boolean;
 };
 
 type Args = {
@@ -28,6 +34,7 @@ type Args = {
 export default function deleteWorkspaceTool({
     user_id,
     workspaces,
+    attended = false,
 }: Params): HarnessTool<Args> {
     const list = workspaces.map((w) => `${w.id}: ${w.name}`).join("; ");
 
@@ -38,6 +45,17 @@ export default function deleteWorkspaceTool({
             workspace_id: z.number().int(),
         }),
         run: async ({ args }) => {
+            /**
+             * Nothing here can be undone, so it happens where the user can
+             * see it and say stop: a routine, a hook call or a task another
+             * bot handed over only has a brief to go on.
+             */
+            if (!attended) {
+                throw new Error(
+                    `Deleting a workspace can't be undone, so it is done only in a conversation with the user, where they can confirm it. Nothing was deleted: say that it has to be asked for in the chat with them.`,
+                );
+            }
+
             const live = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
             const workspace = live.find((w) => w.id == args.workspace_id);
 

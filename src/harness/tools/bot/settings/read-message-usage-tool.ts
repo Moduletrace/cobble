@@ -80,7 +80,12 @@ Long runs cost more than the work suggests because every turn resends the prompt
 
             if (!job_id) return describeMessageUsageList({ messages: await grabSessionMessageUsage({ session_id: run_session_id }) });
 
-            const usage = await grabJobRunUsage({ job_id });
+            /**
+             * Read within this conversation's session: a job id is not a
+             * handle to someone else's run, and the cost of a run says which
+             * provider, model and limits it used.
+             */
+            const usage = await grabJobRunUsage({ job_id, session_id: run_session_id });
 
             if (!usage) {
                 return `No model calls recorded for run #${job_id} yet.`;

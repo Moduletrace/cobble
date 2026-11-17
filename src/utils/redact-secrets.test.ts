@@ -28,4 +28,19 @@ describe("redactSecrets", () => {
             redactSecrets({ text: "a 1 b", secrets: [{ key: "PIN", value: "1" }] }),
         ).toBe("a 1 b");
     });
+
+    test("masks a three character code", () => {
+        expect(
+            redactSecrets({
+                text: "code 429 ping, again 429",
+                secrets: [{ key: "CODE", value: "429" }],
+            }),
+        ).toBe("code [CODE] ping, again [CODE]");
+    });
+
+    test("leaves a two character value alone", () => {
+        expect(
+            redactSecrets({ text: "ab cd", secrets: [{ key: "PAIR", value: "cd" }] }),
+        ).toBe("ab cd");
+    });
 });

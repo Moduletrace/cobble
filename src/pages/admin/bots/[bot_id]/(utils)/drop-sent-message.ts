@@ -23,7 +23,7 @@ export default function dropSentMessage({ pending, message }: Params): BotMessag
 
     const index = pending.findIndex(
         (item) =>
-            item.text == message.text &&
+            (item.text || "").trim() == (message.text || "").trim() &&
             (item.reply_to?.id || null) == (message.reply_to_message_id || null) &&
             (item.attachments?.length || 0) == (message.attachments?.length || 0),
     );

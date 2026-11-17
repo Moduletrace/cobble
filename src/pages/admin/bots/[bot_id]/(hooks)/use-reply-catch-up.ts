@@ -18,6 +18,11 @@ type Params = {
      * The thread's last message: only newer ones are replayed.
      */
     last_message_id?: number | null;
+    /**
+     * How many replies the session still has to come, as the read found it:
+     * zero means the one it was waiting on ended without a message.
+     */
+    on_open_jobs?: (params: { open_jobs: number }) => void;
 };
 
 /**
@@ -33,10 +38,23 @@ type Params = {
  * screen. The step is replayed as `server:bot-job-update`, so a run whose
  * steps were pushed while the page slept still shows the one it's on.
  * Reading it even when no reply is due is what lets a row stuck on a stale
- * face or task clear itself without a reload.
+ * face or task clear itself without a reload. The replies the session still
+ * has to come are handed back too: a run that ended without a word leaves
+ * the thread's last message the user's, so the face alone can't tell it from
+ * one still on its way.
  */
-export default function useReplyCatchUp({ session_id, awaiting_reply, last_message_id }: Params) {
+export default function useReplyCatchUp({
+    session_id,
+    awaiting_reply,
+    last_message_id,
+    on_open_jobs,
+}: Params) {
     const last_message = useRef(Number(last_message_id) || 0);
+    /**
+     * Read through a ref, so a new callback on every render doesn't rebuild
+     * the check (and the poll's timer with it).
+     */
+    const report_open_jobs = useRef(on_open_jobs);
     /**
      * The open session: a read that lands after the thread moved to
      * another one is dropped instead of replaying into the wrong thread.
@@ -45,6 +63,7 @@ export default function useReplyCatchUp({ session_id, awaiting_reply, last_messa
 
     last_message.current = Number(last_message_id) || 0;
     open_session.current = session_id;
+    report_open_jobs.current = on_open_jobs;
 
     const check = useCallback(async () => {
         if (!session_id) return;
@@ -80,6 +99,16 @@ export default function useReplyCatchUp({ session_id, awaiting_reply, last_messa
          * word an interim one) drops the row once its face moves on.
          */
         if (res.bot?.id) replay({ data: { event: "server:bot-updated", data: res.bot } });
+
+        /**
+         * A thread whose last word is the user's waits on a reply; when none
+         * is left to come, the one it waited on ended without a message
+         * (every message in the session had been answered already) and the
+         * thinking row goes.
+         */
+        if (typeof res.open_jobs == "number") {
+            report_open_jobs.current?.({ open_jobs: res.open_jobs });
+        }
     }, [session_id]);
 
     useRefocus({ onRefocus: () => void check() });

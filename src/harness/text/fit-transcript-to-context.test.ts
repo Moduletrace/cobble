@@ -72,15 +72,20 @@ describe("fitTranscriptToContext", () => {
         expect(String(transcript[2]!.content)).toStartWith("[Trimmed: 12 characters of this computer_bash output");
     });
 
-    test("never trims the newest messages, even over budget", () => {
+    test("cuts the newest results only once every older one is gone", () => {
         const transcript: HarnessMessage[] = [
             { role: "user", content: "go" },
             { role: "tool", tool_call_id: "1", content: big },
         ];
         const result = fitTranscriptToContext({ system: "s", transcript, context_length: 1000 });
 
-        expect(result.trimmed).toBe(0);
-        expect(transcript[1]!.content).toBe(big);
+        /**
+         * The newest result used to be left whole however far over budget the
+         * prompt was, so it went out anyway and every candidate refused it.
+         */
+        expect(result.trimmed).toBe(1);
+        expect(String(transcript[1]!.content)).toContain("[Trimmed:");
+        expect(transcript[0]!.content).toBe("go");
     });
 
     test("keeps to the working context even when the window is far larger", () => {
@@ -93,9 +98,10 @@ describe("fitTranscriptToContext", () => {
         });
 
         expect(result.budget).toBe(15000);
-        expect(result.trimmed).toBe(1);
+        expect(result.trimmed).toBe(2);
         expect(String(transcript[2]!.content)).toContain("[Trimmed:");
-        expect(transcript[4]!.content).toBe(big);
+        expect(String(transcript[4]!.content)).toContain("[Trimmed:");
+        expect(transcript[6]!.content).toBe("recent");
     });
 
     test("cuts in one block, down to well under the budget, then leaves it alone", () => {
@@ -171,7 +177,29 @@ describe("fitTranscriptToContext", () => {
         expect(result.trimmed).toBeGreaterThan(0);
         expect(transcript[0]!.content).toBe(request);
         expect(String(transcript[2]!.content)).toContain("[Trimmed:");
-        expect(result.over_budget).toBe(true);
+        /**
+         * Every result was cut, the newest included: the request is what is
+         * left, and the run pays for it in full.
+         */
+        expect(String(transcript[4]!.content)).toContain("[Trimmed:");
+    });
+
+    test("a brief that fits once the results are cut is not reported as over budget", () => {
+        const transcript: HarnessMessage[] = [
+            { role: "user", content: "Look through the fixture and tell me what fails." },
+            { role: "assistant", content: null, tool_calls: [{ id: "1", name: "computer_bash", arguments: "{}" }] },
+            { role: "tool", tool_call_id: "1", content: big },
+            { role: "assistant", content: null, tool_calls: [{ id: "2", name: "computer_bash", arguments: "{}" }] },
+            { role: "tool", tool_call_id: "2", content: big },
+            { role: "assistant", content: null, tool_calls: [{ id: "3", name: "computer_bash", arguments: "{}" }] },
+            { role: "tool", tool_call_id: "3", content: "recent" },
+        ];
+
+        const result = fitTranscriptToContext({ system: "s", transcript, context_length: 131_072, budget_tokens: 12_000 });
+
+        expect(result.over_budget).toBe(false);
+        expect(result.trimmed).toBeGreaterThan(0);
+        expect(transcript[0]!.content).toBe("Look through the fixture and tell me what fails.");
     });
 
     test("says a transcript it trimmed down fits", () => {

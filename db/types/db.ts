@@ -436,6 +436,10 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      * Set on the message that opens a session the bot moved the conversation into (`continue_in_new_session`): the session it carries on from, whose summary is the message's text. Not a foreign key
      */
     carried_from_session_id?: number | "";
+    /** 
+     * The composer's own id for a message it sent, so a send whose answer never arrived is recognised as the one already stored rather than posted twice
+     */
+    client_id?: string;
 }
 
 export type BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS = {

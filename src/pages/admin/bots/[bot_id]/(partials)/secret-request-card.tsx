@@ -28,6 +28,23 @@ export default function SecretRequestCard({ view, onDecided, onDone }: Props) {
     const [value, setValue] = useState("");
     const [busy, setBusy] = useState<"save" | "decline">();
     const [error, setError] = useState<string>();
+    /**
+     * The answer the bot never heard: the request was decided and the
+     * message that tells it didn't go, so the user gets a way to send it
+     * again instead of a card that closed on a promise nobody kept.
+     */
+    const [unsent, setUnsent] = useState<string>();
+
+    const tellBot = async (params: { text: string }) => {
+        const res = await sendBotMessage({
+            bot_id: Number(pageProps?.bot?.id) || 0,
+            workspace_id: pageProps?.workspace?.id || null,
+            text: params.text,
+            media_ids: [],
+        }).catch(() => null);
+
+        return Boolean(res?.success);
+    };
 
     const open = view.status == "pending";
 
@@ -61,14 +78,35 @@ export default function SecretRequestCard({ view, onDecided, onDone }: Props) {
         setValue("");
         onDecided(res.singleRes);
 
-        await sendBotMessage({
-            bot_id: Number(pageProps?.bot?.id) || 0,
-            workspace_id: pageProps?.workspace?.id || null,
-            text: secretRequestMessage({ view: res.singleRes }),
-            media_ids: [],
-        }).catch(() => null);
+        const text = secretRequestMessage({ view: res.singleRes });
+
+        if (!(await tellBot({ text }))) {
+            /**
+             * The secret is saved; what's left is telling the bot, and that
+             * has to be possible from here rather than by remembering to
+             * type it in the chat.
+             */
+            setUnsent(text);
+            setBusy(undefined);
+            setError(`Saved for you, but the bot wasn't told. Send it the message again below.`);
+            return;
+        }
 
         setBusy(undefined);
+        onDone();
+    };
+
+    const resend = async () => {
+        if (!unsent) return;
+
+        setError(undefined);
+
+        if (!(await tellBot({ text: unsent }))) {
+            setError(`Couldn't tell the bot. Try again.`);
+            return;
+        }
+
+        setUnsent(undefined);
         onDone();
     };
 
@@ -103,6 +141,19 @@ export default function SecretRequestCard({ view, onDecided, onDone }: Props) {
             )}
 
             {error ? <Span className="mt-2 text-[13px] leading-5 text-ink">{error}</Span> : null}
+
+            {!open && unsent ? (
+                <Row className="mt-3 w-full gap-2! justify-end">
+                    <Button
+                        type="button"
+                        size="small"
+                        title="Send the bot the message it never got"
+                        onClick={resend}
+                    >
+                        Tell the bot
+                    </Button>
+                </Row>
+            ) : null}
 
             {open ? (
                 <Row className="mt-5 w-full gap-2! justify-end">

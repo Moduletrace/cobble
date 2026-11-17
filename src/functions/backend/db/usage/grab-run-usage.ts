@@ -195,11 +195,29 @@ export async function grabMessageRunUsage({
 /**
  * What a job that is still open has spent so far, from its own calls and
  * its recorded steps: a reply cannot look at itself through a message,
- * since that is written when it ends.
+ * since that is written when it ends. Held to the session it is read from,
+ * so one run can read its own job and never another conversation's.
  */
-export async function grabJobRunUsage({ job_id }: { job_id: number | string }) {
+export async function grabJobRunUsage({
+    job_id,
+    session_id,
+}: {
+    job_id: number | string;
+    session_id: number | string;
+}) {
     const calls = (
-        (await BunSQLite.sql<CallRow>({ sql: CallsSql.replace("%COLUMN%", "job_id"), values: [Number(job_id) || 0] })).payload || []
+        (
+            await BunSQLite.sql<CallRow>({
+                sql: `SELECT t.id, t.created_at, t.harness, t.provider_name, t.model_slug,
+                        t.prompt_tokens, t.cached_tokens, t.completion_tokens, t.settings
+                    FROM token_usages t
+                    JOIN bots_queue q ON q.id = t.job_id
+                    WHERE t.job_id = ? AND q.session_id = ?
+                    ORDER BY t.created_at ASC, t.id ASC
+                    LIMIT 500`,
+                values: [Number(job_id) || 0, Number(session_id) || 0],
+            })
+        ).payload || []
     ).map((item) => toCall({ row: item }));
 
     if (!calls.length) return null;

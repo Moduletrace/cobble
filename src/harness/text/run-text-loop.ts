@@ -2,14 +2,20 @@ import { AppData } from "@/src/data/app-data";
 import {
     alreadyRanToolNote,
     answerNotSentNote,
+    closingFailedNote,
+    closingNoTextNote,
     commitEarlyNote,
     contextTrimmedNote,
     failedToolCallNote,
     oversizedRequestNote,
+    repairedAnswerNote,
     repeatedAnswerNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
+import sanitizeAnswerText from "@/src/utils/sanitize-answer-text";
+import repairAnswerText from "@/src/utils/repair-answer-text";
+import { logError } from "@/src/functions/backend/logger";
 import HarnessError from "../harness-error";
 import isClosingTool from "../tools/closing-tool-names";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
@@ -93,9 +99,10 @@ type Params = {
      * last call), read after each round of tools and before an answer is
      * returned. They join the transcript, so a message sent while the bot
      * works can change what it does, and an answer they arrive in time for
-     * is written again with them in mind.
+     * is written again with them in mind. `counted` is false at the wrap up:
+     * those turns are read, not answered (`takeIncoming`).
      */
-    incoming?: () => Promise<HarnessMessage[]>;
+    incoming?: (params?: { counted?: boolean }) => Promise<HarnessMessage[]>;
     /**
      * What the run is told with what came in: `working` after a round of
      * tools, `redraft` past an answer that hadn't gone out (defaults
@@ -352,12 +359,12 @@ export default async function runTextLoop({
     const tool_uses: HarnessToolUse[] = [];
     /**
      * The reads this run already made, by the call they answer
-     * (`repeatToolCallKey`) and the step it was. A read repeated word for
-     * word gets this answer instead of being run again, and anything that
-     * may have written forgets them: a file read once, then edited, is
-     * read again.
+     * (`repeatToolCallKey`), the step it was and the transcript message its
+     * output went into. A read repeated word for word gets this answer
+     * instead of being run again, and anything that may have written forgets
+     * them: a file read once, then edited, is read again.
      */
-    const repeated_reads = new Map<string, number>();
+    const repeated_reads = new Map<string, { step: number; message: HarnessMessage }>();
     /**
      * The calls that failed, by the call they answer (`toolCallKey`), with
      * the step the first of them ran on and the error it gave. An identical
@@ -409,6 +416,11 @@ export default async function runTextLoop({
      * that the message never went out (`answerNotSentNote`).
      */
     let told_answer_lost = false;
+    /**
+     * A card put up with nothing said beside it has been told, once, to write
+     * the sentence that goes with it (`closingNoTextNote`).
+     */
+    let told_closing_text = false;
     /**
      * A run whose prompt no longer fits the working context, with nothing
      * trimmable left, has been told, once (`oversizedRequestNote`).
@@ -482,7 +494,20 @@ export default async function runTextLoop({
     const checkAnswer = async ({ text, index }: { text: string; index: number }) => {
         if (!review) return { verdict: "passed" as const };
 
-        const note = await review({ text, tool_uses }).catch(() => null);
+        const note = await review({ text, tool_uses }).catch(async (error) => {
+            /**
+             * A reviewer that throws passes the answer, which is the safe
+             * thing to do with the user's reply, but it must not read like a
+             * review that found nothing: a reviewer that is broken every
+             * time leaves every answer unchecked, and nothing said so.
+             */
+            await logError({
+                title: "Reviewing a reply failed, so its answer went out unchecked",
+                error,
+            }).catch(() => null);
+
+            return null;
+        });
 
         if (!note) return { verdict: "passed" as const };
 
@@ -524,7 +549,7 @@ export default async function runTextLoop({
         if (wrap_up && !wrap_up_announced) {
             wrap_up_announced = true;
 
-            if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up, index });
+            if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up, index, counted: false });
 
             /**
              * The machine's own account of the work, when the caller has
@@ -633,6 +658,15 @@ export default async function runTextLoop({
         );
 
         /**
+         * What the app would never show as its own word comes out before
+         * anything reads the answer: a setting pill that leads nowhere and a
+         * record line this run's tools don't support are text, and sending
+         * the whole answer back for one costs a rewrite and, on the third,
+         * the answer (`sanitizeAnswerText`).
+         */
+        if (answer.text) answer.text = sanitizeAnswerText({ text: answer.text });
+
+        /**
          * A saving turn that reached for anything else is told what it has
          * left, and gets that one round again (never more, so the run
          * ends).
@@ -693,6 +727,32 @@ export default async function runTextLoop({
             const check = await checkAnswer({ text: answer.text || "", index });
 
             if (check.verdict === "refused") {
+                /**
+                 * A fault the app can take out is taken out instead of the
+                 * whole answer: what is left is what the tools support, said
+                 * to be part of the answer, so three faults no longer cost a
+                 * user an answer that was right.
+                 */
+                const repaired = repairAnswerText({ text: answer.text || "" });
+
+                if (repaired.changed && repaired.text) {
+                    await traced({
+                        kind: "event",
+                        index,
+                        name: "repaired",
+                        text: repairedAnswerNote,
+                    });
+
+                    return {
+                        text: `${repaired.text}\n\n${repairedAnswerNote}`,
+                        messages: transcript,
+                        steps: index + 1,
+                        candidate: answer.candidate,
+                        usage,
+                        tool_uses,
+                    };
+                }
+
                 return {
                     text: "",
                     review_note: check.note,
@@ -708,10 +768,14 @@ export default async function runTextLoop({
         }
 
         if (!tool_calls.length) {
+            /**
+             * Whitespace alone is no answer: it would land as an empty bubble
+             * (`run-bot-reply` treats it as none and fails with a reason).
+             */
+            const said = (answer.text || "").trim();
+
             return {
-                text:
-                    answer.text ||
-                    (wrap_up ? `I ran out of steps before I could finish.` : ""),
+                text: said || (wrap_up ? `I ran out of steps before I could finish.` : ""),
                 messages: transcript,
                 steps: index + 1,
                 candidate: answer.candidate,
@@ -726,7 +790,15 @@ export default async function runTextLoop({
 
         for (const call of tool_calls) {
             const repeat_key = repeatToolCallKey({ call });
-            const already_read = repeat_key ? repeated_reads.get(repeat_key) : undefined;
+            const remembered = repeat_key ? repeated_reads.get(repeat_key) : undefined;
+            /**
+             * A read answered from a step is answered only while its output
+             * is still in the prompt: trimming cut it down to its two ends
+             * (`fitTranscriptToContext`), which no longer holds what the run
+             * was reading. Pointing at it then made the model retry the same
+             * call until the token budget ran out.
+             */
+            const already_read = remembered && transcript.includes(remembered.message) ? remembered.step : undefined;
             const call_key = toolCallKey({ call });
             const failed_before = call_key ? failed_calls.get(call_key) : undefined;
             const give_up =
@@ -781,7 +853,7 @@ export default async function runTextLoop({
                 repeated_reads.clear();
             } else if (already_read === undefined) {
                 if (content.startsWith("Error:")) repeated_reads.delete(repeat_key);
-                else repeated_reads.set(repeat_key, index);
+                else if (remembered) repeated_reads.delete(repeat_key);
             }
 
             if (give_up) {
@@ -800,18 +872,63 @@ export default async function runTextLoop({
                 failed_calls.clear();
             }
 
-            transcript.push({ role: "tool", tool_call_id: call.id, content });
+            const tool_message: HarnessMessage = { role: "tool", tool_call_id: call.id, content };
+
+            transcript.push(tool_message);
+
+            if (repeat_key && already_read === undefined && !content.startsWith("Error:")) {
+                repeated_reads.set(repeat_key, { step: index, message: tool_message });
+            }
 
             if (images.length) shown.push({ tool_name: call.name, images });
         }
 
         /**
-         * An answer that ends on a card is the whole reply: the question
+         * An answer that called a card is the whole reply: the question
          * waits for the user, and what comes next was just offered. Going on
          * would send the next turn's short line in its place, since the reply
-         * is only the run's last message (`ClosingToolNames`).
+         * is only the run's last message (`ClosingToolNames`). A turn that
+         * called nothing at all is still a whole answer (the check below).
          */
-        if (answer.text && tool_calls.every((call) => isClosingTool({ name: call.name }))) {
+        const called_card = tool_calls.some((call) => isClosingTool({ name: call.name }));
+        const closing = tool_calls.every((call) => isClosingTool({ name: call.name }));
+        /**
+         * The card has to be there: a closing call whose arguments the tool
+         * refused put nothing up, and a message written as if it had is a
+         * reply that points at a card no one can see.
+         */
+        const closing_worked = closing && tool_uses.slice(-tool_calls.length).every((use) => use.ok);
+
+        if (called_card && !closing_worked) {
+            pushUserTurn({ transcript, content: closingFailedNote });
+            await traced({ kind: "event", index, name: "closing_failed", text: closingFailedNote });
+            continue;
+        }
+
+        /**
+         * A card with nothing beside it answers nothing, and the run would
+         * go on to work on the very thing it just asked about. Told once,
+         * and the run ends on the sentence it writes (`closingNoTextNote`).
+         */
+        if (closing_worked && called_card && !(answer.text || "").trim()) {
+            if (!told_closing_text) {
+                told_closing_text = true;
+                pushUserTurn({ transcript, content: closingNoTextNote });
+                await traced({ kind: "event", index, name: "closing_no_text", text: closingNoTextNote });
+                continue;
+            }
+
+            return {
+                text: "",
+                messages: transcript,
+                steps: index + 1,
+                candidate: answer.candidate,
+                usage,
+                tool_uses,
+            };
+        }
+
+        if (closing_worked && answer.text) {
             /**
              * Checked before it goes out, as any reply is: a note comes
              * back and the answer is written again (the card stays on the
@@ -820,6 +937,26 @@ export default async function runTextLoop({
             const check = await checkAnswer({ text: answer.text, index });
 
             if (check.verdict === "refused") {
+                const repaired = repairAnswerText({ text: answer.text });
+
+                if (repaired.changed && repaired.text) {
+                    await traced({
+                        kind: "event",
+                        index,
+                        name: "repaired",
+                        text: repairedAnswerNote,
+                    });
+
+                    return {
+                        text: `${repaired.text}\n\n${repairedAnswerNote}`,
+                        messages: transcript,
+                        steps: index + 1,
+                        candidate: answer.candidate,
+                        usage,
+                        tool_uses,
+                    };
+                }
+
                 return {
                     text: "",
                     review_note: check.note,
@@ -933,10 +1070,13 @@ export default async function runTextLoop({
 
     /**
      * Adds what the user wrote since the last look, after `note`. True when
-     * there was anything.
+     * there was anything. `counted` says whether the run will answer what it
+     * read: the wrap up writes the answer it already had to, so a message
+     * taken in there is left for its own reply (`run-bot-reply`), not marked
+     * answered by an answer written before it arrived.
      */
-    async function takeIncoming({ note, index }: { note: string; index: number }) {
-        const turns = (await incoming?.()) || [];
+    async function takeIncoming({ note, index, counted = true }: { note: string; index: number; counted?: boolean }) {
+        const turns = (await incoming?.({ counted })) || [];
         const user_turns = turns.filter((turn) => turn.role == "user");
 
         if (!user_turns.length) return false;

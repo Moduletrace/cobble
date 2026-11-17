@@ -35,6 +35,11 @@ type Params = {
      * to it, stored and shown like a crew request's outcome.
      */
     from_install_request_id?: number;
+    /**
+     * The composer's own id for the send, so the same message sent twice
+     * (a lost answer, a retry) is recognised rather than stored again.
+     */
+    client_id?: string;
 };
 
 /**
@@ -52,6 +57,7 @@ export default async function insertUserMessage({
     media = [],
     from_ask_id,
     from_install_request_id,
+    client_id,
 }: Params): Promise<BotMessageWithAttachments> {
     const now = Date.now();
 
@@ -71,6 +77,7 @@ export default async function insertUserMessage({
                 reply_to_message_id: reply_to?.id || undefined,
                 from_ask_id,
                 from_install_request_id,
+                client_id,
             },
         ],
     });
@@ -104,6 +111,7 @@ export default async function insertUserMessage({
         reply_to_message_id: reply_to?.id || undefined,
         from_ask_id,
         from_install_request_id,
+        client_id,
         created_at: now,
         updated_at: now,
         attachments: media.map((file) => mediaToAttachment({ media: file })),

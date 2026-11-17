@@ -4,6 +4,7 @@ import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotFace from "@/src/functions/backend/db/bots/grab-bot-face";
 import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
 import grabSessionReplyStep from "@/src/functions/backend/db/bots-queue/grab-session-reply-step";
+import grabSessionOpenReplies from "@/src/functions/backend/db/bots-queue/grab-session-open-replies";
 import { AppData } from "@/src/data/app-data";
 import { BotSessionIdRequestSchema } from "@/src/schemas/bot-schema";
 import type { SessionMessagesResponse } from "@/src/types";
@@ -17,7 +18,9 @@ import type { BunextAPIRouteHandler } from "@moduletrace/bunext/types";
  * bot's face, status line and active task for that user (as
  * `server:bot-updated` carries them) plus the step its reply is on (as
  * `server:bot-job-update` does), so the open conversation can catch up on a
- * reply, a face change or a step whose live push it missed.
+ * reply, a face change or a step whose live push it missed. `open_jobs` says
+ * whether anything is still to answer there, so a run that ended without a
+ * word can't leave the thread thinking.
  */
 export const handler: BunextAPIRouteHandler<SessionMessagesResponse> = async ({ req, body }) => {
     try {
@@ -54,6 +57,7 @@ export const handler: BunextAPIRouteHandler<SessionMessagesResponse> = async ({ 
                 task: await grabActiveBotTask({ bot_id, user_id: user.id }),
             },
             step: await grabSessionReplyStep({ session_id: session.id }),
+            open_jobs: await grabSessionOpenReplies({ session_id: session.id }),
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

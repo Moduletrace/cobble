@@ -32,6 +32,7 @@ import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-
 import workspaceAdminsNote from "./workspace-admins-note";
 import type { WorkspaceAdminTools } from "@/src/harness/tools/bot/grab-workspace-admin-tools";
 import { grabContextBudgetTokens, grabReplyMaxToolSteps, grabRunMaxPromptTokens } from "@/src/functions/backend/db/app-settings/grab-run-limits";
+import { isUnlimitedLimit } from "@/src/utils/run-limit";
 import grabBotMessages from "@/src/functions/backend/db/bots/grab-bot-messages";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
@@ -45,6 +46,7 @@ import openBotBrowsers from "@/src/harness/tools/browsers/open-bot-browsers";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
+import deleteBotQuestion from "@/src/functions/backend/db/bot-questions/delete-bot-question";
 import parseJobJson from "./parse-job-json";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
@@ -171,7 +173,7 @@ export default async function runBotReply({
     /**
      * What the user wrote since the run last looked.
      */
-    const incoming = async (): Promise<HarnessMessage[]> => {
+    const incoming = async ({ counted = true }: { counted?: boolean } = {}): Promise<HarnessMessage[]> => {
         const fresh = await grabBotMessages({
             session_id,
             after_id: seen_id,
@@ -182,7 +184,13 @@ export default async function runBotReply({
         if (!fresh.length) return [];
 
         seen_id = Math.max(seen_id, ...fresh.map((message) => Number(message.id)));
-        answering_id = Math.max(answering_id, newestUserMessageId({ messages: fresh }));
+        /**
+         * A message read by the wrap up is not what the answer answers: the
+         * answer was written for what came before it, and its own queued
+         * reply is the one that reads this. Marking it answered here made
+         * that reply finish silently, with nothing sent for it.
+         */
+        if (counted) answering_id = Math.max(answering_id, newestUserMessageId({ messages: fresh }));
 
         return await messagesToTurns({ messages: fresh, user_id });
     };
@@ -409,6 +417,12 @@ export default async function runBotReply({
      */
     const open_runs = attended ? await grabOpenSessionRuns({ bot_id: bot.id, session_id }) : [];
 
+    /**
+     * What the run may spend: a reply handed a tracker task says when it
+     * used them all (`exhausted`).
+     */
+    const reply_max_steps = await grabReplyMaxToolSteps();
+
     try {
         const result = await runTextLoop({
             system: [
@@ -480,7 +494,13 @@ export default async function runBotReply({
                     session_id,
                     workspace_id,
                     computer_id: computers[0]?.id || null,
-                    onRequest: ({ ref }) => proposals.push(ref),
+                    /**
+                     * A card is answered in a conversation the user follows:
+                     * in a hidden session (a crew request, a hook call, a
+                     * room) nobody sees it, so the bot is told to ask in the
+                     * chat instead of leaving a request hanging.
+                     */
+                    onRequest: attended ? ({ ref }) => proposals.push(ref) : undefined,
                     onShow: ({ ref }) => shown.push(ref),
                 }),
                 /**
@@ -539,7 +559,7 @@ export default async function runBotReply({
                 ...skills.tools,
                 ...knowledge.tools,
             ],
-            max_steps: await grabReplyMaxToolSteps(),
+            max_steps: reply_max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
             context_budget: await grabContextBudgetTokens(),
             bot_id: bot.id,
@@ -561,8 +581,24 @@ export default async function runBotReply({
          * with why instead (`review_note`), and the job fails saying so. The
          * user gets an honest failure, not a claim the app knows is false.
          */
-        if (result.review_note)
+        if (result.review_note) {
+            await dropUnsentQuestions({ refs: proposals });
+
             throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
+        }
+
+        const answer = stripAppRecords({ text: result.text }).trim();
+
+        /**
+         * Nothing said is nothing to send: an empty message lands in the
+         * thread as a bubble with no text, and the user has no idea what
+         * happened. The job fails with why instead, which they do see.
+         */
+        if (!answer && !shown.length && !attachments.length) {
+            await dropUnsentQuestions({ refs: proposals });
+
+            throw new BotJobFatalError(`The run ended without an answer to send.`);
+        }
 
         if (job.id && answering_id) {
             await markReplyAnswered({ job_id: job.id, message_id: answering_id });
@@ -570,7 +606,7 @@ export default async function runBotReply({
 
         return {
             ...withTakeOverRefs({
-                text: stripAppRecords({ text: result.text }),
+                text: answer,
                 refs: [...take_overs, ...proposals, ...plan_refs],
                 shown,
             }),
@@ -578,10 +614,31 @@ export default async function runBotReply({
             tool_log: result.tool_uses,
             task_ids,
             plan_id: on_plan_step ? plan?.id : undefined,
+            /**
+             * A reply handed a tracker task (`params.tracker_task_id`) that
+             * used every step it had stopped short of finishing it: left
+             * alone, the task looked like work still in hand.
+             */
+            exhausted: !isUnlimitedLimit(reply_max_steps) && result.steps > reply_max_steps,
         };
     } finally {
         await extensions.close();
         await browsers.close();
+    }
+}
+
+/**
+ * Cards whose message never went out are deleted: their answer only comes
+ * from the card, so a pending row left behind waits forever and counts as a
+ * question still asked.
+ */
+async function dropUnsentQuestions({ refs }: { refs: string[] }) {
+    for (const ref of refs) {
+        const question_id = Number(/\[question:(\d+)\]/.exec(ref)?.[1] || 0);
+
+        if (!question_id) continue;
+
+        await deleteBotQuestion({ question_id }).catch(() => null);
     }
 }
 

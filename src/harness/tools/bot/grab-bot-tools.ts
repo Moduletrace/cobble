@@ -15,6 +15,7 @@ import askBotTool from "./ask-bot-tool";
 import listAsksTool from "./list-asks-tool";
 import readMessageUsageTool from "./settings/read-message-usage-tool";
 import readSettingsTool from "./settings/read-settings-tool";
+import grabCrewRole from "@/src/functions/backend/db/access/grab-crew-role";
 import type { StorageScope } from "@/src/utils/storage-access";
 
 type Params = {
@@ -88,16 +89,33 @@ export default async function grabBotTools({
     onPropose,
     onTask,
 }: Params): Promise<HarnessTool[]> {
+    const can_manage_crew = (await grabCrewRole({ user_id })) != "member";
+
     return [
         setPictureTool({ user_id, bot_id, scopes, is_coordinator }),
         readSettingsTool(),
         readMessageUsageTool({ session_id }),
-        updateMemoryTool({ user_id, bot_id, workspace_id }),
-        updateInstructionsTool({ user_id, bot_id, workspace_id }),
-        createScheduleTool({ user_id, bot_id, workspace_id, computers }),
+        updateMemoryTool({ user_id, bot_id, workspace_id, can_manage_crew }),
+        ...(can_manage_crew || workspace_id
+            ? [updateInstructionsTool({ user_id, bot_id, workspace_id, can_manage_crew })]
+            : []),
+        /**
+         * A hook call runs on someone else's words: its brief and payload are
+         * fenced as data, so a payload that talks the model round must not be
+         * able to leave a lasting mark on what the bot remembers, how it works
+         * or when it runs. It reads, works and reports; those changes are made
+         * in the conversation it reports into. A routine is the user's own
+         * schedule, and a task run answers the user's own request, so both
+         * keep them.
+         */
+        ...(hooked
+            ? []
+            : [
+                  createScheduleTool({ user_id, bot_id, workspace_id, computers }),
+                  updateScheduleTool({ user_id, bot_id }),
+                  deleteScheduleTool({ user_id, bot_id }),
+              ]),
         listSchedulesTool({ user_id, bot_id }),
-        updateScheduleTool({ user_id, bot_id }),
-        deleteScheduleTool({ user_id, bot_id }),
         ...grabBotHookTools({ user_id, bot_id, session_id, workspace_id, computers, hooked, onPropose }),
         ...(session_id ? [reactToMessageTool({ bot_id, user_id, session_id })] : []),
         /**
