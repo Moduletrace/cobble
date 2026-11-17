@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
@@ -13,6 +13,21 @@ import runTextLoop, {
     stepsLowNote,
     stepsLowWarningLeft,
 } from "./run-text-loop";
+
+/**
+ * A reviewer that threw is logged (`logError`), and the log goes to the
+ * install's database: the "db down" case below left 28 "Reviewing a reply
+ * failed" rows in the dev install, read as a live review failing on every
+ * reply. The log stays out of the database here; every other export of the
+ * logger is kept as it is.
+ */
+const logger = await import("@/src/functions/backend/logger");
+
+mock.module("@/src/functions/backend/logger", () => ({ ...logger, logError: async () => null }));
+
+afterAll(() => {
+    mock.restore();
+});
 
 const candidate: HarnessCandidate = {
     key: "1:m",

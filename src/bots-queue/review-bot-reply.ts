@@ -3,9 +3,10 @@ import grabBotFile from "@/src/functions/backend/db/bot-files/grab-bot-file";
 import grabBotFileScope from "@/src/functions/backend/db/bot-files/grab-bot-file-scope";
 import userReachesFileScope from "@/src/functions/backend/db/bot-files/user-reaches-file-scope";
 import assertUserReachesTask from "@/src/functions/backend/db/tasks/assert-user-reaches-task";
+import grabBotGraphic from "@/src/functions/backend/db/bot-graphics/grab-bot-graphic";
 import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessToolUse } from "@/src/harness/types";
-import replyClaimProblems from "@/src/utils/reply-claim-problems";
+import replyClaimProblems, { AppCardRefTools, type AppCardRefKind } from "@/src/utils/reply-claim-problems";
 import replyRefIds from "@/src/utils/reply-ref-ids";
 import unresolvedSettingRefs from "@/src/utils/unresolved-setting-refs";
 import type { StorageScope } from "@/src/utils/storage-access";
@@ -24,13 +25,16 @@ type Params = {
 
 /**
  * Checks a chat reply's answer against what the app knows before it goes
- * out (`replyClaimProblems`): every file and task it names must exist for
- * the user (as their chips would open them), every setting ref the app can
- * resolve, and work it says is under
+ * out (`replyClaimProblems`): every file, task and graphic it names must
+ * exist for the user (as their chips would open them), every setting ref
+ * the app can resolve, no ref of a card the app adds itself written by hand
+ * (`AppCardRefTools`), and work it says is under
  * way must have been started by this reply or still be open from this
  * conversation. Returns the note that sends the answer back to be written
  * again, or null when it holds up. Bots wrote "I'm scanning now" with the
- * scan's made-up results in the same answer, and the user acted on them.
+ * scan's made-up results in the same answer, and the user acted on them;
+ * one wrote `[suggestion:11]` after the last real one was `[suggestion:10]`
+ * and the user got buttons reading "not available".
  */
 export default async function reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, scopes }: Params) {
     if (!text.trim()) return null;
@@ -49,12 +53,29 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
         if (!reached?.id) missing_task_ids.push(task_id);
     }
 
+    const missing_graphic_ids: number[] = [];
+
+    for (const graphic_id of replyRefIds({ text, kind: "graphic" })) {
+        if (!(await grabBotGraphic({ graphic_id, user_id }))) missing_graphic_ids.push(graphic_id);
+    }
+
+    /**
+     * The cards the app adds under the message itself: any ref of theirs in
+     * the answer was written by the model, since the app's own refs are
+     * added after this check (`withTakeOverRefs`).
+     */
+    const written_card_refs = (Object.keys(AppCardRefTools) as AppCardRefKind[]).flatMap((kind) =>
+        replyRefIds({ text, kind }).map((id) => `[${kind}:${id}]`),
+    );
+
     const problems = replyClaimProblems({
         text,
         tool_uses,
         missing_file_ids,
         missing_task_ids,
         unresolved_setting_refs: unresolvedSettingRefs({ text }),
+        missing_graphic_ids,
+        written_card_refs,
         has_open_work: await hasOpenWork({ bot_id, session_id }),
     });
 

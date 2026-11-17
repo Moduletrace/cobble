@@ -1,9 +1,9 @@
 type Params = {
     text: string;
     /**
-     * The ref's kind, as in `[file:12]` or `[task:20]`.
+     * The ref's kind, as in `[file:12]`, `[task:20]` or `[suggestion:4]`.
      */
-    kind: "file" | "task";
+    kind: "file" | "task" | "suggestion" | "question" | "plan" | "graphic";
 };
 
 /**

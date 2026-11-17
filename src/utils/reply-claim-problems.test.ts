@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { ActionCheckNote } from "@/src/data/harness-prompts";
 import unsupportedAppRecordLines from "./app-record-claims";
-import replyClaimProblems, { WorkStartingTools } from "./reply-claim-problems";
+import replyClaimProblems, { AppCardRefToolNames, WorkStartingTools } from "./reply-claim-problems";
 import { AppRecordPrefix } from "./strip-app-records";
 
 const underWay = "I'm scanning the open contests now. When it's back, I'll create the tasks.";
@@ -166,6 +166,77 @@ I'll report what the run actually finds when it reports back.`;
         });
 
         expect(problems).toEqual([]);
+    });
+
+    /**
+     * The coordinator's replies 641 and 643 ended with `[suggestion:11]` and
+     * `[suggestion:12]`, written by the model after the last real one was
+     * `[suggestion:10]`: neither run called `suggest_next_steps`, no row
+     * existed, and the user read "next steps 11 (not available)".
+     */
+    describe("a card ref the model wrote itself", () => {
+        test("faults it even when the tool that makes the card ran", () => {
+            for (const [kind, tool] of [
+                ["suggestion", "suggest_next_steps"],
+                ["question", "ask_user"],
+                ["plan", "create_plan"],
+            ] as const) {
+                const problems = replyClaimProblems({
+                    text: `Here you go. [${kind}:11]`,
+                    tool_uses: [{ name: tool, ok: true }],
+                    written_card_refs: [`[${kind}:11]`],
+                });
+
+                expect(problems.length).toBe(1);
+                expect(problems[0]).toContain(`[${kind}:11]`);
+                expect(problems[0]).toContain(tool);
+            }
+        });
+
+        test("faults the made-up next steps with no tool called at all", () => {
+            const problems = replyClaimProblems({
+                text: "I've put the next steps below.\n\n[suggestion:11]",
+                tool_uses: [{ name: "generate_image", ok: true }],
+                written_card_refs: ["[suggestion:11]"],
+            });
+
+            expect(problems.length).toBe(1);
+            expect(problems[0]).toContain("suggest_next_steps");
+            expect(problems[0]).toContain("not available");
+        });
+
+        test("the fault note is not itself a ref the model can copy back", () => {
+            const problems = replyClaimProblems({
+                text: "Next steps: [suggestion:11]",
+                tool_uses: [],
+                written_card_refs: ["[suggestion:11]"],
+            });
+
+            const note = problems.join("\n\n");
+
+            expect(replyClaimProblems({ text: note, tool_uses: [], written_card_refs: [] })).toEqual([]);
+        });
+
+        test("an answer with no card ref written passes", () => {
+            expect(
+                replyClaimProblems({
+                    text: "I've put the next steps below.",
+                    tool_uses: [{ name: "suggest_next_steps", ok: true }],
+                }),
+            ).toEqual([]);
+        });
+    });
+
+    test("names a graphic that doesn't exist for the user", () => {
+        const problems = replyClaimProblems({
+            text: "The chart: [graphic:9]",
+            tool_uses: [{ name: "create_graphic", ok: true }],
+            missing_graphic_ids: [9],
+        });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("[graphic:9]");
+        expect(problems[0]).toContain("list_graphics");
     });
 
     test("an answer that holds up has no problems", () => {

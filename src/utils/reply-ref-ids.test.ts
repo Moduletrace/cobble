@@ -12,4 +12,13 @@ describe("replyRefIds", () => {
     test("finds nothing in plain text", () => {
         expect(replyRefIds({ text: "file 301 and task #20", kind: "file" })).toEqual([]);
     });
+
+    test("reads the card refs the app adds and the graphic refs the model writes", () => {
+        const text = "Next steps: [suggestion:11]. Questions in [question:4], the plan in [plan:7], the chart in [graphic:2] and [graphic:2] again.";
+
+        expect(replyRefIds({ text, kind: "suggestion" })).toEqual([11]);
+        expect(replyRefIds({ text, kind: "question" })).toEqual([4]);
+        expect(replyRefIds({ text, kind: "plan" })).toEqual([7]);
+        expect(replyRefIds({ text, kind: "graphic" })).toEqual([2]);
+    });
 });

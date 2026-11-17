@@ -22,6 +22,19 @@ type Params = {
      */
     unresolved_setting_refs?: string[];
     /**
+     * `[graphic:ID]` refs in the text that name no graphic the user can
+     * open: the model writes these itself (`create_graphic` tells it to),
+     * so only a dead one is a fault.
+     */
+    missing_graphic_ids?: number[];
+    /**
+     * Refs of the cards the app adds under the message itself
+     * (`AppCardRefTools`), written in the answer by the model: the app
+     * writes every one of these from the tool that made the card, so a
+     * hand-written one is made up or copied from an earlier message.
+     */
+    written_card_refs?: string[];
+    /**
      * A run of the bot's, a job it handed over or a room it asked, still
      * open from this conversation: its result is still to come.
      */
@@ -37,6 +50,25 @@ type Params = {
 export const WorkStartingTools = ["start_task", "delegate_task", "ask_bot"];
 
 /**
+ * The cards the app puts under a message itself: the tool that makes each
+ * one and what the user reads there. The model is never told to write these
+ * refs, since `withTakeOverRefs` adds the real one from the tool's own
+ * record, so one in its answer is made up or copied: the coordinator wrote
+ * `[suggestion:11]` after the last real one was `[suggestion:10]`, and the
+ * user got buttons reading "not available". Every name here must be one the
+ * harness registers (`tool-name-lists.test.ts`).
+ */
+export const AppCardRefTools = {
+    suggestion: { tool: "suggest_next_steps", card: "next steps" },
+    question: { tool: "ask_user", card: "questions" },
+    plan: { tool: "create_plan", card: "plan" },
+} as const;
+
+export type AppCardRefKind = keyof typeof AppCardRefTools;
+
+export const AppCardRefToolNames = Object.values(AppCardRefTools).map(({ tool }) => tool);
+
+/**
  * What in a reply's answer the app's record contradicts: refs to files or
  * tasks that don't exist, and work said to be under way or a report
  * promised when nothing was started and nothing is open. Empty when the
@@ -49,6 +81,8 @@ export default function replyClaimProblems({
     missing_file_ids = [],
     missing_task_ids = [],
     unresolved_setting_refs = [],
+    missing_graphic_ids = [],
+    written_card_refs = [],
     has_open_work,
 }: Params): string[] {
     const problems: string[] = [];
@@ -68,6 +102,29 @@ export default function replyClaimProblems({
     if (unresolved_setting_refs.length) {
         problems.push(
             `It points at ${unresolved_setting_refs.join(", ")}, which ${unresolved_setting_refs.length == 1 ? "is" : "are"} no setting the app has, so the pill would go nowhere. read_settings lists every setting with the ref to write.`,
+        );
+    }
+
+    if (missing_graphic_ids.length) {
+        problems.push(
+            `It names ${missing_graphic_ids.map((id) => `[graphic:${id}]`).join(", ")}, but no such graphic exists for the user. create_graphic returns the ref to write; list_graphics shows what's there.`,
+        );
+    }
+
+    /**
+     * A card ref the model wrote itself: the app adds every one of these
+     * from the tool that made the card, so a written one is a card that was
+     * never made (the user reads "not available") or a copy of an earlier
+     * message's. Faulting it is something the bot can stop doing: take the
+     * ref out, and call the tool if it wants the card there.
+     */
+    for (const [kind, { tool, card }] of Object.entries(AppCardRefTools)) {
+        const refs = written_card_refs.filter((ref) => ref.toLowerCase().startsWith(`[${kind}:`));
+
+        if (!refs.length) continue;
+
+        problems.push(
+            `It writes ${refs.join(", ")} itself, but only the app writes that ref: ${tool} makes the ${card} and the app puts its ref under your message. A ref written by hand names a card that was never made, which the user reads as "not available", or copies one from an earlier message. Take the ref out of the answer; call ${tool} if the ${card} should be there, and say in words what you mean.`,
         );
     }
 

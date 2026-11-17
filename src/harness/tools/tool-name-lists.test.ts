@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { WrapUpHandOffToolNames, WrapUpSaveToolNames } from "@/src/harness/text/run-text-loop";
 import { WritingToolNames } from "./writing-tool-names";
-import { WorkStartingTools } from "@/src/utils/reply-claim-problems";
+import { AppCardRefToolNames, WorkStartingTools } from "@/src/utils/reply-claim-problems";
 
 /**
  * Tool names written straight into a list go stale when a tool is renamed:
@@ -26,6 +26,7 @@ async function declaredToolNames() {
 
 const Lists: Record<string, readonly string[]> = {
     WorkStartingTools,
+    AppCardRefToolNames,
     WritingToolNames,
     WrapUpSaveToolNames,
     WrapUpHandOffToolNames,
