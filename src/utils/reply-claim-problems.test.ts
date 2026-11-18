@@ -34,6 +34,18 @@ describe("replyClaimProblems", () => {
         expect(replyClaimProblems({ text: underWay, tool_uses: [{ name: "read_file", ok: true }] }).length).toBe(1);
     });
 
+    /**
+     * The reply that told the user it would check the article format and
+     * then went silent: no tool, no run, nothing open.
+     */
+    test("faults a reply that only promised to check, and passes it once a run started", () => {
+        const promised =
+            "You're right to flag that. Let me check what format the existing articles use in the database, then convert if needed.";
+
+        expect(replyClaimProblems({ text: promised, tool_uses: [] }).length).toBe(1);
+        expect(replyClaimProblems({ text: promised, tool_uses: [{ name: "start_task", ok: true }] })).toEqual([]);
+    });
+
     test("names files and tasks that don't exist", () => {
         const problems = replyClaimProblems({
             text: "Saved in [file:301]; see [task:20].",

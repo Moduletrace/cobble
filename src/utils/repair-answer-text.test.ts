@@ -47,4 +47,23 @@ describe("repairAnswerText", () => {
         expect(repaired.changed).toBe(false);
         expect(repaired.text).toBe("The log has three timeouts at 09:12.");
     });
+
+    /**
+     * The reply that told the user it would check the article format and
+     * then went silent: the promise goes, the report stays.
+     */
+    test("takes out the sentence that only promised to check", () => {
+        const repaired = repairAnswerText({
+            text: "Both drafts are saved. Let me check what format the existing articles use in the database, then convert if needed.",
+        });
+
+        expect(repaired.changed).toBe(true);
+        expect(repaired.text).toBe("Both drafts are saved.");
+    });
+
+    test("keeps an answer that is waiting on the user", () => {
+        const repaired = repairAnswerText({ text: "Once you answer I'll run the write and verify it." });
+
+        expect(repaired.changed).toBe(false);
+    });
 });

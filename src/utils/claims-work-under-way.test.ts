@@ -28,6 +28,21 @@ describe("claimsWorkUnderWay", () => {
             "I'm spinning up the build now.",
             "I'm starting it now.",
             "Starting it now.",
+            /**
+             * The shapes that got past the list above: "Let me check" and
+             * "I'll connect and inspect" name work the reply never did,
+             * without the "now" or the "and see" it looked for.
+             */
+            "Let me check the account settings and see what's there.",
+            "Let me take a look at the export.",
+            "I'll take a look at the export.",
+            "I will inspect the table.",
+            "Then I'll check the logs.",
+            "Next, I'll pull the list.",
+            "And then I'll write both articles.",
+            "I'm going to check the logs.",
+            "I'm about to read the export.",
+            "Once I have it, I'll update the workspace context with what I learn.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(true);
         }
@@ -49,6 +64,45 @@ describe("claimsWorkUnderWay", () => {
             "I'm starting to think the brief is wrong.",
             "I started the invoice last week.",
             "Task #48 is doing, nothing is running yet.",
+        ]) {
+            expect(claimsWorkUnderWay({ text })).toBe(false);
+        }
+    });
+
+    /**
+     * Two replies that went out with nothing running and the user left
+     * waiting, both from the same conversation: the first promised to work
+     * the articles, the second to check their format, and neither called a
+     * tool. The lines they have to stay silent on come from the same
+     * export: every one of those is an answer waiting on the user, which
+     * faulting would send back as a lie.
+     */
+    test("catches the replies that promised work and started nothing", () => {
+        for (const text of [
+            "Connection details received. I'll connect and inspect the `articles` table first, then check for existing slugs, then write both articles as drafts.",
+            "You're right to flag that. Let me check what format the existing articles use in the database, then convert if needed.",
+            "I'll re-run the PageSpeed scan now.",
+        ]) {
+            expect(claimsWorkUnderWay({ text })).toBe(true);
+        }
+
+        for (const text of [
+            "I'll carry on when you ask me to.",
+            "Tell me which site to audit and I'll run it and send back a single markdown report.",
+            "If you upload the logo file as a [file:12] I'll set it as the workspace picture right away.",
+            "Once you answer I'll run the write and verify it.",
+            "Once the export is ready I'll check it.",
+            "It's on my list; I'll start when you say.",
+            "or name the piece you want changed and I'll take it from there.",
+            "I'll wait for your answers before touching anything further.",
+            "Let me know which export you mean and I'll check it.",
+            "I'll note the preference in my memory of you.",
+            "I'll check with you before I change anything.",
+            "If it's still not done shortly, the honest move is Stop it and I'll run a leaner version.",
+            "Point me at the spec, and I'll run the full build-and-write in one go.",
+            "say yes and I'll run it.",
+            "If you want the SQL inserts for the two rows, I'll generate them and you can run them.",
+            "First the counts, then I'll pull the list.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(false);
         }

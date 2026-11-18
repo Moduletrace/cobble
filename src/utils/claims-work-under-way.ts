@@ -40,10 +40,71 @@ const UnderWayPatterns = [
 ];
 
 /**
+ * The work a promise is about. Only words for work: "I'll keep that in
+ * mind", "I'll use the navy palette" and "I'll take it from there" are an
+ * answer talking about itself, not work that never starts.
+ */
+const WorkVerb =
+    "(?:re-)?(?:check|look|see|verify|inspect|connect|query|convert|read|open|run|pull|grab|fetch|write|draft|update|fix|review|scan|search|dig|trace|test|build|deploy|export|import|compare|audit|generate|create)";
+
+/**
+ * A promise in one of its shapes, read a sentence at a time:
+ * "Let me check what format the articles use, then convert if needed"
+ * and "I'll connect and inspect the table first, then write both
+ * articles" both went out with no run behind them, and `UnderWayPatterns`
+ * passed them: `connect` was not one of its verbs, and neither sentence
+ * had the "now" or the "and see" its first verb needed.
+ *
+ * Only the sentence's own opening counts, and only when the whole
+ * sentence is the commitment. "Point me at the spec and I'll run it" and
+ * "if it's still stuck, Stop it and I'll run a leaner version" are the
+ * user's to unlock, and flagging them would take the offer away from the
+ * answer that was waiting exactly as it should.
+ */
+const PromisePatterns = [
+    new RegExp(`^\\s*let me (?:${WorkVerb}|take a (?:quick )?look|have a (?:quick )?look)\\b`, "i"),
+    new RegExp(
+        `^\\s*(?:and\\s+)?(?:then|next|after that|first)?,?\\s*I(?:(?:'|’)ll| will) (?:also |now |just )?(?:${WorkVerb}|take a (?:quick )?look|have a (?:quick )?look)\\b`,
+        "i",
+    ),
+    new RegExp(
+        `^\\s*(?:once|when|after|as soon as)\\b[^,.]{0,80},\\s*(?:then\\s+)?I(?:(?:'|’)ll| will) (?:also |now |just )?${WorkVerb}\\b`,
+        "i",
+    ),
+    new RegExp(`\\bI(?:'|’)?m (?:going|about) to ${WorkVerb}\\b`, "i"),
+];
+
+/**
+ * Sentences where a promise is the user's to unlock, so nothing is
+ * missing: "once you answer I'll run it", "say the word and I'll check",
+ * "I'll wait for your answers". Sent back as a lie, each of these was an
+ * answer waiting on the user exactly as it should.
+ */
+const GatedPatterns = [
+    /\b(?:if|when|once|whenever|after|as soon as|unless) you\b/i,
+    /\bonce (?:it|that|this|they|the)\b/i,
+    /\b(?:tell|show|give|send) me\b/i,
+    /\blet me know\b/i,
+    /\bsay the word\b/i,
+    /\bgo-ahead\b/i,
+    /\bwaiting for (?:you|your)\b/i,
+    /\bask me\b/i,
+    /\bwhichever you\b/i,
+    /\bcheck with you\b/i,
+];
+
+/**
  * True when the answer says work is under way beyond it or that a report
- * will follow (`UnderWayPatterns`). Only a started run makes that true,
- * so a reply that says it without one is sent back (`reviewBotReply`).
+ * will follow (`UnderWayPatterns`), or promises work it is not doing
+ * (`PromisePatterns`). Only a started run makes that true, so a reply that
+ * says it without one is sent back (`reviewBotReply`).
  */
 export default function claimsWorkUnderWay({ text }: Params) {
-    return UnderWayPatterns.some((pattern) => pattern.test(text));
+    if (UnderWayPatterns.some((pattern) => pattern.test(text))) return true;
+
+    return text.split(/(?<=[.!?])\s+|\n/).some((sentence) => {
+        if (GatedPatterns.some((pattern) => pattern.test(sentence))) return false;
+
+        return PromisePatterns.some((pattern) => pattern.test(sentence));
+    });
 }
