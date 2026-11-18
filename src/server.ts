@@ -14,6 +14,7 @@ import migrateLlmLogs from "./functions/backend/db/logs/migrate-llm-logs";
 import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
 import migrateChatroomsToAsks from "./functions/backend/db/bot-sessions/migrate-chatrooms-to-asks";
 import migrateHookSilence from "./functions/backend/db/bot-hooks/migrate-hook-silence";
+import adoptChattedHookSessions from "./functions/backend/db/bot-hooks/adopt-chatted-hook-sessions";
 import dropStoredFileText from "./functions/backend/db/stored-text/drop-stored-file-text";
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
 import flushBootLogs from "./functions/backend/backups/flush-boot-logs";
@@ -55,6 +56,9 @@ await migrateChatroomsToAsks().catch((error) =>
 );
 await migrateHookSilence().catch((error) =>
     logError({ title: "Could not make the existing hooks silent", error }).catch(() => {}),
+);
+await adoptChattedHookSessions().catch((error) =>
+    logError({ title: "Could not hand the hooks' used threads to their users", error }).catch(() => {}),
 );
 await dropStoredFileText().catch((error) =>
     logError({ title: "Could not drop the stored file text", error }).catch(() => {}),

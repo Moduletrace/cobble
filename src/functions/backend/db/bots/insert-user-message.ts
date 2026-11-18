@@ -5,6 +5,7 @@ import type {
 } from "@/db/types/db";
 import type { BotMessageWithAttachments } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
+import adoptHookSession from "../bot-sessions/adopt-hook-session";
 import mediaToAttachment from "./media-to-attachment";
 
 type Params = {
@@ -60,6 +61,17 @@ export default async function insertUserMessage({
     client_id,
 }: Params): Promise<BotMessageWithAttachments> {
     const now = Date.now();
+
+    /**
+     * The user writing in a silent hook's thread makes it theirs before
+     * anything is pushed: the message is theirs to see arrive, and their
+     * conversation's, not the hook's runs'. A crew request's outcome and an
+     * install request's answer ride the user's side of a conversation but
+     * are not the user writing, so they leave the thread where it is.
+     */
+    if (!from_ask_id && !from_install_request_id) {
+        await adoptHookSession({ session_id });
+    }
 
     const res = await BunSQLite.insert<
         BUN_SQLITE_COBBLE_BOT_MESSAGES,
