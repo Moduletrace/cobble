@@ -1,8 +1,8 @@
 import type { BUN_SQLITE_COBBLE_BOT_SESSIONS } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
+import activateBotSession from "./activate-bot-session";
 import grabUserBotSession from "./grab-user-bot-session";
-import deleteSessionRows from "./delete-session-rows";
 
 type Params = {
     session_id: number | string;
@@ -12,8 +12,8 @@ type Params = {
 /**
  * Makes a closed session of one of the user's conversations the active
  * one again, so the bot carries on from where it left off. The session
- * that was active is closed (an empty one is deleted). A session the bot
- * moved the conversation on from is never reopened.
+ * that was active is closed (an empty one is deleted, `activateBotSession`).
+ * A session the bot moved the conversation on from is never reopened.
  */
 export default async function reopenBotSession({
     session_id,
@@ -30,7 +30,7 @@ export default async function reopenBotSession({
     /**
      * A bot's part of a crew request is only ever read there.
      */
-    if (session.ask_id || session.hook_id) {
+    if (session.ask_id) {
         throw new AppError(`Session not found.`);
     }
 
@@ -50,33 +50,5 @@ export default async function reopenBotSession({
         throw new AppError(`This conversation moved on to a newer session, so this one stays closed. You can still read it.`);
     }
 
-    const now = Date.now();
-    const workspace_id = session.workspace_id || null;
-
-    /**
-     * The empty one goes with its own rows (`deleteSessionRows`): a job it
-     * still held would otherwise point at a session that is gone.
-     */
-    const emptied = (
-        await BunSQLite.sql<{ id: number }>({
-            sql: `SELECT id FROM bot_sessions WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND status = 'active'
-                AND NOT EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = bot_sessions.id)`,
-            values: [session.user_id!, session.bot_id!, workspace_id],
-        })
-    ).payload || [];
-
-    await deleteSessionRows({ session_ids: emptied.map((row) => Number(row.id)) });
-
-    await BunSQLite.sql({
-        sql: `UPDATE bot_sessions SET status = 'closed', unread = 0, updated_at = ?
-            WHERE user_id = ? AND bot_id = ? AND workspace_id IS ? AND status = 'active'`,
-        values: [now, session.user_id!, session.bot_id!, workspace_id],
-    });
-
-    await BunSQLite.sql({
-        sql: `UPDATE bot_sessions SET status = 'active', updated_at = ? WHERE id = ?`,
-        values: [now, session.id],
-    });
-
-    return { ...session, status: "active", updated_at: now };
+    return await activateBotSession({ session });
 }

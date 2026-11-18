@@ -4,7 +4,7 @@ import wakeBotsQueue from "@/src/bots-queue/wake-bots-queue";
 import logEvent, { logError } from "@/src/functions/backend/logger";
 import nextCronRun from "@/src/utils/next-cron-run";
 import safeErrorMessage from "@/src/utils/safe-error-message";
-import ensureBotSession from "../bot-sessions/ensure-bot-session";
+import ensureRoutineSession from "../bot-sessions/ensure-routine-session";
 import enqueueBotJob from "../bots-queue/enqueue-bot-job";
 import isBotJobOpen from "../bots-queue/is-bot-job-open";
 import grabBotComputers from "../computers/grab-bot-computers";
@@ -17,7 +17,8 @@ type Params = {
 /**
  * Runs one due schedule: moves it to its next run (claimed atomically, so
  * a run is never queued twice), then queues its brief as a task in the
- * bot's active session there, on its computer or the bot's current one.
+ * routine's own session there (`ensureRoutineSession`, never the active
+ * chat), on its computer or the bot's current one.
  * A run is skipped while the last one is still queued or working. It
  * turns itself off once it has no next run or has done its `max_runs`.
  * Why a run couldn't be queued is kept in `last_error`.
@@ -48,11 +49,7 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
             return;
         }
 
-        const session = await ensureBotSession({
-            user_id: cron_job.user_id!,
-            bot_id: cron_job.bot_id!,
-            workspace_id: cron_job.workspace_id || null,
-        });
+        const session_id = await ensureRoutineSession({ cron_job });
 
         const computer_id =
             cron_job.computer_id ||
@@ -66,7 +63,7 @@ export default async function fireCronJob({ cron_job, now = Date.now() }: Params
         const job_id = await enqueueBotJob({
             user_id: cron_job.user_id!,
             bot_id: cron_job.bot_id!,
-            session_id: session.id!,
+            session_id,
             title: cron_job.title || "Scheduled task",
             instructions: `${cron_job.instructions || ""}\n\nThis is a scheduled run of your schedule #${id} (\`${schedule}\`, UTC). Do the work; don't create another schedule for it.`,
             params: { schedule_id: id, schedule, run: Number(cron_job.run_count || 0) + 1 },

@@ -1,6 +1,8 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { AppData } from "@/src/data/app-data";
 import type { BotSessionListItem } from "@/src/types";
+import followedSessionSql from "./followed-session-sql";
+import visibleSessionSql from "./visible-session-sql";
 
 type Params = {
     /**
@@ -18,12 +20,19 @@ type Params = {
      * How many to return; a page by default.
      */
     limit?: number;
+    /**
+     * Leave out a silent hook's thread, which the rail doesn't list (it's
+     * read in the sessions modal and on the hook itself).
+     */
+    attended_only?: boolean;
 };
 
 /**
- * A user's conversation's sessions for the sessions modal, latest activity first,
- * each with its message count and latest message. Empty sessions are left
- * out unless active.
+ * A user's conversation's sessions for the sessions modal, latest activity
+ * first, each with its message count, latest message and the routine or
+ * hook that runs in it. Empty sessions are left out unless active. A
+ * routine's and a hook's threads are ordinary sessions, so the user can
+ * open and chat in them; only a crew request's is hidden.
  */
 export default async function grabBotSessions({
     user_id,
@@ -32,6 +41,7 @@ export default async function grabBotSessions({
     query,
     page = 1,
     limit,
+    attended_only,
 }: Params): Promise<BotSessionListItem[]> {
     const search = query?.trim();
     const like = search ? `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
@@ -41,9 +51,14 @@ export default async function grabBotSessions({
 
     sql += `SELECT s.*,\n`;
     sql += `    (SELECT COUNT(*) FROM bot_messages m WHERE m.session_id = s.id) AS message_count,\n`;
-    sql += `    (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text\n`;
+    sql += `    (SELECT m.text FROM bot_messages m WHERE m.session_id = s.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_text,\n`;
+    sql += `    (SELECT c.title FROM cron_jobs c WHERE c.id = s.routine_id) AS routine_title,\n`;
+    sql += `    (SELECT h.title FROM bot_hooks h WHERE h.id = s.hook_id) AS hook_title\n`;
     sql += `FROM bot_sessions s\n`;
-    sql += `WHERE s.user_id = ? AND s.bot_id = ? AND s.workspace_id IS ? AND s.ask_id IS NULL AND s.hook_id IS NULL\n`;
+    sql += `WHERE s.user_id = ? AND s.bot_id = ? AND s.workspace_id IS ?\n`;
+
+    sql += `AND ${attended_only ? followedSessionSql({ alias: "s" }) : visibleSessionSql({ alias: "s" })}\n`;
+
     sql += `AND (s.status = 'active' OR EXISTS (SELECT 1 FROM bot_messages m WHERE m.session_id = s.id))\n`;
 
     if (like) {

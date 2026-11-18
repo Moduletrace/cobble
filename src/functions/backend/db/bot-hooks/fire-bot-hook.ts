@@ -49,7 +49,8 @@ export type FireBotHookResult = {
 
 /**
  * Takes one call to a hook: records it, then gives it to its bot as a task
- * in the hook's own hidden session (`ensureHookSession`). A call while the hook's last run is
+ * in the hook's own thread (`ensureHookSession`: silent hooks keep it out of
+ * sight, the others take the conversation over for the run). A call while the hook's last run is
  * still waiting (queued, never tried) joins that run's brief instead, up
  * to `AppData.BotHookMaxEventsPerRun` calls, so a burst makes one run and
  * none is lost; once a run has started, the next call queues a new one.

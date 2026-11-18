@@ -28,6 +28,12 @@ type Params = {
          */
         watch_filter?: string;
         /**
+         * True: its runs stay in its own thread, pushed nowhere and off the
+         * bot's face. False: each run takes over the conversation, in a
+         * session the user sees and can chat in.
+         */
+        silent?: boolean;
+        /**
          * Where it runs from now, with the same bot: one of its
          * workspaces, or null for its own chat.
          */
@@ -38,7 +44,8 @@ type Params = {
 /**
  * Changes one of the user's hooks: its name and brief, pauses or resumes
  * it, sets how its calls are signed or, for browser notifications, which
- * ones it takes, or moves it to another of its bot's places. Its token stays (rotate it with `rotateBotHookToken`). A move
+ * ones it takes, whether its runs take over the conversation or stay in
+ * their own thread, or moves it to another of its bot's places. Its token stays (rotate it with `rotateBotHookToken`). A move
  * is refused while its last run is open (a call could still join it
  * there); its computer stays only if the bot reaches it in the new place,
  * and a notification hook can't go where its watched computer isn't.
@@ -63,6 +70,8 @@ export default async function updateBotHook({ user_id, hook_id, data }: Params) 
         set("enabled", data.enabled ? 1 : 0);
         if (data.enabled) set("last_error", null);
     }
+
+    if (data.silent !== undefined) set("silent", data.silent ? 1 : 0);
 
     const watching = hook.source == "browser_notifications";
 

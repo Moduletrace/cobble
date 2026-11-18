@@ -33,7 +33,8 @@ db.run(`ALTER TABLE bot_sessions ADD COLUMN ask_id INTEGER`);
 db.run(`INSERT INTO bot_sessions (id, user_id, bot_id, workspace_id, title, ask_id) VALUES (6, 1, 10, NULL, 'A crew request', 3)`);
 db.run(`INSERT INTO bot_messages (id, session_id, author, text) VALUES (9, 6, 'bot', 'Acme invoice asked in a crew request')`);
 /**
- * A hook's hidden session: read in its thread, never a past session.
+ * A hook's thread: an ordinary session of the conversation now, so a
+ * search can read it too.
  */
 db.run(`ALTER TABLE bot_sessions ADD COLUMN hook_id INTEGER`);
 db.run(`INSERT INTO bot_sessions (id, user_id, bot_id, workspace_id, title, hook_id) VALUES (7, 1, 10, NULL, 'A hook', 4)`);
@@ -53,7 +54,7 @@ function ids(params: Partial<SearchPastSessionsParams>) {
 
 describe("searchPastSessionsSql", () => {
     test("finds only this conversation's earlier sessions, newest first", () => {
-        expect(ids({ query: "acme invoice" })).toEqual([2, 1]);
+        expect(ids({ query: "acme invoice" })).toEqual([10, 2, 1]);
     });
 
     test("keeps the workspace's conversation apart from the bot's own chat", () => {

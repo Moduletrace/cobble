@@ -13,7 +13,8 @@ import type {
 
 /**
  * The sessions of one of the session user's conversations, latest first,
- * searched by title, summary or message text.
+ * searched by title, summary or message text. `attended_only` leaves out a
+ * silent hook's thread, for the rail.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<BotSessionListItem>
@@ -29,7 +30,7 @@ export const handler: BunextAPIRouteHandler<
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
 
-        const { bot_id, workspace_id, query, page, limit } = parseWithSchema({
+        const { bot_id, workspace_id, query, page, limit, attended_only } = parseWithSchema({
             schema: ListBotSessionsRequestSchema,
             data: body,
         });
@@ -45,6 +46,7 @@ export const handler: BunextAPIRouteHandler<
                 query,
                 page,
                 limit,
+                attended_only,
             }),
         };
     } catch (error: unknown) {

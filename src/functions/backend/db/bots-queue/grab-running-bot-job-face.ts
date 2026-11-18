@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BotFace } from "@/src/dict/bot-dict";
 import { BotReplyJobTitle } from "@/src/dict/bot-queue-dict";
 import taskStatusLine from "@/src/utils/task-status-line";
+import followedSessionSql from "../bot-sessions/followed-session-sql";
 
 type Params = {
     bot_id: number | string;
@@ -16,7 +17,7 @@ type Params = {
  * still running: thinking while a reply runs (it's short, and its chat
  * needs the row), else working on a task (in its workspace, if it runs in
  * one). Null when none is running. Work in a crew request's hidden session
- * or a hook's thread never counts: it shows there, never on the face.
+ * or a silent hook's thread never counts: it shows there, never on the face.
  */
 export default async function grabRunningBotJobFace({
     bot_id,
@@ -27,7 +28,7 @@ export default async function grabRunningBotJobFace({
             sql: `SELECT q.kind, w.name AS workspace_name FROM bots_queue q
                 LEFT JOIN workspaces w ON w.id = q.workspace_id
                 WHERE q.bot_id = ? AND q.status = 'processing'
-                AND q.session_id IN (SELECT id FROM bot_sessions WHERE user_id = ? AND hook_id IS NULL AND ask_id IS NULL)
+                AND q.session_id IN (SELECT id FROM bot_sessions WHERE user_id = ? AND ${followedSessionSql()})
                 ORDER BY q.id`,
             values: [bot_id, user_id],
         })

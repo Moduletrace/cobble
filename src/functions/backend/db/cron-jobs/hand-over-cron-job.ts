@@ -108,6 +108,11 @@ export default async function handOverCronJob({
         throw new AppError(`Couldn't hand the routine over: ${res.msg || res.error}`);
     }
 
+    await BunSQLite.sql({
+        sql: `UPDATE bot_sessions SET routine_id = NULL, updated_at = ? WHERE routine_id = ?`,
+        values: [Date.now(), cron_job.id!],
+    });
+
     const session = await ensureBotSession({ user_id, bot_id: bot.id, workspace_id: run_workspace_id });
 
     await pushBotNotice({

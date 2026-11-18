@@ -9,8 +9,8 @@ type Params = {
 /**
  * The session one bot keeps its part of an ask in: the coordinator's review,
  * then the asked bot's incoming brief and answer. Hidden from every
- * conversation and session list (`visibleSessionSql`), and never opened by a
- * user.
+ * conversation and session list (`isHiddenSession`, and the `ask_id IS NULL`
+ * in `followedSessionSql`), and never opened by a user.
  */
 export default async function ensureAskSession({ ask, bot_id }: Params): Promise<BUN_SQLITE_COBBLE_BOT_SESSIONS> {
     const existing = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_SESSIONS>({

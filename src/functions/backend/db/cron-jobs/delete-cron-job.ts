@@ -12,9 +12,20 @@ type Params = {
 
 /**
  * Deletes one of the user's schedules. A run already queued carries on.
+ * The sessions its runs held stay, as the user's own threads (they're
+ * ordinary sessions once no routine owns them).
  */
 export default async function deleteCronJob({ user_id, cron_job_id, bot_id }: Params) {
     const cron_job = await grabUserCronJob({ user_id, cron_job_id, bot_id });
+
+    const detached = await BunSQLite.sql({
+        sql: `UPDATE bot_sessions SET routine_id = NULL, updated_at = ? WHERE routine_id = ?`,
+        values: [Date.now(), cron_job.id!],
+    });
+
+    if (!detached.success) {
+        throw new Error(`Couldn't detach the routine's sessions: ${detached.error}`);
+    }
 
     const res = await BunSQLite.sql({
         sql: `DELETE FROM cron_jobs WHERE id = ?`,

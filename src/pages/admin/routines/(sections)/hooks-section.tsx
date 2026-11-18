@@ -108,7 +108,7 @@ export default function HooksSection() {
                                 id: hook.id,
                                 path: "hooks/delete-hook",
                                 body: { hook_id: hook.id },
-                                confirm: `Delete the hook "${hook.title}"? Its URL stops working; a run already started carries on.`,
+                                confirm: `Delete the hook "${hook.title}"? Its URL stops working, and its calls are forgotten; a run already started carries on, and its thread stays in the bot's sessions.`,
                             })
                         }
                     />

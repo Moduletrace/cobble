@@ -26,8 +26,9 @@ type Props = {
 };
 
 /**
- * One hook: its bot's avatar, its name (Paused when it is), which opens
- * it, what calls it, how often it ran and when it was last called, then Pause or Resume,
+ * One hook: its bot's avatar, its name (Paused, Silent when it is silent
+ * about its runs), which opens it, what calls it, how often it ran and
+ * when it was last called, then Pause or Resume,
  * Edit, Calls, New URL (not for notification hooks: their URL is never
  * shown) and Delete.
  */
@@ -45,7 +46,7 @@ export default function HookRow({ hook, busy, onOpen, onToggle, onEdit, onCalls,
             }
             title={title}
             onOpen={onOpen}
-            badge={hook.enabled ? undefined : "Paused"}
+            badge={hook.enabled ? (hook.silent ? "Silent" : undefined) : "Paused"}
             subtitle={hookSubtitle({ hook, show_bot: !compact, show_workspace: !compact })}
         >
             <SettingsRowAction

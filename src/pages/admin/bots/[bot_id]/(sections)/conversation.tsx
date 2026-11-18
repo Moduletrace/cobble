@@ -557,6 +557,7 @@ export default function Conversation() {
                                         voice={pageProps?.bot_voice}
                                         has_browsers={Boolean(pageProps?.has_browsers)}
                                         max_chars={pageProps?.message_max_chars}
+                                        session_id={session_id}
                                         previous_messages={thread_messages}
                                         reply_to={reply_to}
                                         onCancelReply={() => setReplyTo(null)}

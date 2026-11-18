@@ -16,6 +16,11 @@ type Params = {
      */
     limit?: number;
     /**
+     * Leave out a silent hook's thread: the rail lists only what the user
+     * follows.
+     */
+    attended_only?: boolean;
+    /**
      * Reloads the list whenever it changes (the session the page shows,
      * which loading it may have reopened).
      */
@@ -56,7 +61,7 @@ function belongsToConversation({
  * session started in the conversation (or named once its first reply is
  * in) shows without a reload.
  */
-export default function useBotSessions({ bot_id, workspace_id, open, limit, refresh_key }: Params) {
+export default function useBotSessions({ bot_id, workspace_id, open, limit, attended_only, refresh_key }: Params) {
     const [query, setQuery] = useState("");
     const [sessions, setSessions] = useState<BotSessionListItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -97,7 +102,7 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit, refr
 
             const res = await postSessionApi<BotSessionListItem>({
                 path: "list-sessions",
-                body: { bot_id, workspace_id, query: query.trim() || undefined, limit },
+                body: { bot_id, workspace_id, query: query.trim() || undefined, limit, attended_only },
             }).catch(() => null);
 
             if (stale) return;
@@ -116,7 +121,7 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit, refr
             stale = true;
             clearTimeout(timer);
         };
-    }, [open, query, bot_id, workspace_id, limit, revision, refresh_key]);
+    }, [open, query, bot_id, workspace_id, limit, attended_only, revision, refresh_key]);
 
     const act = async ({ id, path, body }: { id: number | "new"; path: "new-session" | "reopen-session"; body: Record<string, unknown> }) => {
         if (busy_id) return;

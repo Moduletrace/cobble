@@ -28,6 +28,7 @@ export default function RailBotSessions({ bot, workspace_id }: Props) {
         workspace_id,
         open: true,
         limit: AppData.RailRecentSessions + 1,
+        attended_only: true,
         refresh_key: on_screen ? `${on_screen.id}:${on_screen.status}` : null,
     });
     const recent = sessions.sessions.slice(0, AppData.RailRecentSessions);

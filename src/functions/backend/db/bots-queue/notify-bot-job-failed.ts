@@ -10,7 +10,7 @@ import grabJobUserId from "./grab-job-user-id";
 import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
 import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
 import onAskJobEnded from "../asks/on-ask-job-ended";
-import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
+import isUnattendedHookSession from "../bot-hooks/is-unattended-hook-session";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import jobTrackerTaskId from "./job-tracker-task-id";
 import pauseFailedPlanStep from "../bot-plans/pause-failed-plan-step";
@@ -91,12 +91,13 @@ export default async function notifyBotJobFailed({
     if (paused_plan) await pushBotPlan(paused_plan);
 
     /**
-     * A hook's run is followed by nobody, so it never shows on the bot's
-     * face. A crew request's does: the bot answering it is working.
+     * A silent hook's run is followed by nobody, so it never shows on the
+     * bot's face. A crew request's does, and so does a hook that isn't
+     * silent: the bot answering it is working.
      */
-    const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }));
+    const unattended = await isUnattendedHookSession({ session_id: job.session_id });
 
-    const bot = user_id && !in_hook
+    const bot = user_id && !unattended
         ? await setBotFace({
               bot_id: job.bot_id,
               user_id,

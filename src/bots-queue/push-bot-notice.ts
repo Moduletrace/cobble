@@ -7,7 +7,7 @@ import pushBotUpdated from "./push-bot-updated";
 import pushToSessionUser from "./push-to-session-user";
 import withSessionMessageTasks from "./with-session-message-tasks";
 import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
-import grabSessionHookId from "@/src/functions/backend/db/bot-hooks/grab-session-hook-id";
+import isUnattendedHookSession from "@/src/functions/backend/db/bot-hooks/is-unattended-hook-session";
 
 type Params = {
     bot_id: number | string;
@@ -33,9 +33,10 @@ type Params = {
  * Pushes a new bot message to the open tabs of the user whose
  * conversation it's in, and a face change to the user it's for
  * (`pushBotUpdated`). A relayed report goes to the conversation it was
- * posted in. A message in a hidden session (a crew request's, a hook's) is
- * pushed nowhere: those are read in their own place. Best effort: a push
- * that fails is logged and never fails the job that made the change.
+ * posted in. A message in a hidden session (a crew request's, or a silent
+ * hook's thread) is pushed nowhere: those are read in their own place.
+ * Best effort: a push that fails is logged and never fails the job that
+ * made the change.
  */
 export default async function pushBotNotice({ bot_id, message, bot, relay, quiet_push }: Params) {
     try {
@@ -52,14 +53,14 @@ export default async function pushBotNotice({ bot_id, message, bot, relay, quiet
 async function push({ bot_id, message, bot, relay, quiet_push }: Params) {
     /**
      * A message in a hidden session goes to no conversation and no
-     * notification: a hook run's result is read in the hook's thread
-     * (which reloads from `server:hook-call-updated`), and a crew request's
-     * is read by the bots working it.
+     * notification: a silent hook's result is read in its thread (which
+     * reloads from `server:hook-call-updated`), and a crew request's is
+     * read by the bots working it.
      */
     const hidden =
         message &&
         (Boolean(await grabSessionAskId({ session_id: Number(message.session_id) })) ||
-            Boolean(await grabSessionHookId({ session_id: message.session_id })));
+            (await isUnattendedHookSession({ session_id: message.session_id })));
 
     if (message && !hidden) {
         await pushToSessionUser({

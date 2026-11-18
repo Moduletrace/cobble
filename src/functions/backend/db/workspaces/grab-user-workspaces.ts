@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { WorkspaceWithActivity } from "@/src/types";
 import workspacesSql from "@/src/utils/crew-access/workspaces-sql";
 import grabCrewRole from "../access/grab-crew-role";
+import followedSessionSql from "../bot-sessions/followed-session-sql";
 
 type Params = {
     user_id: number | string;
@@ -19,8 +20,8 @@ export default async function grabUserWorkspaces({
 
     const res = await BunSQLite.sql<WorkspaceWithActivity>({
         sql: `SELECT w.*,
-                COALESCE((SELECT MAX(s.unread) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.ask_id IS NULL AND s.hook_id IS NULL), 0) AS unread,
-                (SELECT MAX(s.last_activity_at) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND s.ask_id IS NULL AND s.hook_id IS NULL) AS last_activity_at,
+                COALESCE((SELECT MAX(s.unread) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND ${followedSessionSql({ alias: "s" })}), 0) AS unread,
+                (SELECT MAX(s.last_activity_at) FROM bot_sessions s WHERE s.workspace_id = w.id AND s.user_id = ? AND ${followedSessionSql({ alias: "s" })}) AS last_activity_at,
                 (SELECT v.visited_at FROM workspace_user_visits v WHERE v.workspace_id = w.id AND v.user_id = ?) AS last_visited_at
             FROM workspaces w
             WHERE w.archived = 0 AND ${access.sql}

@@ -13,7 +13,7 @@ import parseJobJson from "@/src/bots-queue/parse-job-json";
 import stopAsk from "../asks/stop-ask";
 import stopAsks from "../asks/stop-asks";
 import grabOpenAskBySession from "../asks/grab-open-ask-by-session";
-import grabSessionHookId from "../bot-hooks/grab-session-hook-id";
+import isUnattendedHookSession from "../bot-hooks/is-unattended-hook-session";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
 
@@ -181,10 +181,10 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
 
     for (const [session_id, job] of pickReportedJobs({ jobs })) {
         /**
-         * A hook's call says it was stopped in its thread
-         * (`recordHookCallResponse`).
+         * A silent hook's call says it was stopped in its thread
+         * (`recordHookCallResponse`), nowhere the user reads.
          */
-        if (await grabSessionHookId({ session_id })) continue;
+        if (await isUnattendedHookSession({ session_id })) continue;
 
         const message = await insertBotMessage({
             bot_id: Number(bot_id),

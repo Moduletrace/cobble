@@ -45,10 +45,6 @@ export default async function createAsk({
         throw new AppError(`That request doesn't come from this bot's conversation.`);
     }
 
-    if (origin.hook_id) {
-        throw new AppError(`A hook call can't ask the crew.`);
-    }
-
     const workspace_id = origin.workspace_id || null;
     const askable = await askableBots({
         user_id,

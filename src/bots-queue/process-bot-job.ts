@@ -13,7 +13,7 @@ import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "@/src/harness/harness-error";
 import deferBotJob from "@/src/functions/backend/db/bots-queue/defer-bot-job";
 import recordBotHookFailure from "@/src/functions/backend/db/bot-hooks/record-bot-hook-failure";
-import grabSessionHookId from "@/src/functions/backend/db/bot-hooks/grab-session-hook-id";
+import isUnattendedHookSession from "@/src/functions/backend/db/bot-hooks/is-unattended-hook-session";
 import recordCronJobFailure from "@/src/functions/backend/db/cron-jobs/record-cron-job-failure";
 import scheduledRunRetryAt from "@/src/utils/scheduled-run-retry-at";
 import {
@@ -101,14 +101,16 @@ export default async function processBotJob({
     const user_id = await grabJobUserId({ job }).catch(() => null);
 
     /**
-     * A crew request's session and a hook's run are hidden: neither is
-     * ever named. A hook's run changes no face (nobody follows it); a
-     * request's does, so the bot it was passed to shows its work.
+     * A crew request's session is hidden and is never named. A silent
+     * hook's thread is followed by nobody either: its runs change no face
+     * (a hook that isn't silent takes the conversation over, so its runs
+     * show like any other); a request's does, so the bot it was passed to
+     * shows its work.
      */
     const in_ask = Boolean(
         await grabSessionAskId({ session_id: Number(job.session_id) }).catch(() => null),
     );
-    const in_hook = Boolean(await grabSessionHookId({ session_id: job.session_id }).catch(() => null));
+    const unattended = await isUnattendedHookSession({ session_id: job.session_id }).catch(() => false);
 
     if (controller.signal.aborted) {
         unregisterJobAbort({ job_id });
@@ -132,7 +134,7 @@ export default async function processBotJob({
      * leave a bot that shows work with nothing behind it.
      */
     const setFace = async (face: Omit<Parameters<typeof setBotFace>[0], "bot_id" | "user_id">) => {
-        if (!user_id || in_hook || controller.signal.aborted) return;
+        if (!user_id || unattended || controller.signal.aborted) return;
 
         await pushBotNotice({ bot_id, bot: await setBotFace({ bot_id, user_id, ...face }) });
     };
@@ -346,7 +348,7 @@ export default async function processBotJob({
          * job to name. Tasks name too: a session the coordinator's
          * delegation or a routine opened has no reply to name it.
          */
-        if (!in_ask && !in_hook && completion.message?.session_id) {
+        if (!in_ask && completion.message?.session_id) {
             /**
              * The message's session, not the job's as it was claimed: a
              * reply that moved the conversation on answered in the new one.

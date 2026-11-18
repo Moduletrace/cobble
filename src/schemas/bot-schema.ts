@@ -64,6 +64,13 @@ export const SendBotMessageRequestSchema = z.object({
      */
     reply_to_message_id: z.coerce.number().int().positive().nullish(),
     /**
+     * The session the thread shows (`?session_id=`), when it isn't the
+     * conversation's active one: the message lands there, reopening it
+     * first, so a routine's or a hook's thread is chatted in as shown
+     * rather than in whichever session was active.
+     */
+    session_id: z.coerce.number().int().positive().nullish(),
+    /**
      * The composer's own id for this send, so a send whose answer never
      * arrived is recognised as the message already stored instead of
      * being posted a second time.
@@ -174,6 +181,11 @@ export const ListBotSessionsRequestSchema = BotConversationRequestSchema.extend(
      * A handful for the rail's sub-list; the modal leaves it out for a page.
      */
     limit: z.coerce.number().int().positive().max(AppData.BotSessionsPageSize).optional(),
+    /**
+     * Leave out a silent hook's thread: the rail lists only sessions the
+     * user follows. The sessions modal lists them all.
+     */
+    attended_only: z.boolean().optional(),
 });
 
 export type ListBotSessionsRequest = z.infer<typeof ListBotSessionsRequestSchema>;

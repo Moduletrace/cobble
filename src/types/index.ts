@@ -125,6 +125,10 @@ export type CronJobWithNames = BUN_SQLITE_COBBLE_CRON_JOBS & {
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
+    /**
+     * The session its latest run left its messages in, for its thread.
+     */
+    latest_session_id?: number | null;
 };
 
 /**
@@ -146,6 +150,10 @@ export type BotHookWithNames = Omit<BUN_SQLITE_COBBLE_BOT_HOOKS, "token_hash" | 
     bot_face?: string | null;
     bot_image_media_id?: number | null;
     workspace_name?: string | null;
+    /**
+     * The session its latest call left its messages in, for its thread.
+     */
+    latest_session_id?: number | null;
 };
 
 /**
@@ -293,6 +301,15 @@ export type TaskDetail = TaskWithNames & {
 export type BotSessionListItem = BUN_SQLITE_COBBLE_BOT_SESSIONS & {
     message_count: number;
     last_message_text?: string | null;
+    /**
+     * The routine that runs in this session, when one does: its name, shown
+     * as a tag on the row.
+     */
+    routine_title?: string | null;
+    /**
+     * The hook that runs in this session, when one does.
+     */
+    hook_title?: string | null;
 };
 
 /**

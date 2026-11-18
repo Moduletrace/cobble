@@ -25,6 +25,10 @@ type Params = {
      * The hook whose runs it holds (status `hook`).
      */
     hook_id?: number | null;
+    /**
+     * The routine (`cron_jobs`) whose runs it holds.
+     */
+    routine_id?: number | null;
     title?: string | null;
 };
 
@@ -39,6 +43,7 @@ export default async function createBotSession({
     previous_session_id,
     status = "active",
     hook_id,
+    routine_id,
     title,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_SESSIONS> {
     const now = Date.now();
@@ -50,6 +55,7 @@ export default async function createBotSession({
         previous_session_id: previous_session_id || undefined,
         status,
         hook_id: hook_id || undefined,
+        routine_id: routine_id || undefined,
         title: title || undefined,
         unread: 0,
         last_activity_at: now,

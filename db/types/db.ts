@@ -371,9 +371,13 @@ export type BUN_SQLITE_COBBLE_BOT_SESSIONS = {
      */
     ask_id?: number | "";
     /** 
-     * The hook whose runs this session holds. Such sessions (status `hook`) never show in the bot's conversation, rails or session lists: their results are read in the hook's thread. Not a foreign key: a run can outlast its hook. Null: an ordinary session
+     * The hook whose runs this session holds. Not a foreign key: a run can outlast its hook. Null: a session no hook owns
      */
     hook_id?: number | "";
+    /** 
+     * The routine (`cron_jobs`) whose runs this session holds. Not a foreign key: its runs outlast the routine. Null: a session no routine owns
+     */
+    routine_id?: number | "";
     /** 
      * One active session per conversation; `ask` for a bot's part of a crew request, `hook` for a hook's runs
      */
@@ -932,9 +936,13 @@ export type BUN_SQLITE_COBBLE_BOT_HOOKS = {
      */
     workspace_id?: number | "";
     /** 
-     * No longer used: runs land in the hook's own hidden session (`bot_sessions.hook_id`)
+     * No longer used: runs land in the hook's own session (`bot_sessions.hook_id`)
      */
     session_id?: number | "";
+    /** 
+     * 0: its runs take over the conversation, landing in a session the user sees and can chat in. 1: they stay in the hook's own thread, pushed nowhere. Null only until the first start after this setting existed, which makes every existing hook silent
+     */
+    silent?: 0 | 1 | "";
     title?: string;
     /** 
      * The brief each run gets (markdown); the call's payload is added below it as data

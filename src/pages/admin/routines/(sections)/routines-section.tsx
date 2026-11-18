@@ -46,7 +46,7 @@ export default function RoutinesSection() {
     return (
         <SettingsGroup
             title="Your routines"
-            description={`Ask any bot to set one up, e.g. "Every weekday at 9, sum up my inbox." Each run is a task, and its result lands in that bot's chat.`}
+            description={`Ask any bot to set one up, e.g. "Every weekday at 9, sum up my inbox." Each run is a task, and its messages land in the routine's own thread, which you can open and chat in like any session.`}
         >
             <SettingsList is_empty={!items.length} empty="No routines yet.">
                 {items.map((cron_job) => (
@@ -62,7 +62,7 @@ export default function RoutinesSection() {
                                 id: cron_job.id,
                                 path: "routines/delete-routine",
                                 body: { cron_job_id: cron_job.id },
-                                confirm: `Delete the routine "${cron_job.title}"? A run already started carries on.`,
+                                confirm: `Delete the routine "${cron_job.title}"? A run already started carries on, and its thread stays in the bot's sessions.`,
                             })
                         }
                     />
@@ -82,7 +82,7 @@ export default function RoutinesSection() {
                 open={Boolean(handing)}
                 setOpen={(open) => !open && setHanding(undefined)}
                 title={`Hand over ${handing?.title || "the routine"}`}
-                description="It keeps its schedule and where it runs; its results land in the new bot's conversation."
+                description="It keeps its schedule and where it runs. Its thread stays with the bot it was in; the new bot starts a thread of its own."
             >
                 {handing ? (
                     <HandOverForm<CronJobWithNames>

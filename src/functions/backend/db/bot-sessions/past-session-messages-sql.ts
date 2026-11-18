@@ -63,7 +63,6 @@ export default function searchPastSessionsSql({
         `s.workspace_id IS ?`,
         `s.id != ?`,
         `s.ask_id IS NULL`,
-        `s.hook_id IS NULL`,
     ];
 
     for (const word of words) {

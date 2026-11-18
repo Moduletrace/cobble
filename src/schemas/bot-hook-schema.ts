@@ -29,6 +29,11 @@ export const CreateBotHookRequestSchema = z.object({
     source: SourceField.optional(),
     watch_computer_id: z.coerce.number().int().positive().nullable().optional(),
     watch_filter: WatchFilterField.nullable().optional(),
+    /**
+     * Its runs stay in its own thread instead of taking over the
+     * conversation.
+     */
+    silent: z.boolean().optional(),
 });
 
 export type CreateBotHookRequest = z.infer<typeof CreateBotHookRequestSchema>;
@@ -45,6 +50,11 @@ export const UpdateBotHookRequestSchema = z.object({
     signature_header: SignatureHeaderField.optional(),
     signature_format: SignatureFormatField.optional(),
     watch_filter: WatchFilterField.optional(),
+    /**
+     * Its runs stay in its own thread instead of taking over the
+     * conversation.
+     */
+    silent: z.boolean().optional(),
     /**
      * Where it runs from now (same bot); `null` for the bot's own chat.
      */

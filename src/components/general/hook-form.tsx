@@ -54,7 +54,8 @@ type Props = {
  * its workspaces), what calls it (its URL, or a computer's browser
  * notifications, chosen once when it's made), and then either whether its
  * calls must be signed (the secret, the header it comes in and how it's
- * written) or which notifications it takes. Makes a hook or edits one; a
+ * written) or which notifications it takes, and whether its runs take
+ * over the conversation or stay in the hook's own thread. Makes a hook or edits one; a
  * saved secret is never shown again, so leaving it blank keeps it.
  */
 export default function HookForm({
@@ -77,6 +78,7 @@ export default function HookForm({
     const [title, setTitle] = useState(hook?.title || "");
     const [instructions, setInstructions] = useState(hook?.instructions || "");
     const [signed, setSigned] = useState(Boolean(hook?.has_signing_secret));
+    const [silent, setSilent] = useState(Boolean(hook?.silent));
     const [secret, setSecret] = useState("");
     const [header, setHeader] = useState(
         hook?.signature_header || "X-Hub-Signature-256",
@@ -121,6 +123,7 @@ export default function HookForm({
                       title,
                       instructions,
                       workspace_id: place.workspace_id,
+                      silent,
                       ...signing,
                       ...(watching ? { watch_filter } : {}),
                   },
@@ -132,6 +135,7 @@ export default function HookForm({
                       workspace_id: place.workspace_id,
                       title,
                       instructions,
+                      silent,
                       source,
                       ...signing,
                       ...(watching ? { watch_computer_id, watch_filter } : {}),
@@ -231,6 +235,13 @@ export default function HookForm({
                     onChange={(e) => setWatchFilter(e.target.value)}
                 />
             ) : null}
+            <Checkbox
+                title="Run silently"
+                label="Keep its runs in the hook's own thread: they never take over the conversation or notify me. Read them from the hook, or in the bot's sessions."
+                checked={silent}
+                changeHandler={setSilent}
+                labelProps={{ className: "w-full" }}
+            />
             {watching ? null : (
                 <>
                     <Checkbox

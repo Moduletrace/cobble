@@ -1,5 +1,5 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
-import deleteHookSessionRows from "./delete-hook-session-rows";
+import detachHookSessions from "./detach-hook-sessions";
 import grabUserBotHook from "./grab-user-bot-hook";
 import syncComputerNotifyWatch from "./sync-computer-notify-watch";
 
@@ -9,9 +9,10 @@ type Params = {
 };
 
 /**
- * Deletes one of the user's hooks, its recorded calls and its hidden
- * sessions (foreign keys are off outside the server, so they go first,
- * explicitly). A run already queued carries on. A notification hook's URL is taken off its
+ * Deletes one of the user's hooks and its recorded calls. Its sessions
+ * stay: they're ordinary threads once no hook owns them
+ * (`detachHookSessions`), so the user keeps their history. A run already
+ * queued carries on. A notification hook's URL is taken off its
  * computer's watcher.
  */
 export default async function deleteBotHook({ user_id, hook_id }: Params) {
@@ -22,7 +23,7 @@ export default async function deleteBotHook({ user_id, hook_id }: Params) {
         values: [hook.id!],
     });
 
-    await deleteHookSessionRows({ hook_id: hook.id! });
+    await detachHookSessions({ hook_id: hook.id! });
 
     const res = await BunSQLite.sql({
         sql: `DELETE FROM bot_hooks WHERE id = ?`,

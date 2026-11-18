@@ -40,12 +40,18 @@ type Params = {
     source?: BotHookSource;
     watch_computer_id?: number | string | null;
     watch_filter?: string | null;
+    /**
+     * Its runs stay in its own thread, pushed nowhere, instead of taking
+     * over the conversation (see `updateBotHook`).
+     */
+    silent?: boolean;
 };
 
 /**
  * Gives one of the user's bots a hook: a secret URL whose calls each queue
  * the brief, with the call's payload, as a task there (`fireBotHook`), in
- * the hook's own thread, never in a chat. Returns the hook and its token, which is shown
+ * the hook's own thread: the conversation's active one unless it's silent,
+ * where the thread stays its own. Returns the hook and its token, which is shown
  * this once: only its hash is kept. A browser-notification hook needs a
  * computer both the user and the bot reach; its token is kept encrypted
  * for that computer's watcher, set up before this returns
@@ -64,6 +70,7 @@ export default async function createBotHook({
     source = "url",
     watch_computer_id,
     watch_filter,
+    silent,
 }: Params): Promise<BotHookWithToken> {
     const conversation = await grabUserConversation({ user_id, bot_id, workspace_id });
     const bot_id_num = conversation.bot.id;
@@ -109,6 +116,7 @@ export default async function createBotHook({
                 signature_format: secret ? signature_format || "sha256=hex" : undefined,
                 enabled: 1,
                 run_count: 0,
+                silent: silent ? 1 : 0,
             },
         ],
     });

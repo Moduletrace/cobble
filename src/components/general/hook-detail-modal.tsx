@@ -1,9 +1,11 @@
 import Button from "@moduletrace/twui/layout/Button";
+import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import type { BotHookWithNames } from "@/src/types";
+import conversationHref from "@/src/utils/conversation-href";
 import relativeTime from "@/src/utils/relative-time";
 import HookCallText from "./hook-call-text";
 import HookCalls from "./hook-calls";
@@ -19,13 +21,20 @@ type Props = {
 };
 
 /**
- * A hook opened from a list in a modal of its own: what it is, and its
- * thread, every call with what its run answered. Results only ever show
- * here, never in a chat.
+ * A hook opened from a list in a modal of its own: what it is, then its
+ * every call with what its run answered, and the way to its thread (the
+ * session its runs leave their messages in, chatted in like any other).
  */
 export default function HookDetailModal({ hook, onClose, onEdit }: Props) {
     const runs = Number(hook?.run_count || 0);
     const watching = hook?.source == "browser_notifications";
+    const thread_url = hook?.latest_session_id
+        ? conversationHref({
+              bot_id: hook.bot_id!,
+              workspace_id: hook.workspace_id,
+              session_id: hook.latest_session_id,
+          })
+        : null;
 
     return (
         <AddModalShell
@@ -46,7 +55,22 @@ export default function HookDetailModal({ hook, onClose, onEdit }: Props) {
                                   ? "Its URL, signed calls only"
                                   : "Its URL"}
                         </TaskFactRow>
-                        <TaskFactRow label="State">{hook.enabled ? "On" : "Paused"}</TaskFactRow>
+                        <TaskFactRow label="State">
+                            {hook.enabled ? (hook.silent ? "On, silent" : "On") : "Paused"}
+                        </TaskFactRow>
+                        <TaskFactRow label="Thread">
+                            {thread_url ? (
+                                <Link
+                                    href={thread_url}
+                                    title="Open the session its latest call left its messages in"
+                                    className="text-ink underline underline-offset-2"
+                                >
+                                    Its latest session
+                                </Link>
+                            ) : (
+                                "No run yet"
+                            )}
+                        </TaskFactRow>
                         <TaskFactRow label="Runs">{runs}</TaskFactRow>
                         <TaskFactRow label="Last called">
                             {hook.last_called_at ? relativeTime({ at: Number(hook.last_called_at) }) : "Never"}

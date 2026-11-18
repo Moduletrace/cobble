@@ -22,7 +22,8 @@ type Params = {
 
 /**
  * The user's hooks with their bot (its face as the user sees it) and
- * workspace names, the most recently called first. Never their token hash
+ * workspace names, the most recently called first, each with the id of the
+ * session its latest call left its messages in. Never their token hash
  * or signing secret, nor a notification hook's stored token.
  */
 export default async function grabBotHooks({
@@ -55,7 +56,8 @@ export default async function grabBotHooks({
     const res = await BunSQLite.sql<BotHookWithNames>({
         sql: `SELECT h.id, h.created_at, h.updated_at, h.user_id, h.bot_id, h.workspace_id, h.title,
                 h.instructions, h.computer_id, h.token_prefix, h.signature_header, h.signature_format,
-                h.enabled, h.run_count, h.last_called_at, h.last_job_id, h.last_error,
+                h.enabled, h.run_count, h.last_called_at, h.last_job_id, h.last_error, h.silent,
+                (SELECT r.id FROM bot_sessions r WHERE r.hook_id = h.id ORDER BY r.id DESC LIMIT 1) AS latest_session_id,
                 h.source, h.watch_computer_id, h.watch_filter, wc.name AS watch_computer_name,
                 (COALESCE(h.signing_secret, '') != '') AS has_signing_secret,
                 b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone, ${face.sql},

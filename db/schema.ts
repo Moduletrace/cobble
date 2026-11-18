@@ -480,7 +480,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "hook_id",
-                    fieldDescription: `The hook whose runs this session holds. Such sessions (status \`hook\`) never show in the bot's conversation, rails or session lists: their results are read in the hook's thread. Not a foreign key: a run can outlast its hook. Null: an ordinary session`,
+                    fieldDescription: `The hook whose runs this session holds. Not a foreign key: a run can outlast its hook. Null: a session no hook owns`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "routine_id",
+                    fieldDescription: `The routine (\`cron_jobs\`) whose runs this session holds. Not a foreign key: its runs outlast the routine. Null: a session no routine owns`,
                     dataType: "INTEGER",
                 },
                 {
@@ -506,6 +511,14 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_bot_sessions_ask_id",
                     indexTableFields: ["ask_id"],
+                },
+                {
+                    indexName: "idx_bot_sessions_hook_id",
+                    indexTableFields: ["hook_id"],
+                },
+                {
+                    indexName: "idx_bot_sessions_routine_id",
+                    indexTableFields: ["routine_id"],
                 },
                 {
                     indexName: "idx_bot_sessions_bot_id_workspace_id",
@@ -1477,8 +1490,14 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 },
                 {
                     fieldName: "session_id",
-                    fieldDescription: `No longer used: runs land in the hook's own hidden session (\`bot_sessions.hook_id\`)`,
+                    fieldDescription: `No longer used: runs land in the hook's own session (\`bot_sessions.hook_id\`)`,
                     dataType: "INTEGER",
+                },
+                {
+                    fieldName: "silent",
+                    fieldDescription: `0: its runs take over the conversation, landing in a session the user sees and can chat in. 1: they stay in the hook's own thread, pushed nowhere. Null only until the first start after this setting existed, which makes every existing hook silent`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
                 },
                 {
                     fieldName: "title",

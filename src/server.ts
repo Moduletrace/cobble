@@ -13,6 +13,7 @@ import migrateBotTypes from "./functions/backend/db/bot-types/migrate-bot-types"
 import migrateLlmLogs from "./functions/backend/db/logs/migrate-llm-logs";
 import clearImplicitSessionLinks from "./functions/backend/db/bot-sessions/clear-implicit-session-links";
 import migrateChatroomsToAsks from "./functions/backend/db/bot-sessions/migrate-chatrooms-to-asks";
+import migrateHookSilence from "./functions/backend/db/bot-hooks/migrate-hook-silence";
 import dropStoredFileText from "./functions/backend/db/stored-text/drop-stored-file-text";
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
 import flushBootLogs from "./functions/backend/backups/flush-boot-logs";
@@ -51,6 +52,9 @@ await clearImplicitSessionLinks().catch((error) =>
 );
 await migrateChatroomsToAsks().catch((error) =>
     logError({ title: "Could not delete the sessions of old chatrooms", error }).catch(() => {}),
+);
+await migrateHookSilence().catch((error) =>
+    logError({ title: "Could not make the existing hooks silent", error }).catch(() => {}),
 );
 await dropStoredFileText().catch((error) =>
     logError({ title: "Could not drop the stored file text", error }).catch(() => {}),

@@ -1,5 +1,7 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-user-conversation";
+import grabUserBotSession from "@/src/functions/backend/db/bot-sessions/grab-user-bot-session";
+import reopenBotSession from "@/src/functions/backend/db/bot-sessions/reopen-bot-session";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
 import insertUserMessage from "@/src/functions/backend/db/bots/insert-user-message";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
@@ -27,9 +29,10 @@ import type {
  * Posts a message from the session user to a bot they chat with, in its
  * own chat or in a workspace, and queues the bot's reply, which
  * arrives over the WebSocket. The message goes in the conversation's
- * active session (the next one when it's full) and also to the user's
- * other open tabs. Files are uploaded first (`upload-attachment`) and
- * sent as `media_ids`.
+ * active session (the thread the page shows, reopening it when it isn't
+ * active; the next one when it's full) and also to the user's other open
+ * tabs. Files are uploaded first (`upload-attachment`) and sent as
+ * `media_ids`.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
     req,
@@ -54,7 +57,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             throw new AppError(`This user can only read records.`);
         }
 
-        const { bot_id, workspace_id, text, media_ids, reply_to_message_id, client_id } =
+        const { bot_id, workspace_id, text, media_ids, reply_to_message_id, session_id, client_id } =
             parseWithSchema({
                 schema: SendBotMessageRequestSchema,
                 data: body,
@@ -108,6 +111,28 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
         }
 
         const media = await grabAttachableMedia({ user_id: Number(user.id), media_ids });
+
+        /**
+         * The thread on screen is where the message goes: a routine's or a
+         * hook's session is chatted in by reopening it first (which closes
+         * the conversation's active one), never by posting into whichever
+         * session happened to be active. A session of another conversation
+         * is ignored, as the page does.
+         */
+        const shown = session_id
+            ? await grabUserBotSession({ session_id, user_id: user.id })
+            : null;
+
+        if (
+            shown?.id &&
+            !shown.ask_id &&
+            Number(shown.bot_id) == Number(bot.id) &&
+            (Number(shown.workspace_id) || null) == (Number(conversation.workspace_id) || null) &&
+            shown.status != "active"
+        ) {
+            await reopenBotSession({ session_id: shown.id!, user_id: user.id });
+        }
+
         const session = await ensureBotSession({
             user_id: user.id,
             bot_id: bot.id,

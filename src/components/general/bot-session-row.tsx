@@ -20,14 +20,19 @@ type Props = {
 };
 
 /**
- * One session in the sessions modal: its title, the summary or last
- * message, how long and how recent. The one on screen is
- * Current (greyed out); any other opens on click (reopening a closed one,
- * going back to the active one).
+ * One session in the sessions modal: its title (tagged Routine or Hook
+ * when one owns it), the summary or last message, how long and how
+ * recent. The one on screen is Current (greyed out); any other opens on
+ * click (reopening a closed one, going back to the active one).
  */
 export default function BotSessionRow({ session, loading, disabled, onOpen, current }: Props) {
     const preview = session.summary || session.last_message_text || "";
     const at = session.last_activity_at || session.created_at;
+    const tag = session.routine_title
+        ? { title: `A routine's thread: ${session.routine_title}`, label: "Routine" }
+        : session.hook_title
+          ? { title: `A hook's thread: ${session.hook_title}`, label: "Hook" }
+          : null;
 
     return (
         <Button
@@ -60,6 +65,14 @@ export default function BotSessionRow({ session, loading, disabled, onOpen, curr
                     >
                         {session.title || "Untitled session"}
                     </Span>
+                    {tag ? (
+                        <Span
+                            title={tag.title}
+                            className="shrink-0 rounded-default bg-ink/5 px-1.5 text-[11px] leading-4 text-ink-secondary"
+                        >
+                            {tag.label}
+                        </Span>
+                    ) : null}
                     {session.unread && !current ? (
                         <Span className="shrink-0 text-[11px] font-bold leading-4 text-ink">New</Span>
                     ) : null}

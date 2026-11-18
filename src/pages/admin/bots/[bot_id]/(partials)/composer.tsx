@@ -83,6 +83,11 @@ type Props = {
      */
     previous_messages?: BotMessageWithAttachments[];
     /**
+     * The session the thread shows, so the message lands in it rather than
+     * in whichever session is active (a routine's or a hook's thread).
+     */
+    session_id?: number | null;
+    /**
      * The message the next one quotes, if the user picked one.
      */
     reply_to?: BotMessageWithAttachments | null;
@@ -125,6 +130,7 @@ export default function Composer({
     has_browsers,
     max_chars,
     previous_messages,
+    session_id,
     reply_to,
     onCancelReply,
     onSendStart,
@@ -368,6 +374,7 @@ export default function Composer({
             text: text_sent,
             media_ids,
             reply_to_message_id: reply_to?.id || null,
+            session_id: session_id || null,
             client_id: request_id,
         });
 

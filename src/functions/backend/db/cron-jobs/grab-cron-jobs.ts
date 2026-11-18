@@ -23,7 +23,8 @@ type Params = {
 
 /**
  * The user's schedules with their bot (its face as the user sees it) and
- * workspace names, the next to run first and paused ones last. Given a
+ * workspace names, the next to run first and paused ones last, each with
+ * the id of the session its latest run left its messages in. Given a
  * `bot_id` and a `workspace_id` (null for its own chat) it is one
  * conversation's: the routines that run right there.
  */
@@ -56,7 +57,8 @@ export default async function grabCronJobs({
 
     const res = await BunSQLite.sql<CronJobWithNames>({
         sql: `SELECT c.*, b.name AS bot_name, b.kind AS bot_kind, b.hue AS bot_hue, b.color AS bot_color, b.stone AS bot_stone, ${face.sql},
-                b.image_media_id AS bot_image_media_id, w.name AS workspace_name
+                b.image_media_id AS bot_image_media_id, w.name AS workspace_name,
+                (SELECT r.id FROM bot_sessions r WHERE r.routine_id = c.id ORDER BY r.id DESC LIMIT 1) AS latest_session_id
             FROM cron_jobs c
             JOIN bots b ON b.id = c.bot_id
             LEFT JOIN workspaces w ON w.id = c.workspace_id

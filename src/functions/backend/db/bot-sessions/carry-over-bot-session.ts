@@ -5,11 +5,13 @@ import AppError from "@/src/utils/app-error";
 import insertBotMessage from "../bots/insert-bot-message";
 import createBotSession from "./create-bot-session";
 import grabActiveBotSession from "./grab-active-bot-session";
+import grabUserBotSession from "./grab-user-bot-session";
 
 type Params = {
     /**
      * The session the bot is answering in: it must be the conversation's
-     * active one.
+     * active one, unless `allow_inactive` moves a routine's or a silent
+     * hook's own thread, which never is.
      */
     session_id: number | string;
     user_id: number | string;
@@ -30,6 +32,18 @@ type Params = {
      * summary.
      */
     job_id?: number | null;
+    /**
+     * Move the given session even when it isn't the conversation's active
+     * one: a routine's or a silent hook's own thread.
+     */
+    allow_inactive?: boolean;
+    /**
+     * The new session's status. `active` (default) moves the conversation
+     * on; `closed` keeps a routine's or a silent hook's thread beside the
+     * conversation, so its next run continues there without taking the
+     * chat over.
+     */
+    next_status?: "active" | "closed";
 };
 
 /**
@@ -39,6 +53,9 @@ type Params = {
  * the next prompt as written) and opens the new one as a bot message
  * (`carried_from_session_id`), and the reply's own answer follows it
  * there. The new session is titled by the bot (else after the old one).
+ * The same carries a routine's or a hook's own thread into its next
+ * session (`allow_inactive`, `next_status` closed), keeping the link to
+ * the routine or hook and the conversation's active session untouched.
  * Returns that first message, for the caller to push.
  */
 export default async function carryOverBotSession({
@@ -49,15 +66,28 @@ export default async function carryOverBotSession({
     summary,
     title,
     job_id,
+    allow_inactive,
+    next_status = "active",
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const text = summary.trim().slice(0, AppData.BotSessionSummaryMaxChars);
 
     if (!text) throw new AppError(`The summary is empty.`);
 
-    const active = await grabActiveBotSession({ user_id, bot_id, workspace_id });
+    const active = allow_inactive
+        ? await grabUserBotSession({ session_id, user_id })
+        : await grabActiveBotSession({ user_id, bot_id, workspace_id });
 
-    if (!active?.id || active.id != Number(session_id)) {
-        throw new AppError(`This session isn't the conversation's current one, so it can't be moved on from.`);
+    if (
+        !active?.id ||
+        active.id != Number(session_id) ||
+        Number(active.bot_id) != Number(bot_id) ||
+        (Number(active.workspace_id) || null) != (Number(workspace_id) || null)
+    ) {
+        throw new AppError(
+            allow_inactive
+                ? `That session isn't part of this conversation, so it can't be moved on from.`
+                : `This session isn't the conversation's current one, so it can't be moved on from.`,
+        );
     }
 
     const message_count =
@@ -93,6 +123,9 @@ export default async function carryOverBotSession({
         bot_id,
         workspace_id,
         previous_session_id: active.id,
+        status: next_status,
+        hook_id: Number(active.hook_id) || null,
+        routine_id: Number(active.routine_id) || null,
         title:
             title?.replace(/\s+/g, " ").trim().slice(0, AppData.BotSessionTitleMaxChars) ||
             active.title ||
