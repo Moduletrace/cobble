@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
+import { AppData } from "@/src/data/app-data";
 import { BotHookSources, type BotHookSource } from "@/src/dict/bot-hook-dict";
 import createHookProposal from "@/src/functions/backend/db/hook-proposals/create-hook-proposal";
 import grabHookProposalView from "@/src/functions/backend/db/hook-proposals/grab-hook-proposal-view";
@@ -37,15 +38,19 @@ type Args = {
     watch_computer_id?: number;
     watch_filter?: string;
     enabled?: true;
+    runner_command?: string;
+    runner_dir?: string;
+    runner_computer_id?: number;
     reason: string;
 };
 
 /**
  * Lets a bot propose a hook, or a change to one of its own (name, brief,
- * filter, switching it back on), for the user to confirm from a card in
- * the chat. A hook runs its brief on its own whenever something outside
- * calls it, so the user writes it off, never the bot: nothing is saved
- * until they confirm, and a new hook's URL is shown to them alone.
+ * filter, switching it back on, or the runner that keeps its caller
+ * running), for the user to confirm from a card in the chat. A hook runs
+ * its brief on its own whenever something outside calls it, so the user
+ * writes it off, never the bot: nothing is saved until they confirm, and
+ * a new hook's URL is shown to them alone.
  */
 export default function proposeHookTool({
     user_id,
@@ -63,7 +68,7 @@ export default function proposeHookTool({
             workspace_id ? "in this workspace" : "in your own chat"
         }, with what the caller sent attached as data, in the hook's own thread: results never come back to this chat, the user reads them by opening the hook. Runs carry the brief out without asking the user, so write it as a full brief for a future you with no memory of this chat, saying exactly what to do with each call. ${
             computers.length ? `Your computers here: ${listed}.` : `You have no computer here, so it can't watch one.`
-        } To change one of your hooks (ids from list_hooks), give hook_id and only what changes: title, instructions, watch_filter, or enabled true to switch a paused one back on; what calls it and where it runs can't change. Nothing is saved until the user presses Confirm on the card. A new hook's URL is shown to the user on the card, once: you never see it, never ask for it, and never set a signing secret (the user adds one from the Hooks menu). Check list_hooks first: if a hook already does the job, propose a change to it instead. When the user tells you to handle a hook's calls differently (often in reply to a run's report), tell them the hook's brief has to change for that and propose the new brief. Runs follow the brief over your memory, so don't save it to your memory or promise to do it from now on instead: neither changes what the next call does.`,
+        } To change one of your hooks (ids from list_hooks), give hook_id and only what changes: title, instructions, watch_filter, enabled true to switch a paused one back on, or its runner; what calls it and where it runs can't change. A hook whose caller is a process on your computer (a bridge started there) can keep it running: give runner_command, the command the app runs for it, runner_dir (a folder inside the bot's folder, such as whatsapp) and, if not the bot's own, runner_computer_id. The app starts it again by itself within five minutes of it dying, and when the computer restarts, so it must stay in the foreground and not go into the background with &. It runs as the bot's account, and the card shows the command word for word: only a crew manager can confirm a runner, so if the user isn't one, tell them an admin has to. Nothing is saved until the user presses Confirm on the card. A new hook's URL is shown to the user on the card, once: you never see it, never ask for it, and never set a signing secret (the user adds one from the Hooks menu). Check list_hooks first: if a hook already does the job, propose a change to it instead. When the user tells you to handle a hook's calls differently (often in reply to a run's report), tell them the hook's brief has to change for that and propose the new brief. Runs follow the brief over your memory, so don't save it to your memory or promise to do it from now on instead: neither changes what the next call does.`,
         schema: z.object({
             hook_id: z.number().int().positive().optional().describe("The hook to change; leave out for a new one"),
             title: z.string().trim().min(1).max(80).optional().describe(`A short name, e.g. "GitHub pushes"`),
@@ -73,6 +78,27 @@ export default function proposeHookTool({
             watch_computer_id: z.number().int().positive().optional(),
             watch_filter: z.string().trim().max(300).optional(),
             enabled: z.literal(true).optional(),
+            runner_command: z
+                .string()
+                .trim()
+                .min(1)
+                .max(AppData.BotHookRunnerCommandMaxLength)
+                .optional()
+                .describe(
+                    "For a hook whose caller is a process on your computer (a bridge you started): the command the app keeps running for it. It must stay in the foreground, no &",
+                ),
+            runner_dir: z
+                .string()
+                .trim()
+                .max(AppData.BotHookRunnerDirMaxLength)
+                .optional()
+                .describe(`The folder it starts in, inside the bot's folder, e.g. "whatsapp". Empty: the bot's folder`),
+            runner_computer_id: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe("The computer it runs on; leave out for the bot's own"),
             reason: z
                 .string()
                 .trim()

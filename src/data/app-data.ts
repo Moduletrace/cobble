@@ -465,6 +465,25 @@ export const AppData = {
      */
     BotHookIdempotencyWindowMs: 24 * 60 * 60 * 1000,
     /**
+     * A hook's runner (the process that calls it, kept up by the
+     * `sync-computers` cron): the longest command and folder it may hold,
+     * how much of its log is kept, and how much of the log the app reads
+     * back to say why it exited.
+     */
+    BotHookRunnerCommandMaxLength: 2000,
+    BotHookRunnerDirMaxLength: 300,
+    BotHookRunnerLogMaxBytes: 512 * 1024,
+    BotHookRunnerErrorChars: 400,
+    /**
+     * How long the app waits for its ensure command on a computer.
+     */
+    BotHookRunnerExecTimeoutMs: 30 * 1000,
+    /**
+     * How long a stopped runner gets to end after SIGTERM, before it's
+     * killed.
+     */
+    BotHookRunnerStopMs: 5 * 1000,
+    /**
      * Tasks (the crew's to-do list, `tasks`): the longest title, brief and
      * note, how many one bot or workspace can hold, and how many files one
      * task carries. A brief is where an unattended run's whole plan lives

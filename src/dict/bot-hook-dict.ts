@@ -64,6 +64,23 @@ export const BotHookIdempotencyHeaders = [
 ] as const;
 
 /**
+ * Where a hook's runner keeps its state, inside the bot's folder on the
+ * computer: the ensure script, what should run (`desired.json`), each
+ * runner's pid and version, its env file and its log. In the bot's folder
+ * rather than its home, so it survives a recreated container and shows up
+ * in Files.
+ */
+export const BotHookRunnerDir = ".cobble/hook-runners";
+
+/**
+ * The env var a runner's process carries, naming its hook
+ * (`COBBLE_HOOK_RUNNER=<hook id>`), so the ensure script recognises its own
+ * process after a restart instead of trusting a pid the container may have
+ * given to something else.
+ */
+export const BotHookRunnerMarker = "COBBLE_HOOK_RUNNER";
+
+/**
  * What a bot's hook proposal (`hook_proposals`) does once the user
  * confirms it: make a hook in the conversation it was proposed in, or
  * change one of theirs (its name, brief, filter, or switch it back on).

@@ -999,6 +999,38 @@ export type BUN_SQLITE_COBBLE_BOT_HOOKS = {
      * Why the last call couldn't run or the last run failed; cleared by the next run
      */
     last_error?: string;
+    /** 
+     * The command the app keeps running for this hook (the service that calls it, e.g. a bridge); null for no runner. It must stay in the foreground
+     */
+    runner_command?: string;
+    /** 
+     * Where the runner starts, relative to the bot's folder on the computer (empty: the bot's folder itself)
+     */
+    runner_dir?: string;
+    /** 
+     * The computer the runner runs on. Not a foreign key, like `computer_id`
+     */
+    runner_computer_id?: number | "";
+    /** 
+     * The runner's pid on the computer, as the last check found it; null when it isn't running
+     */
+    runner_pid?: number | "";
+    /** 
+     * What the running runner was started with (command, folder, computer, workspace, envs and script version, hashed): a different one restarts it
+     */
+    runner_version?: string;
+    /** 
+     * Unix ms of when the running runner was started
+     */
+    runner_started_at?: number | "";
+    /** 
+     * Unix ms of the last check of its runner (the `sync-computers` cron, every 5 minutes)
+     */
+    runner_checked_at?: number | "";
+    /** 
+     * Why its runner isn't running: the command exited, or the computer couldn't be reached. Cleared once it runs again
+     */
+    runner_last_error?: string;
 }
 
 export type BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS = {

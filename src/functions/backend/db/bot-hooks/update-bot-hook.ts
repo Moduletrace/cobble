@@ -6,8 +6,10 @@ import hookMoveComputers from "@/src/utils/hook-move-computers";
 import grabUserConversation from "../bot-sessions/grab-user-conversation";
 import isBotJobOpen from "../bots-queue/is-bot-job-open";
 import grabBotComputers from "../computers/grab-bot-computers";
+import assertHookRunner from "./assert-hook-runner";
 import grabUserBotHook from "./grab-user-bot-hook";
 import syncComputerNotifyWatch from "./sync-computer-notify-watch";
+import syncHookRunners from "./sync-hook-runners";
 
 type Params = {
     user_id: number | string;
@@ -38,6 +40,14 @@ type Params = {
          * workspaces, or null for its own chat.
          */
         workspace_id?: number | null;
+        /**
+         * A process the app keeps running for it (`syncHookRunners`), as a
+         * crew manager sets it: null or empty stops it. Changing the
+         * command, folder or computer starts it again.
+         */
+        runner_command?: string | null;
+        runner_dir?: string | null;
+        runner_computer_id?: number | null;
     };
 };
 
@@ -121,6 +131,33 @@ export default async function updateBotHook({ user_id, hook_id, data }: Params) 
 
     const to_workspace_id = data.workspace_id === undefined ? Number(hook.workspace_id) || null : data.workspace_id || null;
 
+    const runner_changed =
+        data.runner_command !== undefined ||
+        data.runner_dir !== undefined ||
+        data.runner_computer_id !== undefined;
+
+    if (runner_changed) {
+        const raw_command = data.runner_command === undefined ? hook.runner_command : data.runner_command;
+        const command = raw_command?.trim() || null;
+        const dir = (data.runner_dir === undefined ? hook.runner_dir : data.runner_dir)?.trim() || null;
+        const computer_id = data.runner_computer_id === undefined ? hook.runner_computer_id : data.runner_computer_id;
+
+        set("runner_command", command);
+        set("runner_dir", dir);
+        set("runner_computer_id", await assertHookRunner({ user_id, bot_id: hook.bot_id!, workspace_id: to_workspace_id, runner_computer_id: computer_id }));
+
+        /**
+         * Whatever it was doing, it's not what the hook now asks for: the
+         * next check starts it again, and until then it reads as not
+         * running rather than up with a stale pid.
+         */
+        set("runner_pid", null);
+        set("runner_started_at", null);
+        set("runner_version", null);
+        set("runner_last_error", null);
+        set("runner_checked_at", null);
+    }
+
     if (to_workspace_id != (Number(hook.workspace_id) || null)) {
         const title = data.title || hook.title || `Hook ${hook.id}`;
 
@@ -131,6 +168,14 @@ export default async function updateBotHook({ user_id, hook_id, data }: Params) 
         await grabUserConversation({ user_id, bot_id: hook.bot_id!, workspace_id: to_workspace_id });
 
         const computers = await grabBotComputers({ bot_id: hook.bot_id!, workspace_id: to_workspace_id });
+
+        const runner_computer_id =
+            data.runner_computer_id === undefined ? hook.runner_computer_id : data.runner_computer_id;
+
+        if (runner_computer_id && !computers.some((computer) => Number(computer.id) == Number(runner_computer_id))) {
+            throw new AppError(`"${title}"'s runner runs on a computer this bot doesn't work on there. Change its runner first.`);
+        }
+
         const { computer_id } = hookMoveComputers({
             title,
             watching,
@@ -158,6 +203,16 @@ export default async function updateBotHook({ user_id, hook_id, data }: Params) 
 
     if (watching && data.enabled !== undefined && hook.watch_computer_id) {
         await syncComputerNotifyWatch({ computer_id: hook.watch_computer_id });
+    }
+
+    /**
+     * Started, restarted or stopped now rather than at the next check (up
+     * to five minutes); the sync reads the row, so nothing waits for it.
+     */
+    if (runner_changed || data.enabled !== undefined) {
+        const computer_id = data.runner_computer_id === undefined ? hook.runner_computer_id : data.runner_computer_id;
+
+        syncHookRunners(computer_id ? { computer_id } : {}).catch(() => {});
     }
 
     return await grabUserBotHook({ user_id, hook_id: hook.id! });

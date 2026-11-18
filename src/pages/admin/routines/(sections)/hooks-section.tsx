@@ -12,6 +12,7 @@ import HookDetailModal from "@/src/components/general/hook-detail-modal";
 import HookForm from "@/src/components/general/hook-form";
 import HookRow from "@/src/components/general/hook-row";
 import HookUrlNotice from "@/src/components/general/hook-url-notice";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 
 /**
  * What the section's modal shows: a hook's form, its URL shown once, or
@@ -34,6 +35,7 @@ export default function HooksSection() {
     });
     const [view, setView] = useState<View>();
     const [opened, setOpened] = useState<BotHookWithNames>();
+    const can_manage = canManageCrew({ user_types: pageProps?.user_types });
 
     const replace = ({ hook }: { hook: BotHookWithNames }) =>
         setItems((prev) => prev.map((item) => (item.id == hook.id ? hook : item)));
@@ -122,6 +124,7 @@ export default function HooksSection() {
                         hook={view.hook}
                         bot_id={Number(view.hook.bot_id)}
                         workspace_id={view.hook.workspace_id ? Number(view.hook.workspace_id) : null}
+                        can_manage={can_manage}
                         onCancel={() => setView(undefined)}
                         onSaved={({ hook }) => {
                             replace({ hook });
@@ -145,10 +148,15 @@ export default function HooksSection() {
             </AddModalShell>
             <HookDetailModal
                 hook={opened}
+                can_manage={can_manage}
                 onClose={() => setOpened(undefined)}
                 onEdit={({ hook }) => {
                     setOpened(undefined);
                     setView({ kind: "edit", hook });
+                }}
+                onRestarted={({ hook }) => {
+                    replace({ hook });
+                    setOpened(hook);
                 }}
             />
         </SettingsGroup>

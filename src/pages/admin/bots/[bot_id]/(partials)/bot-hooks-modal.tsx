@@ -17,6 +17,7 @@ import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import SettingsList from "@/src/pages/admin/settings/(partials)/settings-list";
 import SettingsStatus from "@/src/pages/admin/settings/(partials)/settings-status";
 import { AppContext } from "@/src/pages/__root";
+import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import useBotHooks from "../(hooks)/use-bot-hooks";
 import HeaderMenuItem from "./header-menu-item";
 
@@ -62,6 +63,7 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
     const name = bot.name || "This bot";
     const place = workspace?.name || "this workspace";
     const title = workspace?.id ? `${place} hooks` : `${name}'s hooks`;
+    const can_manage = canManageCrew({ user_types: pageProps?.user_types });
 
     useEffect(() => {
         if (open) on_open?.();
@@ -224,6 +226,7 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
                         bot_id={Number(bot.id)}
                         workspace_id={workspace?.id ? Number(workspace.id) : null}
                         computers={pageProps?.bot_computers || []}
+                        can_manage={can_manage}
                         onCancel={back}
                         onSaved={({ hook, token, watch, msg }) => {
                             replace({ hook });
@@ -271,10 +274,15 @@ export default function BotHooksModal({ bot, workspace, on_open }: Props) {
 
             <HookDetailModal
                 hook={opened}
+                can_manage={can_manage}
                 onClose={() => set_opened(undefined)}
                 onEdit={({ hook }) => {
                     set_opened(undefined);
                     set_view({ kind: "edit", hook });
+                }}
+                onRestarted={({ hook }) => {
+                    replace({ hook });
+                    set_opened(hook);
                 }}
             />
         </Modal>

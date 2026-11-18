@@ -57,6 +57,8 @@ export default async function grabBotHooks({
         sql: `SELECT h.id, h.created_at, h.updated_at, h.user_id, h.bot_id, h.workspace_id, h.title,
                 h.instructions, h.computer_id, h.token_prefix, h.signature_header, h.signature_format,
                 h.enabled, h.run_count, h.last_called_at, h.last_job_id, h.last_error, h.silent,
+                h.runner_command, h.runner_dir, h.runner_computer_id, h.runner_pid, h.runner_version,
+                h.runner_started_at, h.runner_checked_at, h.runner_last_error,
                 (SELECT r.id FROM bot_sessions r WHERE r.hook_id = h.id ORDER BY r.id DESC LIMIT 1) AS latest_session_id,
                 h.source, h.watch_computer_id, h.watch_filter, wc.name AS watch_computer_name,
                 (COALESCE(h.signing_secret, '') != '') AS has_signing_secret,

@@ -17,6 +17,26 @@ const SignatureHeaderField = z
 const SourceField = z.enum(BotHookSources.map((s) => s.value) as [string, ...string[]]);
 const WatchFilterField = z.string().trim().max(300, "Keep the filter under 300 characters");
 const SigningSecretField = z.string().trim().min(8, "Use a secret of at least 8 characters").max(500);
+/**
+ * The command the app keeps running for a hook: a process that must stay
+ * in the foreground (the thing that calls the hook, like a bridge), since
+ * it is the one the check sees and starts again.
+ */
+const RunnerCommandField = z
+    .string()
+    .trim()
+    .max(AppData.BotHookRunnerCommandMaxLength, "Keep the command under 2000 characters")
+    .nullable()
+    .optional();
+const RunnerDirField = z
+    .string()
+    .trim()
+    .max(AppData.BotHookRunnerDirMaxLength, "Keep the folder name under 300 characters")
+    .refine((value) => !value || !value.startsWith("/"), "Give the folder inside the bot's folder, relative: for example \"whatsapp\"")
+    .refine((value) => !value || !value.startsWith("~"), "The runner's folder has to be inside the bot's folder")
+    .refine((value) => !value || !value.split("/").includes(".."), "The runner's folder has to stay inside the bot's folder")
+    .optional();
+const RunnerComputerField = z.coerce.number().int().positive().nullable().optional();
 
 export const CreateBotHookRequestSchema = z.object({
     bot_id: z.coerce.number().int().positive("Pick a bot"),
@@ -34,6 +54,13 @@ export const CreateBotHookRequestSchema = z.object({
      * conversation.
      */
     silent: z.boolean().optional(),
+    /**
+     * A process the app keeps running for it (a crew manager's, never a
+     * bot's): see `syncHookRunners`.
+     */
+    runner_command: RunnerCommandField,
+    runner_dir: RunnerDirField,
+    runner_computer_id: RunnerComputerField,
 });
 
 export type CreateBotHookRequest = z.infer<typeof CreateBotHookRequestSchema>;
@@ -59,6 +86,13 @@ export const UpdateBotHookRequestSchema = z.object({
      * Where it runs from now (same bot); `null` for the bot's own chat.
      */
     workspace_id: z.coerce.number().int().positive().nullable().optional(),
+    /**
+     * Its runner, as a crew manager sets it; `null` (or an empty command)
+     * stops it.
+     */
+    runner_command: RunnerCommandField,
+    runner_dir: RunnerDirField,
+    runner_computer_id: RunnerComputerField,
 });
 
 export type UpdateBotHookRequest = z.infer<typeof UpdateBotHookRequestSchema>;
@@ -80,7 +114,9 @@ export type BotHookIdRequest = z.infer<typeof BotHookIdRequestSchema>;
  * new hook its name, brief, source and computers; for a change only what
  * changes. A bot never sets how calls are signed (the secret would pass
  * through it), and can only switch a hook back on (`enabled: true`):
- * pausing needs no proposal.
+ * pausing needs no proposal. A runner it proposes is a command the app
+ * would start on the user's computer, so the card shows it word for word
+ * and only a crew manager can confirm it.
  */
 export const HookProposalDataSchema = z.object({
     title: TitleField.optional(),
@@ -90,6 +126,9 @@ export const HookProposalDataSchema = z.object({
     watch_computer_id: z.coerce.number().int().positive().nullable().optional(),
     watch_filter: WatchFilterField.optional(),
     enabled: z.literal(true).optional(),
+    runner_command: RunnerCommandField,
+    runner_dir: RunnerDirField,
+    runner_computer_id: RunnerComputerField,
 });
 
 export type HookProposalData = z.infer<typeof HookProposalDataSchema>;

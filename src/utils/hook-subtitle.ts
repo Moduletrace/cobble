@@ -1,4 +1,5 @@
 import type { BotHookWithNames } from "@/src/types";
+import hookRunnerState from "./hook-runner-state";
 import relativeTime from "./relative-time";
 
 type Params = {
@@ -16,10 +17,12 @@ type Params = {
  * The line under a hook's name: whose it is, where it runs, which
  * computer's notifications it gets (and its filter), how many runs
  * it started and when it was last called, whether calls must be signed,
- * then why its last call or run failed.
+ * whether the process kept running for it is up, then why its runner, last
+ * call or run failed.
  */
 export default function hookSubtitle({ hook, now = Date.now(), show_bot = true, show_workspace = true }: Params) {
     const runs = Number(hook.run_count || 0);
+    const runner = hookRunnerState({ hook, now });
 
     return [
         show_bot ? hook.bot_name || "A bot" : "",
@@ -30,6 +33,7 @@ export default function hookSubtitle({ hook, now = Date.now(), show_bot = true, 
         `${runs} ${runs == 1 ? "run" : "runs"}`,
         hook.last_called_at ? `called ${relativeTime({ at: hook.last_called_at, now })}` : "never called",
         hook.has_signing_secret ? "signed" : "",
+        runner.configured ? `runner ${runner.note}` : "",
         hook.last_error || "",
     ]
         .filter(Boolean)

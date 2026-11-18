@@ -5,6 +5,7 @@ import AppError from "@/src/utils/app-error";
 import grabUserConversation from "../bot-sessions/grab-user-conversation";
 import assertHookComputers from "../bot-hooks/assert-hook-computers";
 import assertHookRoom from "../bot-hooks/assert-hook-room";
+import assertHookRunner from "../bot-hooks/assert-hook-runner";
 import grabBotHooks from "../bot-hooks/grab-bot-hooks";
 import grabUserBotHook from "../bot-hooks/grab-user-bot-hook";
 
@@ -37,11 +38,14 @@ export type CheckedHookProposal = {
 /**
  * Checks a hook a bot proposes, when it proposes and again on confirm. A
  * change is to one of this user's hooks of this bot, and only to its
- * name, brief, filter, or switching it back on: what calls it and where
- * it runs stay. A new one runs in the conversation it's proposed in, has
- * a name and brief, isn't a second one of the same name there, fits the
- * bot's limit, and uses only computers the bot reaches there (and, to
- * watch one, the user too). Throws why when it can't.
+ * name, brief, filter, switching it back on, or its runner: what calls it
+ * and where it runs stay. A new one runs in the conversation it's
+ * proposed in, has a name and brief, isn't a second one of the same name
+ * there, fits the bot's limit, and uses only computers the bot reaches
+ * there (and, to watch one, the user too). A runner is a command on a
+ * computer, so it takes a crew manager (`assertHookRunner`) and the card
+ * says so word for word: a member proposing one is refused here, not on
+ * the card. Throws why when it can't.
  */
 export default async function checkHookProposal({
     user_id,
@@ -79,6 +83,30 @@ export default async function checkHookProposal({
             changes.watch_filter = data.watch_filter.trim();
         }
         if (data.enabled && !current.enabled) changes.enabled = true;
+
+        const runner_proposed =
+            data.runner_command !== undefined ||
+            data.runner_dir !== undefined ||
+            data.runner_computer_id !== undefined;
+
+        if (runner_proposed && watching) {
+            throw new AppError(`A browser-notification hook has no caller of its own to keep running.`);
+        }
+
+        if (runner_proposed) {
+            if (!data.runner_command?.trim()) {
+                throw new AppError(`Give the command the app should keep running, or leave the runner out.`);
+            }
+
+            changes.runner_command = data.runner_command.trim();
+            changes.runner_dir = data.runner_dir?.trim() || "";
+            changes.runner_computer_id = await assertHookRunner({
+                user_id,
+                bot_id: current.bot_id!,
+                workspace_id: current.workspace_id,
+                runner_computer_id: data.runner_computer_id || current.runner_computer_id,
+            });
+        }
 
         if (!Object.keys(changes).length) {
             throw new AppError(
@@ -121,6 +149,23 @@ export default async function checkHookProposal({
         watch_computer_id: data.watch_computer_id,
     });
 
+    if (!data.runner_command?.trim() && (data.runner_dir !== undefined || data.runner_computer_id !== undefined)) {
+        throw new AppError(`Give the command the app should keep running, or leave the runner out.`);
+    }
+
+    if (source == "browser_notifications" && data.runner_command?.trim()) {
+        throw new AppError(`A browser-notification hook has no caller of its own to keep running.`);
+    }
+
+    const runner_computer = data.runner_command?.trim()
+        ? await assertHookRunner({
+              user_id,
+              bot_id: conversation.bot.id,
+              workspace_id: conversation.workspace_id,
+              runner_computer_id: data.runner_computer_id,
+          })
+        : null;
+
     return {
         action: "create",
         title: data.title,
@@ -131,6 +176,9 @@ export default async function checkHookProposal({
             computer_id: data.computer_id || null,
             watch_computer_id: source == "browser_notifications" ? data.watch_computer_id || null : null,
             watch_filter: source == "browser_notifications" ? data.watch_filter?.trim() || "" : undefined,
+            runner_command: runner_computer ? data.runner_command!.trim() : null,
+            runner_dir: runner_computer ? data.runner_dir?.trim() || "" : undefined,
+            runner_computer_id: runner_computer,
         },
         current: null,
     };

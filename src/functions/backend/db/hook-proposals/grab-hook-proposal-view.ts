@@ -20,7 +20,9 @@ export default async function grabHookProposalView({ proposal_id, user_id }: Par
     const current = proposal.hook_id
         ? await grabUserBotHook({ user_id, hook_id: proposal.hook_id }).catch(() => null)
         : null;
-    const computer_ids = [data.computer_id, data.watch_computer_id].filter(Boolean) as number[];
+    const computer_ids = [data.computer_id, data.watch_computer_id, data.runner_computer_id, current?.runner_computer_id].filter(
+        Boolean,
+    ) as number[];
 
     const [bot, workspace, computers] = await Promise.all([
         BunSQLite.sql<{ name: string }>({ sql: `SELECT name FROM bots WHERE id = ?`, values: [proposal.bot_id] }),

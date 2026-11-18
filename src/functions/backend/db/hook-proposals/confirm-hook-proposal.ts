@@ -53,11 +53,16 @@ export default async function confirmHookProposal({ user_id, proposal_id }: Para
                 source: data.source as BotHookSource | undefined,
                 watch_computer_id: data.watch_computer_id,
                 watch_filter: data.watch_filter,
+                runner_command: data.runner_command,
+                runner_dir: data.runner_dir,
+                runner_computer_id: data.runner_computer_id,
             });
 
             token = created.token;
             result_id = Number(created.hook.id);
-            outcome = `Saved as hook #${result_id}.${watchNote({ token, watch: created.watch })}`;
+            outcome = `Saved as hook #${result_id}.${watchNote({ token, watch: created.watch })}${
+                data.runner_command ? " Its runner starts on the next check, within five minutes." : ""
+            }`;
         } else {
             const hook = await updateBotHook({
                 user_id,
@@ -67,6 +72,9 @@ export default async function confirmHookProposal({ user_id, proposal_id }: Para
                     instructions: data.instructions,
                     watch_filter: data.watch_filter,
                     enabled: data.enabled,
+                    runner_command: data.runner_command,
+                    runner_dir: data.runner_dir,
+                    runner_computer_id: data.runner_computer_id,
                 },
             });
             const changed = [
@@ -74,6 +82,7 @@ export default async function confirmHookProposal({ user_id, proposal_id }: Para
                 data.instructions !== undefined ? "its brief" : "",
                 data.watch_filter !== undefined ? "its filter" : "",
                 data.enabled ? "switched back on" : "",
+                data.runner_command !== undefined ? "its runner" : "",
             ].filter(Boolean);
 
             result_id = Number(hook.id);

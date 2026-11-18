@@ -3,6 +3,7 @@ import Checkbox from "@moduletrace/twui/form/Checkbox";
 import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
 import Select from "@moduletrace/twui/form/Select";
+import Divider from "@moduletrace/twui/layout/Divider";
 import CodeEditor from "@/src/components/general/code-editor";
 import HookPlaceFields from "@/src/components/general/hook-place-fields";
 import {
@@ -35,6 +36,11 @@ type Props = {
      * out (or empty), only URL hooks can be made.
      */
     computers?: { id?: number | ""; name?: string }[];
+    /**
+     * Crew managers also set the process the app keeps running for the hook
+     * (its runner); everyone else never sees that part of the form.
+     */
+    can_manage?: boolean;
     onCancel: () => void;
     /**
      * `token` only for a new URL hook: its URL, shown once. `watch` for a
@@ -63,6 +69,7 @@ export default function HookForm({
     bot_id,
     workspace_id,
     computers = [],
+    can_manage = false,
     onCancel,
     onSaved,
 }: Props) {
@@ -91,10 +98,32 @@ export default function HookForm({
             ? Number(hook.workspace_id) || null
             : workspace_id || null,
     });
+    const [runner_command, setRunnerCommand] = useState(
+        hook?.runner_command || "",
+    );
+    const [runner_dir, setRunnerDir] = useState(hook?.runner_dir || "");
+    const [runner_computer_id, setRunnerComputerId] = useState(
+        Number(hook?.runner_computer_id) || 0,
+    );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
     const watching = source == "browser_notifications";
+    const keeps_runner = can_manage && !watching && Boolean(runner_command.trim());
+
+    /**
+     * The runner is the crew manager's: the fields go only when they're
+     * shown, so a member's save never clears one by accident.
+     */
+    const runner = !can_manage || watching
+        ? {}
+        : {
+              runner_command: runner_command.trim() || null,
+              runner_dir: runner_dir.trim(),
+              runner_computer_id: keeps_runner
+                  ? runner_computer_id || null
+                  : null,
+          };
 
     const signing = (() => {
         if (watching) return {};
@@ -125,6 +154,7 @@ export default function HookForm({
                       workspace_id: place.workspace_id,
                       silent,
                       ...signing,
+                      ...runner,
                       ...(watching ? { watch_filter } : {}),
                   },
               })
@@ -138,6 +168,7 @@ export default function HookForm({
                       silent,
                       source,
                       ...signing,
+                      ...runner,
                       ...(watching ? { watch_computer_id, watch_filter } : {}),
                   },
               });
@@ -234,6 +265,54 @@ export default function HookForm({
                     info="Words in the site, title or text, comma-separated: any one is enough. Empty takes every notification. The site has to be allowed to send notifications in that computer's browser."
                     onChange={(e) => setWatchFilter(e.target.value)}
                 />
+            ) : null}
+            {can_manage && !watching ? (
+                <>
+                    <Divider />
+                    <Input
+                        id="hook-runner-command"
+                        title="Keep a process running"
+                        label="Keep a process running"
+                        showLabel
+                        autoComplete="off"
+                        placeholder="python3 whatsapp-bridge.py"
+                        defaultValue={hook?.runner_command || ""}
+                        info="The thing that calls this hook. A bridge started by hand dies with the computer's container, and the check every five minutes starts it again. It runs as this bot's account, in its folder, through bash -lc, so it has to stay in the foreground (no &). Leave empty for none."
+                        onChange={(e) => setRunnerCommand(e.target.value)}
+                    />
+                    <Input
+                        id="hook-runner-dir"
+                        title="Runner's folder"
+                        label="Runner's folder"
+                        showLabel
+                        autoComplete="off"
+                        placeholder="whatsapp"
+                        defaultValue={hook?.runner_dir || ""}
+                        info={`Where it starts, inside the bot's folder: "whatsapp" is the bot's whatsapp folder. Empty starts in the bot's folder itself.`}
+                        onChange={(e) => setRunnerDir(e.target.value)}
+                    />
+                    <Select
+                        id="hook-runner-computer"
+                        title="Runs the runner on"
+                        label="Runs the runner on"
+                        showLabel
+                        options={[
+                            {
+                                value: "0",
+                                title: "The bot's own computer",
+                                default: !runner_computer_id,
+                            },
+                            ...computers.map((c) => ({
+                                value: String(c.id),
+                                title: c.name || `Computer ${c.id}`,
+                                default: Number(c.id) == runner_computer_id,
+                            })),
+                        ]}
+                        changeHandler={(value) =>
+                            setRunnerComputerId(Number(value))
+                        }
+                    />
+                </>
             ) : null}
             <Checkbox
                 title="Run silently"

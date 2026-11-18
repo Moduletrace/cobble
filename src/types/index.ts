@@ -192,6 +192,29 @@ export type NotifyWatchSync = {
 };
 
 /**
+ * What checking every hook's runner did (`syncHookRunners`).
+ */
+export type HookRunnerSync = {
+    ok: boolean;
+    /**
+     * Runners that should be up.
+     */
+    checked: number;
+    running: number;
+    /**
+     * Started this check: missing, dead, or changed (its command, folder or
+     * envs, or the app's script).
+     */
+    started: number;
+    /**
+     * Stopped this check: no longer wanted (paused, deleted, changed) or
+     * found dead.
+     */
+    stopped: number;
+    error?: string;
+};
+
+/**
  * A hook just made or given a new token. A URL hook's token is shown this
  * once; a browser-notification hook has none to show, only how setting up
  * its computer's watcher went.

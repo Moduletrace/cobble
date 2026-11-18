@@ -52,6 +52,16 @@ export default function describeHookProposalDetails({
                 label: "Runs on",
                 value: computer(data.computer_id || (watching ? data.watch_computer_id : null)) || "The bot's current computer",
             },
+            ...(data.runner_command
+                ? [
+                      { label: "Keeps running", value: data.runner_command, block: true },
+                      { label: "Starts in", value: data.runner_dir ? `The bot's ${data.runner_dir} folder` : "The bot's folder" },
+                      {
+                          label: "Runs it on",
+                          value: `${computer(data.runner_computer_id) || "The bot's computer"}, as the bot's account, in its own process`,
+                      },
+                  ]
+                : []),
             { label: "Brief", value: data.instructions || "", block: true },
         ];
     }
@@ -79,6 +89,27 @@ export default function describeHookProposalDetails({
     }
 
     if (data.enabled) lines.push({ label: "Switch on", value: "It's paused now; calls would run again" });
+
+    if (data.runner_command !== undefined) {
+        const shown = ({ command, dir }: { command: string; dir?: string | null }) =>
+            `${command}${dir ? ` in ${dir}` : ""}`;
+
+        lines.push(
+            {
+                label: "Runner now",
+                value: current?.runner_command ? shown({ command: current.runner_command, dir: current.runner_dir }) : "None",
+            },
+            {
+                label: "New runner",
+                value: `${shown({ command: data.runner_command ?? "", dir: data.runner_dir })}, on ${
+                    computer(data.runner_computer_id) ||
+                    computer(current?.runner_computer_id || null) ||
+                    "the bot's computer"
+                }`,
+                block: true,
+            },
+        );
+    }
 
     return lines;
 }

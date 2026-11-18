@@ -3,6 +3,7 @@ import type { BotHookWithNames } from "@/src/types";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
 import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
 import botStoneProps from "@/src/utils/bot-stone-props";
+import hookRunnerState from "@/src/utils/hook-runner-state";
 import hookSubtitle from "@/src/utils/hook-subtitle";
 import BotAvatar from "./bot-avatar";
 
@@ -34,6 +35,14 @@ type Props = {
  */
 export default function HookRow({ hook, busy, onOpen, onToggle, onEdit, onCalls, onRotate, onDelete, compact }: Props) {
     const title = hook.title || `Hook ${hook.id}`;
+    const runner = hookRunnerState({ hook });
+    const badge = !hook.enabled
+        ? "Paused"
+        : hook.silent
+          ? "Silent"
+          : runner.configured && !runner.running
+            ? "Runner down"
+            : undefined;
 
     return (
         <SettingsListRow
@@ -46,7 +55,7 @@ export default function HookRow({ hook, busy, onOpen, onToggle, onEdit, onCalls,
             }
             title={title}
             onOpen={onOpen}
-            badge={hook.enabled ? (hook.silent ? "Silent" : undefined) : "Paused"}
+            badge={badge}
             subtitle={hookSubtitle({ hook, show_bot: !compact, show_workspace: !compact })}
         >
             <SettingsRowAction

@@ -1586,8 +1586,52 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `Why the last call couldn't run or the last run failed; cleared by the next run`,
                     dataType: "TEXT",
                 },
+                {
+                    fieldName: "runner_command",
+                    fieldDescription: `The command the app keeps running for this hook (the service that calls it, e.g. a bridge); null for no runner. It must stay in the foreground`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "runner_dir",
+                    fieldDescription: `Where the runner starts, relative to the bot's folder on the computer (empty: the bot's folder itself)`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "runner_computer_id",
+                    fieldDescription: `The computer the runner runs on. Not a foreign key, like \`computer_id\``,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "runner_pid",
+                    fieldDescription: `The runner's pid on the computer, as the last check found it; null when it isn't running`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "runner_version",
+                    fieldDescription: `What the running runner was started with (command, folder, computer, workspace, envs and script version, hashed): a different one restarts it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "runner_started_at",
+                    fieldDescription: `Unix ms of when the running runner was started`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "runner_checked_at",
+                    fieldDescription: `Unix ms of the last check of its runner (the \`sync-computers\` cron, every 5 minutes)`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "runner_last_error",
+                    fieldDescription: `Why its runner isn't running: the command exited, or the computer couldn't be reached. Cleared once it runs again`,
+                    dataType: "TEXT",
+                },
             ],
             indexes: [
+                {
+                    indexName: "idx_bot_hooks_runner_computer_id",
+                    indexTableFields: ["runner_computer_id"],
+                },
                 {
                     indexName: "idx_bot_hooks_token_prefix",
                     indexTableFields: ["token_prefix"],

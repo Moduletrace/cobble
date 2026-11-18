@@ -44,4 +44,50 @@ describe("describeHookProposalDetails", () => {
         expect(details[1]?.value).toBe("Old brief.");
         expect(details[2]?.value).toBe("New brief.");
     });
+
+    test("a new hook's runner is shown word for word, with its folder and computer", () => {
+        const details = describeHookProposalDetails({
+            action: "create",
+            data: {
+                title: "WhatsApp",
+                instructions: "Answer each message.",
+                source: "url",
+                runner_command: "python3 bridge.py",
+                runner_dir: "whatsapp",
+                runner_computer_id: 1,
+            },
+            computers: new Map([[1, "Main"]]),
+        });
+
+        expect(details.map((d) => d.label)).toEqual([
+            "Name",
+            "Called by",
+            "Runs in",
+            "Runs on",
+            "Keeps running",
+            "Starts in",
+            "Runs it on",
+            "Brief",
+        ]);
+        expect(details.find((d) => d.label == "Keeps running")).toEqual({
+            label: "Keeps running",
+            value: "python3 bridge.py",
+            block: true,
+        });
+        expect(details.find((d) => d.label == "Starts in")?.value).toBe("The bot's whatsapp folder");
+        expect(details.find((d) => d.label == "Runs it on")?.value).toContain("Main (#1)");
+    });
+
+    test("a runner added to an existing hook shows what it has now and what it would run", () => {
+        const details = describeHookProposalDetails({
+            action: "change",
+            data: { runner_command: "python3 bridge.py", runner_dir: "whatsapp", runner_computer_id: 1 },
+            current: { id: 7, title: "WhatsApp", instructions: "Answer.", enabled: 1 },
+            computers: new Map([[1, "Main"]]),
+        });
+
+        expect(details.map((d) => d.label)).toEqual(["Hook", "Runner now", "New runner"]);
+        expect(details[1]?.value).toBe("None");
+        expect(details[2]?.value).toBe("python3 bridge.py in whatsapp, on Main (#1)");
+    });
 });

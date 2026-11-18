@@ -8,7 +8,9 @@ import generateHookToken from "@/src/utils/generate-hook-token";
 import grabUserConversation from "../bot-sessions/grab-user-conversation";
 import assertHookComputers from "./assert-hook-computers";
 import assertHookRoom from "./assert-hook-room";
+import assertHookRunner from "./assert-hook-runner";
 import syncComputerNotifyWatch from "./sync-computer-notify-watch";
+import syncHookRunners from "./sync-hook-runners";
 import grabUserBotHook from "./grab-user-bot-hook";
 
 type Params = {
@@ -45,6 +47,24 @@ type Params = {
      * over the conversation (see `updateBotHook`).
      */
     silent?: boolean;
+    /**
+     * A process the app keeps running for the hook (the thing that calls
+     * it, like a bridge): typically started by hand in the computer's
+     * Shell, it dies with the container, and this brings it back
+     * (`syncHookRunners`). A crew manager sets it, and it's never a bot's
+     * own: a run doesn't pass it.
+     */
+    runner_command?: string | null;
+    /**
+     * Where the runner starts, inside the bot's folder (empty: the folder
+     * itself).
+     */
+    runner_dir?: string | null;
+    /**
+     * The computer it runs on; none means the hook's own (`computer_id`),
+     * else the bot's current one.
+     */
+    runner_computer_id?: number | string | null;
 };
 
 /**
@@ -71,6 +91,9 @@ export default async function createBotHook({
     watch_computer_id,
     watch_filter,
     silent,
+    runner_command,
+    runner_dir,
+    runner_computer_id,
 }: Params): Promise<BotHookWithToken> {
     const conversation = await grabUserConversation({ user_id, bot_id, workspace_id });
     const bot_id_num = conversation.bot.id;
@@ -92,6 +115,19 @@ export default async function createBotHook({
     if (secret && !signature_header?.trim()) {
         throw new AppError(`Say which header carries the signature.`);
     }
+
+    const runner = runner_command?.trim()
+        ? {
+              command: runner_command.trim(),
+              dir: runner_dir?.trim() || null,
+              computer_id: await assertHookRunner({
+                  user_id,
+                  bot_id: bot_id_num,
+                  workspace_id: conversation.workspace_id,
+                  runner_computer_id,
+              }),
+          }
+        : null;
 
     const { token, prefix, hash } = generateHookToken();
 
@@ -117,6 +153,9 @@ export default async function createBotHook({
                 enabled: 1,
                 run_count: 0,
                 silent: silent ? 1 : 0,
+                runner_command: runner?.command,
+                runner_dir: runner?.dir || undefined,
+                runner_computer_id: runner?.computer_id || undefined,
             },
         ],
     });
@@ -125,6 +164,17 @@ export default async function createBotHook({
 
     if (!res.success || !hook_id) {
         throw new Error(`Couldn't save the hook: ${res.msg}`);
+    }
+
+    /**
+     * A runner is started now rather than at the next check (up to five
+     * minutes), and the sync reads what it needs from the row: no need to
+     * wait for it here.
+     */
+    const runner_computer = runner?.computer_id || run_computer_id || null;
+
+    if (runner) {
+        syncHookRunners(runner_computer ? { computer_id: runner_computer } : {}).catch(() => {});
     }
 
     if (watching) {

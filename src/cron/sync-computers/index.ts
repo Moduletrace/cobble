@@ -3,6 +3,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONTAINERS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import logEvent from "@/src/functions/backend/logger";
+import syncHookRunners from "@/src/functions/backend/db/bot-hooks/sync-hook-runners";
 import migrateComputerLayout from "@/src/functions/backend/db/computers/migrate-computer-layout";
 import provisionComputer from "@/src/functions/backend/db/computers/provision-computer";
 import refreshComputerContainer from "@/src/functions/backend/db/computers/refresh-computer-container";
@@ -88,6 +89,13 @@ export default async function syncComputers() {
             await syncComputerBrowserPolicy({ computer_id, docker_id: container.docker_id });
         }
     }
+
+    /**
+     * Hooks' runners (the processes that call them, like a bridge) last, on
+     * the computers that just came back: a restarted container lost them,
+     * and nothing else would start them again.
+     */
+    await syncHookRunners();
 }
 
 async function resumeInterruptedSetups() {
