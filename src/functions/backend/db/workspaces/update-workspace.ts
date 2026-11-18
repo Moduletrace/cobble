@@ -127,4 +127,10 @@ export default async function updateWorkspace({
             target: "workspace",
         });
     }
+
+    /**
+     * Read back, so the caller reports what is stored rather than what it
+     * sent.
+     */
+    return await grabUserWorkspace({ workspace_id: workspace.id, user_id });
 }

@@ -339,6 +339,16 @@ export const AppData = {
      */
     PromptMaxLength: 20000,
     /**
+     * A save that replaces a shared text whole (a workspace's context, a
+     * bot's instructions or memory) is refused once when it would drop a
+     * heading or cut the text below `SharedTextShrinkShare` of its length:
+     * a bot retyping from what it remembers of its prompt otherwise deletes
+     * sections and reports the job done. Below the minimum the text is too
+     * short to read as a document with sections.
+     */
+    SharedTextGuardMinChars: 200,
+    SharedTextShrinkShare: 0.5,
+    /**
      * Cap on a user's role in one workspace (`workspace_user_roles`), which
      * joins every prompt there when a bot works for them.
      */

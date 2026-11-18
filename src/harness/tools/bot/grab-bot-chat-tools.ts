@@ -100,11 +100,12 @@ type Params = {
  * work, search_computers to find what's on its computers,
  * ask_user_to_take_over when only the user can do something on one, and
  * for the coordinator (the super admin's alone) create_workspace and
- * update_workspace (a workspace and its shared context), create_bot to
+ * update_workspace (a workspace and its shared context, which
+ * find_workspace reads back wherever the coordinator works), create_bot to
  * grow the crew, delegate_task to every worker (the workspace's in a
  * workspace, where the task runs; from its own chat, in the worker's own
- * chat or in a workspace it names) and hand_over_schedule beside it, plus, in its own chat, find_bot and
- * find_workspace, list_workspace_bots,
+ * chat or in a workspace it names) and hand_over_schedule beside it, plus, in its own chat, find_bot,
+ * list_workspace_bots,
  * add_bot_to_workspace and remove_bot_from_workspace, assign_computer,
  * update_bot, delete_bot and delete_workspace (which workspace, which
  * computers, and which name, role and core instructions each crew member
@@ -224,6 +225,7 @@ export default async function grabBotChatTools({
     tools.push(
         createWorkspaceTool({ user_id, workspaces }),
         updateWorkspaceTool({ user_id, workspaces, workspace_id, scopes }),
+        findWorkspaceTool({ user_id, workspace_id }),
         listWorkspacePeopleTool({ workspaces, workspace_id }),
         setUserWorkspaceRoleTool({ user_id, workspaces, workspace_id }),
     );
@@ -264,7 +266,7 @@ export default async function grabBotChatTools({
         return tools;
     }
 
-    tools.push(findBotTool(), findWorkspaceTool({ user_id }), listWorkspaceBotsTool({ user_id }));
+    tools.push(findBotTool(), listWorkspaceBotsTool({ user_id }));
 
     tools.push(deleteWorkspaceTool({ user_id, workspaces, attended }));
 

@@ -17,4 +17,11 @@ describe("updateWorkspaceTool", () => {
             tool.run({ args: { workspace_id: 99, description: "Home fragrance" } } as never),
         ).rejects.toThrow("Workspaces: 12: Beetrelle.");
     });
+
+    test("takes replace beside a context, and not on its own", () => {
+        const tool = updateWorkspaceTool({ user_id: 1, workspaces: [] });
+
+        expect(tool.schema?.safeParse({ context: "# Workspace", replace: true }).success).toBe(true);
+        expect(tool.schema?.safeParse({ replace: true }).success).toBe(false);
+    });
 });
