@@ -1,20 +1,20 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
-import { ExtensionTables, type ExtensionKind } from "@/src/functions/backend/db/extensions/extension-tables";
+import { ExtensionTables } from "@/src/functions/backend/db/extensions/extension-tables";
 import grabExtensionAccess from "@/src/functions/backend/db/extensions/grab-extension-access";
 import setExtensionAccess from "@/src/functions/backend/db/extensions/set-extension-access";
 import logEvent from "@/src/functions/backend/logger";
 import type { HarnessTool } from "../../../types";
 import assertSuperAdminRun from "./assert-super-admin-run";
 import describeExtensionAccess from "./describe-extension-access";
-import { ExtensionKindSchema } from "./extension-kind-schema";
+import { AccessExtensionKindSchema, type AccessExtensionKind } from "./access-extension-kind-schema";
 
 type Params = {
     user_id: number | string;
 };
 
 type Args = {
-    kind: ExtensionKind;
+    kind: AccessExtensionKind;
     id: number;
     bot_ids?: number[];
     workspace_ids?: number[];
@@ -29,9 +29,9 @@ type Args = {
 export default function setExtensionAccessTool({ user_id }: Params): HarnessTool<Args> {
     return {
         name: "set_extension_access",
-        description: `Set which bots and workspaces get a skill, MCP server or custom tool (by kind and id). bot_ids and workspace_ids are the complete lists it ends up with: read the current ones with list_extensions and add to or take from them; a list you leave out stays as it is. A workspace's gives it to every bot working there. all_bots true also gives it to every bot now and to every new bot; false only stops new bots getting it.`,
+        description: `Set which bots and workspaces get a skill, MCP server, custom tool or knowledgebase (by kind and id). bot_ids and workspace_ids are the complete lists it ends up with: read the current ones with list_extensions and add to or take from them; a list you leave out stays as it is. A workspace's gives it to every bot working there. all_bots true also gives it to every bot now and to every new bot; false only stops new bots getting it.`,
         schema: z.object({
-            kind: ExtensionKindSchema,
+            kind: AccessExtensionKindSchema,
             id: z.number().int().positive(),
             bot_ids: z.array(z.number().int().positive()).max(1000).optional(),
             workspace_ids: z.array(z.number().int().positive()).max(1000).optional(),

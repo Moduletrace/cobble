@@ -17,6 +17,7 @@ import findBotTool from "./find-bot-tool";
 import findWorkspaceTool from "./find-workspace-tool";
 import listWorkspaceBotsTool from "./list-workspace-bots-tool";
 import grabCoordinatorExtensionTools from "./extensions/grab-coordinator-extension-tools";
+import grabCoordinatorKnowledgebaseTools from "./knowledgebases/grab-coordinator-knowledgebase-tools";
 import grabBotTools from "./grab-bot-tools";
 import removeBotFromWorkspaceTool from "./remove-bot-from-workspace-tool";
 import updateBotTool from "./update-bot-tool";
@@ -214,6 +215,21 @@ export default async function grabBotChatTools({
      * super admin again when it runs.
      */
     tools.push(...(await grabCoordinatorExtensionTools({ user_id, bot_id, session_id, workspace_id, onPropose })));
+
+    /**
+     * Knowledgebases are the coordinator's too: it lists them wherever it
+     * works, and fills, re-indexes or deletes them when the super admin
+     * asks in the chat. A reply has no computer, so a path names one.
+     */
+    tools.push(
+        ...grabCoordinatorKnowledgebaseTools({
+            user_id,
+            bot_id,
+            workspace_id,
+            computer_id: null,
+            attended: true,
+        }),
+    );
 
     const workspaces = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
 

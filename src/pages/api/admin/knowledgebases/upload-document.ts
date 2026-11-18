@@ -1,16 +1,13 @@
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import listKnowledgebaseDocuments from "@/src/functions/backend/db/knowledgebases/list-knowledgebase-documents";
-import recordKnowledgebaseDocument from "@/src/functions/backend/db/knowledgebases/record-knowledgebase-document";
-import uploadAndRecordMedia from "@/src/functions/backend/db/users/media/upload-and-record-media";
-import logEvent, { grabRequestIP, logError } from "@/src/functions/backend/logger";
-import { AppData } from "@/src/data/app-data";
-import { BotTextFileExtensions } from "@/src/dict/bot-file-dict";
+import recordKnowledgebaseFile, {
+    knowledgebaseFileProblem,
+} from "@/src/functions/backend/db/knowledgebases/record-knowledgebase-file";
+import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
 import { UploadKnowledgebaseDocumentRequestSchema } from "@/src/schemas/knowledgebase-schema";
 import type { KnowledgebaseDocumentsPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
-import attachmentFileKind from "@/src/utils/attachment-file-kind";
 import bufferFromBase64 from "@/src/utils/buffer-from-base-64";
-import canExtractText from "@/src/utils/can-extract-text";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type {
@@ -22,7 +19,8 @@ import type {
  * Super admin only: adds one file to a knowledgebase. Only documents whose
  * text can be read are taken (PDF, DOCX, markdown, plain text and the
  * like); the bytes are kept in private media and the document is queued to
- * be chunked and embedded.
+ * be chunked and embedded (`recordKnowledgebaseFile`, shared with the
+ * coordinator's tool).
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<KnowledgebaseDocumentsPayload>
@@ -44,51 +42,18 @@ export const handler: BunextAPIRouteHandler<
         });
 
         const mime = data_url.match(/^data:([^;,]*)/)?.[1] || "";
+        const problem = knowledgebaseFileProblem({ name, mime_type: mime });
 
-        if (!canExtractText({ name, mime_type: mime })) {
-            throw new AppError(
-                `${name} has no text to read. A knowledgebase takes ${BotTextFileExtensions.join(", ")} files.`,
-            );
-        }
+        if (problem) throw new AppError(problem);
 
-        const { media_type, ext } = attachmentFileKind({ mime, name });
         const { buffer } = await bufferFromBase64(data_url);
 
-        if (!buffer.length) {
-            throw new AppError(`${name} is empty.`);
-        }
-
-        if (buffer.length > AppData.KnowledgebaseDocumentMaxBytes) {
-            throw new AppError(
-                `${name} is too big. Documents can be up to ${Math.round(AppData.KnowledgebaseDocumentMaxBytes / 1024 / 1024)} MB.`,
-            );
-        }
-
-        const media = await uploadAndRecordMedia({
-            data: buffer,
-            media_type,
-            media_mime_type: ext,
-            media_paradigms: ["knowledgebase-document"],
-            media: { title: name },
-            extract_media_text_content: true,
-            user: { id: Number(user.id) },
-        }).catch(async (error) => {
-            await logError({ title: `Knowledgebase document ${name} couldn't be saved`, error }).catch(() => {});
-            throw new AppError(`Couldn't save ${name}.`);
-        });
-
-        if (!media.singleRes?.id) {
-            throw new AppError(`Couldn't save ${name}.`);
-        }
-
-        const document_id = await recordKnowledgebaseDocument({
+        const document_id = await recordKnowledgebaseFile({
             user_id: user.id,
             knowledgebase_id,
             name,
-            source: "file",
-            media_id: media.singleRes.id,
+            data: buffer,
             mime_type: mime,
-            size: buffer.length,
         });
 
         await logEvent({

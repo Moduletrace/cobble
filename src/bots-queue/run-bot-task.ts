@@ -48,6 +48,7 @@ import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/e
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
+import grabCoordinatorKnowledgebaseTools from "@/src/harness/tools/bot/knowledgebases/grab-coordinator-knowledgebase-tools";
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
@@ -298,6 +299,21 @@ export default async function runBotTask({
                             ]
                           : []),
                   ]
+                : []),
+            /**
+             * The install's knowledgebases: the coordinator lists them in
+             * any run, and fills, re-indexes or deletes them only in a task
+             * the user follows (`can_ask`), never one a schedule or hook
+             * started.
+             */
+            ...(powers.is_coordinator
+                ? grabCoordinatorKnowledgebaseTools({
+                      user_id,
+                      bot_id: bot.id,
+                      workspace_id,
+                      computer_id: job.computer_id || null,
+                      attended: can_ask,
+                  })
                 : []),
             ...(computers.length
                 ? [
