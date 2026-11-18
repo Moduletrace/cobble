@@ -4,7 +4,7 @@ import parseJobJson from "@/src/bots-queue/parse-job-json";
 import { AppData } from "@/src/data/app-data";
 import createComputerContainer from "@/src/functions/backend/docker/create-computer-container";
 import inspectDockerContainer from "@/src/functions/backend/docker/inspect-docker-container";
-import { logError } from "@/src/functions/backend/logger";
+import logEvent, { logError } from "@/src/functions/backend/logger";
 import prepareComputerBrowserDir from "./prepare-computer-browser-dir";
 import prepareComputerDataDir from "./prepare-computer-data-dir";
 import computerBrowserEnv from "@/src/utils/computer-browser-env";
@@ -12,6 +12,9 @@ import parseComputerBrowserSettings from "@/src/utils/parse-computer-browser-set
 import keepComputerSetupAlive from "./keep-computer-setup-alive";
 import pushComputerUpdate from "./push-computer-update";
 import syncComputerBrowserPolicy from "./sync-computer-browser-policy";
+import grabComputerHostDirectories from "../host-directories/grab-computer-host-directories";
+import prepareHostDirectoryMounts from "../host-directories/prepare-host-directory-mounts";
+import { hostDirectoryMountEntry } from "@/src/utils/host-directory-mounts-changed";
 
 type Params = {
     computer_id: number;
@@ -68,6 +71,28 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
 
         const data_dir = await prepareComputerDataDir({ computer_id, fresh });
         const browser_dir = await prepareComputerBrowserDir({ computer_id, fresh });
+
+        /**
+         * The host directories this computer should mount now. A mount only
+         * exists from the container's creation, so what it was made with is
+         * kept (`metadata.host_mounts`) for `syncComputers` to compare.
+         */
+        const { mounts: host_mounts, skipped } =
+            await grabComputerHostDirectories({ computer_id });
+        await prepareHostDirectoryMounts({
+            computer_dir: data_dir,
+            mounts: host_mounts,
+        });
+
+        if (skipped.length) {
+            await logEvent({
+                title: "a host directory isn't mounted",
+                category: "system",
+                plain_text: `${skipped.length} host ${skipped.length == 1 ? "directory" : "directories"} ${skipped.length == 1 ? "isn't" : "aren't"} on the host machine any more, so ${skipped.length == 1 ? "it isn't" : "they aren't"} mounted: ${skipped.map((item) => item.source).join(", ")}.`,
+                metadata: { computer_id, sources: skipped.map((item) => item.source) },
+            });
+        }
+
         const created = await createComputerContainer({
             computer_id,
             name: row.name,
@@ -79,6 +104,11 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
                 settings: parseComputerBrowserSettings({ text: row.browser_settings }),
                 fallback_timezone: process.env.TZ,
             }),
+            host_mounts: host_mounts.map((mount) => ({
+                source: mount.source,
+                target: mount.target,
+                read_only: mount.access == "read-only",
+            })),
             pull,
         });
 
@@ -102,6 +132,7 @@ export default async function provisionComputer({ computer_id, fresh, pull }: Pa
                     browser_dir,
                     browser_host_dir: created.browser_host_dir,
                     layout: AppData.ComputerWorkspaceLayout,
+                    host_mounts: host_mounts.map((mount) => hostDirectoryMountEntry({ mount })),
                 }),
                 Date.now(),
                 Date.now(),

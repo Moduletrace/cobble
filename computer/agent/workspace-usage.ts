@@ -68,13 +68,16 @@ export async function workspaceUsage(): Promise<WorkspaceUsage> {
 
 /**
  * The workspace's size and its biggest folders through `du`, or null when
- * it can't be read.
+ * it can't be read. `-x` keeps to the workspace's own filesystem: a folder
+ * from the host machine mounted inside is the host's data, not the
+ * computer's, so it neither counts against the workspace's quota nor makes
+ * `du` walk a whole disk.
  */
 function measureWorkspace() {
     return new Promise<WorkspaceUsage | null>((resolve) => {
         execFile(
             "du",
-            ["-B1", "--max-depth=2", "--", AgentConfig.WorkspaceDir],
+            ["-B1", "-x", "--max-depth=2", "--", AgentConfig.WorkspaceDir],
             { timeout: 30_000, maxBuffer: 16 * 1024 * 1024 },
             (error, stdout) => {
                 if (error) return resolve(null);

@@ -8,6 +8,9 @@ import provisionComputer from "@/src/functions/backend/db/computers/provision-co
 import refreshComputerContainer from "@/src/functions/backend/db/computers/refresh-computer-container";
 import reviveFailedComputer from "@/src/functions/backend/db/computers/revive-failed-computer";
 import syncComputerBrowserPolicy from "@/src/functions/backend/db/computers/sync-computer-browser-policy";
+import applyHostDirectoryGrant from "@/src/functions/backend/db/host-directories/apply-host-directory-grant";
+import grabComputerHostDirectoryIds from "@/src/functions/backend/db/host-directories/grab-computer-host-directory-ids";
+import reconcileComputerHostDirectories from "@/src/functions/backend/db/host-directories/reconcile-computer-host-directories";
 
 type Row = Pick<
     BUN_SQLITE_COBBLE_CONTAINERS,
@@ -20,7 +23,9 @@ type Row = Pick<
  * still being set up are left alone, and failed ones unless docker runs
  * them anyway (`reviveFailedComputer`). A container that
  * still mounts its computer's whole home is recreated with only the
- * workspace (`migrateComputerLayout`, once per computer). A running one
+ * workspace (`migrateComputerLayout`, once per computer). A computer whose host
+ * directories changed since it was set up is set up again
+ * (`reconcileComputerHostDirectories`). A running one
  * gets the browser policy it lacks (`syncComputerBrowserPolicy`), so
  * computers made before an extension was added get it too. A setup the app
  * lost mid-way (still `creating`, untouched for
@@ -48,6 +53,29 @@ export default async function syncComputers() {
         }
 
         if (await migrateComputerLayout({ computer_id, metadata })) continue;
+
+        /**
+         * A mount only exists from a container's creation, so a computer
+         * whose host directories were linked, unlinked or read only since
+         * is set up again (unless a job works on it right now).
+         */
+        if (await reconcileComputerHostDirectories({ computer_id, wait: true })) continue;
+
+        /**
+         * A bot that joined since the last run means an account the mounted
+         * folders don't know yet, so each gives access to everyone who sees
+         * it now. A grant that already failed is not retried here: the
+         * folder's permissions are the user's to fix, and they grant again
+         * from the page.
+         */
+        for (const host_directory_id of await grabComputerHostDirectoryIds({
+            computer_id,
+        })) {
+            await applyHostDirectoryGrant({
+                host_directory_id,
+                retry: false,
+            }).catch(() => {});
+        }
 
         const refreshed = await refreshComputerContainer({
             computer_id,

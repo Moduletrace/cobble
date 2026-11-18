@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { AgentConfig } from "./config";
 import commandArgv from "./command-argv";
 import log from "./log";
+import mountPointsUnder from "./mount-points";
 import type { RunUser } from "./run-user-for";
 
 const run = promisify(execFile);
@@ -149,7 +150,8 @@ function quoted({ text }: { text: string }) {
  * Chrome runs as gem, and a page a worker opened could otherwise show
  * another bot's files. Walked whole only while the folder isn't its
  * owner's yet (files from before accounts were gem's). Links inside are
- * never followed.
+ * never followed, and a folder from the host machine mounted inside is
+ * left exactly as it is on the host: the walk prunes every mount point.
  */
 async function shareFolder({ dir, uid, gid }: { dir: string; uid: number; gid: number }) {
     await makeParents({ dir });
@@ -167,10 +169,20 @@ async function shareFolder({ dir, uid, gid }: { dir: string; uid: number; gid: n
         return;
     }
 
-    await run("chown", ["-R", "-P", `${uid}:${gid}`, dir]);
-    await run("chmod", ["-R", "u+rwX,g+rwX,o-rwx", dir]);
-    await run("find", [dir, "-type", "d", "-exec", "chmod", "g+s", "{}", "+"]);
-    await run("find", [dir, "-type", "d", "-exec", "setfacl", "-m", "d:u::rwX,d:g::rwX,d:o::---", "{}", "+"]).catch((error) => {
+    /**
+     * `-xdev` keeps to this filesystem and each mount point is pruned
+     * before any action runs on it, so a host folder mounted inside is
+     * never chowned or chmoded here. Its own permissions are the user's,
+     * set on the host machine (Settings > Host directories checks them).
+     */
+    const mounts = await mountPointsUnder({ dir });
+    const skip = mounts.flatMap((mount_point) => ["-path", mount_point, "-prune", "-o"]);
+    const walk = [dir, "-xdev", ...skip];
+
+    await run("find", [...walk, "-exec", "chown", `${uid}:${gid}`, "{}", "+"]);
+    await run("find", [...walk, "-exec", "chmod", "u+rwX,g+rwX,o-rwx", "{}", "+"]);
+    await run("find", [...walk, "-type", "d", "-exec", "chmod", "g+s", "{}", "+"]);
+    await run("find", [...walk, "-type", "d", "-exec", "setfacl", "-m", "d:u::rwX,d:g::rwX,d:o::---", "{}", "+"]).catch((error) => {
         log({ name: "agent", message: `couldn't set default ACLs on ${dir}: ${error?.stderr || error?.message || error}` });
     });
 

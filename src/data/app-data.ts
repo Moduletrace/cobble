@@ -117,7 +117,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.3",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.4",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its
@@ -217,13 +217,39 @@ export const AppData = {
      * (`/home/cb-<bot>/workspace`, a link the agent keeps to their folder),
      * which an older agent would make a folder that isn't kept;
      * `cobble-computer-caches` is the image whose agent reports its
-     * workspace (`/api/usage`), keeps run caches out of it and clears its
-     * browser profile's caches at each start, so a computer still running
-     * an older one is recreated onto it once.
+     * workspace (`/api/usage`), keeps run caches out of it, clears its
+     * browser profile's caches at each start, and leaves a host directory
+     * mounted inside a bot's folder alone (its size and its permissions
+     * are the host's), so a computer still running an older one is
+     * recreated onto it once.
      */
-    ComputerWorkspaceLayout: "cobble-computer-caches",
+    ComputerWorkspaceLayout: "cobble-computer-host-mounts",
     ComputerUserUid: 1000,
     ComputerUserGid: 1000,
+    /**
+     * A worker bot's own account on a computer is uid and gid
+     * `ComputerWorkerIdBase + bot id` (`cb-<bot id>`, no sudo), and a
+     * workspace's group is gid `ComputerWorkspaceGroupIdBase + workspace
+     * id` (`cw-<workspace id>`); keep both alike with
+     * `computer/agent/config.ts`. A host directory mounted into a
+     * computer is owned by its users, so this app tells the user which
+     * ids to give the folder (`hostDirectoryPermissionCommand`).
+     */
+    ComputerWorkerIdBase: 100_000,
+    ComputerWorkspaceGroupIdBase: 10_000_000,
+    /**
+     * A host directory is checked by running `test -d` and `test -w` as
+     * each account that reaches it, in a throwaway container of the
+     * computer's image, for at most this long (a cold image pull is not
+     * part of it: the image is already there).
+     */
+    HostDirectoryProbeTimeoutMs: 60 * 1000,
+    /**
+     * How long giving the bots access to a host folder may take: an ACL
+     * entry on everything already there, which is a walk of the whole
+     * folder, so a big one is allowed several minutes.
+     */
+    HostDirectoryGrantTimeoutMs: 10 * 60 * 1000,
     /**
      * A worker's install request (`request_install`): at most this many
      * packages, a reason and notes this long, its answer this long.

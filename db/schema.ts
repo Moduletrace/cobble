@@ -30,6 +30,7 @@ import {
 } from "@/src/dict/bot-hook-dict";
 import { ExtensionProposalStatuses } from "@/src/dict/extension-proposal-dict";
 import { InstallRequestStatuses } from "@/src/dict/install-request-dict";
+import { HostDirectoryAccesses } from "@/src/dict/host-directory-dict";
 import {
     BotFilePurposes,
     BotFileScopes,
@@ -2849,6 +2850,220 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_workspace_computers_computer_id",
                     indexTableFields: ["computer_id"],
+                },
+            ],
+        },
+        {
+            tableName: "host_directories",
+            tableDescription: `A folder on the host machine (Settings > Host directories) that computers' bots work in, mounted into each computer it is linked to`,
+            fields: [
+                {
+                    fieldName: "name",
+                    fieldDescription: `What the user calls it; the folder's name in a computer is made from it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "source",
+                    fieldDescription: `Its absolute path on the host machine, as the docker daemon sees it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `The name it is mounted under in a computer: hosts/<slug> in a bot's folder, <slug> in a workspace's folder`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "created_by",
+                    fieldDescription: `The super admin who added it (not a foreign key: users are kept)`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_host_directory_per_slug",
+                    constraintName: "A host directory's folder name is used once",
+                    constraintTableFields: [{ value: "slug" }],
+                },
+            ],
+        },
+        {
+            tableName: "host_directory_computers",
+            tableDescription: `A host directory mounted into a computer for every bot that reaches it, at hosts/<slug> in the bot's own folder`,
+            fields: [
+                {
+                    fieldName: "host_directory_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "host_directories",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_computer_host_directory_fk",
+                    },
+                },
+                {
+                    fieldName: "computer_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "computers",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_computer_computer_fk",
+                    },
+                },
+                {
+                    fieldName: "access",
+                    fieldDescription: `Read and write, or read only: the same folder is mounted the same way for every bot`,
+                    dataType: "TEXT",
+                    options: HostDirectoryAccesses.map((hda) => hda.value),
+                    defaultValue: "read-write",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_computer_link_per_host_directory",
+                    constraintName: "A host directory is linked to a computer once",
+                    constraintTableFields: [{ value: "host_directory_id" }, { value: "computer_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_host_directory_computers_computer_id",
+                    indexTableFields: ["computer_id"],
+                },
+            ],
+        },
+        {
+            tableName: "host_directory_workspaces",
+            tableDescription: `A host directory mounted into every computer a workspace is on, at <slug> in the workspace's shared folder, for every bot working there`,
+            fields: [
+                {
+                    fieldName: "host_directory_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "host_directories",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_workspace_host_directory_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_workspace_workspace_fk",
+                    },
+                },
+                {
+                    fieldName: "access",
+                    dataType: "TEXT",
+                    options: HostDirectoryAccesses.map((hda) => hda.value),
+                    defaultValue: "read-write",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_workspace_link_per_host_directory",
+                    constraintName: "A host directory is linked to a workspace once",
+                    constraintTableFields: [{ value: "host_directory_id" }, { value: "workspace_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_host_directory_workspaces_workspace_id",
+                    indexTableFields: ["workspace_id"],
+                },
+            ],
+        },
+        {
+            tableName: "host_directory_checks",
+            tableDescription: `What a host directory's last check found on one computer: whether the folder is there, and whether each of that computer's bot accounts can read and write in it`,
+            fields: [
+                {
+                    fieldName: "host_directory_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "host_directories",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_check_host_directory_fk",
+                    },
+                },
+                {
+                    fieldName: "computer_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "computers",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_check_computer_fk",
+                    },
+                },
+                {
+                    fieldName: "last_check",
+                    fieldDescription: `What the check found, per account (JSON: src/types HostDirectoryCheck)`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "checked_at",
+                    fieldDescription: `When the check ran, in milliseconds`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_check_per_host_directory_computer",
+                    constraintName: "A host directory is checked once per computer",
+                    constraintTableFields: [{ value: "host_directory_id" }, { value: "computer_id" }],
+                },
+            ],
+        },
+        {
+            tableName: "host_directory_grants",
+            tableDescription: `The bot accounts a host directory's folder was given access for (ACL entries, applied by Cobble when it is mounted, so every bot that sees it can read and write)`,
+            fields: [
+                {
+                    fieldName: "host_directory_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "host_directories",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "host_directory_grant_host_directory_fk",
+                    },
+                },
+                {
+                    fieldName: "uids",
+                    fieldDescription: `The accounts it was granted to, by uid (JSON array)`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "granted_at",
+                    fieldDescription: `When access was last given, in milliseconds`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "error",
+                    fieldDescription: `Why giving access failed, when it did (the folder's own permissions are then the user's to set)`,
+                    dataType: "TEXT",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_grant_per_host_directory",
+                    constraintName: "A host directory's access is granted once",
+                    constraintTableFields: [{ value: "host_directory_id" }],
                 },
             ],
         },

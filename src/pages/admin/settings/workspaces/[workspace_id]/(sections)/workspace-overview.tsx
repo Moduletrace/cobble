@@ -5,6 +5,7 @@ import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import ScopedEnvsGroup from "../../../(partials)/envs/scoped-envs-group";
 import BrowserDefaultGroup from "../../../(partials)/browser-default-group";
 import ExtensionsGroup from "../../../(partials)/extensions-group";
+import HostDirectoryMountsGroup from "../../../(partials)/host-directory-mounts-group";
 import SettingsSectionHeading from "../../../(partials)/settings-section-heading";
 import SettingsShell from "../../../(partials)/settings-shell";
 import WorkspaceBotsGroup from "../(partials)/workspace-bots-group";
@@ -73,6 +74,10 @@ export default function WorkspaceOverview() {
                 workspace_id={workspace_id}
                 computers={pageProps?.workspace_computers || []}
                 all_computers={pageProps?.computers || []}
+            />
+            <HostDirectoryMountsGroup
+                description="Folders on the host machine mounted here. Every bot working here sees each at <name> in the workspace's shared folder, on every computer the workspace is on."
+                mounts={pageProps?.workspace_host_directories || []}
             />
             <ExtensionsGroup
                 owner={{ workspace_id }}

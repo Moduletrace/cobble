@@ -8,6 +8,7 @@ import {
     KeyRound,
     Layers,
     Library,
+    FolderTree,
     LockKeyhole,
     Monitor,
     Plug,
@@ -42,6 +43,7 @@ export const SettingsBackupsPath = "/admin/settings/backups";
 export const SettingsDatabasePath = "/admin/settings/database";
 export const SettingsSetupPath = "/admin/settings/setup";
 export const SettingsModelsPath = "/admin/settings/models";
+export const SettingsHostDirectoriesPath = "/admin/settings/host-directories";
 
 /**
  * The `/admin/settings/*` sub pages, listed in the rail on every settings
@@ -69,6 +71,12 @@ export const SettingsPages: SettingsPage[] = [
     { title: "Browsers", url: "/admin/settings/browsers", Icon: Compass },
     { title: "Bots", url: "/admin/settings/bots", Icon: Bot, can_view: canManageCrew },
     { title: "Workspaces", url: "/admin/settings/workspaces", Icon: Layers, can_view: canManageCrew },
+    {
+        title: "Host directories",
+        url: SettingsHostDirectoriesPath,
+        Icon: FolderTree,
+        super_admin_only: true,
+    },
     { title: "Computers", url: SettingsComputersPath, Icon: Monitor, can_view: canManageCrew },
     { title: "MCPs", url: "/admin/settings/mcps", Icon: Plug, can_view: canManageCrew },
     { title: "Tools", url: "/admin/settings/tools", Icon: Wrench, can_view: canManageCrew },

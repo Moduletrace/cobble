@@ -45,6 +45,14 @@ type Params = {
      * the local one when the registry can't be reached.
      */
     pull?: boolean;
+    /**
+     * The user's own folders on the host machine, mounted into the bot's
+     * and the workspace's folders inside the workspace
+     * (`hostDirectoryMountPlan`). Unlike the two above, docker may not
+     * make one that isn't there: the container fails instead, since a
+     * typo would otherwise become a folder docker owns.
+     */
+    host_mounts?: { source: string; target: string; read_only?: boolean }[];
 };
 
 /**
@@ -73,6 +81,7 @@ export default async function createComputerContainer({
     memory_mb,
     browser_env = [],
     pull,
+    host_mounts = [],
 }: Params) {
     const network = await ensureDockerNetwork();
     const host_dir = await resolveHostPath({ local_path: data_dir });
@@ -113,9 +122,31 @@ export default async function createComputerContainer({
                 Retries: AppData.ComputerHealthcheck.Retries,
             },
             HostConfig: {
-                Binds: [
-                    `${host_dir}:${AppData.ComputerWorkspaceDir}`,
-                    `${browser_host_dir}:${AppData.ComputerBrowserProfileDir}`,
+                /**
+                 * The `Mounts` form, not `Binds`: a host directory with
+                 * `CreateMountpoint` off fails the create instead of
+                 * becoming a root-owned folder on the host.
+                 */
+                Mounts: [
+                    {
+                        Type: "bind",
+                        Source: host_dir,
+                        Target: AppData.ComputerWorkspaceDir,
+                        BindOptions: { CreateMountpoint: true },
+                    },
+                    {
+                        Type: "bind",
+                        Source: browser_host_dir,
+                        Target: AppData.ComputerBrowserProfileDir,
+                        BindOptions: { CreateMountpoint: true },
+                    },
+                    ...host_mounts.map((mount) => ({
+                        Type: "bind",
+                        Source: mount.source,
+                        Target: mount.target,
+                        ReadOnly: Boolean(mount.read_only),
+                        BindOptions: { CreateMountpoint: false },
+                    })),
                 ],
                 NetworkMode: network,
                 RestartPolicy: { Name: "unless-stopped" },

@@ -43,6 +43,11 @@ export const BunSQLiteTables = [
     "computers",
     "bot_computers",
     "workspace_computers",
+    "host_directories",
+    "host_directory_computers",
+    "host_directory_workspaces",
+    "host_directory_checks",
+    "host_directory_grants",
     "harness_providers",
     "harness_models",
     "harness_settings",
@@ -1762,6 +1767,129 @@ export type BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS = {
     computer_id?: number | "";
 }
 
+export type BUN_SQLITE_COBBLE_HOST_DIRECTORIES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * What the user calls it; the folder's name in a computer is made from it
+     */
+    name?: string;
+    /** 
+     * Its absolute path on the host machine, as the docker daemon sees it
+     */
+    source?: string;
+    /** 
+     * The name it is mounted under in a computer: hosts/<slug> in a bot's folder, <slug> in a workspace's folder
+     */
+    slug?: string;
+    /** 
+     * The super admin who added it (not a foreign key: users are kept)
+     */
+    created_by?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    host_directory_id?: number | "";
+    computer_id?: number | "";
+    /** 
+     * Read and write, or read only: the same folder is mounted the same way for every bot
+     */
+    access?: "read-write" | "read-only" | "";
+}
+
+export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    host_directory_id?: number | "";
+    workspace_id?: number | "";
+    access?: "read-write" | "read-only" | "";
+}
+
+export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    host_directory_id?: number | "";
+    computer_id?: number | "";
+    /** 
+     * What the check found, per account (JSON: src/types HostDirectoryCheck)
+     */
+    last_check?: string;
+    /** 
+     * When the check ran, in milliseconds
+     */
+    checked_at?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_GRANTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    host_directory_id?: number | "";
+    /** 
+     * The accounts it was granted to, by uid (JSON array)
+     */
+    uids?: string;
+    /** 
+     * When access was last given, in milliseconds
+     */
+    granted_at?: number | "";
+    /** 
+     * Why giving access failed, when it did (the folder's own permissions are then the user's to set)
+     */
+    error?: string;
+}
+
 export type BUN_SQLITE_COBBLE_HARNESS_PROVIDERS = {
     /** 
      * The unique identifier of the record.
@@ -2998,4 +3126,4 @@ export type BUN_SQLITE_COBBLE_APP_SETTINGS = {
     value?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_ASKS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_BOT_JOB_TRACES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_INSTALL_REQUESTS & BUN_SQLITE_COBBLE_BOT_QUESTIONS & BUN_SQLITE_COBBLE_BOT_SUGGESTIONS & BUN_SQLITE_COBBLE_BOT_PLANS & BUN_SQLITE_COBBLE_BOT_GRAPHICS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_ROLES & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_BROWSERS & BUN_SQLITE_COBBLE_BROWSER_ACCESS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_HARNESS_CALL_FAILURES & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_ASKS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_BOT_JOB_TRACES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_INSTALL_REQUESTS & BUN_SQLITE_COBBLE_BOT_QUESTIONS & BUN_SQLITE_COBBLE_BOT_SUGGESTIONS & BUN_SQLITE_COBBLE_BOT_PLANS & BUN_SQLITE_COBBLE_BOT_GRAPHICS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_ROLES & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HOST_DIRECTORIES & BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS & BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES & BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS & BUN_SQLITE_COBBLE_HOST_DIRECTORY_GRANTS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_BROWSERS & BUN_SQLITE_COBBLE_BROWSER_ACCESS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_HARNESS_CALL_FAILURES & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS

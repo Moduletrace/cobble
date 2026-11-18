@@ -10,6 +10,10 @@ import type {
     BUN_SQLITE_COBBLE_CRON_JOBS,
     BUN_SQLITE_COBBLE_BOT_HOOKS,
     BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS,
+    BUN_SQLITE_COBBLE_HOST_DIRECTORIES,
+    BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS,
+    BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS,
+    BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES,
     BUN_SQLITE_COBBLE_MEDIA,
     BUN_SQLITE_COBBLE_TASK_MEDIA,
     BUN_SQLITE_COBBLE_TASK_NOTES,
@@ -39,6 +43,7 @@ import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dic
 import type { BotQuestionKind, BotQuestionStatus } from "../dict/bot-question-dict";
 import type { BotPlanState, BotPlanStepState } from "../dict/bot-plan-dict";
 import type { ContainerStatus } from "../dict/computer-dict";
+import type { HostDirectoryAccess } from "../dict/host-directory-dict";
 import type { BotFace, BotKind, BotMessageReactionEmoji } from "../dict/bot-dict";
 import type { BotTraceKind } from "../dict/bot-trace-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
@@ -330,6 +335,115 @@ export type ComputerWithStatus = BUN_SQLITE_COBBLE_COMPUTERS & {
      * Why setting it up failed, while `status` is `failed`.
      */
     error?: string | null;
+};
+
+/**
+ * One account a host directory was checked as: a bot's own account on a
+ * computer (`cb-<bot id>`), or the coordinator's (`gem`).
+ */
+export type HostDirectoryCheckAccount = {
+    bot_id?: number | null;
+    name: string;
+    uid: number;
+    /**
+     * Whether it could open the folder at all.
+     */
+    readable: boolean;
+    /**
+     * Whether it could write in it.
+     */
+    writable: boolean;
+};
+
+/**
+ * What the last check of a host directory found (`probeHostDirectory`):
+ * whether the folder could be opened, and by which accounts.
+ */
+export type HostDirectoryCheck = {
+    accounts: HostDirectoryCheckAccount[];
+    checked_at: number;
+    /**
+     * The computer it was checked on: accounts and folder permissions are
+     * that computer's, so a check means nothing on another one.
+     */
+    computer_id?: number | null;
+    /**
+     * Why the check couldn't answer at all, if it couldn't.
+     */
+    error?: string | null;
+};
+
+/**
+ * A host directory linked to a computer, mounted at `hosts/<slug>` in the
+ * folder of every bot that reaches it.
+ */
+export type HostDirectoryComputerLink = BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS & {
+    computer_name?: string | null;
+    /**
+     * The uids of every bot that reaches that computer, which is who has to
+     * be able to read and write the folder there.
+     */
+    uids?: number[];
+    /**
+     * The last check of the folder on that computer, if it was checked.
+     */
+    check?: HostDirectoryCheck | null;
+};
+
+/**
+ * A host directory linked to a workspace, mounted at `<slug>` in the
+ * workspace's shared folder on every computer it is on.
+ */
+export type HostDirectoryWorkspaceLink = BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES & {
+    workspace_name?: string | null;
+    /**
+     * The computers the workspace is on, where this folder is mounted.
+     */
+    computer_ids?: number[];
+    /**
+     * The uids of every bot working in that workspace and of the
+     * coordinator, which is who has to be able to read and write the folder.
+     */
+    uids?: number[];
+    /**
+     * The last checks of the folder on the workspace's computers, by
+     * computer id: each computer's bots read and write it as their own
+     * accounts.
+     */
+    checks?: HostDirectoryCheck[];
+};
+
+/**
+ * A host directory's last check on one computer (`host_directory_checks`).
+ */
+export type HostDirectoryCheckRow = BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS & {
+    computer_name?: string | null;
+    check?: HostDirectoryCheck | null;
+};
+
+/**
+ * A host directory as one computer or workspace sees it, for its settings
+ * page: what its bots may do there and what the last checks found.
+ */
+export type HostDirectoryMountView = {
+    host_directory_id: number;
+    name: string;
+    source: string;
+    access: HostDirectoryAccess;
+    checks: HostDirectoryCheck[];
+};
+
+/**
+ * A folder on the host machine with the links that mount it, for
+ * Settings > Host directories.
+ */
+export type HostDirectoryWithLinks = BUN_SQLITE_COBBLE_HOST_DIRECTORIES & {
+    computers: HostDirectoryComputerLink[];
+    workspaces: HostDirectoryWorkspaceLink[];
+    /**
+     * Its last check on each computer it is mounted on.
+     */
+    checks: HostDirectoryCheck[];
 };
 
 /**
@@ -2383,6 +2497,19 @@ export type PagePropsType = {
     computer?: ComputerWithStatus | null;
     computer_bots?: BotWithFace[] | null;
     computer_workspaces?: BUN_SQLITE_COBBLE_WORKSPACES[] | null;
+    /**
+     * Settings > Host directories: every folder on the host machine with
+     * where it is mounted.
+     */
+    host_directories?: HostDirectoryWithLinks[] | null;
+    /**
+     * The host directories mounted in a computer.
+     */
+    computer_host_directories?: HostDirectoryMountView[] | null;
+    /**
+     * The host directories mounted in a workspace.
+     */
+    workspace_host_directories?: HostDirectoryMountView[] | null;
     workspace_harness_overview?: BotHarnessOverviewPayload | null;
     /**
      * The workspaces a bot works in, with what it has for each alone.

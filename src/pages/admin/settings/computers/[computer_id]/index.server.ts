@@ -1,9 +1,14 @@
-import type { PagePropsType, PageQueryObject } from "@/src/types";
+import type {
+    HostDirectoryMountView,
+    PagePropsType,
+    PageQueryObject,
+} from "@/src/types";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 import grabBots from "@/src/functions/backend/db/bots/grab-bots";
 import grabComputerAccess from "@/src/functions/backend/db/computers/grab-computer-access";
 import grabUserComputer from "@/src/functions/backend/db/computers/grab-user-computer";
 import grabUserComputers from "@/src/functions/backend/db/computers/grab-user-computers";
+import grabHostDirectories from "@/src/functions/backend/db/host-directories/grab-host-directories";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import grabCrewSettingsServerProps from "../../(functions)/grab-crew-settings-server-props";
 import railBots from "@/src/utils/rail-bots";
@@ -41,6 +46,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         bots,
         workspaces,
         access,
+        host_directories,
     ] = await Promise.all([
         grabUserComputers({ computer_id: allowed.id }).then(
             (rows) => rows[0] || allowed,
@@ -48,7 +54,27 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
         grabBots({ user_id }),
         grabUserWorkspaces({ user_id }),
         grabComputerAccess({ computer_id: allowed.id, user_id }),
+        grabHostDirectories(),
     ]);
+
+    const computer_host_directories: HostDirectoryMountView[] =
+        host_directories.flatMap((directory) => {
+            const link = directory.computers.find(
+                (item) => Number(item.computer_id) == Number(allowed.id),
+            );
+
+            if (!link) return [];
+
+            return [
+                {
+                    host_directory_id: Number(directory.id),
+                    name: String(directory.name || ""),
+                    source: String(directory.source || ""),
+                    access: link.access as HostDirectoryMountView["access"],
+                    checks: link.check ? [link.check] : [],
+                },
+            ];
+        });
 
     return {
         props: {
@@ -58,6 +84,7 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
             workspaces: railWorkspaces({ workspaces }),
             computer_bots: access.bots,
             computer_workspaces: access.workspaces,
+            computer_host_directories,
         },
     };
 };

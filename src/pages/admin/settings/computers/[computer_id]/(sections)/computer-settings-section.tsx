@@ -4,6 +4,7 @@ import useLiveComputers from "@/src/hooks/use-live-computers";
 import type { ComputerWithStatus } from "@/src/types";
 import isPassThroughUser from "@/src/utils/rbac/is-pass-through-user";
 import SettingsShell from "../../../(partials)/settings-shell";
+import HostDirectoryMountsGroup from "../../../(partials)/host-directory-mounts-group";
 import ComputerBotsGroup from "../(partials)/computer-bots-group";
 import ComputerBrowserGroup from "../(partials)/computer-browser-group";
 import ComputerDangerGroup from "../(partials)/computer-danger-group";
@@ -67,6 +68,10 @@ export default function ComputerSettingsSection() {
                 computer={computer}
                 workspaces={pageProps?.workspaces || []}
                 computer_workspaces={pageProps?.computer_workspaces || []}
+            />
+            <HostDirectoryMountsGroup
+                description="Folders on the host machine mounted in this computer. Every bot that reaches it sees each at hosts/<name> in its own folder."
+                mounts={pageProps?.computer_host_directories || []}
             />
             {is_super_admin ? (
                 <ComputerDangerGroup computer={computer} onUpdated={update} />
