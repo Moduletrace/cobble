@@ -19,7 +19,8 @@ type Slot<Value> = {
  */
 export type GlobalCacheName =
     | "cobble.grabAllEnvs.cache"
-    | "cobble.grabAppSettings.cache";
+    | "cobble.grabAppSettings.cache"
+    | "cobble.harnessCooldowns";
 
 export default function globalCache<Value>({
     name,

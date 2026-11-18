@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import type { BotJobKind } from "@/src/dict/bot-queue-dict";
 import claimBotJobs from "@/src/functions/backend/db/bots-queue/claim-bot-jobs";
 import releaseWorkerBotJobs from "@/src/functions/backend/db/bots-queue/release-worker-bot-jobs";
+import releaseRestingBotJobs from "@/src/functions/backend/db/bots-queue/release-resting-bot-jobs";
 import { logError } from "@/src/functions/backend/logger";
 import processBotJob from "./process-bot-job";
 import reportLostBotJobs from "./report-lost-bot-jobs";
@@ -45,9 +46,19 @@ export default async function botsQueue() {
         if (released) {
             bunext.bunextLog.info(`Bots queue: released ${released} cut-off job(s)`);
         }
+
+        /**
+         * A restart forgets every model rest (the cooldowns are in memory),
+         * so the jobs one parked would wait for benches that no longer exist.
+         */
+        const woken = await releaseRestingBotJobs();
+
+        if (woken) {
+            bunext.bunextLog.info(`Bots queue: woke ${woken} job(s) parked on a model rest`);
+        }
     } catch (error) {
         await logError({
-            title: "Bots queue couldn't release cut-off jobs",
+            title: "Bots queue couldn't release held jobs",
             error,
         }).catch(() => {});
     }

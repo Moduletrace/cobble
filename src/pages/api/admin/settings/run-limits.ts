@@ -17,6 +17,7 @@ import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
 import HarnessCooldowns from "@/src/harness/resolve/harness-cooldowns";
+import releaseRestingBotJobs from "@/src/functions/backend/db/bots-queue/release-resting-bot-jobs";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
@@ -68,6 +69,12 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>
          */
         HarnessCooldowns.clear();
 
+        /**
+         * The jobs a rest parked ahead of time were waiting on those same
+         * benches, which just went away: nothing else would wake them.
+         */
+        const released = await releaseRestingBotJobs();
+
         await logEvent({
             title: "Bot run limits changed",
             category: "system",
@@ -75,7 +82,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<RunLimitsOverview>
             plain_text: `User #${user.id} set the tool step limits to ${loggedValue(task_steps)} per task, ${loggedValue(reply_steps)} per chat reply and ${loggedValue(unattended_steps)} per routine or hook call, the tokens per run to ${loggedValue(run_tokens)}, the working context to ${loggedValue(context_tokens)} and the model rest to ${
                 model_rest_seconds == -1 ? "unlimited" : model_rest_seconds > 0 ? `${model_rest_seconds} seconds` : "default"
             }.`,
-            metadata: { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds },
+            metadata: { task_steps, reply_steps, unattended_steps, run_tokens, context_tokens, model_rest_seconds, jobs_released: released },
             ip_address: grabRequestIP(req),
         });
 
