@@ -32,12 +32,12 @@ type Props = {
 
 /**
  * A section of bots in the rail: the latest `AppData.RailRecentBots` visited
- * (and any that want attention), then "See all bots" for the rest,
- * which lists them all in a modal.
+ * (the conversation open now first, and any that want attention), then
+ * "See all bots" for the rest, which lists them all in a modal.
  */
 export default function RailBotsSection({ title, workers: listed, selected_id, workspace_id, hrefFor, empty, action }: Props) {
     const [open, setOpen] = useState(false);
-    const workers = orderByLastVisit({ items: listed });
+    const workers = orderByLastVisit({ items: listed, pinned_id: selected_id });
     const { shown, hidden } = pickRailBots({ workers, selected_id, limit: AppData.RailRecentBots });
 
     return (

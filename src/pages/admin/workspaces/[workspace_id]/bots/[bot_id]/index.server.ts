@@ -1,7 +1,5 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
 import grabConversationProps from "@/src/functions/backend/db/bot-sessions/grab-conversation-props";
-import recordBotVisit from "@/src/functions/backend/db/bots/record-bot-visit";
-import recordWorkspaceVisit from "@/src/functions/backend/db/workspaces/record-workspace-visit";
 import withLastVisitedBotCookies from "@/src/functions/server/with-last-visited-bot-cookies";
 import type { PagePropsType, PageQueryObject } from "@/src/types";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
@@ -41,12 +39,6 @@ export const server: BunextPageServerFn<PagePropsType> = async (params) => {
 
     const bot_id = props.bot.id;
     const workspace_id = props.workspace?.id || null;
-
-    await recordBotVisit({ user_id: user.id, bot_id });
-
-    if (props.workspace?.id) {
-        await recordWorkspaceVisit({ user_id: user.id, workspace_id: props.workspace.id });
-    }
 
     return {
         props,

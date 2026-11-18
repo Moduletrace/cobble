@@ -3,6 +3,8 @@ import type { BotTextModel, PagePropsType } from "@/src/types";
 import railBots from "@/src/utils/rail-bots";
 import railWorkspaces from "@/src/utils/rail-workspaces";
 import grabBots from "../bots/grab-bots";
+import recordBotVisit from "../bots/record-bot-visit";
+import recordWorkspaceVisit from "../workspaces/record-workspace-visit";
 import grabBotExtensionsOverview from "../extensions/grab-bot-extensions-overview";
 import grabConversationFiles from "../bot-files/grab-conversation-files";
 import grabBotComputers from "../computers/grab-bot-computers";
@@ -36,7 +38,8 @@ type Params = {
  * the models modal: the install-wide catalog (`api/admin/harness/catalog`)
  * and the conversation's small setting
  * (`api/admin/bots/harness-overview`). They are most of a page's weight
- * and only that modal uses them.
+ * and only that modal uses them. Opening a conversation records the visit
+ * (`recordBotVisit`, and the workspace's), before the rail is read.
  * Null when the user can't chat with the bot there.
  */
 export default async function grabConversationProps({
@@ -51,6 +54,17 @@ export default async function grabConversationProps({
     if (!conversation) return null;
 
     const scope = conversation.workspace_id;
+
+    /**
+     * Noted before the rail is read, so the conversation just opened is
+     * already the latest in it: the lists order by each user's last visit,
+     * and reading them first left the open bot where it was until the
+     * next page load.
+     */
+    await Promise.all([
+        recordBotVisit({ user_id, bot_id: conversation.bot.id }),
+        scope ? recordWorkspaceVisit({ user_id, workspace_id: scope }) : null,
+    ]);
 
     const [bots, workspaces, answer_ask] = await Promise.all([
         grabBots({ user_id, workspace_id: scope }),
