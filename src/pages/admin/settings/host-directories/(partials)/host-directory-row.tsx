@@ -51,9 +51,14 @@ type LinkView = {
     error?: string | null;
     checking?: boolean;
     granting?: boolean;
+    /**
+     * Whether a delete inside the folder waits for the user.
+     */
+    gate_deletes: boolean;
     onCheck: () => void;
     onGrant: () => void;
     onAccess: () => void;
+    onDeletes: () => void;
     onRemove: () => void;
 };
 
@@ -182,6 +187,7 @@ export default function HostDirectoryRow({
             command: command({ access, state, uids: link.uids }),
             checking: checking == Number(link.computer_id),
             granting,
+            gate_deletes: Number(link.gate_deletes) != 0,
             onCheck: () => check({ computer_ids: [Number(link.computer_id)] }),
             onGrant: grant,
             onAccess: () =>
@@ -192,6 +198,15 @@ export default function HostDirectoryRow({
                         computer_id: Number(link.computer_id),
                         access:
                             access == "read-write" ? "read-only" : "read-write",
+                    },
+                }),
+            onDeletes: () =>
+                post({
+                    path: "set-host-directory-deletes",
+                    key: `deletes-${link.id}`,
+                    body: {
+                        computer_id: Number(link.computer_id),
+                        gate_deletes: !(Number(link.gate_deletes) != 0),
                     },
                 }),
             onRemove: () =>
@@ -223,6 +238,7 @@ export default function HostDirectoryRow({
             command: command({ access, state, uids: link.uids }),
             checking: (link.computer_ids || []).includes(checking || -1),
             granting,
+            gate_deletes: Number(link.gate_deletes) != 0,
             onCheck: () => check({ computer_ids: link.computer_ids || [] }),
             onGrant: grant,
             onAccess: () =>
@@ -233,6 +249,15 @@ export default function HostDirectoryRow({
                         workspace_id: Number(link.workspace_id),
                         access:
                             access == "read-write" ? "read-only" : "read-write",
+                    },
+                }),
+            onDeletes: () =>
+                post({
+                    path: "set-host-directory-deletes",
+                    key: `deletes-${link.id}`,
+                    body: {
+                        workspace_id: Number(link.workspace_id),
+                        gate_deletes: !(Number(link.gate_deletes) != 0),
                     },
                 }),
             onRemove: () =>
@@ -315,10 +340,13 @@ export default function HostDirectoryRow({
                             command={link.command}
                             stale={link.stale}
                             error={link.error}
+                            gate_deletes={link.gate_deletes}
                             checking={link.checking}
                             busy={Boolean(busy)}
                             onCheck={link.onCheck}
+                            onGrant={link.onGrant}
                             onAccess={link.onAccess}
+                            onDeletes={link.onDeletes}
                             onRemove={link.onRemove}
                         />
                     ))

@@ -82,3 +82,12 @@ export const CheckHostDirectoryRequestSchema = z.object({
 });
 
 export type CheckHostDirectoryRequest = z.infer<typeof CheckHostDirectoryRequestSchema>;
+export const SetHostDirectoryDeletesRequestSchema = UnlinkHostDirectoryRequestSchema.extend({
+    /**
+     * True asks the user before a command deletes or moves anything out of
+     * the folder, which is what a new link does.
+     */
+    gate_deletes: z.boolean(),
+});
+
+export type SetHostDirectoryDeletesRequest = z.infer<typeof SetHostDirectoryDeletesRequestSchema>;

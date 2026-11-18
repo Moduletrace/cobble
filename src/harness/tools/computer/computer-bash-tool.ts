@@ -12,6 +12,7 @@ import type { ComputerToolContext } from "./computer-tool-context";
 import { computerWorkspaceFullWarning } from "./computer-workspace-room";
 import isDestructiveGit from "./destructive-command";
 import gitSnapshotNote from "./git-snapshot-note";
+import hostDirectoryDeleteGuard from "./host-directory-delete-guard";
 import type { GitWorktreeSnapshot } from "./parse-git-snapshot";
 import snapshotGitWorktree from "./snapshot-git-worktree";
 
@@ -31,7 +32,7 @@ type Args = {
  * `AppData.ComputerCommandMaxSeconds` when that is set), so a long script
  * is never cut short and nothing is left blocking the computer.
  */
-export default function computerBashTool({ computer, dirs, shell_path, redact }: ComputerToolContext): HarnessTool<Args> {
+export default function computerBashTool({ computer, computer_id, dirs, shell_path, redact, bot_id, workspace_id, session_id }: ComputerToolContext): HarnessTool<Args> {
     const max = AppData.ComputerCommandMaxSeconds;
     const timeout_note = max > 0
         ? `Seconds before it is stopped, at most ${max} (${max} when left out).`
@@ -57,6 +58,20 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
         run: async ({ args, signal }) => {
             const cwd = args.cwd ? resolveComputerPath({ path: args.cwd, dirs }) : null;
             const seconds = commandTimeoutSeconds({ asked: args.timeout, max });
+
+            /**
+             * A delete inside a folder mounted from the host machine is the
+             * user's data, and can't be undone there: hold it until they
+             * approved it, then keep a copy of what it removes.
+             */
+            const gate = await hostDirectoryDeleteGuard({
+                command: args.command,
+                cwd,
+                context: { computer, computer_id, dirs, shell_path, redact, bot_id, workspace_id, session_id },
+                signal,
+            });
+
+            if (gate?.blocked) return gate.blocked;
 
             /**
              * Before anything that would throw uncommitted work away: keep it
@@ -100,6 +115,7 @@ export default function computerBashTool({ computer, dirs, shell_path, redact }:
             const full = await computerWorkspaceFullWarning({ computer, dirs }).catch(() => null);
 
             return [
+                gate?.note || "",
                 gitSnapshotNote({ snapshots }),
                 snapshot_failed ? `[The safety snapshot could not be saved before this command; any work it discards may be unrecoverable.]` : "",
                 `Exit code: ${result.exit_code ?? "unknown"}`,

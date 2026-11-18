@@ -2919,6 +2919,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     options: HostDirectoryAccesses.map((hda) => hda.value),
                     defaultValue: "read-write",
                 },
+                {
+                    fieldName: "gate_deletes",
+                    fieldDescription: `Ask the user before a command deletes or moves out anything in the folder: deleting on a host machine can't be undone`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
             ],
             uniqueConstraints: [
                 {
@@ -2965,6 +2972,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "TEXT",
                     options: HostDirectoryAccesses.map((hda) => hda.value),
                     defaultValue: "read-write",
+                },
+                {
+                    fieldName: "gate_deletes",
+                    fieldDescription: `Ask the user before a command deletes or moves out anything in the folder: deleting on a host machine can't be undone`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
                 },
             ],
             uniqueConstraints: [

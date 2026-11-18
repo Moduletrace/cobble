@@ -43,7 +43,16 @@ const MB = 1024 * 1024;
 
 async function write(content: string) {
     const { default: make } = await import("./computer-write-file-tool");
-    const tool = make({ computer, dirs, shell_path: "/home/cb-9/.cobble/env", redact: (text) => text });
+    const tool = make({
+        computer,
+        computer_id: 1,
+        dirs,
+        shell_path: "/home/cb-9/.cobble/env",
+        redact: (text) => text,
+        bot_id: 9,
+        workspace_id: null,
+        session_id: 1,
+    });
     return tool.run({ args: { path: "report.md", content }, signal: new AbortController().signal });
 }
 

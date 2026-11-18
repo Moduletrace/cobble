@@ -251,6 +251,21 @@ export const AppData = {
      */
     HostDirectoryGrantTimeoutMs: 10 * 60 * 1000,
     /**
+     * How much of a host folder is copied into the bot's own folder before
+     * an approved delete: past this, the delete goes ahead without a copy
+     * and the result says so, since the folder is the user's own data and
+     * copying a whole disk into the workspace is what the quota guards.
+     */
+    HostDirectoryRecoverMaxBytes: 512 * 1024 * 1024,
+    /**
+     * Where the copy of a deleted path is kept, in the run's own folder.
+     */
+    HostDirectoryRecoverFolder: "recovered",
+    /**
+     * How long copying the paths an approved delete names may take.
+     */
+    HostDirectoryRecoverTimeoutMs: 5 * 60 * 1000,
+    /**
      * A worker's install request (`request_install`): at most this many
      * packages, a reason and notes this long, its answer this long.
      */

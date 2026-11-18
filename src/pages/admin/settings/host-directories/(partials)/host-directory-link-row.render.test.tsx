@@ -11,6 +11,7 @@ function render({
     error,
     checked_at = 1_700_000_000_000,
     onGrant,
+    gate_deletes = true,
 }: {
     state: HostDirectoryCheckState;
     access?: "read-write" | "read-only";
@@ -19,6 +20,7 @@ function render({
     error?: string;
     checked_at?: number | null;
     onGrant?: () => void;
+    gate_deletes?: boolean;
 }) {
     return renderToString(
         <HostDirectoryLinkRow
@@ -30,8 +32,10 @@ function render({
             command={command}
             stale={stale}
             error={error}
+            gate_deletes
             onGrant={onGrant}
             onAccess={() => {}}
+            onDeletes={() => {}}
             onRemove={() => {}}
         />,
     );

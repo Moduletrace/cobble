@@ -1817,6 +1817,10 @@ export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS = {
      * Read and write, or read only: the same folder is mounted the same way for every bot
      */
     access?: "read-write" | "read-only" | "";
+    /** 
+     * Ask the user before a command deletes or moves out anything in the folder: deleting on a host machine can't be undone
+     */
+    gate_deletes?: 0 | 1 | "";
 }
 
 export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES = {
@@ -1835,6 +1839,10 @@ export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES = {
     host_directory_id?: number | "";
     workspace_id?: number | "";
     access?: "read-write" | "read-only" | "";
+    /** 
+     * Ask the user before a command deletes or moves out anything in the folder: deleting on a host machine can't be undone
+     */
+    gate_deletes?: 0 | 1 | "";
 }
 
 export type BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS = {

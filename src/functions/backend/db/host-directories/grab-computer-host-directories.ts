@@ -29,6 +29,8 @@ export type ComputerHostDirectoryLink = {
     access: HostDirectoryAccess;
     scope: "computer" | "workspace";
     workspace_id?: number | null;
+    /** Whether a delete inside the folder waits for the user's approval. */
+    gate_deletes: boolean;
     check: HostDirectoryCheck | null;
 };
 
@@ -115,6 +117,7 @@ export default async function grabComputerHostDirectories({
             source,
             access: (row.access || "read-write") as HostDirectoryAccess,
             scope: "computer" as const,
+            gate_deletes: Number(row.gate_deletes) != 0,
             check: checked_on(Number(row.host_directory_id)),
         })),
         ...(workspace_rows.payload || []).map(({ name, slug, source, ...row }) => ({
@@ -125,6 +128,7 @@ export default async function grabComputerHostDirectories({
             access: (row.access || "read-write") as HostDirectoryAccess,
             scope: "workspace" as const,
             workspace_id: Number(row.workspace_id),
+            gate_deletes: Number(row.gate_deletes) != 0,
             check: checked_on(Number(row.host_directory_id)),
         })),
     ];

@@ -148,12 +148,19 @@ export default async function runBotTask({
      */
     const scopes = await grabRunScopes({ bot, user_id, workspace_id });
 
+    /**
+     * The conversation the run answers in: read before its tools open, so a
+     * delete inside a host folder can ask its user there.
+     */
+    const session_id = await jobSessionId({ job });
+
     const computer = job.computer_id
         ? await openComputerTools({
               computer_id: job.computer_id,
               bot_id: bot.id,
               user_id,
               workspace_id,
+              session_id,
               dirs,
               scopes,
               onSecretRef: ({ ref }) => shown.push(ref),
@@ -166,7 +173,6 @@ export default async function runBotTask({
     let skills: OpenBotSkills | undefined;
 
     try {
-        const session_id = await jobSessionId({ job });
         const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
         const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
 

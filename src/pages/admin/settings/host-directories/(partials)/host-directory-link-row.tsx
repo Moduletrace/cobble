@@ -33,6 +33,10 @@ type Props = {
      * Why the last check couldn't say anything about it.
      */
     error?: string | null;
+    /**
+     * Whether a delete inside the folder waits for the user.
+     */
+    gate_deletes: boolean;
     busy?: boolean;
     checking?: boolean;
     granting?: boolean;
@@ -43,6 +47,10 @@ type Props = {
      */
     onGrant?: () => void;
     onAccess: () => void;
+    /**
+     * Turns asking before a delete on or off for this place.
+     */
+    onDeletes: () => void;
     onRemove: () => void;
 };
 
@@ -60,12 +68,14 @@ export default function HostDirectoryLinkRow({
     command,
     stale,
     error,
+    gate_deletes,
     busy,
     checking,
     granting,
     onCheck,
     onGrant,
     onAccess,
+    onDeletes,
     onRemove,
 }: Props) {
     const access_title =
@@ -116,6 +126,18 @@ export default function HostDirectoryLinkRow({
                         }
                         disabled={busy || checking}
                         onClick={onAccess}
+                    />
+                    <SettingsRowAction
+                        title={
+                            gate_deletes
+                                ? "Stop asking: the bots can delete in it without your approval"
+                                : "Ask you before a bot deletes anything in it"
+                        }
+                        label={
+                            gate_deletes ? "Ask before deletes" : "Delete freely"
+                        }
+                        disabled={busy || checking}
+                        onClick={onDeletes}
                     />
                     <SettingsRowAction
                         title={`Unmount it from ${name}`}

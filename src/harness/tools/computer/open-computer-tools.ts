@@ -42,6 +42,11 @@ type Params = {
      */
     workspace_id?: number | string | null;
     /**
+     * The conversation the run answers in: a delete inside a folder
+     * mounted from the host asks its user there.
+     */
+    session_id: number;
+    /**
      * The run's folders on the computer (`computerRunDirs`): every tool is
      * kept inside them.
      */
@@ -105,6 +110,7 @@ export default async function openComputerTools({
     bot_id,
     user_id,
     workspace_id,
+    session_id,
     dirs,
     scopes,
     onSecretRef,
@@ -148,7 +154,16 @@ export default async function openComputerTools({
     const client = browser
         ? await connectMcpServer({ url: target.url, headers: { authorization: `Bearer ${target.token}` }, signal })
         : null;
-    const context: ComputerToolContext = { computer: target, dirs, shell_path: paths.shell_path, redact };
+    const context: ComputerToolContext = {
+        computer: target,
+        computer_id: Number(computer_id),
+        dirs,
+        shell_path: paths.shell_path,
+        redact,
+        bot_id: Number(bot_id || 0),
+        workspace_id: workspace_id ? Number(workspace_id) : null,
+        session_id: Number(session_id),
+    };
 
     try {
         const browser_tools = client
