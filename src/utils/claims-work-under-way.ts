@@ -3,6 +3,13 @@ type Params = {
 };
 
 /**
+ * "I'm" and "I am": a weaker model writes the long form, and "I am
+ * starting a task to do that." went out with no run behind it while every
+ * pattern here read the contraction alone.
+ */
+const IAm = "(?:i(?:'|’)?m|i am)";
+
+/**
  * How an answer says work is going on after it, or that a report will
  * follow: the line a reply writes once it started a run ("I'm browsing
  * the open contests now. I'll report back."). Written without starting
@@ -33,9 +40,12 @@ const UnderWayPatterns = [
      * promised report the patterns above need. Only `start_task` starts
      * one, so the app's record decides whether it's true.
      */
-    /\bI(?:'|’)?m\s+(?:now\s+|just\s+)?(?:starting|beginning|kicking off|launching|queueing|queuing|firing off|spinning up)\b[^.!?\n]{0,120}\b(?:run|task|job|work|scan|audit|recon|build|pass)\b/i,
-    /\bI(?:'|’)ve\s+(?:now\s+|just\s+)?(?:started|begun|kicked off|launched|queued|fired off|spun up)\b/i,
-    /\bI(?:'|’)?m\s+(?:now\s+|just\s+)?(?:starting|beginning|kicking off)\s+(?:it|this|that)\b/i,
+    new RegExp(
+        `\\b${IAm}\\s+(?:now\\s+|just\\s+)?(?:starting|beginning|kicking off|launching|queueing|queuing|firing off|spinning up)\\b[^.!?\\n]{0,120}\\b(?:run|task|job|work|scan|audit|recon|build|pass)\\b`,
+        "i",
+    ),
+    new RegExp(`\\bI(?:'|’)ve\\s+(?:now\\s+|just\\s+)?(?:started|begun|kicked off|launched|queued|fired off|spun up)\\b`, "i"),
+    new RegExp(`\\b${IAm}\\s+(?:now\\s+|just\\s+)?(?:starting|beginning|kicking off)\\s+(?:it|this|that)\\b`, "i"),
     /(?:^|[.!?\n]\s*)(?:starting|beginning|kicking off)\s+(?:it|that|the (?:run|job|task|work|scan|audit|build))\b/i,
 ];
 
@@ -71,7 +81,31 @@ const PromisePatterns = [
         `^\\s*(?:once|when|after|as soon as)\\b[^,.]{0,80},\\s*(?:then\\s+)?I(?:(?:'|’)ll| will) (?:also |now |just )?${WorkVerb}\\b`,
         "i",
     ),
-    new RegExp(`\\bI(?:'|’)?m (?:going|about) to ${WorkVerb}\\b`, "i"),
+    new RegExp(`\\b${IAm} (?:going|about) to ${WorkVerb}\\b`, "i"),
+    /**
+     * "I am checking the inbox now." The wide "I'm ... ing ... now" above
+     * reads the whole reply, so adding "I am" there faulted a table cell
+     * quoting a line ("I am telling you the same day", with "is now a
+     * follow-up" further along). Read a sentence at a time, only its own
+     * opening counts.
+     */
+    new RegExp(`^\\s*${IAm}\\s+(?:now\\s+)?[a-z]+ing\\b[^.!?\\n]{0,160}\\bnow\\b`, "i"),
+    /**
+     * Work named as happening this moment rather than promised: "Starting
+     * the conversion run now.", written after the app sent the reply back
+     * for promising it, and "I'm reading the four digests, then I'll
+     * build one sample". The sentence has to say it is happening, with a
+     * closer, so "Starting a task on a busy computer waits behind the open
+     * run" explains the app instead of claiming a run.
+     */
+    new RegExp(
+        `^\\s*(?:starting|beginning|kicking off|launching)\\s+(?:(?:the|a|an|this|that|my|both)\\s+)?(?:[\\w-]+\\s+){0,3}(?:run|job|task|work|scan|audit|build|conversion|review|pass)\\b[^.!?\\n]{0,40}\\b(?:now|right away|immediately|for you|as we speak)\\b`,
+        "i",
+    ),
+    new RegExp(
+        `^\\s*${IAm}\\s+(?:now\\s+|just\\s+)?${WorkVerb}ing\\b[^.!?\\n]{0,200}\\b(?:then\\s+)?(?:i(?:'|’)ll|i will)\\b`,
+        "i",
+    ),
 ];
 
 /**

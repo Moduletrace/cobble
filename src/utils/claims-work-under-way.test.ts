@@ -107,4 +107,35 @@ describe("claimsWorkUnderWay", () => {
             expect(claimsWorkUnderWay({ text })).toBe(false);
         }
     });
+
+    /**
+     * The same promise one step later, from the two runs that went out
+     * with nothing started: sent back for promising a run, the bot
+     * apologised and named the run as starting anyway ("Starting the
+     * conversion run now."), and a task it meant to start came out as
+     * text around a written-out call ("I am starting a task to do that.").
+     * Wrote "I am" where every pattern read "I'm", or named the moment
+     * instead of the promise.
+     */
+    test("catches work named as starting now", () => {
+        for (const text of [
+            "You're right - I didn't call `start_task`. Starting the conversion run now.",
+            "You asked me to search for Canva templates. I am starting a task to do that.",
+            "I'm reading the four existing digests to extract the exact format, then I'll build one sample for your approval.",
+            "Kicking off the build now.",
+            "Starting the audit right away.",
+        ]) {
+            expect(claimsWorkUnderWay({ text })).toBe(true);
+        }
+
+        for (const text of [
+            "Starting a task on a busy computer waits behind the open run.",
+            "Starting the container takes about ten seconds.",
+            "I'm reading that as `bots/1/site`, so say so if you meant something else.",
+            "I am sorry, that contest isn't open any more.",
+            "The run starts in a moment, once you say go.",
+        ]) {
+            expect(claimsWorkUnderWay({ text })).toBe(false);
+        }
+    });
 });

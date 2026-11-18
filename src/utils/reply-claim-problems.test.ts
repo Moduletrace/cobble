@@ -46,6 +46,18 @@ describe("replyClaimProblems", () => {
         expect(replyClaimProblems({ text: promised, tool_uses: [{ name: "start_task", ok: true }] })).toEqual([]);
     });
 
+    /**
+     * The rewrite the review bought: told its promise started nothing, the
+     * bot apologised and named the run as starting anyway, and called no
+     * tool. Nothing was running, and the user was left waiting again.
+     */
+    test("faults a reply that apologised and named the run as starting anyway", () => {
+        const promised = "You're right - I didn't call `start_task`. Starting the conversion run now.";
+
+        expect(replyClaimProblems({ text: promised, tool_uses: [] }).length).toBe(1);
+        expect(replyClaimProblems({ text: promised, tool_uses: [{ name: "start_task", ok: true }] })).toEqual([]);
+    });
+
     test("names files and tasks that don't exist", () => {
         const problems = replyClaimProblems({
             text: "Saved in [file:301]; see [task:20].",
