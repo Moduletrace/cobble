@@ -1,17 +1,30 @@
 import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
-import type { HarnessAdapter } from "../../types";
+import type { HarnessAdapter, HarnessCandidate } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
 import providerRequest from "./provider-request";
+
+/**
+ * Providers that want `input_type` on every batch, by provider and model:
+ * NVIDIA's asymmetric models refuse a batch without it ("'input_type'
+ * parameter is required for asymmetric models"), and a custom provider's
+ * catalog says nothing about it. The first batch finds out; every later one
+ * asks the way the provider wanted from the start.
+ */
+const wantsInputType = new Set<string>();
+
+const inputTypeKey = ({ provider, model }: HarnessCandidate) =>
+    `${provider.base_url}|${model.slug}`;
 
 /**
  * Embeddings at the provider's `embeddings_path` (the OpenAI `/embeddings`
  * shape). Batched, since a large file's chunks would otherwise go in one
  * request the provider may refuse.
  */
-const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
+const embed: HarnessAdapter["embed"] = async ({ candidate, input, purpose, signal }) => {
     const { provider, model } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
+    const key = inputTypeKey(candidate);
     const vectors: number[][] = [];
     /**
      * What the provider said the batch cost. Most report it once per
@@ -29,13 +42,41 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, signal }) => {
             .slice(start, start + AppData.EmbeddingBatchSize)
             .map((text) => text.slice(0, AppData.EmbeddingMaxInputChars));
 
-        const res = await providerRequest({
-            provider,
-            path,
-            json: { model: model.slug, input: batch },
-            signal,
-            candidate_key: candidate.key,
-        });
+        const body = { model: model.slug, input: batch };
+        let res: Response;
+
+        try {
+            res = await providerRequest({
+                provider,
+                path,
+                json: wantsInputType.has(key) ? { ...body, input_type: purpose } : body,
+                signal,
+                candidate_key: candidate.key,
+            });
+        } catch (error) {
+            /**
+             * The provider says the model embeds a passage and a query
+             * differently and wants to be told which. Ask again with it,
+             * then remember: only the first batch per provider and model
+             * pays for finding out. Any other refusal is the caller's to
+             * classify.
+             */
+            if (
+                !(error instanceof HarnessError) ||
+                error.status !== 400 ||
+                !/input_type/i.test(error.message)
+            )
+                throw error;
+
+            res = await providerRequest({
+                provider,
+                path,
+                json: { ...body, input_type: purpose },
+                signal,
+                candidate_key: candidate.key,
+            });
+            wantsInputType.add(key);
+        }
 
         const json = await res.json().catch(() => null);
         const items: any[] = Array.isArray(json?.data)

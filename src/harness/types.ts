@@ -352,6 +352,12 @@ export type HarnessEmbedParams = {
      * to `AppData.EmbeddingDimensions`).
      */
     input: string[];
+    /**
+     * What the text is for. Asymmetric models (NVIDIA's Nemotron ones, for
+     * one) embed a passage and a query differently, and say which through
+     * `input_type`; the wrong one costs a lot of retrieval accuracy.
+     */
+    purpose: "query" | "passage";
     signal: AbortSignal;
 };
 

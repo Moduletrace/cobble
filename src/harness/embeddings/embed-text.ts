@@ -12,6 +12,11 @@ type Params = {
      * are (a provider may refuse them; callers skip empty chunks).
      */
     input: string[];
+    /**
+     * Whether this text is stored (indexed) or searched with: asymmetric
+     * models embed the two differently.
+     */
+    purpose: "query" | "passage";
     signal?: AbortSignal;
     /**
      * Uses this bot's embedding model when it has its own.
@@ -48,6 +53,7 @@ export type EmbeddingResult = {
  */
 export default async function embedText({
     input,
+    purpose,
     signal,
     bot_id,
     workspace_id,
@@ -77,6 +83,7 @@ export default async function embedText({
             await grabHarnessAdapter({ kind: candidate.provider.kind }).embed({
                 candidate,
                 input,
+                purpose,
                 signal: signal || new AbortController().signal,
             }),
     });
@@ -96,8 +103,14 @@ export async function embedQuery({
     signal,
     bot_id,
     workspace_id,
-}: Omit<Params, "input"> & { text: string }) {
-    const { vectors } = await embedText({ input: [text], signal, bot_id, workspace_id });
+}: Omit<Params, "input" | "purpose"> & { text: string }) {
+    const { vectors } = await embedText({
+        input: [text],
+        purpose: "query",
+        signal,
+        bot_id,
+        workspace_id,
+    });
 
     return vectors[0] as Float32Array;
 }

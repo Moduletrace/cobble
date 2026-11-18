@@ -100,7 +100,7 @@ export default async function ingestKnowledgebaseDocument({
                 const batch = chunks.slice(start, start + AppData.EmbeddingBatchSize);
                 const embedded = await runWithFallbackScope({
                     scope,
-                    task: () => embedText({ input: batch, signal }),
+                    task: () => embedText({ input: batch, purpose: "passage", signal }),
                 });
 
                 model = embedded.model || model;
