@@ -12,6 +12,7 @@ import runTextLoop, {
     RedraftNote,
     stepsLowNote,
     stepsLowWarningLeft,
+    wrapUpPrompt,
 } from "./run-text-loop";
 
 /**
@@ -461,6 +462,20 @@ describe("runTextLoop", () => {
 
         expect(prompt).toContain("one turn to save what the user needs: write_file");
         expect(prompt).toContain("call start_task with a complete brief of what's left");
+        expect(prompt).not.toContain("and nothing else");
+    });
+
+    test("a saving wrap up with nothing to hand off names only the save tools", () => {
+        const prompt = wrapUpPrompt({
+            uses: [],
+            saving: ["write_file", "import_file"],
+            hand_off: [],
+        });
+
+        expect(prompt).toContain("write_file and import_file are still yours");
+        expect(prompt).toContain("and nothing else");
+        expect(prompt).not.toContain("call  with");
+        expect(prompt).not.toContain("start_task");
     });
 
     test("warns once, a few steps before the wrap up, in a long enough run", async () => {
@@ -798,6 +813,34 @@ describe("runTextLoop", () => {
         });
 
         expect(reviews).toBe(AppData.HarnessReviewRewrites + 1);
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe("Not sent: nothing is running.");
+    });
+
+    test("reviews a rewrite that lands on the wrap up, and refuses it there", async () => {
+        const { generate, seen } = scripted([
+            { text: "I'm scanning now. Scan done: 5 contests." },
+            { text: "Scan done: 5 contests, still going." },
+        ]);
+        const reviewed: string[] = [];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan the contests." }],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            review: async ({ text }) => {
+                reviewed.push(text);
+                return "Not sent: nothing is running.";
+            },
+        });
+
+        expect(reviewed).toEqual([
+            "I'm scanning now. Scan done: 5 contests.",
+            "Scan done: 5 contests, still going.",
+        ]);
+        expect(seen).toHaveLength(2);
         expect(result.text).toBe("");
         expect(result.review_note).toBe("Not sent: nothing is running.");
     });

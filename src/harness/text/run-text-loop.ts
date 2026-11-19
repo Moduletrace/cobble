@@ -83,6 +83,12 @@ type Params = {
     context_budget?: RunLimit;
     signal?: AbortSignal;
     /**
+     * The model a plan turn already used (`planBotTask`). Tried first among
+     * the automatic picks, so the run works the plan on the model that
+     * wrote it when that model is still the one to use.
+     */
+    prefer_key?: string;
+    /**
      * Called after each model turn, before its tools run. Use it for
      * progress and checkpoints.
      */
@@ -125,7 +131,9 @@ type Params = {
      * made. A note sends the answer back to be written again with it, up to
      * `AppData.HarnessReviewRewrites` times; null lets it through. Past that
      * the answer is never sent and the run returns its note (`review_note`).
-     * Not on the wrap up, and a check that throws lets the answer through.
+     * A rewrite is checked again even when it lands on the wrap up: that
+     * turn exists only because the previous answer was sent back. A check
+     * that throws lets the answer through.
      */
     review?: (params: { text: string; tool_uses: HarnessToolUse[] }) => Promise<string | null | undefined>;
     /**
@@ -231,13 +239,13 @@ const wrapUpToolsPrompt = ({ saving, hand_off }: { saving: string[]; hand_off: s
 
     return [
         saving.length
-            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable) and nothing else, then report.`
+            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable)${hand_off.length ? "" : " and nothing else"}, then report.`
             : "",
-        saving.length
-            ? `If real work is left that this run can't finish, call ${hand_off.join(" or ")} with a complete brief of what's left: it runs after this turn and posts its own result.`
-            : hand_off.length
-              ? `You have one turn to hand the work on: ${hand_off.join(" or ")} is still yours. If real work is left, call it with a complete brief of what's left: it runs after this turn and posts its own result.`
-              : "",
+        hand_off.length
+            ? saving.length
+                ? `If real work is left that this run can't finish, call ${hand_off.join(" or ")} with a complete brief of what's left: it runs after this turn and posts its own result.`
+                : `You have one turn to hand the work on: ${hand_off.join(" or ")} is still yours. If real work is left, call it with a complete brief of what's left: it runs after this turn and posts its own result.`
+            : "",
         `After this turn no tool is left, so anything unsaved is lost, and so is work you only say you'll do later.`,
     ]
         .filter(Boolean)
@@ -308,6 +316,7 @@ export default async function runTextLoop({
     max_prompt_tokens,
     context_budget,
     signal = new AbortController().signal,
+    prefer_key: planned_key,
     onStep,
     trace,
     incoming,
@@ -405,13 +414,21 @@ export default async function runTextLoop({
     const step_ceiling = isUnlimitedLimit(max_steps) ? Infinity : max_steps;
 
     const warn_at = isUnlimitedLimit(max_steps) ? 0 : stepsLowWarningLeft({ max_steps });
-    let prefer_key: string | undefined;
+    let prefer_key = planned_key;
     /**
      * How many answers the review has sent back, and the last one it faulted,
      * whitespace collapsed, to see a model that wrote the same message back.
      */
     let review_rewrites = 0;
     let faulted_answer: string | null = null;
+    /**
+     * The previous answer was sent back, so this turn exists to rewrite it.
+     * Checked again even on the wrap up: that turn would otherwise return
+     * the rewrite unchecked, and a claim the app already faulted would go
+     * out. Cleared once the rewrite has been read, so the wrap up is not
+     * an open-ended review loop.
+     */
+    let review_pending = false;
     /**
      * A run that wrote a message and then called a tool has been told, once,
      * that the message never went out (`answerNotSentNote`).
@@ -499,7 +516,20 @@ export default async function runTextLoop({
      * next rewrite on a copy. Past that the run stops: an answer the app
      * knows is wrong is never sent (`review_note`).
      */
-    const checkAnswer = async ({ text, index }: { text: string; index: number }) => {
+    const checkAnswer = async ({
+        text,
+        index,
+        final = false,
+    }: {
+        text: string;
+        index: number;
+        /**
+         * The wrap up, or a turn that must not be written again: a fault
+         * refuses the answer here. A rewrite the review is waiting on is
+         * the run's last look, so it is not sent back into another turn.
+         */
+        final?: boolean;
+    }) => {
         if (!review) return { verdict: "passed" as const };
 
         const note = await review({ text, tool_uses }).catch(async (error) => {
@@ -527,9 +557,10 @@ export default async function runTextLoop({
         faulted_answer = written;
         review_rewrites += 1;
 
-        if (review_rewrites > AppData.HarnessReviewRewrites) return { verdict: "refused" as const, note };
+        if (final || review_rewrites > AppData.HarnessReviewRewrites) return { verdict: "refused" as const, note };
 
         pushUserTurn({ transcript, content: repeated ? `${note}\n\n${repeatedAnswerNote}` : note });
+        review_pending = true;
 
         return { verdict: "sent_back" as const };
     };
@@ -716,10 +747,13 @@ export default async function runTextLoop({
         /**
          * An answer the user wrote past is drafted again. Not on the wrap
          * up: the run is out of steps, and a later reply picks them up.
+         * A rewrite the review is still waiting on is checked first: taking
+         * in a new message here would skip the check the send-back exists for.
          */
         if (
             !tool_calls.length &&
             !wrap_up &&
+            !review_pending &&
             (await takeIncoming({ note: incoming_notes?.redraft || RedraftNote, index }))
         ) {
             await traced({
@@ -731,8 +765,10 @@ export default async function runTextLoop({
             continue;
         }
 
-        if (!tool_calls.length && !wrap_up) {
-            const check = await checkAnswer({ text: answer.text || "", index });
+        if (!tool_calls.length && (!wrap_up || review_pending)) {
+            review_pending = false;
+
+            const check = await checkAnswer({ text: answer.text || "", index, final: wrap_up });
 
             if (check.verdict === "refused") {
                 /**
@@ -750,7 +786,7 @@ export default async function runTextLoop({
                      * (M3). So the repaired text is checked again, and goes
                      * out only once the app's record supports all of it.
                      */
-                    const recheck = await checkAnswer({ text: repaired.text, index });
+                    const recheck = await checkAnswer({ text: repaired.text, index, final: wrap_up });
 
                     if (recheck.verdict === "passed") {
                         await traced({
@@ -783,6 +819,24 @@ export default async function runTextLoop({
             }
 
             if (check.verdict === "sent_back") continue;
+
+            /**
+             * A wrap-up rewrite the review let through is the answer. The
+             * turn below is the ordinary wrap up, which a pending review
+             * must not fall into and be checked a second time.
+             */
+            if (wrap_up) {
+                const said = (answer.text || "").trim();
+
+                return {
+                    text: said || `I ran out of steps before I could finish.`,
+                    messages: transcript,
+                    steps: index + 1,
+                    candidate: answer.candidate,
+                    usage,
+                    tool_uses,
+                };
+            }
         }
 
         if (!tool_calls.length) {

@@ -78,6 +78,8 @@ import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import BotJobFatalError from "./bot-job-fatal-error";
+import reviewRunAnswer from "./review-run-answer";
+import deleteBotQuestion from "@/src/functions/backend/db/bot-questions/delete-bot-question";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import taskIncoming from "./task-incoming";
@@ -678,10 +680,34 @@ export default async function runBotTask({
                       },
                   }
                 : {}),
+            /**
+             * The same record a chat reply is checked against: a long run
+             * is where a report names a file or task that isn't there, or
+             * says work is under way when none is. A note sends it back;
+             * one the review keeps faulting is never posted.
+             */
+            review: reviewRunAnswer({ bot_id: bot.id, user_id, session_id, scopes }),
+            /**
+             * The model that wrote the plan, when there was one: the run
+             * works it on that model when it is still the one to use.
+             */
+            prefer_key: planned?.candidate.key,
         });
 
         if (failure) {
             throw new ScheduledRunFailedError(computer ? computer.redact(failure) : failure);
+        }
+
+        /**
+         * An answer the review kept faulting is never sent: the run stops
+         * with why instead (`review_note`), and the job fails saying so.
+         * The same wording a reply uses, so a failure notice reads the same
+         * wherever the claim was written.
+         */
+        if (result.review_note) {
+            await dropUnsentQuestions({ refs: take_overs });
+
+            throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
         }
 
         const text = stripAppRecords({ text: result.text });
@@ -716,5 +742,20 @@ export default async function runBotTask({
         await extensions?.close();
         await browsers?.close();
         await computer?.close();
+    }
+}
+
+/**
+ * Question cards whose report never went out are deleted: their answer
+ * only comes from the card, so a pending row left behind waits forever.
+ * Take-over and secret refs on the same list are left as they are.
+ */
+async function dropUnsentQuestions({ refs }: { refs: string[] }) {
+    for (const ref of refs) {
+        const question_id = Number(/\[question:(\d+)\]/.exec(ref)?.[1] || 0);
+
+        if (!question_id) continue;
+
+        await deleteBotQuestion({ question_id }).catch(() => null);
     }
 }

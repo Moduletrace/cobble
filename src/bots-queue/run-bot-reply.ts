@@ -69,7 +69,7 @@ import jobSessionId from "@/src/functions/backend/db/bots-queue/job-session-id";
 import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import hasUnansweredMessage from "./has-unanswered-message";
-import reviewBotReply from "./review-bot-reply";
+import reviewRunAnswer from "./review-run-answer";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
@@ -111,7 +111,7 @@ type Params = BotJobContext & {
  * The job records the newest one it read (`markReplyAnswered`). Finishes silently when an earlier
  * reply already read everything (`hasUnansweredMessage`). An answer naming
  * files or tasks that don't exist, or saying work is under way when none
- * is, is written again once (`reviewBotReply`).
+ * is, is written again (`reviewRunAnswer`, up to `AppData.HarnessReviewRewrites`).
  */
 export default async function runBotReply({
     bot,
@@ -606,8 +606,7 @@ export default async function runBotReply({
              * Files, tasks and work the answer names are checked against
              * the app's record before it goes out.
              */
-            review: ({ text, tool_uses }) =>
-                reviewBotReply({ text, tool_uses, bot_id: bot.id!, user_id, session_id, scopes }),
+            review: reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes }),
         });
 
         /**
