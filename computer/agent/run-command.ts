@@ -34,7 +34,9 @@ export type CommandResult = {
 /**
  * Runs one command in its own `bash -c`, in its own process group, with
  * no input (a prompt fails at once instead of waiting). stdout and stderr
- * come back together, in order, cut at `max_output_bytes`. Past its
+ * come back together, each in its own order (they are two pipes, read as
+ * they arrive, so neither is held back for the other), cut at
+ * `max_output_bytes`. Past its
  * timeout (when it has one), or when aborted, the whole group gets TERM,
  * then KILL 5s later. It resolves when bash exits, not when every pipe
  * closes, so work left in the background (`nohup ... &`) keeps running

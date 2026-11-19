@@ -10,11 +10,22 @@ const base = {
 
 describe("runCommand", () => {
     test("returns output in order and the exit code", async () => {
-        const result = await runCommand({ ...base, command: "echo one; echo two >&2; exit 3" });
+        const result = await runCommand({ ...base, command: "echo one; echo two; exit 3" });
 
         expect(result.output).toBe("one\ntwo\n");
         expect(result.exit_code).toBe(3);
         expect(result.timed_out).toBe(false);
+    });
+
+    /**
+     * stdout and stderr are two pipes read as they arrive, so which of
+     * them a line from each lands first is the scheduler's call: both come
+     * back, each in its own order.
+     */
+    test("brings stderr back together with stdout", async () => {
+        const result = await runCommand({ ...base, command: "echo out; echo err >&2" });
+
+        expect(result.output.split("\n").filter(Boolean).sort()).toEqual(["err", "out"]);
     });
 
     test("reads no input", async () => {
