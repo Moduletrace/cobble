@@ -29,10 +29,6 @@ mock.module("./provider-request", () => ({
     },
 }));
 
-mock.module("../grab-provider-preset", () => ({
-    default: () => ({ title: "TestProvider", video_path: "/videos" }),
-}));
-
 const { default: generateVideo } = await import("./generate-video");
 
 afterAll(() => mock.restore());
