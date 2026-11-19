@@ -159,6 +159,45 @@ describe("withCandidates", () => {
         expect(error.retry_at).toBeGreaterThan(Date.now());
     });
 
+    /**
+     * Told only "trying again shortly", a production bot told the user the
+     * image models were benched until the app restarted. The wait is the fact
+     * it needs.
+     */
+    test("a resting model says how long the wait is", async () => {
+        const now = 1_000_000;
+        const cooldowns = createCooldowns();
+        const a = candidate("a");
+
+        cooldowns.set({ key: a.key, at: now + 27_000 });
+
+        const error = (await withCandidates({
+            harness: "image",
+            candidates: [a],
+            cooldowns,
+            now: () => now,
+            run: async () => {
+                throw new Error("should not run");
+            },
+        }).catch((e) => e)) as HarnessError;
+
+        expect(error.message).toContain("The next try is possible in 27s.");
+        expect(error.resting).toBe(true);
+    });
+
+    test("a failure carries the model the candidate ran on", async () => {
+        const error = (await withCandidates({
+            harness: "image",
+            candidates: [candidate("qwen-image-3.0-pro")],
+            cooldowns: createCooldowns(),
+            run: async () => {
+                throw new HarnessError({ message: "Example: HTTP 404", status: 404 });
+            },
+        }).catch((e) => e)) as HarnessError;
+
+        expect(error.model_name).toBe("qwen-image-3.0-pro");
+    });
+
     test("a rest with no end keeps the model benched until the run limits change", async () => {
         const now = 1_000_000;
         const cooldowns = createCooldowns();

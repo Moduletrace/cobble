@@ -3,6 +3,7 @@ import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file"
 import { AppData } from "@/src/data/app-data";
 import generateImage from "@/src/harness/image/generate-image";
 import loadReferenceImages from "@/src/harness/image/load-reference-images";
+import describeHarnessFailure from "@/src/harness/describe-harness-failure";
 import parseFileRef from "@/src/utils/parse-file-ref";
 import type { HarnessTool } from "../../types";
 import {
@@ -99,8 +100,7 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                 bot_id: context.bot_id,
                 workspace_id: context.workspace_id,
             }).catch((error: unknown) => {
-                const message = error instanceof Error ? error.message : String(error);
-                throw new Error(`Image generation isn't working: ${message}`);
+                throw new Error(`Image generation isn't working: ${describeHarnessFailure({ error })}`);
             });
 
             if (!images.length) {

@@ -14,6 +14,18 @@ type Params = {
     provider_wide?: boolean;
     candidate_key?: string;
     resting?: boolean;
+    /**
+     * The request that failed: a 404 on a provider that has no endpoint at
+     * that address is only diagnosable with both in the message.
+     */
+    method?: string;
+    url?: string;
+    /**
+     * The model the provider knew the call by. The caller that ran the
+     * candidate stamps it, so a tool can name the model the setting picked
+     * instead of leaving the bot to guess one.
+     */
+    model_name?: string;
 };
 
 /**
@@ -42,6 +54,9 @@ export default class HarnessError extends Error {
      * queued job waits instead of using up an attempt.
      */
     resting: boolean;
+    method?: string;
+    url?: string;
+    model_name?: string;
 
     constructor({
         message,
@@ -52,6 +67,9 @@ export default class HarnessError extends Error {
         provider_wide = false,
         candidate_key,
         resting = false,
+        method,
+        url,
+        model_name,
     }: Params) {
         super(message);
         this.name = "HarnessError";
@@ -62,5 +80,8 @@ export default class HarnessError extends Error {
         this.provider_wide = provider_wide;
         this.candidate_key = candidate_key;
         this.resting = resting;
+        this.method = method;
+        this.url = url;
+        this.model_name = model_name;
     }
 }

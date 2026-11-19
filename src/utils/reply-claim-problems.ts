@@ -1,6 +1,7 @@
 import type { HarnessToolUse } from "@/src/harness/types";
 import claimsWorkUnderWay from "./claims-work-under-way";
 import unsupportedAppRecordLines from "./app-record-claims";
+import replyAppStateClaims, { AppStateTools } from "./reply-app-state-claims";
 
 type Params = {
     text: string;
@@ -157,6 +158,36 @@ export default function replyClaimProblems({
         problems.push(
             `It says work is going on beyond this reply, or that its findings are still to come, but this reply started no run (start_task) and nothing of yours is open in this conversation. Nothing is running, so no result arrives unless you call start_task now.`,
         );
+    }
+
+    /**
+     * The app's own state, described from nothing: which model or provider a
+     * call was routed to, a run killed or stopped, the rest called unlimited.
+     * A reply that read the app first may be repeating it; one that didn't is
+     * making the mechanism up, and the user reads it as the app's word.
+     */
+    const read_app = tool_uses.some((use) => use.ok && AppStateTools.includes(use.name));
+
+    if (!read_app) {
+        const claims = replyAppStateClaims({ text });
+
+        if (claims.includes("routing")) {
+            problems.push(
+                `It says how the app picks or routes the model, which nothing this reply read told it: the pick is the app's setting, the tool that failed returned only an error, and the user reads the explanation as the app's word. Take the mechanism out and repeat the error the tool gave, in its own words.`,
+            );
+        }
+
+        if (claims.includes("stopped_run")) {
+            problems.push(
+                `It says it killed or stopped a run, but a run can't stop itself: Stop in the thread is the user's button. Take the claim out, say what the tool returned, and say the user can Stop the run from the thread.`,
+            );
+        }
+
+        if (claims.includes("rest")) {
+            problems.push(
+                `It describes the model rest as unlimited or as needing a restart, which the app never said. Say only what the tool returned, including how long it said the next try waits.`,
+            );
+        }
     }
 
     return problems;

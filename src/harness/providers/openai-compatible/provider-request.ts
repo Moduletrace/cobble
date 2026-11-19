@@ -17,6 +17,12 @@ type Params = {
     signal?: AbortSignal;
     timeout_ms?: number;
     /**
+     * Replaces the provider's base URL for this call, for a route that lives
+     * at the host root (Alibaba's native `api/v1/services/aigc/...` API is
+     * not under the provider's `/compatible-mode/v1` base).
+     */
+    base_url?: string;
+    /**
      * Deadline for the whole body once the headers are in. Defaults to a
      * generous span so a streamed answer isn't cut off by the header timeout.
      */
@@ -43,10 +49,12 @@ export default async function providerRequest({
     signal,
     timeout_ms = AppData.HarnessRequestTimeoutMs,
     body_timeout_ms = AppData.HarnessBodyTimeoutMs,
+    base_url,
     candidate_key,
 }: Params): Promise<Response> {
     const provider_name =
         provider.name || grabProviderPreset({ kind: provider.kind }).title;
+    const url = `${(base_url || provider.base_url).replace(/\/+$/, "")}${path}`;
     const headers = grabProviderHeaders({ provider });
 
     if (json !== undefined) {
@@ -76,17 +84,17 @@ export default async function providerRequest({
         const message =
             phase == "headers"
                 ? controller.signal.aborted
-                    ? `${provider_name} took too long to answer.`
-                    : `Couldn't reach ${provider_name}: ${error instanceof Error ? error.message : String(error)}`
+                    ? `${provider_name} took too long to answer at ${method} ${url}.`
+                    : `Couldn't reach ${provider_name} at ${method} ${url}: ${error instanceof Error ? error.message : String(error)}`
                 : `${provider_name} stopped sending the response.`;
 
-        return new HarnessError({ message, retryable: true, candidate_key });
+        return new HarnessError({ message, retryable: true, candidate_key, method, url });
     };
 
     let res: Response;
 
     try {
-        res = await fetch(`${provider.base_url.replace(/\/+$/, "")}${path}`, {
+        res = await fetch(url, {
             method,
             headers,
             body: form || (json !== undefined ? JSON.stringify(json) : undefined),
@@ -119,6 +127,8 @@ export default async function providerRequest({
             headers: res.headers,
             provider_name,
             candidate_key,
+            method,
+            url,
         });
     }
 

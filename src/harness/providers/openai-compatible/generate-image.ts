@@ -1,8 +1,9 @@
 import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
-import type { HarnessAdapter, HarnessImageOutput } from "../../types";
+import type { HarnessAdapter, HarnessCandidate, HarnessImageOutput } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
 import downloadProviderFile from "./download-provider-file";
+import generateImageNative from "./dashscope-native-image";
 import providerRequest from "./provider-request";
 import referenceBlob from "./reference-blob";
 
@@ -14,6 +15,11 @@ import referenceBlob from "./reference-blob";
  * that same generations call; the others get them as a multipart upload at
  * `image_edit_path` (`/images/edits`). Images come back as base64, or as
  * URLs that are downloaded here (DashScope only ever returns URLs).
+ *
+ * A DashScope/Model Studio host with no OpenAI-compatible images route (the
+ * Token Plan host answers 404 with an empty body) falls back to Alibaba's
+ * native `multimodal-generation` call on the host root, so the same model
+ * pick works either way.
  */
 const generateImage: HarnessAdapter["generateImage"] = async ({
     candidate,
@@ -23,57 +29,27 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
     references,
     signal,
 }) => {
-    const { provider, model } = candidate;
+    const { provider } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
-    const is_openrouter = provider.kind == "openrouter";
-    const dashscope = isDashScopeHost({ base_url: provider.base_url });
-    const edits = Boolean(references?.length) && !is_openrouter && !dashscope;
 
-    const res = edits
-        ? await providerRequest({
-              provider,
-              path: preset.image_edit_path,
-              form: await editForm({
-                  model: model.slug,
-                  prompt,
-                  n,
-                  size,
-                  references: references || [],
-                  signal,
-              }),
-              signal,
-              candidate_key: candidate.key,
-          })
-        : await providerRequest({
-              provider,
-              path: preset.image_path,
-              json: {
-                  model: model.slug,
-                  prompt,
-                  ...(n ? { n } : {}),
-                  ...(size ? { size } : {}),
-                  ...(is_openrouter && references?.length
-                      ? {
-                            input_references: references.map((url) => ({
-                                type: "image_url",
-                                image_url: { url },
-                            })),
-                        }
-                      : {}),
-                  // DashScope/Model Studio takes references as the `image`
-                  // extension field (`data:` URLs or public URLs) on the
-                  // generations call, never as a multipart /images/edits
-                  // upload.
-                  ...(dashscope && references?.length ? { image: references } : {}),
-                  // Ask for base64 on every provider, OpenRouter included: a
-                  // URL handed back is one more fetch to guard (H4), and the
-                  // bytes inline avoid it altogether. DashScope ignores this
-                  // and returns URLs, which are downloaded below.
-                  response_format: "b64_json",
-              },
-              signal,
-              candidate_key: candidate.key,
-          });
+    let res: Response;
+
+    try {
+        res = await requestCompatibleImage({ candidate, prompt, n, size, references, signal });
+    } catch (error: unknown) {
+        /**
+         * A DashScope/Model Studio host that answers 404 or 405 on the
+         * compatible images route has no route there at all (the Token Plan
+         * host serves chat and the native API only), so the model pick is
+         * fine and the native call is where the picture comes from.
+         */
+        const missing_route =
+            error instanceof HarnessError && (error.status == 404 || error.status == 405);
+
+        if (!missing_route || !isDashScopeHost({ base_url: provider.base_url })) throw error;
+
+        return await generateImageNative({ candidate, prompt, n, size, references, signal });
+    }
 
     const json = await res.json().catch(() => null);
     const items: any[] = Array.isArray(json?.data) ? json.data : [];
@@ -122,6 +98,82 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
 };
 
 export default generateImage;
+
+type CompatibleRequestParams = {
+    candidate: HarnessCandidate;
+    prompt: string;
+    n?: number;
+    size?: string;
+    references?: string[];
+    signal: AbortSignal;
+};
+
+/**
+ * The OpenAI-compatible call: a multipart edit when the provider takes
+ * references that way, otherwise one JSON generations call.
+ */
+async function requestCompatibleImage({
+    candidate,
+    prompt,
+    n,
+    size,
+    references,
+    signal,
+}: CompatibleRequestParams) {
+    const { provider, model } = candidate;
+    const preset = grabProviderPreset({ kind: provider.kind });
+    const is_openrouter = provider.kind == "openrouter";
+    const dashscope = isDashScopeHost({ base_url: provider.base_url });
+    const edits = Boolean(references?.length) && !is_openrouter && !dashscope;
+
+    if (edits) {
+        return await providerRequest({
+            provider,
+            path: preset.image_edit_path,
+            form: await editForm({
+                model: model.slug,
+                prompt,
+                n,
+                size,
+                references: references || [],
+                signal,
+            }),
+            signal,
+            candidate_key: candidate.key,
+        });
+    }
+
+    return await providerRequest({
+        provider,
+        path: preset.image_path,
+        json: {
+            model: model.slug,
+            prompt,
+            ...(n ? { n } : {}),
+            ...(size ? { size } : {}),
+            ...(is_openrouter && references?.length
+                ? {
+                      input_references: references.map((url) => ({
+                          type: "image_url",
+                          image_url: { url },
+                      })),
+                  }
+                : {}),
+            // DashScope/Model Studio takes references as the `image`
+            // extension field (`data:` URLs or public URLs) on the
+            // generations call, never as a multipart /images/edits
+            // upload.
+            ...(dashscope && references?.length ? { image: references } : {}),
+            // Ask for base64 on every provider, OpenRouter included: a
+            // URL handed back is one more fetch to guard (H4), and the
+            // bytes inline avoid it altogether. DashScope ignores this
+            // and returns URLs, which are downloaded below.
+            response_format: "b64_json",
+        },
+        signal,
+        candidate_key: candidate.key,
+    });
+}
 
 type EditFormParams = {
     model: string;

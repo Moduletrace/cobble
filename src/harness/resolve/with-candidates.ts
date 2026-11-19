@@ -99,15 +99,7 @@ export default async function withCandidates<T>({
         !cooldowns.get({ key: providerKey(candidate), now: now() });
 
     if (!ordered.some(isReady)) {
-        const next = Math.min(
-            ...ordered.map((candidate) =>
-                Math.max(
-                    cooldowns.get({ key: candidate.key, now: now() }) || 0,
-                    cooldowns.get({ key: providerKey(candidate), now: now() }) ||
-                        0,
-                ),
-            ),
-        );
+        const next = soonestRest({ candidates: ordered, cooldowns, now: now() });
 
         /**
          * The call never reached a model: every candidate is benched from an
@@ -141,7 +133,7 @@ export default async function withCandidates<T>({
 
         throw new HarnessError({
             message: Number.isFinite(next)
-                ? `Every ${title.toLowerCase()} model is resting after errors or rate limits. Trying again shortly.`
+                ? `Every ${title.toLowerCase()} model is resting after errors or rate limits. The next try is possible in ${waitText({ ms: next - now() })}.`
                 : `Every ${title.toLowerCase()} model is resting after errors or rate limits. They stay benched until the run limits change or the app restarts. A super admin can pick a working model or add a fallback in Settings, under Models.`,
             retryable: true,
             retry_at: Number.isFinite(next) ? next : now() + AppData.HarnessMaxCooldownMs,
@@ -174,6 +166,13 @@ export default async function withCandidates<T>({
         } catch (error: unknown) {
             if (!(error instanceof HarnessError)) throw error;
             if (error.code == "aborted") throw error;
+
+            /**
+             * The model's own name goes on the failure: a tool tells the bot
+             * why the call failed, and a bot with "HTTP 404" alone invented
+             * the model and its routing (production, Nov 2026).
+             */
+            error.model_name ||= candidate.model.slug;
 
             errors.push(error);
             failed.push(candidate.key);
@@ -211,8 +210,12 @@ export default async function withCandidates<T>({
     const last = errors[errors.length - 1];
 
     if (!last) {
+        const next = soonestRest({ candidates: ordered, cooldowns, now: now() });
+
         throw new HarnessError({
-            message: `Every ${title.toLowerCase()} model is resting after errors or rate limits. Trying again shortly.`,
+            message: Number.isFinite(next)
+                ? `Every ${title.toLowerCase()} model is resting after errors or rate limits. The next try is possible in ${waitText({ ms: next - now() })}.`
+                : `Every ${title.toLowerCase()} model is resting after errors or rate limits. They stay benched until the run limits change or the app restarts.`,
             retryable: true,
             resting: true,
         });
@@ -231,11 +234,52 @@ export default async function withCandidates<T>({
         retryable: errors.some((error) => error.retryable),
         retry_at: retry_ats.length ? Math.min(...retry_ats) : undefined,
         candidate_key: last.candidate_key,
+        model_name: last.model_name,
+        method: last.method,
+        url: last.url,
     });
 }
 
 function providerKey(candidate: HarnessCandidate) {
     return `provider:${candidate.provider.id ?? candidate.provider.base_url}`;
+}
+
+/**
+ * When the first of these candidates is ready again, in ms (`Infinity` for a
+ * rest with no end).
+ */
+function soonestRest({
+    candidates,
+    cooldowns,
+    now,
+}: {
+    candidates: HarnessCandidate[];
+    cooldowns: HarnessCooldowns;
+    now: number;
+}) {
+    return Math.min(
+        ...candidates.map((candidate) =>
+            Math.max(
+                cooldowns.get({ key: candidate.key, now }) || 0,
+                cooldowns.get({ key: providerKey(candidate), now }) || 0,
+            ),
+        ),
+    );
+}
+
+/**
+ * A rest as a person reads it: "27s", "4m", "2h". A resting call says how
+ * long: told only "trying again shortly", a bot told the user the models were
+ * benched until the app restarted (production, Nov 2026).
+ */
+function waitText({ ms }: { ms: number }) {
+    const seconds = Math.max(1, Math.round(ms / 1000));
+
+    if (seconds < 90) return `${seconds}s`;
+
+    const minutes = Math.round(seconds / 60);
+
+    return minutes < 90 ? `${minutes}m` : `${Math.round(minutes / 60)}h`;
 }
 
 /**

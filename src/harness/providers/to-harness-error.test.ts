@@ -116,4 +116,47 @@ describe("toHarnessError", () => {
         expect(error.message).not.toContain("sk-or-v1-aaaa");
         expect(error.message).toContain("[redacted]");
     });
+
+    /**
+     * The production 404: Alibaba's Token Plan host has no
+     * `/images/generations`, answers with an empty body, and the bot reading
+     * "HTTP 404" alone invented a model and a routing for it.
+     */
+    test("an empty 404 names the method, the address and the missing endpoint", () => {
+        const url = "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/images/generations";
+        const error = toHarnessError({ status: 404, provider_name: "Alibaba Cloud Token Plan", url });
+
+        expect(error.message).toBe(
+            `Alibaba Cloud Token Plan: HTTP 404 at POST ${url} - no endpoint at that address; check the provider's base URL`,
+        );
+        expect(error.url).toBe(url);
+        expect(error.method).toBe("POST");
+        expect(error.retryable).toBe(false);
+    });
+
+    test("a 404 with the provider's own reason keeps it and adds no guess", () => {
+        const error = toHarnessError({
+            status: 404,
+            body: JSON.stringify({ error: { message: "model not found" } }),
+            provider_name: "Example",
+            url: "https://api.example.com/v1/images/generations",
+        });
+
+        expect(error.message).toBe(
+            "Example: model not found at POST https://api.example.com/v1/images/generations",
+        );
+        expect(error.message).not.toContain("no endpoint");
+    });
+
+    test("an address the provider already names is not repeated", () => {
+        const url = "https://api.example.com/v1/images/generations";
+        const error = toHarnessError({
+            status: 400,
+            body: JSON.stringify({ error: { message: `POST ${url} is not supported` } }),
+            provider_name: "Example",
+            url,
+        });
+
+        expect(error.message.match(/images\/generations/g)?.length).toBe(1);
+    });
 });

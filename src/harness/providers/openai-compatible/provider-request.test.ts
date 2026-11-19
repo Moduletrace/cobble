@@ -92,4 +92,31 @@ describe("providerRequest timeouts (M2)", () => {
 
         await expect(providerRequest({ provider, path: "/x" })).rejects.toBeInstanceOf(HarnessError);
     });
+
+    test("a failure says which request failed", async () => {
+        fetchImpl = () => Promise.resolve(new Response("", { status: 404 }));
+
+        await expect(providerRequest({ provider, path: "/images/generations" })).rejects.toMatchObject({
+            message: expect.stringContaining("POST https://api.example.com/images/generations"),
+        });
+    });
+
+    test("a base URL override goes to that address instead", async () => {
+        const seen: string[] = [];
+
+        fetchImpl = (url) => {
+            seen.push(url);
+            return Promise.resolve(new Response("{}", { status: 200 }));
+        };
+
+        await providerRequest({
+            provider,
+            base_url: "https://ws-1.ap-southeast-1.maas.aliyuncs.com",
+            path: "/api/v1/services/aigc/multimodal-generation/generation",
+        });
+
+        expect(seen).toEqual([
+            "https://ws-1.ap-southeast-1.maas.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+        ]);
+    });
 });

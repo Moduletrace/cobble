@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { ActionCheckNote } from "@/src/data/harness-prompts";
 import unsupportedAppRecordLines from "./app-record-claims";
 import replyClaimProblems, { AppCardRefToolNames, WorkStartingTools } from "./reply-claim-problems";
+import { AppStateTools } from "./reply-app-state-claims";
 import { AppRecordPrefix } from "./strip-app-records";
 
 const underWay = "I'm scanning the open contests now. When it's back, I'll create the tasks.";
@@ -265,5 +266,53 @@ I'll report what the run actually finds when it reports back.`;
 
     test("an answer that holds up has no problems", () => {
         expect(replyClaimProblems({ text: "Task #20 is cancelled.", tool_uses: [] })).toEqual([]);
+    });
+});
+
+/**
+ * Production, Nov 2026: every image call failed with "HTTP 404", and the bot
+ * answered with the model it believed the app was routing to, then said it had
+ * killed the run. Nothing it called had told it any of that.
+ */
+describe("replyClaimProblems: the app's own state", () => {
+    const invented =
+        "That's what the **OpenRouter routing** is resolving to. The `model` parameter gets sent as google/nano-banana-2.1, so the tool never sees that name.";
+
+    test("faults invented routing, and passes it once the app was read", () => {
+        expect(replyClaimProblems({ text: invented, tool_uses: [] }).length).toBe(1);
+
+        for (const name of AppStateTools) {
+            expect(replyClaimProblems({ text: invented, tool_uses: [{ name, ok: true }] })).toEqual([]);
+        }
+
+        expect(replyClaimProblems({ text: invented, tool_uses: [{ name: "read_settings", ok: false }] }).length).toBe(1);
+    });
+
+    test("faults a run claimed as killed", () => {
+        const problems = replyClaimProblems({
+            text: "Killed the run. No raster model is currently working for that workspace.",
+            tool_uses: [],
+        });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("Stop in the thread");
+    });
+
+    test("faults the rest described as unlimited", () => {
+        const problems = replyClaimProblems({
+            text: "The image models are benched (unlimited rest-after-failure setting, only a super-admin or app restart can recover them).",
+            tool_uses: [],
+        });
+
+        expect(problems.length).toBe(1);
+    });
+
+    test("leaves the error it was given, word for word, alone", () => {
+        expect(
+            replyClaimProblems({
+                text: "qwen-image-3.0-pro: Alibaba Cloud Token Plan: HTTP 404 at POST https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/images/generations - no endpoint at that address; check the provider's base URL",
+                tool_uses: [],
+            }),
+        ).toEqual([]);
     });
 });

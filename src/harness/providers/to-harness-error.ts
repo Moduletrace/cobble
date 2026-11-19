@@ -11,6 +11,13 @@ type Params = {
     headers?: Headers;
     provider_name: string;
     candidate_key?: string;
+    /**
+     * The request that failed, when the caller knows it: without the address
+     * a 404 with an empty body reads as "HTTP 404" and nothing else, and a
+     * bot explaining it invented a routing story (production, Nov 2026).
+     */
+    method?: string;
+    url?: string;
 };
 
 /**
@@ -29,21 +36,45 @@ export default function toHarnessError({
     headers,
     provider_name,
     candidate_key,
+    method = "POST",
+    url,
 }: Params) {
     // The provider may echo the request's key in its error (LiteLLM does on
     // a 401); this text reaches members, the logs and the next model, so the
     // key's shapes are masked before it goes anywhere (M8).
-    const detail = redactProviderError({ text: readErrorMessage({ body }) || `HTTP ${status}` });
+    const provider_detail = readErrorMessage({ body });
+    const detail = redactProviderError({ text: provider_detail || `HTTP ${status}` }),
+        /**
+         * A 404 or a 405 with nothing in the body is the provider's gateway
+         * saying the path does not exist (Alibaba's Token Plan host serves
+         * chat but has no `/images/generations`), never a problem with the
+         * prompt or the model.
+         */
+        missing_endpoint = !provider_detail && (status == 404 || status == 405),
+        address = addressText({ detail, method, url }),
+        hint = missing_endpoint ? " - no endpoint at that address; check the provider's base URL" : "";
+
     const retryable = [408, 409, 425, 429].includes(status) || status >= 500;
 
     return new HarnessError({
-        message: `${provider_name}: ${detail}`.slice(0, 400),
+        message: redactProviderError({ text: `${provider_name}: ${detail}${address}${hint}` }).slice(0, 400),
         status,
         retryable,
         retry_at: retryable && headers ? parseRetryAt({ headers }) : undefined,
         provider_wide: status == 401 || status == 402,
         candidate_key,
+        method,
+        url,
     });
+}
+
+/**
+ * Where the call went, unless the provider's own words already say it.
+ */
+function addressText({ detail, method, url }: { detail: string; method: string; url?: string }) {
+    if (!url || detail.includes(url)) return "";
+
+    return ` at ${method} ${url}`;
 }
 
 function readErrorMessage({ body }: { body?: string }) {
