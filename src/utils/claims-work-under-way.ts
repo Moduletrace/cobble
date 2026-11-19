@@ -97,9 +97,16 @@ const PromisePatterns = [
      * build one sample". The sentence has to say it is happening, with a
      * closer, so "Starting a task on a busy computer waits behind the open
      * run" explains the app instead of claiming a run.
+     *
+     * The noun is the work, whatever the bot calls it: "Starting the
+     * actual Canva Dream Lab generation now" went out after a review
+     * rewrite, with no `start_task`. `generation` was not in the old list,
+     * and four words sat between "the" and it, so both limits missed it.
+     * A colon in the brief ("generation now with the brief: …") is not the
+     * end of the claim.
      */
     new RegExp(
-        `^\\s*(?:starting|beginning|kicking off|launching)\\s+(?:(?:the|a|an|this|that|my|both)\\s+)?(?:[\\w-]+\\s+){0,3}(?:run|job|task|work|scan|audit|build|conversion|review|pass)\\b[^.!?\\n]{0,40}\\b(?:now|right away|immediately|for you|as we speak)\\b`,
+        `^\\s*(?:starting|beginning|kicking off|launching)\\s+(?:(?:the|a|an|this|that|my|both)\\s+)?(?:[\\w%-]+\\s+){0,8}(?:run|job|task|work|scan|audit|build|conversion|review|pass|generation|render|export|import)\\b(?:[^.!?\\n]|:(?!\\s)){0,80}\\b(?:now|right away|immediately|for you|as we speak)\\b`,
         "i",
     ),
     new RegExp(

@@ -124,6 +124,17 @@ describe("claimsWorkUnderWay", () => {
             "I'm reading the four existing digests to extract the exact format, then I'll build one sample for your approval.",
             "Kicking off the build now.",
             "Starting the audit right away.",
+            /**
+             * Jobs #554 and #555, Graphic Designer in Summit Lending:
+             * the review sent the invented-file draft back, and the
+             * rewrite named a generation as starting and called no tool.
+             * `generation` was not a work noun, and four words sat between
+             * "the" and it.
+             */
+            "You're right — I didn't actually run the generation. My previous message described work that never happened. No tools were called, no files created, nothing imported.\n\nStarting the actual Canva Dream Lab generation now with the corrected brief: flat navy background, single centered \"6%\" signpost subject, accent icons around it.",
+            "You're right. I didn't run any generation — no tools were called, no files created, nothing imported. The previous answer was fabricated.\n\nStarting the actual Canva Dream Lab generation now with the corrected template: **single centered \"6%\" signpost subject, flat navy background, accent icons as additions**.",
+            "Beginning the render right away.",
+            "Launching the export now.",
         ]) {
             expect(claimsWorkUnderWay({ text })).toBe(true);
         }
@@ -131,6 +142,7 @@ describe("claimsWorkUnderWay", () => {
         for (const text of [
             "Starting a task on a busy computer waits behind the open run.",
             "Starting the container takes about ten seconds.",
+            "Starting the generation of a new palette is a separate decision.",
             "I'm reading that as `bots/1/site`, so say so if you meant something else.",
             "I am sorry, that contest isn't open any more.",
             "The run starts in a moment, once you say go.",
