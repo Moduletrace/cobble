@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { AppData } from "@/src/data/app-data";
 import minimumWait from "../(utils)/minimum-wait";
-import pullToRefreshState from "../(utils)/pull-to-refresh";
+import pullGesture, {
+    IdlePullGesture,
+    type PullGesture,
+    type PullGestureInput,
+} from "../(utils)/pull-to-refresh-gesture";
 /**
  * What the pull indicator shows: nothing yet, a pull that isn't far
  * enough, one that will reload on release, or a reload in flight.
@@ -43,10 +47,15 @@ type Params = {
  * and reloads nothing.
  *
  * Touches are read rather than `scrollTop`, whose sign a reversed column
- * reports differently across engines. Once the pull has started it owns the
- * gesture until the finger lifts: it is not interrupted by a scroll, a
- * resize or a text selection, so a press that is still down always shows
- * its icon, and the reload happens on release, never before.
+ * reports differently across engines. The finger is read wherever it lands
+ * and the pull's anchor is taken when the thread reaches its end, so a swipe
+ * that starts halfway up the conversation and runs out of it keeps going
+ * into the pull instead of stopping dead at the last message
+ * (`pull-to-refresh-gesture.ts` holds that state, and its tests, without a
+ * browser). Once the pull has started it owns the gesture until the finger
+ * lifts: it is not interrupted by a scroll, a resize or a text selection, so
+ * a press that is still down always shows its icon, and the reload happens
+ * on release, never before.
  *
  * The room is written straight onto the content as the finger moves, never
  * through a render: a phone drags in steps of a couple of pixels, and
@@ -68,18 +77,12 @@ export default function usePullToRefresh({
 
     useEffect(() => {
         const column = column_ref.current;
-        const content = content_ref.current;
 
         if (!column) return;
 
-        let start_y: number | null = null;
-        /** The pull has begun: it runs to the release regardless. */
-        let engaged = false;
-        /** The room has stayed full long enough: letting go now reloads. */
-        let armed = false;
-        /** When the room last became full, while the finger holds it there. */
-        let held_since: number | null = null;
+        let gesture: PullGesture = IdlePullGesture;
         let held_timer: ReturnType<typeof setTimeout> | null = null;
+        let selection_held = false;
         let busy = false;
 
         /**
@@ -88,6 +91,8 @@ export default function usePullToRefresh({
          * grew under the finger would send it there mid-pull.
          */
         const setRoom = (distance: number) => {
+            const content = content_ref.current;
+
             if (!content) return;
 
             content.style.transform = distance > 0 ? `translate3d(0, -${distance}px, 0)` : "";
@@ -100,119 +105,121 @@ export default function usePullToRefresh({
          * pull has begun, since the pull is what this finger is doing.
          */
         const holdSelection = (held: boolean) => {
+            if (selection_held == held) return;
+
+            const content = content_ref.current;
+
             if (!content) return;
 
+            selection_held = held;
             content.style.userSelect = held ? "none" : "";
 
             if (held) window.getSelection()?.removeAllRanges();
         };
+
+        const showState = () => {
+            const next: PullToRefreshState = gesture.armed
+                ? "ready"
+                : gesture.engaged
+                  ? "pulling"
+                  : "idle";
+
+            setState(next);
+        };
+
+        function stopHold() {
+            if (held_timer == null) return;
+
+            clearTimeout(held_timer);
+            held_timer = null;
+        }
 
         /**
          * The room is full: the hold that makes it a reload starts, or is
          * already running. A finger that rests on the limit fires no further
          * touches, so the timer is what notices the hold, not the moves.
          */
-        const beginHold = () => {
-            if (held_since != null) return;
+        function beginHold() {
+            if (held_timer != null) return;
 
-            held_since = Date.now();
             held_timer = setTimeout(() => {
                 held_timer = null;
 
-                if (held_since == null) return;
-
-                armed = true;
-                setState("ready");
+                step({ type: "hold" });
             }, AppData.PullToRefreshHoldMs);
+        }
+
+        /**
+         * One step of the gesture, written out: the room straight onto the
+         * content, the hold's timer started or dropped with it, and the
+         * icon's state from what the step left behind.
+         */
+        function step(input: PullGestureInput) {
+            const was_full = gesture.full;
+
+            gesture = pullGesture({ gesture, input }).gesture;
+
+            setRoom(gesture.distance);
+            holdSelection(gesture.engaged);
+
+            if (gesture.full && !was_full) beginHold();
+            if (!gesture.full && was_full) stopHold();
+
+            showState();
+        }
+
+        const onStart = (event: TouchEvent) => {
+            if (busy || event.touches.length != 1) return;
+
+            const y = event.touches[0]?.clientY;
+
+            if (y == undefined) return;
+
+            step({ type: "start", y, at_end: bottom.current() });
         };
 
-        /** Not full any more: the hold starts again from nothing. */
-        const dropHold = () => {
-            held_since = null;
-            armed = false;
+        const onMove = (event: TouchEvent) => {
+            if (busy || !gesture.touching) return;
 
-            if (held_timer == null) return;
+            const y = event.touches[0]?.clientY;
 
-            clearTimeout(held_timer);
-            held_timer = null;
+            if (y == undefined || event.touches.length != 1) {
+                /**
+                 * A move that arrives without its touch holds no finger
+                 * position; the release's own event is on its way, and it is
+                 * that one that decides.
+                 */
+                if (!event.touches.length) return;
+
+                cancel();
+                return;
+            }
+
+            step({ type: "move", y, at_end: bottom.current() });
         };
 
-        const reset = () => {
-            start_y = null;
-            engaged = false;
-            dropHold();
+        const cancel = () => {
+            if (busy) return;
+
+            gesture = IdlePullGesture;
+            stopHold();
             setRoom(0);
             holdSelection(false);
             setState("idle");
         };
 
-        const onStart = (event: TouchEvent) => {
-            start_y = null;
-            engaged = false;
-            dropHold();
-
-            if (busy || event.touches.length != 1) return;
-            if (!bottom.current()) return;
-
-            start_y = event.touches[0]?.clientY ?? null;
-        };
-
-        const onMove = (event: TouchEvent) => {
-            if (busy || start_y == null) return;
-
-            const current_y = event.touches[0]?.clientY;
-
-            if (current_y == undefined || event.touches.length != 1) {
-                /**
-                 * A move that arrives without its touch holds no finger
-                 * position; the release's own event is on its way, and it
-                 * is that one that decides.
-                 */
-                if (!event.touches.length) return;
-
-                reset();
-                return;
-            }
-
-            if (!engaged) {
-                if (!bottom.current()) {
-                    reset();
-                    return;
-                }
-
-                if (pullToRefreshState({ start_y, current_y }).pulling) {
-                    engaged = true;
-                    holdSelection(true);
-                }
-            }
-
-            /**
-             * A finger dragged back down before it was let go takes the
-             * room back down with it and hides the icon at the very travel
-             * that showed it, so the pull reads the same in either
-             * direction. The gesture stays its own until the release, and
-             * a hold that has not finished yet starts over from nothing.
-             */
-            const pulled = pullToRefreshState({ start_y, current_y });
-
-            if (pulled.ready) beginHold();
-            else dropHold();
-
-            setRoom(pulled.distance);
-            setState(armed ? "ready" : pulled.pulling ? "pulling" : "idle");
-        };
-
         const onEnd = async () => {
             if (busy) return;
 
-            const reload = engaged && armed;
+            const reload = pullGesture({ gesture, input: { type: "end" } }).reload;
 
-            start_y = null;
-            engaged = false;
-            dropHold();
+            gesture = IdlePullGesture;
+            stopHold();
+            holdSelection(false);
 
             if (!reload) {
-                reset();
+                setRoom(0);
+                setState("idle");
                 return;
             }
 
@@ -230,21 +237,21 @@ export default function usePullToRefresh({
                 });
             } finally {
                 busy = false;
-                reset();
+                cancel();
             }
         };
 
         column.addEventListener("touchstart", onStart, { passive: true });
         column.addEventListener("touchmove", onMove, { passive: true });
         column.addEventListener("touchend", onEnd);
-        column.addEventListener("touchcancel", reset);
+        column.addEventListener("touchcancel", cancel);
 
         return () => {
             column.removeEventListener("touchstart", onStart);
             column.removeEventListener("touchmove", onMove);
             column.removeEventListener("touchend", onEnd);
-            column.removeEventListener("touchcancel", reset);
-            dropHold();
+            column.removeEventListener("touchcancel", cancel);
+            stopHold();
             setRoom(0);
             holdSelection(false);
         };

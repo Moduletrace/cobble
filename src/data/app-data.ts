@@ -1005,6 +1005,13 @@ export const AppData = {
     PullToRefreshResistance: 0.6,
     PullToRefreshRoomPx: 64,
     /**
+     * How far short of the column's edge the content still counts as the
+     * thread's end for the pull: a phone's fractional device pixel ratio
+     * leaves it a fraction of a pixel short, and a thumb that comes to rest
+     * a pixel above the newest message is at the bottom too.
+     */
+    PullToRefreshEndSlackPx: 2,
+    /**
      * How long that room must stay full, in milliseconds, before letting go
      * reloads: an exhausted thread reaches the limit by accident too easily,
      * and keeping the finger there says the reload was meant.

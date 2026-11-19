@@ -1,3 +1,5 @@
+import { AppData } from "@/src/data/app-data";
+
 /**
  * Pixels from the bottom that still count as being at it, so a mouse wheel
  * tick or a rounding difference doesn't hide the latest message.
@@ -35,6 +37,31 @@ export function threadOffset({
         distance: at_bottom && distance < 0 ? 0 : distance,
         near_bottom: at_bottom,
     };
+}
+
+/**
+ * Whether the thread's content ends as far down as it goes, for the pull
+ * that opens room under the newest message. It is stricter than
+ * `threadOffset`'s `near_bottom`, which lets a wheel tick or a rounding
+ * difference pass so the newest message stays in view: a pull needs the
+ * content to have nowhere left of its own to scroll, or the finger's travel
+ * would be the scroller's.
+ *
+ * It still keeps a couple of pixels of slack. A phone's fractional device
+ * pixel ratio leaves the content a fraction of a pixel past the column's
+ * edge while a reversed column sits at its end, and a thumb that comes to
+ * rest a pixel above the newest message is at the bottom by any reading.
+ * Demanding an exact zero there made the gesture do nothing at all, with no
+ * hint why.
+ */
+export function atThreadEnd({
+    distance,
+    slack = AppData.PullToRefreshEndSlackPx,
+}: {
+    distance: number;
+    slack?: number;
+}) {
+    return distance <= slack;
 }
 
 /**

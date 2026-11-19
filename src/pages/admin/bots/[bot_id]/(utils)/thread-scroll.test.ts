@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { AppData } from "@/src/data/app-data";
 import {
     ThreadBottomSlack,
+    atThreadEnd,
     shouldFollowThread,
     threadOffset,
 } from "./thread-scroll";
@@ -52,6 +54,39 @@ describe("threadOffset", () => {
                 slack: 200,
             }).near_bottom,
         ).toBe(true);
+    });
+});
+
+describe("atThreadEnd", () => {
+    test("content ending at the column's bottom is the end", () => {
+        expect(atThreadEnd({ distance: 0 })).toBe(true);
+    });
+
+    test("a fraction of a pixel short is still the end", () => {
+        expect(
+            atThreadEnd({
+                distance: threadOffset({
+                    content_bottom: 799.6,
+                    column_bottom: 800,
+                }).distance,
+            }),
+        ).toBe(true);
+    });
+
+    test("a couple of pixels short is still the end", () => {
+        expect(atThreadEnd({ distance: AppData.PullToRefreshEndSlackPx })).toBe(
+            true,
+        );
+    });
+
+    test("past the slack the thread has somewhere of its own to scroll", () => {
+        expect(
+            atThreadEnd({ distance: AppData.PullToRefreshEndSlackPx + 1 }),
+        ).toBe(false);
+    });
+
+    test("the slack is configurable", () => {
+        expect(atThreadEnd({ distance: 20, slack: 24 })).toBe(true);
     });
 });
 

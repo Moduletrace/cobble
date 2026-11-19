@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { BotMessageWithAttachments } from "@/src/types";
 import {
     ThreadJumpWindowMs,
+    atThreadEnd,
     scrollThreadToBottom,
     shouldFollowThread,
     threadOffset,
@@ -53,11 +54,19 @@ export default function useThreadScroll({ messages }: Params) {
     };
 
     /**
-     * Whether the content's end is exactly at the column's bottom, with no
-     * slack: the pull-to-reload gesture reads it, since a thread a few
-     * pixels short still has somewhere of its own to scroll to.
+     * Whether the content's end is at the column's bottom, as the
+     * pull-to-reload gesture reads it: the thread has nowhere of its own
+     * left to scroll, so the finger's travel is the pull's. `atThreadEnd`
+     * keeps a couple of pixels of slack, which a fractional device pixel
+     * ratio and a thumb that stops just short both need.
      */
-    const atBottom = () => (measure()?.distance ?? 1) <= 0;
+    const atBottom = () => {
+        const offset = measure();
+
+        if (!offset) return false;
+
+        return atThreadEnd({ distance: offset.distance });
+    };
 
     /** The user's own scrolling: it decides whether the thread follows. */
     const onScroll = () => {
