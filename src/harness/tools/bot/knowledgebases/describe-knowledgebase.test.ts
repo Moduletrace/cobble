@@ -39,6 +39,7 @@ describe("describeKnowledgebase", () => {
         expect(text).toContain("Handbook");
         expect(text).toContain("[bot:7]");
         expect(text).toContain("1 not read yet");
+        expect(text).not.toContain("retry_failed_documents");
         expect(text).toContain("re-indexing fixes it");
     });
 
@@ -46,6 +47,12 @@ describe("describeKnowledgebase", () => {
         expect(describeKnowledgebase({ knowledgebase: { ...knowledgebase, enabled: false } })).toContain(
             "no bot can search it",
         );
+    });
+
+    test("names the retry for ones that failed", () => {
+        const text = describeKnowledgebase({ knowledgebase: { ...knowledgebase, error_count: 2 } });
+
+        expect(text).toContain("2 failed (retry_failed_documents reads those again)");
     });
 
     test("lists documents and says one failed", () => {

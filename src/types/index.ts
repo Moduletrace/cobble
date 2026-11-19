@@ -437,6 +437,10 @@ export type HostDirectoryComputerLink = BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTE
 export type HostDirectoryWorkspaceLink = BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES & {
     workspace_name?: string | null;
     /**
+     * The workspace's picture, for its row. Null means the workspace icon.
+     */
+    image_media_id?: number | null;
+    /**
      * The computers the workspace is on, where this folder is mounted.
      */
     computer_ids?: number[];

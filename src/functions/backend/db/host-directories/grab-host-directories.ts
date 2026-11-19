@@ -22,6 +22,7 @@ type ComputerLinkRow = BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS & {
 
 type WorkspaceLinkRow = BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES & {
     workspace_name?: string | null;
+    image_media_id?: number | null;
 };
 
 type CheckRow = BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS;
@@ -61,7 +62,8 @@ export default async function grabHostDirectories({
             values: filtered ? [host_directory_id] : [],
         }),
         BunSQLite.sql<WorkspaceLinkRow>({
-            sql: `SELECT hdw.*, w.name AS workspace_name FROM host_directory_workspaces hdw
+            sql: `SELECT hdw.*, w.name AS workspace_name, w.image_media_id AS image_media_id
+                FROM host_directory_workspaces hdw
                 LEFT JOIN workspaces w ON w.id = hdw.workspace_id
                 ${filtered ? "WHERE hdw.host_directory_id = ?" : ""}
                 ORDER BY hdw.id ASC`,

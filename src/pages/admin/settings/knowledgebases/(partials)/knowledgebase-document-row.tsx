@@ -1,4 +1,4 @@
-import { FileText, NotebookPen, Pencil, Trash2 } from "lucide-react";
+import { FileText, NotebookPen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import Row from "@moduletrace/twui/layout/Row";
 import IconTile from "@/src/components/general/icon-tile";
 import RowIconButton from "@/src/components/general/row-icon-button";
@@ -17,6 +17,10 @@ type Props = {
      * can't edit.
      */
     onEdit?: () => void;
+    /**
+     * Reads this document again. Given only when its last read failed.
+     */
+    onRetry?: () => void;
     onDelete?: () => void;
 };
 
@@ -24,7 +28,7 @@ type Props = {
  * One document in a knowledgebase: what it is and how much of it bots can
  * search, or why it couldn't be read.
  */
-export default function KnowledgebaseDocumentRow({ document, embedding_model, busy, onEdit, onDelete }: Props) {
+export default function KnowledgebaseDocumentRow({ document, embedding_model, busy, onEdit, onRetry, onDelete }: Props) {
     return (
         <SettingsListRow
             avatar={<IconTile Icon={document.source == "text" ? NotebookPen : FileText} />}
@@ -44,6 +48,9 @@ export default function KnowledgebaseDocumentRow({ document, embedding_model, bu
             subtitle={knowledgebaseDocumentSummary({ document, embedding_model })}
         >
             <Row className="gap-0! flex-nowrap">
+                {onRetry ? (
+                    <RowIconButton icon={RotateCcw} title={`Retry ${document.name}`} disabled={busy} onClick={onRetry} />
+                ) : null}
                 {onEdit ? <RowIconButton icon={Pencil} title={`Edit ${document.name}`} disabled={busy} onClick={onEdit} /> : null}
                 {onDelete ? (
                     <RowIconButton icon={Trash2} title={`Delete ${document.name}`} disabled={busy} onClick={onDelete} />

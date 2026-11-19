@@ -8,8 +8,9 @@ type Params = {
 
 /**
  * Reads every document of a knowledgebase again (after the install's
- * embedding model changed, or one failed). Each keeps its old passages
- * until its new ones are in. Returns how many were queued.
+ * embedding model changed). Each keeps its old passages until its new
+ * ones are in. Documents whose last read failed, and only those, are
+ * `retryFailedDocuments`. Returns how many were queued.
  */
 export default async function reindexKnowledgebase({ knowledgebase_id }: Params) {
     const knowledgebase = await grabKnowledgebase({ knowledgebase_id });

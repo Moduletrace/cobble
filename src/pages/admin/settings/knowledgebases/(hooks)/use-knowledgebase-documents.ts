@@ -107,5 +107,14 @@ export default function useKnowledgebaseDocuments({ knowledgebase_id }: Params) 
         await post({ path: "knowledgebases/delete-document", body: { document_id: document.id } });
     };
 
-    return { documents, busy, status, upload, saveText, remove };
+    const retry = async ({ document }: { document: KnowledgebaseDocument }) => {
+        if (busy || !window.confirm(`Read ${document.name} again? Documents that already succeeded stay as they are.`)) return;
+
+        await post({
+            path: "knowledgebases/retry-failed-documents",
+            body: { knowledgebase_id, document_id: document.id },
+        });
+    };
+
+    return { documents, busy, status, upload, saveText, remove, retry };
 }

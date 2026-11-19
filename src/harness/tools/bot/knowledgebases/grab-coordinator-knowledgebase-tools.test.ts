@@ -13,6 +13,7 @@ describe("grabCoordinatorKnowledgebaseTools", () => {
             "add_knowledgebase_document",
             "delete_knowledgebase_document",
             "delete_knowledgebase",
+            "retry_failed_documents",
             "reindex_knowledgebase",
         ]);
     });

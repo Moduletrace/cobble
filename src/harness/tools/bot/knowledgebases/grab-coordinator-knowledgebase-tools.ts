@@ -4,6 +4,7 @@ import deleteKnowledgebaseDocumentTool from "./delete-knowledgebase-document-too
 import deleteKnowledgebaseTool from "./delete-knowledgebase-tool";
 import listKnowledgebasesTool from "./list-knowledgebases-tool";
 import reindexKnowledgebaseTool from "./reindex-knowledgebase-tool";
+import retryFailedDocumentsTool from "./retry-failed-documents-tool";
 import saveKnowledgebaseTool from "./save-knowledgebase-tool";
 
 type Params = {
@@ -23,9 +24,9 @@ type Params = {
 };
 
 /**
- * The coordinator's knowledgebase tools: list, fill, re-index, delete and
- * share out. Every one but the listing is only in an attended run, and each
- * checks the super admin itself.
+ * The coordinator's knowledgebase tools: list, fill, retry the ones that
+ * failed, re-index, delete and share out. Every one but the listing is only
+ * in an attended run, and each checks the super admin itself.
  */
 export default function grabCoordinatorKnowledgebaseTools({
     user_id,
@@ -44,6 +45,7 @@ export default function grabCoordinatorKnowledgebaseTools({
         addKnowledgebaseDocumentTool({ user_id, bot_id, workspace_id, computer_id, attended }) as HarnessTool<unknown>,
         deleteKnowledgebaseDocumentTool({ user_id, attended }) as HarnessTool<unknown>,
         deleteKnowledgebaseTool({ user_id, attended }) as HarnessTool<unknown>,
+        retryFailedDocumentsTool({ user_id, attended }) as HarnessTool<unknown>,
         reindexKnowledgebaseTool({ user_id, attended }) as HarnessTool<unknown>,
     ];
 }

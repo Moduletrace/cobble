@@ -27,7 +27,9 @@ export default function describeKnowledgebase({ knowledgebase, documents }: Para
     lines.push(
         `Documents: ${knowledgebase.document_count}` +
             (knowledgebase.pending_count ? `, ${knowledgebase.pending_count} not read yet` : "") +
-            (knowledgebase.error_count ? `, ${knowledgebase.error_count} failed` : "") +
+            (knowledgebase.error_count
+                ? `, ${knowledgebase.error_count} failed (retry_failed_documents reads those again)`
+                : "") +
             (knowledgebase.warning_count ? `, ${knowledgebase.warning_count} with a warning` : "") +
             (knowledgebase.stale_count
                 ? `, ${knowledgebase.stale_count} searchable by words only or read by another embedding model (re-indexing fixes it)`

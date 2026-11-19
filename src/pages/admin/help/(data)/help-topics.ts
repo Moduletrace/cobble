@@ -161,9 +161,9 @@ Tell the bot your time zone once ("I'm in Lagos", "I'm on New York time") and it
 
 If it's given and still misses:
 
-- Open the knowledgebase's documents. A document still **being read** isn't searchable yet; one that **couldn't be read** names why (a scan with no text, a file too big). Write the text in instead, or upload a version with text in it.
+- Open the knowledgebase's documents. A document still **being read** isn't searchable yet; one that **couldn't be read** names why (a scan with no text, a file too big). Write the text in instead, or upload a version with text in it. The retry icon on that document, or Retry failed in the knowledgebase's menu, reads the failed ones again and leaves the ones that succeeded.
 - Bots search by meaning only with an embedding model, picked once for the whole install in **Settings, Models** under Embeddings. Without one they match words, which misses questions worded differently from the document. Picking or changing the model reads every document again on its own; a document shows **needs re-indexing** until it's done.
-- If a document still says it needs re-indexing, use the refresh icon on its knowledgebase's row to read them all again.`,
+- If a document still says it needs re-indexing, open the knowledgebase's menu and choose Re-index to read them all again.`,
     },
     {
         id: "connect-browser",

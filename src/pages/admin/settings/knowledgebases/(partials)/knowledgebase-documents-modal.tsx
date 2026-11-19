@@ -34,7 +34,7 @@ type Props = {
  * done.
  */
 export default function KnowledgebaseDocumentsModal({ knowledgebase, can_edit, embedding_model, onClose }: Props) {
-    const { documents, busy, status, upload, saveText, remove } = useKnowledgebaseDocuments({
+    const { documents, busy, status, upload, saveText, remove, retry } = useKnowledgebaseDocuments({
         knowledgebase_id: knowledgebase.id,
     });
     /**
@@ -78,6 +78,11 @@ export default function KnowledgebaseDocumentsModal({ knowledgebase, can_edit, e
                             embedding_model={embedding_model}
                             busy={busy}
                             onEdit={can_edit && document.source == "text" ? () => setWriting(document.id) : undefined}
+                            onRetry={
+                                can_edit && document.ingest_error && !document.indexing
+                                    ? () => retry({ document })
+                                    : undefined
+                            }
                             onDelete={can_edit ? () => remove({ document }) : undefined}
                         />
                     ))}

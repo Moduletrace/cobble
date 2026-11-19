@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FolderTree } from "lucide-react";
+import { FolderTree, Pencil, Trash2 } from "lucide-react";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import IconTile from "@/src/components/general/icon-tile";
@@ -18,7 +18,9 @@ import hostDirectoryCheckStale from "@/src/utils/host-directory-check-stale";
 import hostDirectoryPermissionCommand from "@/src/utils/host-directory-permission-command";
 import InlineAddSelect from "@/src/components/general/inline-add-select";
 import SettingsListRow from "../../(partials)/settings-list-row";
-import SettingsRowAction from "../../(partials)/settings-row-action";
+import SettingsRowMenu from "../../(partials)/settings-row-menu";
+import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
 import HostDirectoryLinkRow from "./host-directory-link-row";
 
 type Props = {
@@ -41,8 +43,10 @@ type Props = {
 
 type LinkView = {
     key: string;
+    kind: "computer" | "workspace";
     name: string;
     href: string;
+    image_media_id?: number | null;
     access: HostDirectoryAccess;
     state: HostDirectoryCheckState;
     checked_at?: number | null;
@@ -177,6 +181,7 @@ export default function HostDirectoryRow({
 
         return {
             key: `computer-${link.id}`,
+            kind: "computer",
             name: link.computer_name || `Computer ${link.computer_id}`,
             href: `/admin/settings/computers/${link.computer_id}`,
             access,
@@ -228,7 +233,9 @@ export default function HostDirectoryRow({
 
         return {
             key: `workspace-${link.id}`,
+            kind: "workspace",
             name: link.workspace_name || `Workspace ${link.workspace_id}`,
+            image_media_id: link.image_media_id,
             href: `/admin/settings/workspaces/${link.workspace_id}`,
             access,
             state,
@@ -314,26 +321,27 @@ export default function HostDirectoryRow({
                 title={name}
                 subtitle={source}
             >
-                <SettingsRowAction
-                    title={`Edit ${name}`}
-                    label="Edit"
-                    disabled={Boolean(busy)}
-                    onClick={onEdit}
-                />
-                <SettingsRowAction
-                    title={`Remove ${name}`}
-                    label="Remove"
-                    disabled={Boolean(busy)}
-                    onClick={remove}
-                />
+                <SettingsRowMenu title={`${name} menu`} disabled={Boolean(busy)}>
+                    <SettingsRowMenuPanel>
+                        <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={onEdit} />
+                        <SettingsRowMenuItem
+                            icon={Trash2}
+                            title="Remove"
+                            description="Its computers and workspaces stop seeing the folder. Nothing in the folder itself is deleted."
+                            onClick={remove}
+                        />
+                    </SettingsRowMenuPanel>
+                </SettingsRowMenu>
             </SettingsListRow>
             <Stack className="w-full gap-2! items-stretch px-3 pt-1 pb-3">
                 {links.length ? (
                     links.map((link) => (
                         <HostDirectoryLinkRow
                             key={link.key}
+                            kind={link.kind}
                             name={link.name}
                             href={link.href}
+                            image_media_id={link.image_media_id}
                             access={link.access}
                             state={link.state}
                             checked_at={link.checked_at}

@@ -24,6 +24,7 @@ function render({
 }) {
     return renderToString(
         <HostDirectoryLinkRow
+            kind="computer"
             name="Main computer"
             href="/admin/settings/computers/1"
             access={access}
@@ -51,8 +52,30 @@ describe("HostDirectoryLinkRow", () => {
 
         expect(html).toContain("Main computer");
         expect(html).toContain("/admin/settings/computers/1");
+        expect(html).toContain("Computer");
         expect(html).toContain("Read and write");
         expect(html).toContain("checked");
+    });
+
+    test("a workspace wears its own picture and says it is a workspace", () => {
+        const html = renderToString(
+            <HostDirectoryLinkRow
+                kind="workspace"
+                name="Moduletrace"
+                href="/admin/settings/workspaces/4"
+                image_media_id={12}
+                access="read-write"
+                state="unknown"
+                gate_deletes
+                onAccess={() => {}}
+                onDeletes={() => {}}
+                onRemove={() => {}}
+            />,
+        );
+
+        expect(html).toContain("Workspace");
+        expect(html).toContain("/media/");
+        expect(html).toContain("12");
     });
 
     test("a folder the bots can't write in shows the command to run", () => {
@@ -70,7 +93,7 @@ describe("HostDirectoryLinkRow", () => {
 
         expect(html).toContain("Read only");
         expect(html).not.toContain("The bots can&#x27;t write there yet");
-        expect(html).toContain("Read and write");
+        expect(html).not.toContain("Give access");
     });
 
     test("a check that couldn't run says why", () => {
@@ -104,10 +127,11 @@ describe("HostDirectoryLinkRow", () => {
         expect(html).not.toContain("setfacl");
     });
 
-    test("a link whose bots can't write offers to give them access again", () => {
+    test("a link whose bots can't write keeps its check and its menu", () => {
         const html = render({ state: "partial", onGrant: () => {} });
 
-        expect(html).toContain("Give access");
+        expect(html).toContain("Some bots can&#x27;t write");
+        expect(html).toContain("Main computer menu");
     });
 
     test("a read-only link never offers to give access", () => {

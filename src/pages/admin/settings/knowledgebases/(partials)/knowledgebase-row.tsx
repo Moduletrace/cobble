@@ -1,13 +1,14 @@
 import { useState } from "react";
-import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { FileText, Library, Pencil, RefreshCw, Trash2, Users } from "lucide-react";
+import { FileText, Library, Pencil, RefreshCw, RotateCcw, Trash2, Users } from "lucide-react";
 import IconTile from "@/src/components/general/icon-tile";
-import RowIconButton from "@/src/components/general/row-icon-button";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { ExtensionTargets, KnowledgebasesOverviewPayload, PublicKnowledgebase } from "@/src/types";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
+import SettingsRowMenu from "../../(partials)/settings-row-menu";
+import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
 import knowledgebaseIndexState from "@/src/utils/knowledgebase-index-state";
@@ -29,8 +30,9 @@ type Props = {
 
 /**
  * One knowledgebase: how many documents it holds and how much of them is
- * searchable, and who gets it. Documents, Edit and Access open in a modal;
- * Re-index reads every document again with the install's embedding model.
+ * searchable, and who gets it. Its actions live in the three-dot menu:
+ * documents, who gets it, and for a super admin editing, retrying the
+ * ones that failed, reading every document again, and deleting it.
  */
 export default function KnowledgebaseRow({ knowledgebase, targets, embedding_model, onChanged, onError }: Props) {
     const [open, setOpen] = useState<"documents" | "edit" | "access">();
@@ -93,54 +95,54 @@ export default function KnowledgebaseRow({ knowledgebase, targets, embedding_mod
                     .filter(Boolean)
                     .join(" · ")}
             >
-                <Row className="gap-0! flex-nowrap">
-                    <RowIconButton
-                        icon={FileText}
-                        title={`Open the documents in ${knowledgebase.name}`}
-                        disabled={busy}
-                        onClick={() => setOpen("documents")}
-                    />
-                    {targets.can_edit ? (
-                        <RowIconButton
-                            icon={Pencil}
-                            title={`Edit ${knowledgebase.name}`}
-                            disabled={busy}
-                            onClick={() => setOpen("edit")}
-                        />
-                    ) : null}
-                    <RowIconButton
-                        icon={Users}
-                        title={`Choose who gets ${knowledgebase.name}`}
-                        disabled={busy}
-                        onClick={() => setOpen("access")}
-                    />
-                    {targets.can_edit && knowledgebase.document_count ? (
-                        <RowIconButton
-                            icon={RefreshCw}
-                            title={`Re-index ${knowledgebase.name}: read every document again`}
-                            disabled={busy}
-                            onClick={() =>
-                                post({
-                                    path: "knowledgebases/reindex-knowledgebase",
-                                    confirm: `Read every document in ${knowledgebase.name} again? Bots keep finding the old passages until the new ones are in.`,
-                                })
-                            }
-                        />
-                    ) : null}
-                    {targets.can_edit ? (
-                        <RowIconButton
-                            icon={Trash2}
-                            title={`Delete ${knowledgebase.name}`}
-                            disabled={busy}
-                            onClick={() =>
-                                post({
-                                    path: "knowledgebases/delete-knowledgebase",
-                                    confirm: `Delete ${knowledgebase.name} and every document in it? Bots lose it at once.`,
-                                })
-                            }
-                        />
-                    ) : null}
-                </Row>
+                <SettingsRowMenu title={`${knowledgebase.name} menu`} disabled={busy}>
+                    <SettingsRowMenuPanel>
+                        <SettingsRowMenuItem icon={FileText} title="Documents" onClick={() => setOpen("documents")} />
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
+                        ) : null}
+                        <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit && knowledgebase.warning_count ? (
+                            <SettingsRowMenuItem
+                                icon={RotateCcw}
+                                title="Retry failed"
+                                description={`Read again the ${knowledgebase.warning_count} ${knowledgebase.warning_count == 1 ? "document" : "documents"} that failed. The ones that already succeeded stay as they are.`}
+                                onClick={() =>
+                                    post({
+                                        path: "knowledgebases/retry-failed-documents",
+                                        confirm: `Read again the ${knowledgebase.warning_count} ${knowledgebase.warning_count == 1 ? "document" : "documents"} in ${knowledgebase.name} that failed? The ones that already succeeded stay as they are.`,
+                                    })
+                                }
+                            />
+                        ) : null}
+                        {targets.can_edit && knowledgebase.document_count ? (
+                            <SettingsRowMenuItem
+                                icon={RefreshCw}
+                                title="Re-index"
+                                description="Read every document again. Bots keep finding the old passages until the new ones are in."
+                                onClick={() =>
+                                    post({
+                                        path: "knowledgebases/reindex-knowledgebase",
+                                        confirm: `Read every document in ${knowledgebase.name} again? Bots keep finding the old passages until the new ones are in.`,
+                                    })
+                                }
+                            />
+                        ) : null}
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem
+                                icon={Trash2}
+                                title="Delete"
+                                description="Delete it and every document in it. Bots lose it at once."
+                                onClick={() =>
+                                    post({
+                                        path: "knowledgebases/delete-knowledgebase",
+                                        confirm: `Delete ${knowledgebase.name} and every document in it? Bots lose it at once.`,
+                                    })
+                                }
+                            />
+                        ) : null}
+                    </SettingsRowMenuPanel>
+                </SettingsRowMenu>
             </SettingsListRow>
             {open == "documents" ? (
                 <KnowledgebaseDocumentsModal
