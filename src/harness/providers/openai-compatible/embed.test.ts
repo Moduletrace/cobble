@@ -178,3 +178,66 @@ describe("embed asks for input_type when the model needs it", () => {
         expect(sent).toHaveLength(1);
     });
 });
+
+describe("embed fits a provider's own batch cap", () => {
+    /**
+     * Alibaba's Model Studio compatible API: more than 20 texts in one batch
+     * is refused whole, with the limit in the message.
+     */
+    const alibaba: HarnessCandidate = {
+        key: "20:qwen-embed",
+        provider: {
+            kind: "custom",
+            base_url: "https://ws-test.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+            name: "Alibaba Cloud",
+        },
+        model: {
+            slug: "qwen3.7-embedding",
+            input_modalities: ["text"],
+            output_modalities: ["text"],
+            supports_tools: false,
+        },
+        source: "pinned",
+    };
+
+    const capAtTwenty = (body: any) => {
+        if (body.input.length > 20)
+            throw new HarnessError({
+                message:
+                    "Alibaba Cloud: <400> InternalError.Algo.InvalidParameter: Value error, batch size is invalid, it should not be larger than 20.: input.contents",
+                status: 400,
+            });
+
+        return {
+            data: body.input.map((_: string, index: number) => ({ index, embedding: [1, index] })),
+        };
+    };
+
+    test("the refused batch is retried at the size named, and that size is kept", async () => {
+        answer = capAtTwenty;
+
+        const many = Array.from({ length: 45 }, (_, i) => `chunk ${i}`);
+        const first = await embed({ candidate: alibaba, input: many, purpose: "passage", signal });
+
+        expect(first.vectors).toHaveLength(45);
+        expect(sent.map((body) => body.input.length)).toEqual([32, 20, 20, 5]);
+        expect(first.vectors[44]).toEqual([1, 4]);
+
+        await embed({ candidate: alibaba, input: ["a", "b", "c"], purpose: "passage", signal });
+        expect(sent.map((body) => body.input.length)).toEqual([32, 20, 20, 5, 3]);
+    });
+
+    test("one text refused for its size is a failure, not a retry loop", async () => {
+        answer = () => {
+            throw new HarnessError({
+                message: "Alibaba Cloud: Value error, batch size is invalid, it should not be larger than 0.",
+                status: 400,
+            });
+        };
+
+        await expect(
+            embed({ candidate: alibaba, input: ["a document's text"], purpose: "passage", signal }),
+        ).rejects.toThrow("batch size is invalid");
+        expect(sent).toHaveLength(1);
+    });
+});

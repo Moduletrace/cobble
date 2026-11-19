@@ -2,7 +2,8 @@ import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
 import type { HarnessAdapter, HarnessCandidate } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
-import providerRequest from "./provider-request";
+import sendEmbeddingsBatch from "./send-embeddings-batch";
+import smallerBatchLimit from "./smaller-batch-limit";
 
 /**
  * Providers that want `input_type` on every batch, by provider and model:
@@ -13,6 +14,14 @@ import providerRequest from "./provider-request";
  */
 const wantsInputType = new Set<string>();
 
+/**
+ * The largest batch a provider and model already refused a bigger one over.
+ * Alibaba's Model Studio caps a batch at 20 and refuses the whole request, so
+ * the size it named is remembered for the process: every later document goes
+ * straight to a batch that fits instead of paying for the refusal again.
+ */
+const batchLimits = new Map<string, number>();
+
 const inputTypeKey = ({ provider, model }: HarnessCandidate) =>
     `${provider.base_url}|${model.slug}`;
 
@@ -22,7 +31,7 @@ const inputTypeKey = ({ provider, model }: HarnessCandidate) =>
  * request the provider may refuse.
  */
 const embed: HarnessAdapter["embed"] = async ({ candidate, input, purpose, signal }) => {
-    const { provider, model } = candidate;
+    const { provider } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
     const key = inputTypeKey(candidate);
     const vectors: number[][] = [];
@@ -33,49 +42,46 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, purpose, signa
     let prompt_tokens = 0;
 
     /**
-     * Every OpenAI-compatible API puts embeddings at `/embeddings`.
+     * The batch size in use: the install's, or the smaller one this provider
+     * and model already made clear it wants.
      */
-    const path = "/embeddings";
+    let limit = batchLimits.get(key) || AppData.EmbeddingBatchSize;
 
-    for (let start = 0; start < input.length; start += AppData.EmbeddingBatchSize) {
+    for (let start = 0; start < input.length; ) {
         const batch = input
-            .slice(start, start + AppData.EmbeddingBatchSize)
+            .slice(start, start + limit)
             .map((text) => text.slice(0, AppData.EmbeddingMaxInputChars));
 
-        const body = { model: model.slug, input: batch };
         let res: Response;
 
         try {
-            res = await providerRequest({
-                provider,
-                path,
-                json: wantsInputType.has(key) ? { ...body, input_type: purpose } : body,
+            const sent = await sendEmbeddingsBatch({
+                candidate,
+                batch,
+                purpose,
                 signal,
-                candidate_key: candidate.key,
+                with_input_type: wantsInputType.has(key),
             });
+
+            if (sent.asked_input_type) wantsInputType.add(key);
+
+            res = sent.res;
         } catch (error) {
             /**
-             * The provider says the model embeds a passage and a query
-             * differently and wants to be told which. Ask again with it,
-             * then remember: only the first batch per provider and model
-             * pays for finding out. Any other refusal is the caller's to
-             * classify.
+             * A provider may cap a batch below the install's size (Alibaba's
+             * Model Studio: "batch size is invalid, it should not be larger
+             * than 20"). Nothing of this batch was stored, so retry it whole
+             * at the smaller size, and keep that size for the rest of the
+             * run. Only a size refusal is retried; anything else is the
+             * caller's to classify.
              */
-            if (
-                !(error instanceof HarnessError) ||
-                error.status !== 400 ||
-                !/input_type/i.test(error.message)
-            )
-                throw error;
+            const smaller = smallerBatchLimit({ error, size: batch.length });
 
-            res = await providerRequest({
-                provider,
-                path,
-                json: { ...body, input_type: purpose },
-                signal,
-                candidate_key: candidate.key,
-            });
-            wantsInputType.add(key);
+            if (smaller === null) throw error;
+
+            limit = smaller;
+            batchLimits.set(key, smaller);
+            continue;
         }
 
         const json = await res.json().catch(() => null);
@@ -142,6 +148,8 @@ const embed: HarnessAdapter["embed"] = async ({ candidate, input, purpose, signa
             }
             vectors.push(vector);
         }
+
+        start += batch.length;
     }
 
     return {
