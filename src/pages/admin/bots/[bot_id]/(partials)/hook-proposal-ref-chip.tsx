@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { twMerge } from "tailwind-merge";
-import Modal from "@moduletrace/twui/elements/Modal";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -10,6 +9,7 @@ import useHookProposal from "../(hooks)/use-hook-proposal";
 import hookProposalTitle from "../(utils)/hook-proposal-title";
 import proposalStatusLabel from "../(utils)/proposal-status-label";
 import HookProposalCard from "./hook-proposal-card";
+import RefChipModal from "./ref-chip-modal";
 
 type Props = {
     proposal_id: number;
@@ -36,14 +36,15 @@ export default function HookProposalRefChip({ proposal_id }: Props) {
     const status = proposalStatusLabel({ view });
 
     return (
-        <Modal
-            target={
+        <RefChipModal
+            trigger={
                 <Button
                     type="button"
                     variant="outlined"
                     color="gray"
                     size="smaller"
                     title={`Review: ${title}`}
+                    onClick={() => setOpen(true)}
                     className={twMerge(
                         "inline-flex h-6 max-w-full gap-1.5! flex-nowrap align-middle px-2! text-[13px] font-bold text-ink whitespace-nowrap",
                         "[&_.twui-button-content-wrapper]:min-w-0",
@@ -53,9 +54,8 @@ export default function HookProposalRefChip({ proposal_id }: Props) {
                     <Span className="min-w-0 truncate">{`${title} · ${status}`}</Span>
                 </Button>
             }
-            targetWrapperProps={{ className: "inline-flex max-w-full align-middle" }}
             open={open}
-            setOpen={setOpen}
+            onClose={() => setOpen(false)}
             className="max-w-xl bg-paper p-6"
         >
             <Stack className="w-full gap-1! items-stretch">
@@ -68,6 +68,6 @@ export default function HookProposalRefChip({ proposal_id }: Props) {
             <Stack className="mt-2 max-h-[65vh] w-full gap-0! items-stretch overflow-y-auto">
                 <HookProposalCard view={view} onDecided={setView} onDone={() => setOpen(false)} />
             </Stack>
-        </Modal>
+        </RefChipModal>
     );
 }

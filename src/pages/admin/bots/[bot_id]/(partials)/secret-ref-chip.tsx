@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import { Check, Copy, Eye, EyeOff, KeyRound } from "lucide-react";
 import revealSecret from "@/src/functions/frontend/reveal-secret";
@@ -58,7 +57,7 @@ export default function SecretRefChip({ env_id }: Props) {
     };
 
     return (
-        <Row
+        <Span
             title={view.description || view.key}
             className="inline-flex h-6 max-w-full gap-1! flex-nowrap items-center align-middle rounded-default border border-hairline px-2 text-[13px] text-ink"
         >
@@ -76,6 +75,6 @@ export default function SecretRefChip({ env_id }: Props) {
                 </>
             ) : null}
             {error ? <Span className="text-[12px] text-ink-secondary whitespace-nowrap">{error}</Span> : null}
-        </Row>
+        </Span>
     );
 }
