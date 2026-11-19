@@ -113,6 +113,16 @@ const PromisePatterns = [
         `^\\s*${IAm}\\s+(?:now\\s+|just\\s+)?${WorkVerb}ing\\b[^.!?\\n]{0,200}\\b(?:then\\s+)?(?:i(?:'|’)ll|i will)\\b`,
         "i",
     ),
+    /**
+     * "Now generating the single centered 6% signpost hero using the image
+     * generation tool." Production, session 75 message 951: the run deleted
+     * the old files, wrote that, and called no image tool. The sentence
+     * opens with "Now generating", which none of the patterns above read:
+     * the promise patterns open on "starting", and the under-way ones need
+     * "I'm".
+     */
+    /^\s*(?:now\s+)?(?:generating|rendering|creating|building|designing|drafting|editing|writing|importing|exporting|uploading|downloading|processing|compiling|installing|deploying|testing|checking|reading|reviewing|scanning|searching|analy[sz]ing|working|running|fixing|updating|converting)\b[^.!?\n]{0,160}\b(?:now|right away|immediately|as we speak)\b/i,
+    /^\s*now\s+(?:generating|rendering|creating|building|designing|drafting|editing|writing|importing|exporting|uploading|downloading|processing|compiling|installing|deploying|testing|checking|reading|reviewing|scanning|searching|analy[sz]ing|working|running|fixing|updating|converting)\b/i,
 ];
 
 /**

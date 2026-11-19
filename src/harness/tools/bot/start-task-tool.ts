@@ -1,15 +1,9 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
-import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
-import countComputerTaskJobs from "@/src/functions/backend/db/bots-queue/count-computer-task-jobs";
-import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
-import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
-import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
-import isComputerDown from "@/src/utils/computer-down";
 import type { HarnessTool } from "../../types";
 import type { BrowserRunKind } from "@/src/dict/browser-dict";
+import queueBotTask from "./queue-bot-task";
 
 type Params = {
     user_id: number | string;
@@ -96,57 +90,24 @@ export default function startTaskTool({
                 ),
         }),
         run: async ({ args }) => {
-            const same = await grabOpenBotTask({ bot_id, session_id, title: args.title });
-
-            if (same) {
-                throw new Error(
-                    `Run #${same.id} "${args.title}" is already ${same.status == "pending" ? "queued" : "under way"}. Don't start it again; its result will be posted here.`,
-                );
-            }
-
-            const computer_id = args.computer_id ?? computers[0]?.id ?? undefined;
-
-            const open = args.separate ? null : await grabOpenBotTask({ bot_id, session_id, computer_id });
-
-            if (open) {
-                throw new Error(
-                    `Run #${open.id} "${open.title || "Task"}" is still ${open.status == "pending" ? "queued" : "under way"} here on that computer. If this is the same work, don't start it again: its result will be posted here (the user can Stop it to start over). It's shown what the user writes here between its steps, so a correction or addition to that work reaches it and never calls for another run. If it's different work, call start_task again now with separate: true; it's queued and starts as soon as run #${open.id} ends. Nothing starts it later but you, now, so never tell the user you'll start it once run #${open.id} is done.`,
-                );
-            }
-
-            const target = computer_id ? await grabComputerMcpUrl({ computer_id }) : null;
-
-            if (target && !target.ready && isComputerDown({ status: target.status })) {
-                throw new Error(
-                    `${computerNotReadyMessage(target)} Nothing was queued: a run there would only fail. Tell the user the computer is down and what you'd do once it's back, and don't say the work is under way.`,
-                );
-            }
-
-            /**
-             * When this run is part of a crew request being answered, it
-             * carries the ask_id so its result goes back to the bot that
-             * asked, not just to this conversation.
-             */
-            const ask = await grabOpenAskBySession({ session_id, user_id });
-
-            const job_id = await enqueueBotJob({
+            const { job_id, ahead, ask_id } = await queueBotTask({
                 user_id,
                 bot_id,
                 session_id,
-                title: args.title,
-                instructions: args.instructions,
+                computers,
                 message_id,
-                computer_id: computer_id || undefined,
-                params: {
-                    ...(args.max_steps ? { max_steps: args.max_steps } : {}),
-                    ...(run_kind ? { run_kind } : {}),
-                    ...(ask?.id ? { ask_id: Number(ask.id) } : {}),
+                run_kind,
+                tool_name: "start_task",
+                work: {
+                    title: args.title,
+                    instructions: args.instructions,
+                    computer_id: args.computer_id,
+                    separate: args.separate,
+                    max_steps: args.max_steps,
                 },
             });
 
-            const ahead = computer_id ? await countComputerTaskJobs({ computer_id, except_job_id: job_id }) : 0;
-
-            const closing = ask?.id
+            const closing = ask_id
                 ? `This run is part of the request another bot passed on: its result goes back to that bot when it's done. Acknowledge in one sentence and carry on; don't promise a separate report.`
                 : `Tell the user in one sentence, in the first person, what you're doing (e.g. "I'm checking your inbox now. I'll report back when I'm done."); the result will be posted here when it's done.`;
 

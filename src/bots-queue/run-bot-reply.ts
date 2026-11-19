@@ -70,6 +70,7 @@ import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import hasUnansweredMessage from "./has-unanswered-message";
 import reviewRunAnswer from "./review-run-answer";
+import cancelBotJob from "@/src/functions/backend/db/bots-queue/cancel-bot-job";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
@@ -100,7 +101,7 @@ type Params = BotJobContext & {
  * knowing where it is (its workspace, if the session is in one), what
  * happened in the session before (`grabSessionCarryOver`) and its
  * computers (`composeComputersNote`), with its chat tools (memory,
- * instructions, start_task, and for the coordinator delegate_task) plus
+ * instructions, send_reply with its work, and for the coordinator delegate_task) plus
  * its MCP servers' and custom tools (`openBotExtensions`, script tools on
  * its current computer).
  * Messages the user sends while it works join the run (`incoming`): one
@@ -287,6 +288,12 @@ export default async function runBotReply({
      * The tracker tasks the reply worked on, linked under it.
      */
     const task_ids: number[] = [];
+    /**
+     * The runs `send_reply` queued with this message: if the message never
+     * goes out, they go with it, so nothing works on a message the user
+     * never saw.
+     */
+    const queued_jobs: number[] = [];
 
     /**
      * The files this run reaches: its file tools and the pictures it may
@@ -314,7 +321,7 @@ export default async function runBotReply({
      */
     const attended = !(await isHiddenSession({ session_id }));
     /**
-     * The run's browser kind, also handed to `start_task` so a child run it
+     * The run's browser kind, also handed to `send_reply`'s work so a child run it
      * queues inherits it (H7): a hidden session's reply never lets its
      * children reach the user's real browsers either.
      */
@@ -353,6 +360,8 @@ export default async function runBotReply({
         attended,
         run_kind: browser_run_kind,
         message_id: job.message_id || undefined,
+        job_id: job.id,
+        onQueue: ({ job_id }) => queued_jobs.push(job_id),
         onTakeOver: ({ ref }) => take_overs.push(ref),
         onPropose: ({ ref }) => proposals.push(ref),
         onWorkspaceAdmin: (admin) => {
@@ -606,7 +615,13 @@ export default async function runBotReply({
              * Files, tasks and work the answer names are checked against
              * the app's record before it goes out.
              */
-            review: reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes }),
+            review: reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes, job_id: job.id }),
+            /**
+             * The message goes out only through `send_reply`: text a turn
+             * writes without it is a draft, so no answer can promise work
+             * the app never queued.
+             */
+            require_closing_answer: true,
         });
 
         /**
@@ -616,6 +631,15 @@ export default async function runBotReply({
          */
         if (result.review_note) {
             await dropUnsentQuestions({ refs: proposals });
+
+            /**
+             * A run `send_reply` queued announced work in a message that is
+             * not going out: it is cancelled with it, so nothing carries on
+             * behind a message the user never saw.
+             */
+            for (const queued of queued_jobs) {
+                await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
+            }
 
             throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
         }
@@ -630,7 +654,22 @@ export default async function runBotReply({
         if (!answer && !shown.length && !attachments.length) {
             await dropUnsentQuestions({ refs: proposals });
 
+            for (const queued of queued_jobs) {
+                await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
+            }
+
             throw new BotJobFatalError(`The run ended without an answer to send.`);
+        }
+
+        /**
+         * Work queued in an earlier turn and then withdrawn by the message
+         * that ended the run (`done` or `blocked`): the user reads that
+         * nothing runs, so nothing may.
+         */
+        if (result.status !== "working") {
+            for (const queued of queued_jobs) {
+                await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
+            }
         }
 
         if (job.id && answering_id) {

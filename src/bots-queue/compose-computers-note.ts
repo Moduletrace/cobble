@@ -61,6 +61,6 @@ Each is a Linux sandbox of your own (a shell, files, code runners and a browser)
     }
 
 - To find which computer holds something (a file, a running app, a logged-in session), use search_computers: it runs one read-only command on all of them at once.
-- For anything else on a computer, start_task: the task runs on it with its tools and you post what you found here. Don't say you can't see a computer; search it or start a task.
+- For anything else on a computer, send_reply with status "working" and work (or start_task inside a task run): the task runs on it with its tools and you post what you found here. Don't say you can't see a computer; search it or start a task.
 - When you name a computer, write its ref exactly, e.g. ${computerRef({ id: computers[0]!.id || 0 })}. The user sees it as a button that switches you to that computer, so when they're looking for one, say which and that they can click it.`;
 }

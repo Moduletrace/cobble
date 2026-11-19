@@ -679,6 +679,14 @@ export const AppData = {
      */
     MaxClosingRetries: 2,
     /**
+     * How many messages a reply or task report may write without ending on
+     * `send_reply` before the run stops without sending one. A bare message
+     * is a draft, never the answer: the draft is sent back with the note
+     * that nothing went out. Past this the run fails honestly and the user
+     * gets Retry, rather than a message the app cannot stand behind.
+     */
+    HarnessReplyDraftsMax: 2,
+    /**
      * The working context: how many tokens (estimated) of system prompt,
      * tool definitions and transcript a run sends per turn before old tool
      * output is trimmed, whatever the model's window. Every turn resends

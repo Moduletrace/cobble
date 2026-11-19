@@ -10,7 +10,7 @@ import type { BUN_SQLITE_COBBLE_BOT_MESSAGES } from "@/db/types/db";
  * goal and no route, and the run reached the same result by a way the
  * user didn't ask for (a PNG to "layered PSD", locally, when they said to
  * use their ArtCraft MCP). The message that asked for the work is on the
- * job (`bots_queue.message_id`, from `start_task`), so the run reads the
+ * job (`bots_queue.message_id`, from `send_reply`'s work or `start_task`), so the run reads the
  * request itself, and `TaskRunNote` says the words win over the brief.
  *
  * Empty for a message the user didn't write (a crew message that asked

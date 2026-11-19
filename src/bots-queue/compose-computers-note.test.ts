@@ -14,6 +14,7 @@ describe("composeComputersNote", () => {
             "- [computer:4] Scraper (you're on it): Runs the crawlers\n- [computer:1] Main computer (main)",
         );
         expect(note).toContain("search_computers");
+        expect(note).toContain("send_reply");
         expect(note).toContain("start_task");
     });
 

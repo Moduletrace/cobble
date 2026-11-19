@@ -6,6 +6,7 @@ import assertUserReachesTask from "@/src/functions/backend/db/tasks/assert-user-
 import grabBotGraphic from "@/src/functions/backend/db/bot-graphics/grab-bot-graphic";
 import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessToolUse } from "@/src/harness/types";
+import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import replyClaimProblems, { AppCardRefTools, type AppCardRefKind } from "@/src/utils/reply-claim-problems";
 import replyRefIds from "@/src/utils/reply-ref-ids";
 import unresolvedSettingRefs from "@/src/utils/unresolved-setting-refs";
@@ -17,6 +18,15 @@ type Params = {
     bot_id: number | string;
     user_id: number | string;
     session_id: number | string;
+    /**
+     * The run being reviewed. A task run's own job is open while it writes
+     * its report, so it must not count as work that is still to come.
+     */
+    job_id?: number | string;
+    /**
+     * What the reply declared with `send_reply`.
+     */
+    status?: ReplyStatus;
     /**
      * The run's folders (`grabRunScopes`).
      */
@@ -36,7 +46,7 @@ type Params = {
  * one wrote `[suggestion:11]` after the last real one was `[suggestion:10]`
  * and the user got buttons reading "not available".
  */
-export default async function reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, scopes }: Params) {
+export default async function reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, job_id, status, scopes }: Params) {
     if (!text.trim()) return null;
 
     const missing_file_ids: number[] = [];
@@ -76,7 +86,8 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
         unresolved_setting_refs: unresolvedSettingRefs({ text }),
         missing_graphic_ids,
         written_card_refs,
-        has_open_work: await hasOpenWork({ bot_id, session_id }),
+        has_open_work: await hasOpenWork({ bot_id, session_id, exclude_job_id: job_id }),
+        status,
     });
 
     if (!problems.length) return null;
@@ -85,7 +96,7 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
 
 ${problems.map((problem) => `- ${problem}`).join("\n")}
 
-The tools you actually called in this reply: ${describeToolUses({ uses: tool_uses })}. Nothing else happened. Write the answer again, saying only what those tools returned and what the user told you. If the work still needs doing, call start_task now and say it's started; never describe results of work no tool did, and never promise a report nothing will send. If part of your answer was wrong, say so plainly.`;
+The tools you actually called in this reply: ${describeToolUses({ uses: tool_uses })}. Nothing else happened. Write the answer again, saying only what those tools returned and what the user told you. If the work still needs doing, call send_reply with status "working" and work now, and say it's started; never describe results of work no tool did, and never promise a report nothing will send. If part of your answer was wrong, say so plainly.`;
 }
 
 /**

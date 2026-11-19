@@ -8,7 +8,14 @@ describe("unknownToolMessage", () => {
         );
     });
 
-    test("points a reply's browser call to start_task", () => {
+    test("points a reply's browser call to send_reply with work", () => {
+        const text = unknownToolMessage({ name: "browser_navigate", tools: [{ name: "send_reply" }] });
+
+        expect(text).toContain("only exist in a task on a computer");
+        expect(text).toContain('call send_reply with status "working" and work');
+    });
+
+    test("points a task run's browser call to start_task", () => {
         const text = unknownToolMessage({ name: "browser_navigate", tools: [{ name: "start_task" }] });
 
         expect(text).toContain("only exist in a task on a computer");

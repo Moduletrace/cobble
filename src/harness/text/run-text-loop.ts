@@ -11,14 +11,21 @@ import {
     oversizedRequestNote,
     repairedAnswerNote,
     repeatedAnswerNote,
+    replyClosingFailedNote,
+    replyClosingMixedNote,
+    replyClosingRequiredNote,
+    replyDraftNote,
+    replyNoTextNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
 import sanitizeAnswerText from "@/src/utils/sanitize-answer-text";
 import repairAnswerText from "@/src/utils/repair-answer-text";
 import { logError } from "@/src/functions/backend/logger";
+import type { ReplyStatus } from "@/src/dict/reply-status-dict";
+import { ReplyStatuses } from "@/src/dict/reply-status-dict";
 import HarnessError from "../harness-error";
-import isClosingTool from "../tools/closing-tool-names";
+import isClosingTool, { SendReplyToolName } from "../tools/closing-tool-names";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import loadToolsTool from "../tools/load-tools-tool";
 import repeatToolCallKey, { toolCallKey } from "../tools/repeat-tool-call-key";
@@ -135,7 +142,18 @@ type Params = {
      * turn exists only because the previous answer was sent back. A check
      * that throws lets the answer through.
      */
-    review?: (params: { text: string; tool_uses: HarnessToolUse[] }) => Promise<string | null | undefined>;
+    review?: (params: {
+        text: string;
+        tool_uses: HarnessToolUse[];
+        status?: ReplyStatus;
+    }) => Promise<string | null | undefined>;
+    /**
+     * The run must end with `send_reply`: the text a turn writes without it
+     * is a draft and is never sent. A reply and a task report both set this,
+     * so the app's record of what happens after the message is the call the
+     * model made, never a promise the app read out of prose.
+     */
+    require_closing_answer?: boolean;
     /**
      * The bot the run is for: its own models are used where it has them.
      */
@@ -171,6 +189,12 @@ export type TextLoopResult = {
      * app knows is wrong.
      */
     review_note?: string;
+    /**
+     * What the closing `send_reply` declared, when the run ended with one.
+     * A caller that queued work with it keeps that run only for `working`;
+     * anything else was withdrawn by the correction that ended the reply.
+     */
+    status?: ReplyStatus;
 };
 
 /**
@@ -186,17 +210,26 @@ export const WrapUpSaveToolNames = ["write_file", "import_file"];
  * budget (`AppData.BotReplyMaxToolSteps`, unlimited unless the install
  * sets one), and a reply that used it all researching leaves the writing
  * undone; the next reply starts from the same budget, so the run queues
- * the rest as a task (`start_task`) while it can still call a tool,
- * rather than saying it will do it later. The app runs it as soon as the
- * reply is out.
+ * the rest as a task while it can still call a tool, rather than saying it
+ * will do it later. `send_reply` carries that hand-off as `work`, and is
+ * also the only way the run's message goes out.
  */
 export const WrapUpHandOffToolNames = ["start_task"];
 
 /**
- * Every tool the wrap up may still call (`WrapUpSaveToolNames` and
- * `WrapUpHandOffToolNames`): those the run has, in its own order.
+ * The tool that ends the run's message. A reply and a task report must end
+ * with it (`require_closing_answer`), even on the last wrap-up turn, when
+ * every other tool is gone: without it there is no message, not a promise
+ * the app has to read out of prose.
  */
-export const WrapUpToolNames = [...WrapUpSaveToolNames, ...WrapUpHandOffToolNames];
+export const WrapUpAnswerToolNames = [SendReplyToolName];
+
+/**
+ * Every tool the wrap up may still call (`WrapUpSaveToolNames`,
+ * `WrapUpHandOffToolNames` and `WrapUpAnswerToolNames`): those the run has,
+ * in its own order.
+ */
+export const WrapUpToolNames = [...WrapUpSaveToolNames, ...WrapUpHandOffToolNames, ...WrapUpAnswerToolNames];
 
 /**
  * Saving turns a wrap up may take: the first, and one more when it reached
@@ -217,15 +250,18 @@ export const wrapUpPrompt = ({
     reason = "steps",
     saving = [],
     hand_off = [],
+    answer = [],
 }: {
     uses: HarnessToolUse[];
     reason?: "steps" | "tokens";
     saving?: string[];
     hand_off?: string[];
+    answer?: string[];
 }) =>
     `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} ${wrapUpToolsPrompt({
         saving,
         hand_off,
+        answer,
     })} Report what you did, what is left, and anything you need from the user.
 
 The tools you actually called this run: ${describeToolUses({ uses })}. Nothing else happened. Don't say you saved, created, changed or sent anything this list doesn't show; what you meant to do and didn't is still left, so say so.`;
@@ -234,22 +270,48 @@ The tools you actually called this run: ${describeToolUses({ uses })}. Nothing e
  * What the wrap up may still call, said in one line: save the work, hand
  * on what it can't finish, or neither.
  */
-const wrapUpToolsPrompt = ({ saving, hand_off }: { saving: string[]; hand_off: string[] }) => {
-    if (!saving.length && !hand_off.length) return `Don't call any more tools.`;
+const wrapUpToolsPrompt = ({
+    saving,
+    hand_off,
+    answer,
+}: {
+    saving: string[];
+    hand_off: string[];
+    answer: string[];
+}) => {
+    if (!saving.length && !hand_off.length && !answer.length) return `Don't call any more tools.`;
 
     return [
         saving.length
-            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable)${hand_off.length ? "" : " and nothing else"}, then report.`
+            ? `You have one turn to save what the user needs: ${saving.join(" and ")} are still yours. Call only what saves the work (the report or deliverable)${hand_off.length || answer.length ? "" : " and nothing else"}, then report.`
             : "",
         hand_off.length
             ? saving.length
                 ? `If real work is left that this run can't finish, call ${hand_off.join(" or ")} with a complete brief of what's left: it runs after this turn and posts its own result.`
                 : `You have one turn to hand the work on: ${hand_off.join(" or ")} is still yours. If real work is left, call it with a complete brief of what's left: it runs after this turn and posts its own result.`
             : "",
+        answer.length
+            ? `End the run with ${answer.join(" or ")}: the message you wrote in that turn is what the user gets, and the call says what happens after it. A message without it is a draft and is never sent. Call it on its own turn, after the tools above have run.`
+            : "",
         `After this turn no tool is left, so anything unsaved is lost, and so is work you only say you'll do later.`,
     ]
         .filter(Boolean)
         .join(" ");
+};
+
+/**
+ * The status a `send_reply` call declared, for the review: a call whose
+ * arguments don't parse or name an unknown status is left undefined, and
+ * the tool's own schema refuses it before this matters.
+ */
+const replyStatusFromCall = ({ call }: { call: HarnessToolCall }): ReplyStatus | undefined => {
+    try {
+        const args = JSON.parse(call.arguments || "{}");
+
+        return ReplyStatuses.includes(args?.status) ? (args.status as ReplyStatus) : undefined;
+    } catch {
+        return undefined;
+    }
 };
 
 /**
@@ -294,7 +356,8 @@ Don't repeat tool calls you have already made.`;
  * run one at a time, in order; images they return follow their results. Stays on one model unless it fails. After
  * `max_steps` turns, or once the run has sent `max_prompt_tokens`, the
  * model is asked to wrap up: one turn with only the wrap-up tools
- * (`WrapUpToolNames`: what saves the work, and `start_task` for the rest),
+ * (`WrapUpToolNames`: what saves the work, `start_task` for the rest, and
+ * `send_reply` for the message),
  * then one with none. With neither set (unlimited), the run ends when the
  * model answers without calling a tool, or when its job's deadline or its
  * abort signal ends it. An answer `review` finds fault
@@ -323,6 +386,7 @@ export default async function runTextLoop({
     incoming_notes,
     wrap_up_note,
     review,
+    require_closing_answer = false,
     bot_id,
     workspace_id,
     generate = generateText,
@@ -396,7 +460,9 @@ export default async function runTextLoop({
     const wrap_tools = run_tools.filter((tool) => WrapUpToolNames.includes(tool.name));
     const save_tools = wrap_tools.filter((tool) => WrapUpSaveToolNames.includes(tool.name));
     const hand_off_tools = wrap_tools.filter((tool) => WrapUpHandOffToolNames.includes(tool.name));
+    const answer_tools = wrap_tools.filter((tool) => WrapUpAnswerToolNames.includes(tool.name));
     const wrap_definitions = wrap_tools.map((tool) => all_definitions.get(tool.name)!);
+    const answer_definitions = answer_tools.map((tool) => all_definitions.get(tool.name)!);
     /**
      * What bounds this run, recorded with every call it makes, so a reply
      * can be told later which limit shaped it (`read_message_usage`).
@@ -446,6 +512,12 @@ export default async function runTextLoop({
      * once-per-run guard ends the run instead of looping on the same note.
      */
     let closing_retries = 0;
+    /**
+     * How many text-only turns were drafts a required `send_reply` never
+     * ended. Bounded (`AppData.HarnessReplyDraftsMax`): past it the run
+     * fails rather than sending prose the app can't vouch for.
+     */
+    let reply_drafts = 0;
     /**
      * A run whose prompt no longer fits the working context, with nothing
      * trimmable left, has been told, once (`oversizedRequestNote`).
@@ -520,6 +592,7 @@ export default async function runTextLoop({
         text,
         index,
         final = false,
+        status,
     }: {
         text: string;
         index: number;
@@ -529,10 +602,16 @@ export default async function runTextLoop({
          * the run's last look, so it is not sent back into another turn.
          */
         final?: boolean;
+        /**
+         * What `send_reply` declared: the review reads a claim of work
+         * against it, so a `done` message can't say work is under way and a
+         * `working` one must have a run behind it.
+         */
+        status?: ReplyStatus;
     }) => {
         if (!review) return { verdict: "passed" as const };
 
-        const note = await review({ text, tool_uses }).catch(async (error) => {
+        const note = await review({ text, tool_uses, status }).catch(async (error) => {
             /**
              * A reviewer that throws passes the answer, which is the safe
              * thing to do with the user's reply, but it must not read like a
@@ -609,6 +688,7 @@ export default async function runTextLoop({
                     reason: out_of_steps ? "steps" : "tokens",
                     saving: wrap_up_saving ? save_tools.map((tool) => tool.name) : [],
                     hand_off: wrap_up_saving ? hand_off_tools.map((tool) => tool.name) : [],
+                    answer: answer_tools.map((tool) => tool.name),
                 }),
             });
 
@@ -622,7 +702,11 @@ export default async function runTextLoop({
 
         if (wrap_up_saving) saving_turns++;
 
-        const definitions = wrap_up_saving ? wrap_definitions : wrap_up ? [] : definitionsNow();
+        const definitions = wrap_up
+            ? wrap_up_saving
+                ? wrap_definitions
+                : answer_definitions
+            : definitionsNow();
 
         /**
          * Sized for the model the run is on (or will start on). A fallback
@@ -690,11 +774,17 @@ export default async function runTextLoop({
 
         /**
          * Only the tools this turn offered: at the wrap up that is the
-         * saving ones, and the last turn offers none.
+         * saving ones, and on the last turn only the answer tool, which is
+         * the one way a required closing message still goes out.
          */
-        const tool_calls = (wrap_up ? (wrap_up_saving ? answer.tool_calls : []) : answer.tool_calls).filter(
-            (call) => !wrap_up || wrap_tools.some((tool) => tool.name == call.name),
-        );
+        const offered = wrap_up
+            ? wrap_up_saving
+                ? answer.tool_calls
+                : answer.tool_calls.filter((call) => answer_tools.some((tool) => tool.name == call.name))
+            : answer.tool_calls;
+        const tool_calls = offered.filter((call) => !wrap_up || wrap_tools.some((tool) => tool.name == call.name));
+        const reply_call = tool_calls.filter((call) => call.name === SendReplyToolName).at(-1);
+        const reply_status = reply_call ? replyStatusFromCall({ call: reply_call }) : undefined;
 
         /**
          * What the app would never show as its own word comes out before
@@ -716,6 +806,33 @@ export default async function runTextLoop({
                 content: `Only ${wrap_tools.map((tool) => tool.name).join(" and ")} can still be called in this run. Nothing else you call will run. Save the report or deliverable with one of them, or answer with what you have.`,
             });
             continue;
+        }
+
+        /**
+         * On the last turn only the answer tool is offered: a turn that
+         * reaches for anything else beside it would have that call silently
+         * dropped, and the message could say it happened. Refuse the whole
+         * turn and say what is left.
+         */
+        if (
+            wrap_up &&
+            !wrap_up_saving &&
+            answer_tools.length > 0 &&
+            answer.tool_calls.some((call) => !answer_tools.some((tool) => tool.name == call.name))
+        ) {
+            /**
+             * This is the last turn, so there is no next one to try again
+             * on: the message would be a draft the app cannot vouch for.
+             */
+            return {
+                text: "",
+                review_note: `Only ${answer_tools.map((tool) => tool.name).join(" and ")} can end this run, and this turn called something else beside it, so no message was sent.`,
+                messages: transcript,
+                steps: index + 1,
+                candidate: answer.candidate,
+                usage,
+                tool_uses,
+            };
         }
 
         transcript.push({
@@ -763,6 +880,37 @@ export default async function runTextLoop({
                 text: "The user wrote again before this answer went out, so it was written again with that in mind.",
             });
             continue;
+        }
+
+        /**
+         * A required closing answer is never prose alone: text without
+         * `send_reply` is a draft, and the app does not send it. Told a
+         * bounded number of times (`AppData.HarnessReplyDraftsMax`), then
+         * the run fails honestly instead of turning a promise into a
+         * message.
+         */
+        if (require_closing_answer && !tool_calls.length) {
+            /**
+             * The last wrap-up turn has no next turn, so a draft there is
+             * the end: returning it as an answer is exactly the hole this
+             * protocol closes.
+             */
+            if (!(wrap_up && !wrap_up_saving) && reply_drafts < AppData.HarnessReplyDraftsMax) {
+                reply_drafts += 1;
+                pushUserTurn({ transcript, content: replyDraftNote });
+                await traced({ kind: "event", index, name: "reply_draft", text: replyDraftNote });
+                continue;
+            }
+
+            return {
+                text: "",
+                review_note: replyDraftNote,
+                messages: transcript,
+                steps: index + 1,
+                candidate: answer.candidate,
+                usage,
+                tool_uses,
+            };
         }
 
         if (!tool_calls.length && (!wrap_up || review_pending)) {
@@ -965,7 +1113,14 @@ export default async function runTextLoop({
          * called nothing at all is still a whole answer (the check below).
          */
         const called_card = tool_calls.some((call) => isClosingTool({ name: call.name }));
+        const called_send_reply = tool_calls.some((call) => call.name === SendReplyToolName);
         const closing = tool_calls.every((call) => isClosingTool({ name: call.name }));
+        /**
+         * A required closing answer needs `send_reply` itself, not just any
+         * closing call: a card alone says what to ask, never that work is
+         * running, and the status it declares is what the review reads.
+         */
+        const closing_required = !require_closing_answer || called_send_reply;
         /**
          * Only a closing call the tool refused is a failure: it put nothing
          * up, and a message written as if it had points at a card no one can
@@ -976,16 +1131,33 @@ export default async function runTextLoop({
          */
         const closing_uses = tool_uses.slice(-tool_calls.length).filter((use) => isClosingTool({ name: use.name }));
         const closing_failed = closing_uses.some((use) => !use.ok);
-        const closing_worked = closing && !closing_failed;
+        const closing_worked = closing && !closing_failed && closing_required;
 
-        if (called_card && (closing_failed || !closing)) {
+        if (called_card && (closing_failed || !closing || !closing_required)) {
             /**
-             * Bounded: past the retries the run ends on the answer it wrote,
-             * reviewed like any reply, rather than looping on a card it can't
-             * put up or a turn it won't finish.
+             * Bounded: past the retries a card-only turn ends on the answer
+             * it wrote, reviewed like any reply, rather than looping on a
+             * card it can't put up. A required closing message is refused
+             * instead: without `send_reply` there is no honest message.
              */
-            if (closing_retries >= AppData.MaxClosingRetries) {
-                const check = await checkAnswer({ text: answer.text || "", index });
+            if (closing_retries >= AppData.MaxClosingRetries || (wrap_up && !wrap_up_saving)) {
+                if (require_closing_answer) {
+                    return {
+                        text: "",
+                        review_note: closing_failed
+                            ? replyClosingFailedNote
+                            : !closing
+                              ? replyClosingMixedNote
+                              : replyClosingRequiredNote,
+                        messages: transcript,
+                        steps: index + 1,
+                        candidate: answer.candidate,
+                        usage,
+                        tool_uses,
+                    };
+                }
+
+                const check = await checkAnswer({ text: answer.text || "", index, final: wrap_up && !wrap_up_saving });
 
                 return {
                     text: check.verdict === "refused" ? "" : answer.text || "",
@@ -1000,10 +1172,19 @@ export default async function runTextLoop({
 
             closing_retries++;
 
-            const note = closing_failed ? closingFailedNote : closingMixedNote;
+            const note = closing_failed
+                ? called_send_reply || require_closing_answer
+                    ? replyClosingFailedNote
+                    : closingFailedNote
+                : !closing
+                  ? called_send_reply
+                      ? replyClosingMixedNote
+                      : closingMixedNote
+                  : replyClosingRequiredNote;
+            const name = closing_failed ? "closing_failed" : !closing ? "closing_mixed" : "closing_required";
 
             pushUserTurn({ transcript, content: note });
-            await traced({ kind: "event", index, name: closing_failed ? "closing_failed" : "closing_mixed", text: note });
+            await traced({ kind: "event", index, name, text: note });
             continue;
         }
 
@@ -1013,15 +1194,18 @@ export default async function runTextLoop({
          * and the run ends on the sentence it writes (`closingNoTextNote`).
          */
         if (closing_worked && called_card && !(answer.text || "").trim()) {
-            if (!told_closing_text) {
+            const no_text_note = called_send_reply ? replyNoTextNote : closingNoTextNote;
+
+            if (!told_closing_text && !(wrap_up && !wrap_up_saving)) {
                 told_closing_text = true;
-                pushUserTurn({ transcript, content: closingNoTextNote });
-                await traced({ kind: "event", index, name: "closing_no_text", text: closingNoTextNote });
+                pushUserTurn({ transcript, content: no_text_note });
+                await traced({ kind: "event", index, name: "closing_no_text", text: no_text_note });
                 continue;
             }
 
             return {
                 text: "",
+                review_note: no_text_note,
                 messages: transcript,
                 steps: index + 1,
                 candidate: answer.candidate,
@@ -1036,7 +1220,8 @@ export default async function runTextLoop({
              * back and the answer is written again (the card stays on the
              * reply, its ref is already recorded).
              */
-            const check = await checkAnswer({ text: answer.text, index });
+            const final_turn = wrap_up && !wrap_up_saving;
+            const check = await checkAnswer({ text: answer.text, index, status: reply_status, final: final_turn });
 
             if (check.verdict === "refused") {
                 const repaired = repairAnswerText({ text: answer.text });
@@ -1044,7 +1229,7 @@ export default async function runTextLoop({
                 if (repaired.changed && repaired.text) {
                     // Checked again, as the reply path is: a dead ref the
                     // repair leaves behind must not ship (M3).
-                    const recheck = await checkAnswer({ text: repaired.text, index });
+                    const recheck = await checkAnswer({ text: repaired.text, index, status: reply_status, final: final_turn });
 
                     if (recheck.verdict === "passed") {
                         await traced({
@@ -1061,6 +1246,7 @@ export default async function runTextLoop({
                             candidate: answer.candidate,
                             usage,
                             tool_uses,
+                            status: reply_status,
                         };
                     }
                 }
@@ -1085,6 +1271,7 @@ export default async function runTextLoop({
                 candidate: answer.candidate,
                 usage,
                 tool_uses,
+                status: reply_status,
             };
         }
 

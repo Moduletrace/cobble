@@ -25,11 +25,17 @@ export default function unknownToolMessage({ name, tools }: Params) {
         return `Error: There is no tool called "${name}". ${available}`;
     }
 
+    const can_reply = tools.some((t) => t.name == "send_reply");
     const can_start = tools.some((t) => t.name == "start_task");
+    const way = can_reply
+        ? `call send_reply with status "working" and work`
+        : can_start
+          ? "call start_task with a clear brief"
+          : "";
 
     return `Error: There is no tool called "${name}" here: computer and browser tools only exist in a task on a computer.${
-        can_start
-            ? " To use the computer or its browser (an open tab, a site the user is logged in to), call start_task with a clear brief, then tell the user what you're doing. You can use the computer that way; never say you can't."
+        way
+            ? ` To use the computer or its browser (an open tab, a site the user is logged in to), ${way}, then tell the user what you're doing. You can use the computer that way; never say you can't.`
             : ""
     } ${available}`;
 }

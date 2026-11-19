@@ -29,6 +29,13 @@ describe("claimsWorkUnderWay", () => {
             "I'm starting it now.",
             "Starting it now.",
             /**
+             * Session 75 message 951, the reply this protocol was written
+             * for: it deleted the old files, said it was generating the
+             * banner next, and stopped.
+             */
+            'Now generating the **single centered "6%" signpost** hero using the image generation tool with a tight, focused prompt.',
+            "Generating the banner now.",
+            /**
              * The shapes that got past the list above: "Let me check" and
              * "I'll connect and inspect" name work the reply never did,
              * without the "now" or the "and see" it looked for.

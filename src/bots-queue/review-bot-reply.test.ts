@@ -7,8 +7,14 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
  */
 const open_graphics = new Set<number>([2]);
 
+let open_work = false;
+const open_work_calls: Array<{ bot_id: number | string; session_id: number | string; exclude_job_id?: number | string }> = [];
+
 mock.module("@/src/functions/backend/db/bots-queue/has-open-work", () => ({
-    default: async () => false,
+    default: async (params: { bot_id: number | string; session_id: number | string; exclude_job_id?: number | string }) => {
+        open_work_calls.push(params);
+        return open_work;
+    },
 }));
 mock.module("@/src/functions/backend/db/bot-files/grab-bot-file", () => ({
     default: async () => null,
@@ -31,10 +37,20 @@ afterAll(() => {
     mock.restore();
 });
 
-const review = async ({ text, tool_uses = [] }: { text: string; tool_uses?: { name: string; ok: boolean }[] }) => {
+const review = async ({
+    text,
+    tool_uses = [],
+    status,
+    job_id,
+}: {
+    text: string;
+    tool_uses?: { name: string; ok: boolean }[];
+    status?: "done" | "working" | "blocked";
+    job_id?: number;
+}) => {
     const { default: reviewBotReply } = await import("./review-bot-reply");
 
-    return reviewBotReply({ text, tool_uses, bot_id: 1, user_id: 1, session_id: 123, scopes: [] });
+    return reviewBotReply({ text, tool_uses, bot_id: 1, user_id: 1, session_id: 123, scopes: [], status, job_id });
 };
 
 describe("reviewBotReply", () => {
@@ -81,5 +97,36 @@ describe("reviewBotReply", () => {
     test("passes a graphic the user can open, and an answer with no refs", async () => {
         expect(await review({ text: "The chart: [graphic:2]", tool_uses: [{ name: "create_graphic", ok: true }] })).toBeNull();
         expect(await review({ text: "Here's the picture you asked for." })).toBeNull();
+    });
+
+    /**
+     * Session 75 message 951: the run deleted the old files, said it was
+     * generating the banner next, and stopped. The status is now part of
+     * the answer, so `done` is a contradiction the review can name even
+     * while another run is open.
+     */
+    test("faults a done message that says work is under way", async () => {
+        const note = await review({
+            text: "Now generating the single centered 6% signpost hero with the image generation tool.",
+            status: "done",
+            job_id: 560,
+        });
+
+        expect(note).toContain(`status "done"`);
+    });
+
+    test("passes a working message when a run is open, excluding this run's own job", async () => {
+        open_work = true;
+        open_work_calls.length = 0;
+
+        const note = await review({
+            text: "I'm generating the banner now.",
+            status: "working",
+            job_id: 560,
+        });
+
+        expect(note).toBeNull();
+        expect(open_work_calls[0]).toEqual({ bot_id: 1, session_id: 123, exclude_job_id: 560 });
+        open_work = false;
     });
 });

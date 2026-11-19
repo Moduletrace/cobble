@@ -41,8 +41,8 @@ function insert(row: {
     );
 }
 
-function found(bot_id: number, session_id: number) {
-    const condition = openWorkSql({ bot_id, session_id });
+function found(bot_id: number, session_id: number, exclude_job_id?: number) {
+    const condition = openWorkSql({ bot_id, session_id, exclude_job_id });
 
     return db.query(condition.sql).all(...condition.values).map((row) => (row as { id: number }).id);
 }
@@ -88,5 +88,18 @@ describe("openWorkSql", () => {
         insert({ id: 4, status: "processing", kind: "reply", bot_id: 1, session_id: 6, params: `{"plan_id":9}` });
 
         expect(found(1, 5)).toEqual([]);
+    });
+
+    /**
+     * A task run's own job is `processing` while it writes its report, so
+     * without this a report saying work is under way would count itself as
+     * the work and pass the review.
+     */
+    test("the run's own job is not open work", () => {
+        insert({ id: 8, status: "processing", kind: "task", bot_id: 1, session_id: 5 });
+        insert({ id: 9, status: "pending", kind: "task", bot_id: 1, session_id: 5 });
+
+        expect(found(1, 5, 8)).toEqual([9]);
+        expect(found(1, 5).length).toBe(1);
     });
 });

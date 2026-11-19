@@ -28,7 +28,7 @@ import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-
 import askableBots from "@/src/functions/backend/db/asks/askable-bots";
 import handOverTaskTool from "./hand-over-task-tool";
 import setWorkspaceInstructionsTool from "./set-workspace-instructions-tool";
-import startTaskTool from "./start-task-tool";
+import sendReplyTool from "./send-reply-tool";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import type { BotRunPowers } from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import grabWorkspaceAdminTools, { type WorkspaceAdminTools } from "./grab-workspace-admin-tools";
@@ -60,6 +60,16 @@ type Params = {
      */
     message_id?: number | string;
     /**
+     * The job this run is carrying out, so `send_reply` doesn't count its
+     * own open job as work that is still running.
+     */
+    job_id?: number | string;
+    /**
+     * Called with the run `send_reply` queued, so the reply can cancel it
+     * if the review refuses the message that announced it.
+     */
+    onQueue?: (params: { job_id: number }) => void;
+    /**
      * The files the run reaches (`grabRunScopes`), so a picture it sets is
      * copied from one it can already read.
      */
@@ -70,7 +80,7 @@ type Params = {
      */
     attended?: boolean;
     /**
-     * The run's browser kind, propagated to `start_task` children (H7) so a
+     * The run's browser kind, propagated to `send_reply`'s work children (H7) so a
      * hidden session's reply never lets a child reach the user's browsers.
      */
     run_kind?: BrowserRunKind;
@@ -97,8 +107,8 @@ type Params = {
 
 /**
  * The tools a bot replies in chat with: its own (memory, instructions, and
- * in a workspace switching its default computer), start_task for longer
- * work, search_computers to find what's on its computers,
+ * in a workspace switching its default computer), send_reply for the message
+ * and the longer work it queues, search_computers to find what's on its computers,
  * ask_user_to_take_over when only the user can do something on one, and
  * for the coordinator (the super admin's alone) create_workspace and
  * update_workspace (a workspace and its shared context, which
@@ -130,6 +140,8 @@ export default async function grabBotChatTools({
     session_id,
     workspace_id,
     message_id,
+    job_id,
+    onQueue,
     scopes = [],
     attended,
     run_kind,
@@ -153,13 +165,15 @@ export default async function grabBotChatTools({
             onPropose,
             onTask,
         })),
-        startTaskTool({
+        sendReplyTool({
             user_id,
             bot_id,
             session_id,
             computers,
             message_id,
+            job_id,
             run_kind,
+            onQueue,
         }),
         ...(computers.length
             ? [

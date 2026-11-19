@@ -141,4 +141,19 @@ describe("grabBotChatTools", () => {
         expect(list).not.toContain("hand_over_task");
         expect(list).not.toContain("delegate_task");
     });
+
+    /**
+     * A reply's only way to start work is `send_reply` with `work`: the
+     * app queues the run with the message, so a message saying work
+     * started can't go out without one. `start_task` stays for task runs
+     * handing work on.
+     */
+    test("a reply ends with send_reply, not start_task", async () => {
+        workers = [{ id: 6, name: "Software Engineer", kind: "worker" }];
+
+        const list = await workerNames({ workspace_id: null });
+
+        expect(list).toContain("send_reply");
+        expect(list).not.toContain("start_task");
+    });
 });

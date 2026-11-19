@@ -3,6 +3,12 @@ import type { SqlCondition } from "@/src/utils/crew-access/types";
 type Params = {
     bot_id: number | string;
     session_id: number | string;
+    /**
+     * The run asking the question. A task run's own job is open while it
+     * writes its report, and counting it would let the report say work is
+     * under way with nothing but itself behind the claim.
+     */
+    exclude_job_id?: number | string;
 };
 
 /**
@@ -12,16 +18,31 @@ type Params = {
  * reply job carrying `params.plan_id`, so it counts too - "step 2 is
  * running" is not a false claim while that step works (L5). Selects `id`.
  */
-export default function openWorkSql({ bot_id, session_id }: Params): SqlCondition {
+export default function openWorkSql({ bot_id, session_id, exclude_job_id }: Params): SqlCondition {
+    /**
+     * No id is ever negative: -1 stands in for "exclude nothing", since the
+     * condition's values are numbers and a bound null would need a wider
+     * `SqlCondition` type.
+     */
+    const excluded = exclude_job_id == null ? -1 : Number(exclude_job_id);
+
     return {
         sql: `SELECT id FROM bots_queue
             WHERE status IN ('pending', 'processing')
+                AND id <> ?
                 AND (
                     (kind = 'task' AND ((bot_id = ? AND session_id = ?) OR requested_by_session_id = ?))
                     OR (kind = 'reply' AND bot_id = ? AND session_id = ?
                         AND json_extract(COALESCE(params, '{}'), '$.plan_id') IS NOT NULL)
                 )
             LIMIT 1`,
-        values: [Number(bot_id), Number(session_id), Number(session_id), Number(bot_id), Number(session_id)],
+        values: [
+            excluded,
+            Number(bot_id),
+            Number(session_id),
+            Number(session_id),
+            Number(bot_id),
+            Number(session_id),
+        ],
     };
 }

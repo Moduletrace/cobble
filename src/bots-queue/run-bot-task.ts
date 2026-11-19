@@ -58,6 +58,9 @@ import updateWorkspaceTool from "@/src/harness/tools/bot/update-workspace-tool";
 import listWorkspacePeopleTool from "@/src/harness/tools/bot/list-workspace-people-tool";
 import setUserWorkspaceRoleTool from "@/src/harness/tools/bot/set-user-workspace-role-tool";
 import askToTakeOverTool from "@/src/harness/tools/computer/ask-to-take-over-tool";
+import sendReplyTool from "@/src/harness/tools/bot/send-reply-tool";
+import startTaskTool from "@/src/harness/tools/bot/start-task-tool";
+import cancelBotJob from "@/src/functions/backend/db/bots-queue/cancel-bot-job";
 import importFileTool from "@/src/harness/tools/computer/import-file-tool";
 import searchComputersTool from "@/src/harness/tools/computer/search-computers-tool";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
@@ -205,6 +208,11 @@ export default async function runBotTask({
          * Files the bot wrote and asked to send with its report.
          */
         const attachments: number[] = [];
+        /**
+         * Runs `send_reply` queued with this report: if the report is never
+         * posted (the review refused it), they are cancelled with it.
+         */
+        const queued_jobs: number[] = [];
         const scheduled = Boolean(params.schedule_id);
         /**
          * Started by a call to one of the user's hooks: acts on its own
@@ -640,7 +648,37 @@ export default async function runBotTask({
         const result = await runTextLoop({
             system,
             messages: opening,
-            tools: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools, ...knowledge.tools],
+            tools: [
+                ...tools,
+                /**
+                 * A task report ends with `send_reply`, the same protocol a
+                 * reply uses: its status says whether anything runs after
+                 * it, and a `working` report must name the run. `start_task`
+                 * stays here for work the run hands on before it reports.
+                 */
+                sendReplyTool({
+                    user_id,
+                    bot_id: bot.id,
+                    session_id,
+                    computers,
+                    message_id: job.message_id || undefined,
+                    job_id: job.id,
+                    run_kind: browser_run_kind,
+                    onQueue: ({ job_id }) => queued_jobs.push(job_id),
+                }),
+                startTaskTool({
+                    user_id,
+                    bot_id: bot.id,
+                    session_id,
+                    computers,
+                    message_id: job.message_id || undefined,
+                    run_kind: browser_run_kind,
+                }),
+                ...extensions.tools,
+                ...browsers.tools,
+                ...skills.tools,
+                ...knowledge.tools,
+            ],
             max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
             context_budget: await grabContextBudgetTokens(),
@@ -686,7 +724,12 @@ export default async function runBotTask({
              * says work is under way when none is. A note sends it back;
              * one the review keeps faulting is never posted.
              */
-            review: reviewRunAnswer({ bot_id: bot.id, user_id, session_id, scopes }),
+            review: reviewRunAnswer({ bot_id: bot.id, user_id, session_id, scopes, job_id: job.id }),
+            /**
+             * A report goes out only through `send_reply`, so it can't say
+             * work is under way with the run's own open job behind it.
+             */
+            require_closing_answer: true,
             /**
              * The model that wrote the plan, when there was one: the run
              * works it on that model when it is still the one to use.
@@ -707,6 +750,10 @@ export default async function runBotTask({
         if (result.review_note) {
             await dropUnsentQuestions({ refs: take_overs });
 
+            for (const queued of queued_jobs) {
+                await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
+            }
+
             throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
         }
 
@@ -720,7 +767,22 @@ export default async function runBotTask({
          * posts whatever text it is given (L5).
          */
         if (!text.trim() && !shown.length && !suggestions.length && !attachments.length) {
+            for (const queued of queued_jobs) {
+                await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
+            }
+
             throw new BotJobFatalError(`The run ended without a report to send.`);
+        }
+
+        /**
+         * Work queued in an earlier turn and then withdrawn by the report
+         * that ended the run (`done` or `blocked`): the user reads that
+         * nothing runs, so nothing may.
+         */
+        if (result.status !== "working") {
+            for (const queued of queued_jobs) {
+                await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
+            }
         }
 
         return {

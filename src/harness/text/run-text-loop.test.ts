@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -1782,6 +1782,178 @@ describe("runTextLoop closing tools", () => {
         expect(result.text).toBe("Done: [file:12] has all of it.");
         expect(result.steps).toBe(2);
         expect(questions).toEqual(["Next?"]);
+    });
+});
+
+describe("runTextLoop required send_reply", () => {
+    const sendReply: HarnessTool<{ status: "done" | "working" | "blocked"; work?: unknown }> = {
+        name: "send_reply",
+        description: "Sends the message.",
+        schema: z.object({
+            status: z.enum(["done", "working", "blocked"]),
+            work: z.unknown().optional(),
+        }),
+        run: async () => "Sent.",
+    };
+
+    test("a reply's text without send_reply is a draft, never the answer", async () => {
+        const { generate, seen } = scripted([
+            { text: "I'm generating the banner now." },
+            {
+                text: "Generated the banner.",
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Make a banner." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Generated the banner.");
+        expect(result.steps).toBe(2);
+        expect(seen[1]!.messages.some((message) => message.content === replyDraftNote)).toBe(true);
+    });
+
+    test("a run that keeps writing drafts fails instead of sending one", async () => {
+        const { generate, seen } = scripted([{ text: "One." }, { text: "Two." }, { text: "Three." }]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Make a banner." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe(replyDraftNote);
+        expect(seen.length).toBe(AppData.HarnessReplyDraftsMax + 1);
+    });
+
+    test("a draft on the last wrap up turn fails instead of ending the loop", async () => {
+        const { generate } = scripted([
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"x"}` }] },
+            { text: "First draft." },
+            { text: "Second draft." },
+            { text: "Final draft." },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Go." }],
+            tools: [remember, sendReply],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe(replyDraftNote);
+    });
+
+    test("passes send_reply's status to the review", async () => {
+        const statuses: (string | undefined)[] = [];
+        const { generate } = scripted([
+            {
+                text: "Working on it.",
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"working"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Make a banner." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+            review: async ({ status }) => {
+                statuses.push(status);
+                return null;
+            },
+        });
+
+        expect(statuses).toEqual(["working"]);
+        expect(result.text).toBe("Working on it.");
+    });
+
+    test("a card alone doesn't close a reply that requires send_reply", async () => {
+        asked.length = 0;
+        const { generate, seen } = scripted([
+            {
+                text: "Which date rule?",
+                tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` }],
+            },
+            {
+                text: "Asked. Waiting on your answer.",
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Ask me which date rule." }],
+            tools: [askUser, sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Asked. Waiting on your answer.");
+        expect(asked).toEqual(["Which date rule?"]);
+        expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: replyClosingRequiredNote });
+    });
+
+    test("send_reply with no message beside it is told once", async () => {
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+            {
+                text: "Here is the answer.",
+                tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Answer me." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Here is the answer.");
+        expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: replyNoTextNote });
+    });
+
+    test("the wrap up still offers send_reply", async () => {
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"x"}` }] },
+            {
+                text: "Report.",
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Go." }],
+            tools: [remember, sendReply],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(seen[1]!.tools!.map((tool) => tool.name)).toEqual(["send_reply"]);
+        expect(result.text).toBe("Report.");
     });
 });
 

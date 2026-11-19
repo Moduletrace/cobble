@@ -1,4 +1,5 @@
 import type { HarnessToolUse } from "@/src/harness/types";
+import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import claimsWorkUnderWay from "./claims-work-under-way";
 import unsupportedAppRecordLines from "./app-record-claims";
 import replyAppStateClaims, { AppStateTools } from "./reply-app-state-claims";
@@ -40,6 +41,13 @@ type Params = {
      * open from this conversation: its result is still to come.
      */
     has_open_work?: boolean;
+    /**
+     * What the reply declared with `send_reply`. `done` and `blocked` mean
+     * nothing is running after the message, so a work claim contradicts
+     * them even when an older run is still open. `working` is only honest
+     * with a run behind it.
+     */
+    status?: ReplyStatus;
 };
 
 /**
@@ -85,6 +93,7 @@ export default function replyClaimProblems({
     missing_graphic_ids = [],
     written_card_refs = [],
     has_open_work,
+    status,
 }: Params): string[] {
     const problems: string[] = [];
 
@@ -154,9 +163,19 @@ export default function replyClaimProblems({
         );
     }
 
-    if (!started && !tried && !has_open_work && claimsWorkUnderWay({ text })) {
+    const claim = claimsWorkUnderWay({ text });
+
+    if (claim && (status === "done" || status === "blocked")) {
         problems.push(
-            `It says work is going on beyond this reply, or that its findings are still to come, but this reply started no run (start_task) and nothing of yours is open in this conversation. Nothing is running, so no result arrives unless you call start_task now.`,
+            `It ends with status "${status}", which means nothing runs after this message, but it says work is going on beyond this reply or that its findings are still to come. If a run is carrying the work on, end with status "working" and pass work or name the open run; otherwise write the message as finished work and say only what the tools returned.`,
+        );
+    } else if (claim && status === "working" && !has_open_work) {
+        problems.push(
+            `It ends with status "working", but nothing of yours is open in this conversation. Pass work to send_reply to queue it now, or end with status "done" and write the answer.`,
+        );
+    } else if (claim && status == null && !started && !tried && !has_open_work) {
+        problems.push(
+            `It says work is going on beyond this reply, or that its findings are still to come, but this reply started no run (start_task) and nothing of yours is open in this conversation. Nothing is running, so no result arrives unless you call send_reply with status "working" and work now.`,
         );
     }
 

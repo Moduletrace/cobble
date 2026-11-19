@@ -4,6 +4,11 @@ import openWorkSql from "./open-work-sql";
 type Params = {
     bot_id: number | string;
     session_id: number | string;
+    /**
+     * The run asking the question (`openWorkSql`). A task run's own job is
+     * open while it works, so without this its report could count itself.
+     */
+    exclude_job_id?: number | string;
 };
 
 /**
@@ -14,8 +19,8 @@ type Params = {
  * while that step works (L5). Shared by the reply review gate and the crew
  * request lifecycle, so both read "work is still open" the same way.
  */
-export default async function hasOpenWork({ bot_id, session_id }: Params): Promise<boolean> {
-    const jobs = await BunSQLite.sql<{ id: number }>(openWorkSql({ bot_id, session_id }));
+export default async function hasOpenWork({ bot_id, session_id, exclude_job_id }: Params): Promise<boolean> {
+    const jobs = await BunSQLite.sql<{ id: number }>(openWorkSql({ bot_id, session_id, exclude_job_id }));
 
     if (jobs.payload?.[0]) return true;
 

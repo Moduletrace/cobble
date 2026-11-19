@@ -267,6 +267,73 @@ I'll report what the run actually finds when it reports back.`;
     test("an answer that holds up has no problems", () => {
         expect(replyClaimProblems({ text: "Task #20 is cancelled.", tool_uses: [] })).toEqual([]);
     });
+
+    /**
+     * `send_reply` makes the status part of the answer's protocol, so the
+     * check reads it instead of guessing from the tool history alone. A
+     * `done` message with a run open still contradicts itself: the run is
+     * not this message's answer.
+     */
+    describe("the status send_reply declares", () => {
+        const working = "I'm generating the banner now.";
+
+        test("done faults a work claim even when a run started or is open", () => {
+            const problems = replyClaimProblems({
+                text: working,
+                tool_uses: [{ name: "start_task", ok: true }],
+                has_open_work: true,
+                status: "done",
+            });
+
+            expect(problems.length).toBe(1);
+            expect(problems[0]).toContain(`status "done"`);
+        });
+
+        test("working with nothing open faults the promise", () => {
+            const problems = replyClaimProblems({
+                text: working,
+                tool_uses: [],
+                has_open_work: false,
+                status: "working",
+            });
+
+            expect(problems.length).toBe(1);
+            expect(problems[0]).toContain(`status "working"`);
+            expect(problems[0]).toContain("Pass work to send_reply");
+        });
+
+        test("working with a run open passes", () => {
+            expect(
+                replyClaimProblems({
+                    text: working,
+                    tool_uses: [],
+                    has_open_work: true,
+                    status: "working",
+                }),
+            ).toEqual([]);
+        });
+
+        test("blocked cannot claim the work carries on", () => {
+            const problems = replyClaimProblems({
+                text: working,
+                tool_uses: [{ name: "start_task", ok: true }],
+                has_open_work: true,
+                status: "blocked",
+            });
+
+            expect(problems.length).toBe(1);
+            expect(problems[0]).toContain(`status "blocked"`);
+        });
+
+        test("without a status, a started run still excuses the claim", () => {
+            expect(
+                replyClaimProblems({
+                    text: working,
+                    tool_uses: [{ name: "start_task", ok: true }],
+                }),
+            ).toEqual([]);
+        });
+    });
 });
 
 /**
