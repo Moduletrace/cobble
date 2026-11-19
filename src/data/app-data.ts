@@ -1009,7 +1009,7 @@ export const AppData = {
      * reloads: an exhausted thread reaches the limit by accident too easily,
      * and keeping the finger there says the reload was meant.
      */
-    PullToRefreshHoldMs: 500,
+    PullToRefreshHoldMs: 200,
     /**
      * The shortest the reloading icon stays up, in milliseconds: a reload
      * the server answers at once still says it happened.
