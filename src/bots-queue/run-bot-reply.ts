@@ -54,6 +54,7 @@ import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabKnowledgebaseContext from "@/src/harness/tools/knowledgebases/grab-knowledgebase-context";
 import messagesToTurns from "./messages-to-turns";
+import unsentAnswerMessage from "./unsent-answer-message";
 import grabOpenSessionRuns from "@/src/functions/backend/db/bots-queue/grab-open-session-runs";
 import composeBrowsersNote from "./compose-browsers-note";
 import composeComputersNote from "./compose-computers-note";
@@ -641,7 +642,7 @@ export default async function runBotReply({
                 await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
             }
 
-            throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
+            throw new BotJobFatalError(unsentAnswerMessage({ note: result.review_note }));
         }
 
         const answer = stripAppRecords({ text: result.text }).trim();

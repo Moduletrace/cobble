@@ -17,6 +17,7 @@ type Params = {
         | "attachments"
         | "reply_to"
         | "tool_log"
+        | "task_ids"
         | "reactions"
         | "from_ask_id"
         | "from_install_request_id"
@@ -111,7 +112,7 @@ function messageParts({
 
     if (role == "assistant") {
         const record = text
-            ? appRecord({ tool_log: message.tool_log, reactions: message.reactions })
+            ? appRecord({ tool_log: message.tool_log, task_ids: message.task_ids, reactions: message.reactions })
             : "";
 
         return record ? [...content, { type: "text", text: record }] : content;
@@ -138,14 +139,40 @@ function messageParts({
  */
 function appRecord({
     tool_log,
+    task_ids,
     reactions,
 }: {
     tool_log?: string | null;
+    task_ids?: string | null;
     reactions?: BotMessageReaction[];
 }) {
-    const facts = [toolsRecord({ tool_log }), reactionsRecord({ reactions })].filter(Boolean);
+    const facts = [toolsRecord({ tool_log }), tasksRecord({ task_ids }), reactionsRecord({ reactions })].filter(Boolean);
 
     return facts.length ? `${AppRecordPrefix} ${facts.join(" ")}]` : "";
+}
+
+/**
+ * The tracker tasks a run reported touching (`bot_messages.task_ids`), by
+ * id: without them a message that says "delete_task" leaves the bot unable
+ * to tell which task it deleted, and one described #16 as still there six
+ * messages after deleting it. A task that has since gone keeps its id here.
+ */
+function tasksRecord({ task_ids }: { task_ids?: string | null }) {
+    if (!task_ids) return "";
+
+    let ids: unknown;
+
+    try {
+        ids = JSON.parse(task_ids);
+    } catch {
+        return "";
+    }
+
+    if (!Array.isArray(ids)) return "";
+
+    const named = ids.map(Number).filter((id) => Number.isInteger(id) && id > 0);
+
+    return named.length ? `The tasks it dealt with: ${named.map((id) => `#${id}`).join(", ")}.` : "";
 }
 
 /**

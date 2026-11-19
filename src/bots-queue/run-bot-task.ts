@@ -90,6 +90,7 @@ import taskRequestNote from "./task-request-note";
 import namedFilesNote from "./named-files-note";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import planBotTask from "./plan-bot-task";
+import unsentAnswerMessage from "./unsent-answer-message";
 import shouldPlanBotTask from "./should-plan-bot-task";
 import { AppData } from "@/src/data/app-data";
 import pushUserTurn from "@/src/harness/text/push-user-turn";
@@ -291,7 +292,11 @@ export default async function runBotTask({
                 : []),
             ...(powers.is_coordinator
                 ? [
-                      createWorkspaceTool({ user_id, workspaces: coordinator_workspaces }),
+                      createWorkspaceTool({
+                          user_id,
+                          session_id,
+                          workspaces: coordinator_workspaces,
+                      }),
                       ...(coordinator_workspaces.length
                           ? [
                                 updateWorkspaceTool({
@@ -754,7 +759,7 @@ export default async function runBotTask({
                 await cancelBotJob({ user_id, job_id: queued }).catch(() => null);
             }
 
-            throw new BotJobFatalError(`The answer didn't hold up against the app's record, so it wasn't sent.`);
+            throw new BotJobFatalError(unsentAnswerMessage({ note: result.review_note }));
         }
 
         const text = stripAppRecords({ text: result.text });

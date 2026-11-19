@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import addBotToComputer from "@/src/functions/backend/db/computers/add-bot-to-computer";
 import removeBotFromComputer from "@/src/functions/backend/db/computers/remove-bot-from-computer";
@@ -8,6 +9,11 @@ import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
+    /**
+     * The conversation the reply answers: the user's messages in it are
+     * what a call's quote is checked against.
+     */
+    session_id?: number | string;
     /**
      * The user's worker bots.
      */
@@ -26,6 +32,7 @@ type Args = {
     bot_id: number;
     computer_id: number;
     access: "grant" | "revoke";
+    because: string;
 };
 
 /**
@@ -36,6 +43,7 @@ type Args = {
  */
 export default function assignComputerTool({
     user_id,
+    session_id,
     workers,
     computers,
     access,
@@ -49,15 +57,22 @@ export default function assignComputerTool({
 
     return {
         name: "assign_computer",
-        description: `Give a crew member access to a computer, or take it away. A bot works on its computers and its delegated tasks run on the one it's on. Crew and their computers now: ${crew}. Computers: ${computers
+        description: `Give a crew member access to a computer, or take it away. A bot works on its computers and its delegated tasks run on the one it's on. Only do it when the user asks for it. Pass their own words in because; a quote they didn't write in this conversation is refused. Crew and their computers now: ${crew}. Computers: ${computers
             .map((c) => `${computerRef({ id: c.id || 0 })} ${c.name || "Computer"}`)
             .join(", ")}.`,
         schema: z.object({
             bot_id: z.number().int(),
             computer_id: z.number().int(),
             access: z.enum(["grant", "revoke"]),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "give a bot a computer or take one away",
+            });
+
             const fresh = await grabCrewWorkers();
             const worker = fresh.find((bot) => bot.id == args.bot_id);
             const computer = computers.find((c) => c.id == args.computer_id);

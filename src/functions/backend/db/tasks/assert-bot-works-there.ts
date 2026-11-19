@@ -22,6 +22,8 @@ export default async function assertBotWorksThere({ bot_id, workspace_id }: Para
     });
 
     if (!res.payload?.[0]?.id) {
-        throw new AppError(`Bot ${bot_id} doesn't work in workspace ${workspace_id}, so it can't have a task there.`);
+        throw new AppError(
+            `Bot ${bot_id} doesn't work in workspace ${workspace_id}, so it can't have a task there. Give the task to a bot that works in that workspace.`,
+        );
     }
 }

@@ -82,6 +82,7 @@ export default async function grabWorkspaceAdminTools({
             }),
             handOverScheduleTool({
                 user_id,
+                session_id,
                 bot_id,
                 workspace_id,
                 requester_name: bot.name || "The workspace's admin",

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import type { BotRunPowers } from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import grabRunTask from "@/src/functions/backend/db/tasks/grab-run-task";
 import handOverTask from "@/src/functions/backend/db/tasks/hand-over-task";
@@ -47,6 +48,7 @@ type Args = {
      * is queued.
      */
     start?: boolean;
+    because: string;
 };
 
 /**
@@ -66,7 +68,7 @@ export default function handOverTaskTool({ user_id, bot, session_id, powers, wor
 
     return {
         name: "hand_over_task",
-        description: `Hand over a task on your own list to another bot, when the user asked for that task to go to them. Pass its task_id (list_tasks) and the bot: the task moves to their list as to do, and their result is reported back here. Handing it over never starts it: pass start: true only when the user asked for the work to begin now. When they asked for the move but not for it to start, ask first with ask_user (one card, every task they named: hand over and start, hand over to wait, leave it), and hand over only once they've answered: a task that has left your list can't be started by you any more. Only a task of your own, and only an open one. To ask a bot something without giving it a task, use ask_bot; to have work made for another bot, ask the user. Crew you can hand to: ${crew || "none"}.`,
+        description: `Hand over a task on your own list to another bot, when the user asked for that task to go to them. Pass its task_id (list_tasks) and the bot: the task moves to their list as to do, and their result is reported back here. Handing it over never starts it: pass start: true only when the user asked for the work to begin now. When they asked for the move but not for it to start, ask first with ask_user (one card, every task they named: hand over and start, hand over to wait, leave it), and hand over only once they've answered: a task that has left your list can't be started by you any more. Only a task of your own, and only an open one. To ask a bot something without giving it a task, use ask_bot; to have work made for another bot, ask the user. Pass the user's own words asking for this in because; a quote they did not write in this conversation is refused. Crew you can hand to: ${crew || "none"}.`,
         schema: z.object({
             task_id: z.number().int().describe("An open task on your own list (list_tasks)"),
             bot_id: z.number().int(),
@@ -74,8 +76,15 @@ export default function handOverTaskTool({ user_id, bot, session_id, powers, wor
                 .boolean()
                 .optional()
                 .describe("true to start the work at once, only when the user asked for it; left out it only moves (to do, nothing runs)"),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "hand a task to another bot",
+            });
+
             const task = await grabRunTask({
                 task_id: args.task_id,
                 bot_id,

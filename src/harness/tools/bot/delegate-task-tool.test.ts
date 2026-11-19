@@ -1,6 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
-import delegateTaskTool from "./delegate-task-tool";
+
+/**
+ * The tests below never reach a conversation: the quote a crew change
+ * carries is checked against the user's messages in it, so the check is
+ * mocked here and tested on its own (`user-asked-quote.test.ts`).
+ */
+mock.module("@/src/functions/backend/db/bots/assert-user-asked", () => ({
+    default: async () => {},
+}));
+
+const delegateTaskTool = (await import("./delegate-task-tool")).default;
 
 const worker = { id: 5, name: "Researcher", role: "research", kind: "worker" } as BUN_SQLITE_COBBLE_BOTS;
 const workspace = { id: 3, name: "Launch", archived: 0 } as BUN_SQLITE_COBBLE_WORKSPACES;
@@ -32,9 +42,9 @@ describe("delegateTaskTool", () => {
         const tool = coordinatorTool();
 
         expect(tool.name).toBe("delegate_task");
-        expect(tool.schema?.safeParse({ bot_id: 5, title: "Dig", instructions: "Read the docs." }).success).toBe(true);
+        expect(tool.schema?.safeParse({ bot_id: 5, because: "hand it over", title: "Dig", instructions: "Read the docs." }).success).toBe(true);
         expect(
-            tool.schema?.safeParse({ bot_id: 5, title: "Dig", instructions: "Read the docs.", workspace_id: 3 }).success,
+            tool.schema?.safeParse({ bot_id: 5, because: "hand it over", title: "Dig", instructions: "Read the docs.", workspace_id: 3 }).success,
         ).toBe(true);
     });
 
@@ -46,7 +56,7 @@ describe("delegateTaskTool", () => {
         const tool = coordinatorTool({ workspace_id: 3 });
 
         expect(tool.description).toContain("runs there");
-        expect(tool.schema?.safeParse({ bot_id: 5, title: "Dig", instructions: "x", workspace_id: 9 }).success).toBe(
+        expect(tool.schema?.safeParse({ bot_id: 5, because: "hand it over", title: "Dig", instructions: "x", workspace_id: 9 }).success).toBe(
             true,
         );
     });
@@ -54,7 +64,7 @@ describe("delegateTaskTool", () => {
     test("refuses to move a hand-over out of the workspace it came from", async () => {
         await expect(
             coordinatorTool({ workspace_id: 3 }).run({
-                args: { bot_id: 5, title: "Dig", instructions: "x", workspace_id: 9 },
+                args: { bot_id: 5, because: "hand it over", title: "Dig", instructions: "x", workspace_id: 9 },
                 signal,
             }),
         ).rejects.toThrow(/runs in that workspace/);
@@ -64,7 +74,7 @@ describe("delegateTaskTool", () => {
         /** Reaches the DB and fails there for a test id, never on the guard. */
         await expect(
             coordinatorTool({ workspace_id: 3 }).run({
-                args: { bot_id: 5, title: "Dig", instructions: "x", workspace_id: 3 },
+                args: { bot_id: 5, because: "hand it over", title: "Dig", instructions: "x", workspace_id: 3 },
                 signal,
             }),
         ).rejects.not.toThrow(/runs in that workspace/);
@@ -82,15 +92,15 @@ describe("delegateTaskTool", () => {
         });
 
         await expect(
-            tool.run({ args: { bot_id: 8, title: "Dig", instructions: "x" }, signal }),
+            tool.run({ args: { bot_id: 8, because: "hand it over", title: "Dig", instructions: "x" }, signal }),
         ).rejects.toThrow(/No crew member has id 8 in workspace 3. Crew: 5: Researcher/);
     });
 
     test("takes the id of a task already on a list in place of a brief", () => {
         const tool = coordinatorTool();
 
-        expect(tool.schema?.safeParse({ bot_id: 5, task_id: 12 }).success).toBe(true);
-        expect(tool.schema?.safeParse({ bot_id: 5, task_id: 12, instructions: "Start with the intro." }).success).toBe(
+        expect(tool.schema?.safeParse({ bot_id: 5, because: "hand it over", task_id: 12 }).success).toBe(true);
+        expect(tool.schema?.safeParse({ bot_id: 5, because: "hand it over", task_id: 12, instructions: "Start with the intro." }).success).toBe(
             true,
         );
         expect(tool.description).toContain("task_id");
@@ -99,7 +109,7 @@ describe("delegateTaskTool", () => {
     test("hands a task over as to do unless told to start it", () => {
         const tool = coordinatorTool();
 
-        expect(tool.schema?.safeParse({ bot_id: 5, task_id: 27, start: true }).success).toBe(true);
+        expect(tool.schema?.safeParse({ bot_id: 5, because: "hand it over", task_id: 27, start: true }).success).toBe(true);
         expect(tool.description).toContain("start: true");
     });
 
@@ -113,6 +123,6 @@ describe("delegateTaskTool", () => {
             grabTargets: async () => [worker],
         });
 
-        await expect(tool.run({ args: { bot_id: 5 }, signal })).rejects.toThrow(/Give a title and instructions/);
+        await expect(tool.run({ args: { bot_id: 5, because: "hand it over" }, signal })).rejects.toThrow(/Give a title and instructions/);
     });
 });

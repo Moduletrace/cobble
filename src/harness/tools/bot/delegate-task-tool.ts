@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
 import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
@@ -82,6 +83,7 @@ type Args = {
      * memory and its direct computers only.
      */
     workspace_id?: number;
+    because: string;
 };
 
 /**
@@ -116,7 +118,7 @@ export default function delegateTaskTool({
 
     return {
         name: "delegate_task",
-        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. To hand over a task already on a list (list_tasks), pass its task_id instead of writing a new one: it moves to the crew member's list (a workspace's task stays on the workspace's list and runs there) and they work that same task; title and instructions are then optional, the task's brief is used and yours is added to it. Handing a task over never starts it: it lands there as to do, and only start: true (when the user asked for the work to begin now) marks it doing and queues the run. When the user asked for the move but not for it to start, ask first with ask_user (one card, every task they named: hand over and start, hand over to wait, leave it) and hand over only once they've answered. A new brief with no task_id always runs at once. Crew: ${crew}.${
+        description: `Hand a task to a crew member. They run it in the background and post the result in their own conversation; it's also reported back here when they finish or fail. Write the instructions as a full brief: what to do, where, and how they'll know it's done. To hand over a task already on a list (list_tasks), pass its task_id instead of writing a new one: it moves to the crew member's list (a workspace's task stays on the workspace's list and runs there) and they work that same task; title and instructions are then optional, the task's brief is used and yours is added to it. Handing a task over never starts it: it lands there as to do, and only start: true (when the user asked for the work to begin now) marks it doing and queues the run. When the user asked for the move but not for it to start, ask first with ask_user (one card, every task they named: hand over and start, hand over to wait, leave it) and hand over only once they've answered. A new brief with no task_id always runs at once. Pass the user's own words asking for this in because; a quote they did not write in this conversation is refused. Crew: ${crew}.${
             workspace_id
                 ? ` You are working in a workspace, so the task runs there: in this workspace's context.`
                 : ` Leave workspace_id out to run it in the crew member's own chat: only its own memory, files and directly assigned computers apply there, and the user finds the result by talking to it on its own. Add workspace_id to run it in one of the user's workspaces instead: the workspace's shared context, the member's instructions and memory there, its files and its computers (the workspace's own and the member's) all apply, and the result lands in its conversation in that workspace, beside the project it belongs to. Pick a workspace when the work belongs to that project; the member is added to it when it isn't in it yet. Workspaces: ${places || "none"}.`
@@ -139,8 +141,15 @@ export default function delegateTaskTool({
                         ? "Not available here: a task handed over in a workspace runs in that workspace."
                         : "Run the task in this workspace: its shared context, memory, files and computers apply. Leave it out to run it in the crew member's own chat.",
                 ),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "hand work to another bot",
+            });
+
             /**
              * In a workspace the task can't leave it: the run is already
              * there, and that is the whole point of the hand-over.

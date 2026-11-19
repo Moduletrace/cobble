@@ -25,6 +25,10 @@ mock.module("@/src/functions/backend/db/tasks/grab-run-task", () => ({
     default: async () => task,
 }));
 
+mock.module("@/src/functions/backend/db/bots/assert-user-asked", () => ({
+    default: async () => {},
+}));
+
 mock.module("@/src/functions/backend/db/tasks/hand-over-task", () => ({
     default: async (args: Record<string, unknown>) => {
         handedArgs = args;
@@ -73,9 +77,9 @@ describe("handOverTaskTool", () => {
         const tool = build();
 
         expect(tool.name).toBe("hand_over_task");
-        expect(tool.schema?.safeParse({ task_id: 43, bot_id: 6 }).success).toBe(true);
-        expect(tool.schema?.safeParse({ task_id: 43, bot_id: 6, start: false }).success).toBe(true);
-        expect(tool.schema?.safeParse({ task_id: 43, bot_id: 6, start: true }).success).toBe(true);
+        expect(tool.schema?.safeParse({ task_id: 43, bot_id: 6, because: "hand it to them" }).success).toBe(true);
+        expect(tool.schema?.safeParse({ task_id: 43, bot_id: 6, because: "hand it to them", start: false }).success).toBe(true);
+        expect(tool.schema?.safeParse({ task_id: 43, bot_id: 6, because: "hand it to them", start: true }).success).toBe(true);
         expect(tool.schema?.safeParse({ bot_id: 6 }).success).toBe(false);
     });
 
@@ -93,7 +97,7 @@ describe("handOverTaskTool", () => {
     });
 
     test("hands the task over with the bot and session to report back to", async () => {
-        const answer = await build().run({ args: { task_id: 43, bot_id: 6, start: true }, signal: new AbortController().signal });
+        const answer = await build().run({ args: { task_id: 43, bot_id: 6, because: "hand it to them", start: true }, signal: new AbortController().signal });
 
         expect(handedArgs?.task_id).toBe(43);
         expect(handedArgs?.to_bot_id).toBe(6);
@@ -110,7 +114,7 @@ describe("handOverTaskTool", () => {
     test("the same task, not a copy: it reports the new bot's joined note", async () => {
         handed = { task, job_id: 312, bot_name: "Software Engineer", workspace_id: 2, joined: "It joined the workspace." };
 
-        const answer = await build().run({ args: { task_id: 43, bot_id: 6 }, signal: new AbortController().signal });
+        const answer = await build().run({ args: { task_id: 43, bot_id: 6, because: "hand it to them" }, signal: new AbortController().signal });
 
         expect(String(answer)).toContain("It joined the workspace.");
     });
@@ -118,7 +122,7 @@ describe("handOverTaskTool", () => {
     test("moves it as to do unless the user asked to start it", async () => {
         handed = { task, job_id: null, bot_name: "Software Engineer", workspace_id: 2, joined: "" };
 
-        const answer = await build().run({ args: { task_id: 43, bot_id: 6 }, signal: new AbortController().signal });
+        const answer = await build().run({ args: { task_id: 43, bot_id: 6, because: "hand it to them" }, signal: new AbortController().signal });
 
         expect(handedArgs?.start).toBe(false);
         expect(String(answer)).toContain("as to do");
@@ -128,7 +132,7 @@ describe("handOverTaskTool", () => {
     test("an explicit start: false asks for the same move", async () => {
         handed = { task, job_id: null, bot_name: "Software Engineer", workspace_id: 2, joined: "" };
 
-        const answer = await build().run({ args: { task_id: 43, bot_id: 6, start: false }, signal: new AbortController().signal });
+        const answer = await build().run({ args: { task_id: 43, bot_id: 6, because: "hand it to them", start: false }, signal: new AbortController().signal });
 
         expect(handedArgs?.start).toBe(false);
         expect(String(answer)).toContain("as to do");
@@ -138,7 +142,7 @@ describe("handOverTaskTool", () => {
     test("reports the task it touched, so the message links it", async () => {
         const touched: number[] = [];
 
-        await build({ onTask: ({ task_id }) => touched.push(task_id) }).run({ args: { task_id: 43, bot_id: 6 }, signal: new AbortController().signal });
+        await build({ onTask: ({ task_id }) => touched.push(task_id) }).run({ args: { task_id: 43, bot_id: 6, because: "hand it to them" }, signal: new AbortController().signal });
 
         expect(touched).toEqual([43]);
     });
@@ -146,7 +150,7 @@ describe("handOverTaskTool", () => {
     test("refuses a task that isn't its own", async () => {
         task = { id: 44, title: "Someone else's", bot_id: 9, workspace_id: 2, status: "todo" } as BUN_SQLITE_COBBLE_TASKS;
 
-        await expect(build().run({ args: { task_id: 44, bot_id: 6 }, signal: new AbortController().signal })).rejects.toThrow(
+        await expect(build().run({ args: { task_id: 44, bot_id: 6, because: "hand it to them" }, signal: new AbortController().signal })).rejects.toThrow(
             "isn't on your own list (it's another bot's), so it isn't yours to hand over",
         );
 
@@ -156,11 +160,11 @@ describe("handOverTaskTool", () => {
     test("refuses a workspace-wide task", async () => {
         task = { id: 44, title: "Everyone's", bot_id: null, workspace_id: 2, status: "todo" } as unknown as BUN_SQLITE_COBBLE_TASKS;
 
-        await expect(build().run({ args: { task_id: 44, bot_id: 6 }, signal: new AbortController().signal })).rejects.toThrow("(it's workspace-wide)");
+        await expect(build().run({ args: { task_id: 44, bot_id: 6, because: "hand it to them" }, signal: new AbortController().signal })).rejects.toThrow("(it's workspace-wide)");
     });
 
     test("refuses a bot it can't ask, and lists the ones it can", async () => {
-        await expect(build().run({ args: { task_id: 43, bot_id: 99 }, signal: new AbortController().signal })).rejects.toThrow(
+        await expect(build().run({ args: { task_id: 43, bot_id: 99, because: "hand it to them" }, signal: new AbortController().signal })).rejects.toThrow(
             "No bot has id 99 among the ones you can hand to. Bot: 6: Software Engineer; 3: Graphic Designer.",
         );
 
@@ -172,7 +176,7 @@ describe("handOverTaskTool", () => {
 
         expect(tool.description).toContain("Crew you can hand to: none.");
 
-        await expect(tool.run({ args: { task_id: 43, bot_id: 6 }, signal: new AbortController().signal })).rejects.toThrow(
+        await expect(tool.run({ args: { task_id: 43, bot_id: 6, because: "hand it to them" }, signal: new AbortController().signal })).rejects.toThrow(
             "No bot has id 6 among the ones you can hand to. Bot: none.",
         );
     });

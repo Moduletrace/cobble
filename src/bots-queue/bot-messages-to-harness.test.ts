@@ -212,6 +212,27 @@ describe("botMessagesToHarness with mentions", () => {
         ]);
     });
 
+    test("names the tracker tasks the message dealt with", () => {
+        expect(
+            botMessagesToHarness({
+                messages: [
+                    message("user", "delete task #16"),
+                    {
+                        ...message("bot", "Deleted task #16."),
+                        tool_log: JSON.stringify([{ name: "delete_task", ok: true }]),
+                        task_ids: JSON.stringify([16]),
+                    },
+                ],
+            }),
+        ).toEqual([
+            { role: "user", content: "delete task #16" },
+            {
+                role: "assistant",
+                content: "Deleted task #16.\n\n[App record: this message's run called delete_task. The tasks it dealt with: #16.]",
+            },
+        ]);
+    });
+
     test("adds no record for messages whose run wasn't recorded", () => {
         expect(
             botMessagesToHarness({

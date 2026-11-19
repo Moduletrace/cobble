@@ -3,12 +3,15 @@ import grabBotFile from "@/src/functions/backend/db/bot-files/grab-bot-file";
 import grabBotFileScope from "@/src/functions/backend/db/bot-files/grab-bot-file-scope";
 import userReachesFileScope from "@/src/functions/backend/db/bot-files/user-reaches-file-scope";
 import assertUserReachesTask from "@/src/functions/backend/db/tasks/assert-user-reaches-task";
+import { taskRowSql } from "@/src/functions/backend/db/tasks/run-task-sql";
+import BunSQLite from "@moduletrace/bun-sqlite";
 import grabBotGraphic from "@/src/functions/backend/db/bot-graphics/grab-bot-graphic";
 import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessToolUse } from "@/src/harness/types";
 import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import replyClaimProblems, { AppCardRefTools, type AppCardRefKind } from "@/src/utils/reply-claim-problems";
 import replyRefIds from "@/src/utils/reply-ref-ids";
+import mentionedTaskIds from "@/src/utils/mentioned-task-ids";
 import unresolvedSettingRefs from "@/src/utils/unresolved-setting-refs";
 import type { StorageScope } from "@/src/utils/storage-access";
 
@@ -56,11 +59,22 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
     }
 
     const missing_task_ids: number[] = [];
+    const task_ref_ids = replyRefIds({ text, kind: "task" });
 
-    for (const task_id of replyRefIds({ text, kind: "task" })) {
-        const reached = await assertUserReachesTask({ user_id, task_id }).catch(() => null);
+    for (const task_id of task_ref_ids) {
+        if (await taskRowMissing({ task_id, user_id })) missing_task_ids.push(task_id);
+    }
 
-        if (!reached?.id) missing_task_ids.push(task_id);
+    /**
+     * The same check for a task named in plain prose (`task #16`). A row
+     * the user cannot open is left alone: only a missing row is a lie.
+     */
+    const missing_mentioned_task_ids: number[] = [];
+
+    for (const task_id of mentionedTaskIds({ text })) {
+        if (task_ref_ids.includes(task_id)) continue;
+
+        if (await taskRowMissing({ task_id, user_id })) missing_mentioned_task_ids.push(task_id);
     }
 
     const missing_graphic_ids: number[] = [];
@@ -83,6 +97,7 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
         tool_uses,
         missing_file_ids,
         missing_task_ids,
+        missing_mentioned_task_ids,
         unresolved_setting_refs: unresolvedSettingRefs({ text }),
         missing_graphic_ids,
         written_card_refs,
@@ -97,6 +112,20 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
 ${problems.map((problem) => `- ${problem}`).join("\n")}
 
 The tools you actually called in this reply: ${describeToolUses({ uses: tool_uses })}. Nothing else happened. Write the answer again, saying only what those tools returned and what the user told you. If the work still needs doing, call send_reply with status "working" and work now, and say it's started; never describe results of work no tool did, and never promise a report nothing will send. If part of your answer was wrong, say so plainly.`;
+}
+
+/**
+ * A named task is a fault only when no row has that id. A row the user
+ * cannot open is still a real task, so naming it is not a made-up id.
+ */
+async function taskRowMissing({ task_id, user_id }: { task_id: number; user_id: number | string }): Promise<boolean> {
+    const reached = await assertUserReachesTask({ user_id, task_id }).catch(() => null);
+
+    if (reached?.id) return false;
+
+    const exists = await BunSQLite.sql<{ id: number }>(taskRowSql({ task_id }));
+
+    return !exists.payload?.[0]?.id;
 }
 
 /**

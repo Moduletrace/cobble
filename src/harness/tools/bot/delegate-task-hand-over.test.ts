@@ -20,6 +20,10 @@ mock.module("@/src/functions/backend/db/tasks/grab-run-task", () => ({
     default: async () => task,
 }));
 
+mock.module("@/src/functions/backend/db/bots/assert-user-asked", () => ({
+    default: async () => {},
+}));
+
 mock.module("@/src/functions/backend/db/tasks/hand-over-task", () => ({
     default: async (args: Record<string, unknown>) => {
         handedArgs = args;
@@ -62,7 +66,7 @@ beforeEach(() => {
 
 describe("delegateTaskTool, handing over a task on a list", () => {
     test("moves it as to do by default: no run is queued", async () => {
-        const answer = await tool().run({ args: { bot_id: 5, task_id: 27 }, signal });
+        const answer = await tool().run({ args: { bot_id: 5, because: "hand it over", task_id: 27 }, signal });
 
         expect(handedArgs?.start).toBe(false);
         expect(handedArgs?.task_id).toBe(27);
@@ -73,7 +77,7 @@ describe("delegateTaskTool, handing over a task on a list", () => {
     test("starts it only with start: true, when the user asked for that", async () => {
         handed = { task, job_id: 318, bot_name: "Researcher", workspace_id: 3, joined: "" };
 
-        const answer = await tool().run({ args: { bot_id: 5, task_id: 27, start: true }, signal });
+        const answer = await tool().run({ args: { bot_id: 5, because: "hand it over", task_id: 27, start: true }, signal });
 
         expect(handedArgs?.start).toBe(true);
         expect(String(answer)).toContain("is with Researcher now (job #318)");

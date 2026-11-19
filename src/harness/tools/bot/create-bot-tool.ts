@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import pushBotCreated from "@/src/bots-queue/push-bot-created";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import createBot from "@/src/functions/backend/db/bots/create-bot";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
 import pickFreeColor from "@/src/utils/pick-free-color";
@@ -11,6 +12,11 @@ import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
+    /**
+     * The conversation the reply answers: the user's messages in it are
+     * what a call's quote is checked against.
+     */
+    session_id?: number | string;
     /**
      * The user's workspaces the new bot can join.
      */
@@ -27,6 +33,7 @@ type Args = {
     role: string;
     instructions: string;
     workspace_id?: number;
+    because: string;
 };
 
 /**
@@ -37,6 +44,7 @@ type Args = {
  */
 export default function createBotTool({
     user_id,
+    session_id,
     workspaces,
     workspace_id,
 }: Params): HarnessTool<Args> {
@@ -45,14 +53,21 @@ export default function createBotTool({
 
     return {
         name: "create_bot",
-        description: `Add a worker bot to the crew: give it a short name, its job in one line, and the instructions it keeps (markdown: what it does, how it works, what it handles). A bot works in the workspace it joins, where the user can also talk to it; without one it has no computer or workspace until you give it either. Only do this when the user has asked for it or agreed to it.${here ? ` Leave out workspace_id for ${here.name}, the workspace you're in.` : ""} Workspaces: ${list || "none"}.`,
+        description: `Add a worker bot to the crew: give it a short name, its job in one line, and the instructions it keeps (markdown: what it does, how it works, what it handles). A bot works in the workspace it joins, where the user can also talk to it; without one it has no computer or workspace until you give it either. Only do this when the user has asked for it, and pass their own words in because; a quote they did not write in this conversation is refused.${here ? ` Leave out workspace_id for ${here.name}, the workspace you're in.` : ""} Workspaces: ${list || "none"}.`,
         schema: z.object({
             name: z.string().trim().min(1).max(40),
             role: z.string().trim().max(120),
             instructions: z.string().trim().min(1).max(AppData.PromptMaxLength),
             workspace_id: z.number().int().optional(),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "add a bot to the crew",
+            });
+
             const target = args.workspace_id
                 ? workspaces.find((w) => w.id == args.workspace_id)
                 : here;

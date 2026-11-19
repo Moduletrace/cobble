@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import pushBotCreated from "@/src/bots-queue/push-bot-created";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import addBotToWorkspace from "@/src/functions/backend/db/workspaces/add-bot-to-workspace";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
@@ -9,6 +10,11 @@ import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
+    /**
+     * The conversation the reply answers: the user's messages in it are
+     * what a call's quote is checked against.
+     */
+    session_id?: number | string;
     /**
      * The user's worker bots.
      */
@@ -22,6 +28,7 @@ type Params = {
 type Args = {
     bot_id: number;
     workspace_id: number;
+    because: string;
 };
 
 /**
@@ -32,6 +39,7 @@ type Args = {
  */
 export default function addBotToWorkspaceTool({
     user_id,
+    session_id,
     workers,
     workspaces,
 }: Params): HarnessTool<Args> {
@@ -40,12 +48,19 @@ export default function addBotToWorkspaceTool({
 
     return {
         name: "add_bot_to_workspace",
-        description: `Put a crew member in one of the user's workspaces. There they work with the workspace's context, its computers and its models, and the user chats with them in it. Use it when the user asks for a bot to work in a workspace, or after create_bot made one without a place. Crew: ${crew || "none"}. Workspaces: ${list || "none"}.`,
+        description: `Put a crew member in one of the user's workspaces. There they work with the workspace's context, its computers and its models, and the user chats with them in it. Use it only when the user asks for a bot to work in a workspace. Pass their own words in because; a quote they didn't write in this conversation is refused. Crew: ${crew || "none"}. Workspaces: ${list || "none"}.`,
         schema: z.object({
             bot_id: z.number().int(),
             workspace_id: z.number().int(),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "put a bot in a workspace",
+            });
+
             const fresh = await grabCrewWorkers();
             const live = (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived);
             const worker = fresh.find((bot) => bot.id == args.bot_id);

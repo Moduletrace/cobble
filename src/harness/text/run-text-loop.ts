@@ -519,6 +519,15 @@ export default async function runTextLoop({
      */
     let reply_drafts = 0;
     /**
+     * The last message a turn wrote with nothing beside it, held for the
+     * run: a model that writes the answer and then calls `send_reply` with
+     * nothing beside it means the sentence it wrote, and dropping it made
+     * the app ask again until the run failed with the answer sitting in the
+     * transcript. Kept across turns, since the call came after another turn
+     * often enough; a card's message is never taken from here.
+     */
+    let draft_text = "";
+    /**
      * A run whose prompt no longer fits the working context, with nothing
      * trimmable left, has been told, once (`oversizedRequestNote`).
      */
@@ -897,6 +906,7 @@ export default async function runTextLoop({
              */
             if (!(wrap_up && !wrap_up_saving) && reply_drafts < AppData.HarnessReplyDraftsMax) {
                 reply_drafts += 1;
+                draft_text = answer.text || "";
                 pushUserTurn({ transcript, content: replyDraftNote });
                 await traced({ kind: "event", index, name: "reply_draft", text: replyDraftNote });
                 continue;
@@ -1132,6 +1142,20 @@ export default async function runTextLoop({
         const closing_uses = tool_uses.slice(-tool_calls.length).filter((use) => isClosingTool({ name: use.name }));
         const closing_failed = closing_uses.some((use) => !use.ok);
         const closing_worked = closing && !closing_failed && closing_required;
+        /**
+         * The message this turn carries: its own, or the last one a turn
+         * wrote with nothing beside it (`draft_text`). A model that writes
+         * the answer and then calls `send_reply` with no text means that
+         * sentence; asking for it again ended runs whose answer was already
+         * in the transcript. A card is never paired with an older sentence:
+         * "which date rule?" beside a message about something else is worse
+         * than the note that asks for one.
+         */
+        const written_text = (answer.text || "").trim();
+        const asked_something = tool_calls.some(
+            (call) => call.name !== SendReplyToolName && isClosingTool({ name: call.name }),
+        );
+        const message_text = written_text ? answer.text || "" : asked_something ? "" : draft_text;
 
         if (called_card && (closing_failed || !closing || !closing_required)) {
             /**
@@ -1193,7 +1217,7 @@ export default async function runTextLoop({
          * go on to work on the very thing it just asked about. Told once,
          * and the run ends on the sentence it writes (`closingNoTextNote`).
          */
-        if (closing_worked && called_card && !(answer.text || "").trim()) {
+        if (closing_worked && called_card && !message_text.trim()) {
             const no_text_note = called_send_reply ? replyNoTextNote : closingNoTextNote;
 
             if (!told_closing_text && !(wrap_up && !wrap_up_saving)) {
@@ -1214,17 +1238,28 @@ export default async function runTextLoop({
             };
         }
 
-        if (closing_worked && answer.text) {
+        if (closing_worked && message_text) {
             /**
              * Checked before it goes out, as any reply is: a note comes
              * back and the answer is written again (the card stays on the
-             * reply, its ref is already recorded).
+             * reply, its ref is already recorded). A message held from the
+             * turn before went out with this call, which is what the model
+             * meant by writing it there.
              */
+            if (!written_text && message_text) {
+                await traced({
+                    kind: "event",
+                    index,
+                    name: "draft_carried",
+                    text: "The message was written in an earlier turn, so it went out with this send_reply.",
+                });
+            }
+
             const final_turn = wrap_up && !wrap_up_saving;
-            const check = await checkAnswer({ text: answer.text, index, status: reply_status, final: final_turn });
+            const check = await checkAnswer({ text: message_text, index, status: reply_status, final: final_turn });
 
             if (check.verdict === "refused") {
-                const repaired = repairAnswerText({ text: answer.text });
+                const repaired = repairAnswerText({ text: message_text });
 
                 if (repaired.changed && repaired.text) {
                     // Checked again, as the reply path is: a dead ref the
@@ -1265,7 +1300,7 @@ export default async function runTextLoop({
             if (check.verdict === "sent_back") continue;
 
             return {
-                text: answer.text,
+                text: message_text,
                 messages: transcript,
                 steps: index + 1,
                 candidate: answer.candidate,

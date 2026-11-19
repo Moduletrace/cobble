@@ -1933,6 +1933,85 @@ describe("runTextLoop required send_reply", () => {
         expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: replyNoTextNote });
     });
 
+    test("a message written in the turn before goes out with send_reply", async () => {
+        /**
+         * A model that writes the answer, then calls send_reply with
+         * nothing beside it, means the sentence it just wrote. Asked to
+         * write it again it wrote nothing, and the run failed with the
+         * answer sitting in the transcript.
+         */
+        const { generate, seen } = scripted([
+            { text: "No, I didn't add it anywhere." },
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+            { tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Did you add a bot?" }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("No, I didn't add it anywhere.");
+        expect(result.steps).toBe(2);
+        expect(seen[1]!.messages.some((message) => message.content === replyNoTextNote)).toBe(false);
+    });
+
+    test("the message still goes out when a tool turn comes between it and send_reply", async () => {
+        const { generate } = scripted([
+            { text: "No, I didn't add it anywhere." },
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"checked"}` }] },
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+            { tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Did you add a bot?" }],
+            tools: [remember, sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("No, I didn't add it anywhere.");
+        expect(result.steps).toBe(3);
+    });
+
+    test("a card is never paired with a message written earlier", async () => {
+        asked.length = 0;
+        const { generate } = scripted([
+            { text: "Which date rule?" },
+            {
+                tool_calls: [
+                    { id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` },
+                    { id: "s1", name: "send_reply", arguments: `{"status":"done"}` },
+                ],
+            },
+            {
+                tool_calls: [
+                    { id: "q2", name: "ask_user", arguments: `{"question":"Which date rule?"}` },
+                    { id: "s2", name: "send_reply", arguments: `{"status":"done"}` },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Ask me which date rule." }],
+            tools: [askUser, sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe(replyNoTextNote);
+    });
+
     test("the wrap up still offers send_reply", async () => {
         const { generate, seen } = scripted([
             { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"x"}` }] },

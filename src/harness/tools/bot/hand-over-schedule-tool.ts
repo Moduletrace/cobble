@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import handOverCronJob from "@/src/functions/backend/db/cron-jobs/hand-over-cron-job";
 import grabUserCronJob from "@/src/functions/backend/db/cron-jobs/grab-user-cron-job";
 import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
@@ -9,6 +10,11 @@ import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
+    /**
+     * The conversation the reply answers: the user's messages in it are
+     * what a call's quote is checked against.
+     */
+    session_id?: number | string;
     /**
      * The bot handing its routine over (the coordinator, or a workspace's
      * admin).
@@ -38,6 +44,7 @@ type Args = {
     schedule_id: number;
     bot_id: number;
     workspace_id?: number;
+    because: string;
 };
 
 /**
@@ -48,6 +55,7 @@ type Args = {
  */
 export default function handOverScheduleTool({
     user_id,
+    session_id,
     bot_id,
     workspace_id,
     requester_name,
@@ -64,7 +72,7 @@ export default function handOverScheduleTool({
             workspace_id
                 ? ` You are in a workspace, so only the schedules that run here can be handed over.`
                 : ` For one that runs in your own chat, leave workspace_id out to move it to the crew member's own chat, or add it to run it in one of the user's workspaces (the member is added to it when it isn't in it yet). Workspaces: ${places || "none"}.`
-        } Crew: ${crew}.`,
+        } Pass the user's own words asking for this in because; a quote they did not write in this conversation is refused. Crew: ${crew}.`,
         schema: z.object({
             schedule_id: z.number().int(),
             bot_id: z.number().int(),
@@ -73,8 +81,15 @@ export default function handOverScheduleTool({
                 .int()
                 .optional()
                 .describe("For a schedule of your own chat: the workspace it runs in from now on"),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "give a schedule to another bot",
+            });
+
             const cron_job = await grabUserCronJob({ user_id, cron_job_id: args.schedule_id, bot_id });
 
             if (workspace_id && Number(cron_job.workspace_id || 0) != Number(workspace_id)) {

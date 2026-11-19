@@ -20,8 +20,8 @@ describe("handOverScheduleTool", () => {
         });
 
         expect(tool.name).toBe("hand_over_schedule");
-        expect(tool.schema?.safeParse({ schedule_id: 4, bot_id: 5 }).success).toBe(true);
-        expect(tool.schema?.safeParse({ schedule_id: 4, bot_id: 5, workspace_id: 3 }).success).toBe(true);
+        expect(tool.schema?.safeParse({ schedule_id: 4, bot_id: 5, because: "give it to them" }).success).toBe(true);
+        expect(tool.schema?.safeParse({ schedule_id: 4, bot_id: 5, workspace_id: 3, because: "give it to them" }).success).toBe(true);
         expect(tool.description).toContain("5: Researcher");
         expect(tool.description).toContain("3: Launch");
     });

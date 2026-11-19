@@ -1,6 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import deleteTaskTool from "./delete-task-tool";
-import grabBotTaskTools from "./grab-bot-task-tools";
+import { describe, expect, mock, test } from "bun:test";
+
+mock.module("@/src/functions/backend/db/tasks/grab-run-task", () => ({
+    default: async ({ task_id }: { task_id: number }) => ({ id: task_id, title: "Ingest the Acts" }),
+}));
+mock.module("@/src/functions/backend/db/tasks/assert-user-reaches-task", () => ({ default: async () => {} }));
+mock.module("@/src/functions/backend/db/tasks/delete-task", () => ({ default: async () => {} }));
+
+const { default: deleteTaskTool } = await import("./delete-task-tool");
+const { default: grabBotTaskTools } = await import("./grab-bot-task-tools");
 
 /**
  * What needs no database: who gets the tool and what it tells the bot.
@@ -25,5 +32,20 @@ describe("deleteTaskTool", () => {
         expect(tool.schema?.safeParse({}).success).toBe(false);
         expect(tool.description).toContain("Only when the user asked");
         expect(tool.description).toContain("cancelling isn't deleting");
+    });
+
+    test("reports the task it deleted, so the message's record names it", async () => {
+        const reported: number[] = [];
+        const tool = deleteTaskTool({
+            user_id: 1,
+            bot_id: 5,
+            is_coordinator: false,
+            onTask: ({ task_id }) => reported.push(task_id),
+        });
+
+        const answer = await tool.run({ args: { task_id: 20 }, signal: new AbortController().signal });
+
+        expect(reported).toEqual([20]);
+        expect(answer).toContain("Deleted task #20");
     });
 });

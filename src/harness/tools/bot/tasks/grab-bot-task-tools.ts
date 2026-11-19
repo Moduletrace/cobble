@@ -91,6 +91,6 @@ export default async function grabBotTaskTools({
             onTask,
         }),
         updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, scopes, onTask }),
-        ...(can_delete ? [deleteTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids })] : []),
+        ...(can_delete ? [deleteTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids, onTask })] : []),
     ];
 }

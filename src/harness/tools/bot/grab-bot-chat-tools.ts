@@ -253,14 +253,14 @@ export default async function grabBotChatTools({
      * puts bots in it.
      */
     tools.push(
-        createWorkspaceTool({ user_id, workspaces }),
+        createWorkspaceTool({ user_id, session_id, workspaces }),
         updateWorkspaceTool({ user_id, workspaces, workspace_id, scopes }),
         findWorkspaceTool({ user_id, workspace_id }),
         listWorkspacePeopleTool({ workspaces, workspace_id }),
         setUserWorkspaceRoleTool({ user_id, workspaces, workspace_id }),
     );
 
-    tools.push(createBotTool({ user_id, workspaces, workspace_id }));
+    tools.push(createBotTool({ user_id, session_id, workspaces, workspace_id }));
 
     const workers = await grabCrewWorkers({ workspace_id });
 
@@ -279,6 +279,7 @@ export default async function grabBotChatTools({
         }));
         tools.push(handOverScheduleTool({
             user_id,
+            session_id,
             bot_id,
             workspace_id,
             requester_name: bot.name || "The coordinator",
@@ -290,7 +291,7 @@ export default async function grabBotChatTools({
         );
 
         if (powers.can("set_bot_types")) {
-            tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces, workspace_id }));
+            tools.push(setBotTypeTool({ user_id, session_id, bot_id, workers, workspaces, workspace_id }));
         }
 
         return tools;
@@ -298,7 +299,7 @@ export default async function grabBotChatTools({
 
     tools.push(findBotTool(), listWorkspaceBotsTool({ user_id }));
 
-    tools.push(deleteWorkspaceTool({ user_id, workspaces, attended }));
+    tools.push(deleteWorkspaceTool({ user_id, session_id, workspaces, attended }));
 
     if (!workers.length) return tools;
 
@@ -316,6 +317,7 @@ export default async function grabBotChatTools({
         }),
         handOverScheduleTool({
             user_id,
+            session_id,
             bot_id,
             workspace_id,
             requester_name: bot.name || "The coordinator",
@@ -324,7 +326,7 @@ export default async function grabBotChatTools({
         }),
     );
 
-    tools.push(updateBotTool({ user_id, workers }), deleteBotTool({ user_id, workers, attended }));
+    tools.push(updateBotTool({ user_id, workers }), deleteBotTool({ user_id, session_id, workers, attended }));
 
     if (computers.length) {
         const access = Object.fromEntries(
@@ -339,16 +341,16 @@ export default async function grabBotChatTools({
             ),
         );
 
-        tools.push(assignComputerTool({ user_id, workers, computers, access }));
+        tools.push(assignComputerTool({ user_id, session_id, workers, computers, access }));
     }
 
     tools.push(
-        addBotToWorkspaceTool({ user_id, workers, workspaces }),
-        removeBotFromWorkspaceTool({ user_id, workers, workspaces }),
+        addBotToWorkspaceTool({ user_id, session_id, workers, workspaces }),
+        removeBotFromWorkspaceTool({ user_id, session_id, workers, workspaces }),
     );
 
     if (powers.can("set_bot_types")) {
-        tools.push(setBotTypeTool({ user_id, bot_id, workers, workspaces }));
+        tools.push(setBotTypeTool({ user_id, session_id, bot_id, workers, workspaces }));
     }
 
     return tools;

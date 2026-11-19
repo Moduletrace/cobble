@@ -15,9 +15,14 @@ type Params = {
      */
     missing_file_ids?: number[];
     /**
-     * `[task:ID]` refs in the text that name no task the user can open.
+     * `[task:ID]` refs in the text that name no task row.
      */
     missing_task_ids?: number[];
+    /**
+     * Task ids the answer names in plain prose (`task #16`) that name no
+     * task row. A row the user cannot open is not missing.
+     */
+    missing_mentioned_task_ids?: number[];
     /**
      * `[setting:section:field]` refs in the text that name no setting the
      * app has (`unresolvedSettingRefs`).
@@ -89,6 +94,7 @@ export default function replyClaimProblems({
     tool_uses,
     missing_file_ids = [],
     missing_task_ids = [],
+    missing_mentioned_task_ids = [],
     unresolved_setting_refs = [],
     missing_graphic_ids = [],
     written_card_refs = [],
@@ -105,7 +111,13 @@ export default function replyClaimProblems({
 
     if (missing_task_ids.length) {
         problems.push(
-            `It names ${missing_task_ids.map((id) => `[task:${id}]`).join(", ")}, which ${missing_task_ids.length == 1 ? "is" : "are"} no task the user can open (never created, or deleted). list_tasks shows what's there.`,
+            `It names ${missing_task_ids.map((id) => `[task:${id}]`).join(", ")}, and no such task exists (it was deleted, or never was). list_tasks shows what's there.`,
+        );
+    }
+
+    if (missing_mentioned_task_ids.length) {
+        problems.push(
+            `It names ${missing_mentioned_task_ids.map((id) => `task #${id}`).join(", ")}, and no such task exists (it was deleted, or never was). list_tasks shows what's there; a task that is gone is said to be gone, not described as open or waiting.`,
         );
     }
 

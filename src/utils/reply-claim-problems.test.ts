@@ -70,6 +70,29 @@ describe("replyClaimProblems", () => {
         expect(problems.length).toBe(2);
         expect(problems[0]).toContain("[file:301]");
         expect(problems[1]).toContain("[task:20]");
+        expect(problems[1]).toContain("no such task exists");
+    });
+
+    test("names a task in plain prose that no longer exists", () => {
+        const problems = replyClaimProblems({
+            text: "The workspace task #16 remains in workspace 5 - it's now unassigned.",
+            tool_uses: [{ name: "delete_task", ok: true }],
+            missing_mentioned_task_ids: [16],
+        });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("task #16");
+        expect(problems[0]).toContain("list_tasks");
+    });
+
+    test("the plain-prose note is not a mention the model can copy back", () => {
+        const note = replyClaimProblems({
+            text: "Task #16 is open.",
+            tool_uses: [],
+            missing_mentioned_task_ids: [16],
+        }).join("\n\n");
+
+        expect(replyClaimProblems({ text: note, tool_uses: [] })).toEqual([]);
     });
 
     test("faults an answer that writes the app's own record line itself", () => {

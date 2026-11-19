@@ -3,12 +3,18 @@ import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import pushWorkspaceCreated from "@/src/bots-queue/push-workspace-created";
 import logEvent from "@/src/functions/backend/logger";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import createWorkspace from "@/src/functions/backend/db/workspaces/create-workspace";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
+    /**
+     * The conversation the run answers. The quote is checked against its
+     * human messages; a missing session refuses the call.
+     */
+    session_id?: number | string | null;
     /**
      * The user's live workspaces, which the new one is also added to at
      * run time so later tool calls in the same reply can use its id.
@@ -20,6 +26,7 @@ type Args = {
     name: string;
     description?: string;
     context?: string;
+    because: string;
 };
 
 /**
@@ -28,18 +35,25 @@ type Args = {
  * a structural change, so it only runs once the user has asked for it or
  * agreed to it.
  */
-export default function createWorkspaceTool({ user_id, workspaces }: Params): HarnessTool<Args> {
+export default function createWorkspaceTool({ user_id, session_id, workspaces }: Params): HarnessTool<Args> {
     const list = workspaces.map((w) => `${w.id}: ${w.name}`).join("; ");
 
     return {
         name: "create_workspace",
-        description: `Create a workspace: a place where a group of bots works on one thing, sharing a context every bot there gets in its prompt, its computers and its models. Give it a short name, one line on what it's for, and the context (markdown: what the work is, who it's for, what everyone there should know). It starts empty: put bots in it with add_bot_to_workspace, or pass its id to create_bot. Only do this when the user has asked for it or agreed to it.${list ? ` Workspaces that already exist: ${list}.` : ""}`,
+        description: `Create a workspace: a place where a group of bots works on one thing, sharing a context every bot there gets in its prompt, its computers and its models. Give it a short name, one line on what it's for, and the context (markdown: what the work is, who it's for, what everyone there should know). It starts empty: put bots in it with add_bot_to_workspace, or pass its id to create_bot. Only do this when the user has asked for it, and pass their own words in because; a quote they did not write in this conversation is refused.${list ? ` Workspaces that already exist: ${list}.` : ""}`,
         schema: z.object({
             name: z.string().trim().min(1).max(60),
             description: z.string().trim().max(240).optional(),
             context: z.string().trim().max(AppData.PromptMaxLength).optional(),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "create a workspace",
+            });
+
             const existing = workspaces.find(
                 (w) => w.name?.trim().toLowerCase() == args.name.trim().toLowerCase(),
             );

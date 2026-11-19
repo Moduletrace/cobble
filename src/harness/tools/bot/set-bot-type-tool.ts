@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_BOTS, BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
+import assertUserAsked from "@/src/functions/backend/db/bots/assert-user-asked";
 import grabBotTypes from "@/src/functions/backend/db/bot-types/grab-bot-types";
 import removeBotType from "@/src/functions/backend/db/bot-types/remove-bot-type";
 import setBotType from "@/src/functions/backend/db/bot-types/set-bot-type";
@@ -9,6 +10,11 @@ import type { HarnessTool } from "../../types";
 
 type Params = {
     user_id: number | string;
+    /**
+     * The conversation the reply answers: the user's messages in it are
+     * what a call's quote is checked against.
+     */
+    session_id?: number | string;
     /**
      * The coordinator: it must be allowed as well as the user
      * (`BotTypeAssignmentMatrix`).
@@ -33,6 +39,7 @@ type Args = {
     bot_id: number;
     workspace_id?: number;
     admin: boolean;
+    because: string;
 };
 
 /**
@@ -41,13 +48,13 @@ type Args = {
  * their instructions there, runs the workspace's task list and keeps its
  * context (`BotTypePermissionMatrix`). Read back before it says it's done.
  */
-export default function setBotTypeTool({ user_id, bot_id, workers, workspaces, workspace_id }: Params): HarnessTool<Args> {
+export default function setBotTypeTool({ user_id, session_id, bot_id, workers, workspaces, workspace_id }: Params): HarnessTool<Args> {
     const crew = workers.map((bot) => `${bot.id}: ${bot.name}`).join("; ");
     const places = workspaces.map((w) => `${w.id}: ${w.name}`).join("; ");
 
     return {
         name: "set_bot_type",
-        description: `Make a worker the admin of a workspace it works in (admin: true), or take that away (admin: false). A workspace admin leads the bots there: it hands them tasks with delegate_task, sets their instructions there, runs the workspace's task list and keeps its context. Only do it once the user asked for it or agreed. Crew: ${crew || "none"}. Workspaces: ${places || "none"}.`,
+        description: `Make a worker the admin of a workspace it works in (admin: true), or take that away (admin: false). A workspace admin leads the bots there: it hands them tasks with delegate_task, sets their instructions there, runs the workspace's task list and keeps its context. Only do it once the user asked for it, and pass their own words in because; a quote they did not write in this conversation is refused. Crew: ${crew || "none"}. Workspaces: ${places || "none"}.`,
         schema: z.object({
             bot_id: z.number().int(),
             workspace_id: z
@@ -56,8 +63,15 @@ export default function setBotTypeTool({ user_id, bot_id, workers, workspaces, w
                 .optional()
                 .describe(workspace_id ? `Defaults to this workspace (${workspace_id}).` : `The workspace it leads.`),
             admin: z.boolean(),
+            because: z.string().min(1).describe("The user's own words asking for this, quoted from their message."),
         }),
         run: async ({ args }) => {
+            await assertUserAsked({
+                session_id,
+                because: args.because,
+                action: "make a bot a workspace's admin or take that away",
+            });
+
             const target_workspace_id = args.workspace_id || (workspace_id ? Number(workspace_id) : null);
 
             if (!target_workspace_id) {
