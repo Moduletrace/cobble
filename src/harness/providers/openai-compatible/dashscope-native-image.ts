@@ -55,10 +55,15 @@ export default async function generateImageNative({
                     },
                 ],
             },
+            /**
+             * Only the fields Token Plan's own sample sends. `prompt_extend`
+             * is their default already, and sending it (with the thinking
+             * pass it turns on) is what closed the socket before any status
+             * on the Token Plan host.
+             */
             parameters: {
                 ...(n ? { n } : {}),
                 ...(native_size ? { size: native_size } : {}),
-                prompt_extend: true,
                 watermark: false,
             },
         },

@@ -42,6 +42,14 @@ const base: HarnessCandidate = {
     model: { slug: "qwen-image-3.0-pro", input_modalities: ["text", "image"], output_modalities: ["image"], supports_tools: false },
     source: "pinned",
 };
+const token_plan: HarnessCandidate = {
+    ...base,
+    provider: {
+        ...base.provider,
+        name: "Alibaba Cloud Token Plan",
+        base_url: "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+    },
+};
 const maas: HarnessCandidate = {
     ...base,
     provider: { ...base.provider, base_url: "https://ws.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1" },
@@ -110,9 +118,35 @@ describe("generateImage on DashScope/Model Studio hosts", () => {
 
 /**
  * The Token Plan host serves chat and the native API, never
- * `/compatible-mode/v1/images/generations`, so the pick that worked on the
- * workspace host 404s there and the picture has to come from the native call.
+ * `/compatible-mode/v1/images/generations`, so its call goes straight to the
+ * native route. A workspace host that 404s there falls back the same way.
  */
+describe("generateImage on the Token Plan host", () => {
+    test("goes straight to the native call and sends only the documented fields", async () => {
+        respond = async () => ({
+            json: async () => ({
+                output: { choices: [{ message: { content: [{ image: "https://cdn.example.com/native.png" }] } }] },
+            }),
+        });
+        fetchImpl = async () => new Response(new Uint8Array([1, 2]), { status: 200, headers: { "content-type": "image/png" } });
+
+        const result = await generateImage({
+            candidate: token_plan,
+            prompt: "a cat",
+            size: "1024x1024",
+            n: 1,
+            signal,
+        });
+
+        expect(calls.length).toBe(1);
+        expect(calls[0].path).toBe("/api/v1/services/aigc/multimodal-generation/generation");
+        expect(calls[0].base_url).toBe("https://token-plan.ap-southeast-1.maas.aliyuncs.com");
+        expect(calls[0].json.parameters).toEqual({ size: "1024*1024", n: 1, watermark: false });
+        expect(calls[0].json.parameters.prompt_extend).toBeUndefined();
+        expect(result.images[0]?.data).toEqual(new Uint8Array([1, 2]));
+    });
+});
+
 describe("generateImage when the compatible images route is missing", () => {
     const native = (overrides: any = {}) => ({
         output: {

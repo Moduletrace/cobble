@@ -4,6 +4,7 @@ import type { HarnessAdapter, HarnessCandidate, HarnessImageOutput } from "../..
 import grabProviderPreset from "../grab-provider-preset";
 import downloadProviderFile from "./download-provider-file";
 import generateImageNative from "./dashscope-native-image";
+import imageRequestFields from "./image-request-fields";
 import providerRequest from "./provider-request";
 import referenceBlob from "./reference-blob";
 
@@ -16,10 +17,11 @@ import referenceBlob from "./reference-blob";
  * `image_edit_path` (`/images/edits`). Images come back as base64, or as
  * URLs that are downloaded here (DashScope only ever returns URLs).
  *
- * A DashScope/Model Studio host with no OpenAI-compatible images route (the
- * Token Plan host answers 404 with an empty body) falls back to Alibaba's
- * native `multimodal-generation` call on the host root, so the same model
- * pick works either way.
+ * The Token Plan host (`token-plan.*.maas.aliyuncs.com`) has no compatible
+ * images route. Its image models are served by Alibaba's native
+ * `multimodal-generation` call at the host root, so that call goes there
+ * directly. A workspace Model Studio host that answers 404 or 405 on the
+ * compatible route falls back to the same native call.
  */
 const generateImage: HarnessAdapter["generateImage"] = async ({
     candidate,
@@ -32,15 +34,18 @@ const generateImage: HarnessAdapter["generateImage"] = async ({
     const { provider } = candidate;
     const preset = grabProviderPreset({ kind: provider.kind });
 
+    if (isTokenPlanHost({ base_url: provider.base_url })) {
+        return await generateImageNative({ candidate, prompt, n, size, references, signal });
+    }
+
     let res: Response;
 
     try {
         res = await requestCompatibleImage({ candidate, prompt, n, size, references, signal });
     } catch (error: unknown) {
         /**
-         * A DashScope/Model Studio host that answers 404 or 405 on the
-         * compatible images route has no route there at all (the Token Plan
-         * host serves chat and the native API only), so the model pick is
+         * A workspace Model Studio host that answers 404 or 405 on the
+         * compatible images route has no route there, so the model pick is
          * fine and the native call is where the picture comes from.
          */
         const missing_route =
@@ -125,6 +130,7 @@ async function requestCompatibleImage({
     const is_openrouter = provider.kind == "openrouter";
     const dashscope = isDashScopeHost({ base_url: provider.base_url });
     const edits = Boolean(references?.length) && !is_openrouter && !dashscope;
+    const fields = imageRequestFields({ provider_kind: provider.kind, size });
 
     if (edits) {
         return await providerRequest({
@@ -150,7 +156,7 @@ async function requestCompatibleImage({
             model: model.slug,
             prompt,
             ...(n ? { n } : {}),
-            ...(size ? { size } : {}),
+            ...fields,
             ...(is_openrouter && references?.length
                 ? {
                       input_references: references.map((url) => ({
@@ -215,6 +221,21 @@ async function editForm({ model, prompt, n, size, references, signal }: EditForm
  * workspace `maas` hosts both count; a custom provider pointed elsewhere
  * keeps the standard behaviour.
  */
+/**
+ * Alibaba's Token Plan host. Its image models are served only by the native
+ * call; the compatible `/images/generations` path 404s, and trying it first
+ * benches the model before the picture is made.
+ */
+export function isTokenPlanHost({ base_url }: { base_url?: string | null }) {
+    if (!base_url) return false;
+
+    try {
+        return new URL(base_url).hostname.startsWith("token-plan.");
+    } catch {
+        return false;
+    }
+}
+
 function isDashScopeHost({ base_url }: { base_url?: string | null }) {
     if (!base_url) return false;
 

@@ -11,12 +11,19 @@ type Guess = Pick<
 
 const Transcription = /whisper|transcri|(?:^|[-_/])(stt|asr)(?=$|[-_:.])|scribe/i;
 const Speech = /(?:^|[-_/])tts(?=$|[-_:.])|speech|voice/i;
-const ImageOut = /dall-e|gpt-image|imagen|flux|stable-diffusion|sdxl|image-gen|qwen-image|kontext|seedream|image-edit/i;
+/**
+ * Image models, including families whose video siblings are classified
+ * first (`grok-imagine-image` beside `grok-imagine-video`, `wan2.7-image`
+ * beside `wan3.0-video`).
+ */
+const ImageOut = /dall-e|gpt-image|imagen|flux|stable-diffusion|sdxl|image-gen|qwen-image|grok-imagine-image|(?:^|[-_/])wan[\d.]*-image|kontext|seedream|image-edit/i;
 /**
  * Video models. Checked before images: some share a family name
- * (`grok-imagine-video`, `flux-video-edit`).
+ * (`grok-imagine-video`, `flux-video-edit`). A Wan image model
+ * (`wan2.7-image`) is left for the image check; a version number alone
+ * is not enough, since that is how those image ids are spelled.
  */
-const VideoOut = /sora|(?:^|[-_/])veo(?=$|[-_:.\d])|kling|seedance|hailuo|(?:^|[-_/])wan-?\d|runway|aleph|video/i;
+const VideoOut = /sora|(?:^|[-_/])veo(?=$|[-_:.\d])|kling|seedance|hailuo|(?:^|[-_/])wan(?![\d.-]*image)|runway|aleph|video/i;
 /**
  * Video models that take a video to change.
  */

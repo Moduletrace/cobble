@@ -19,14 +19,28 @@ describe("guessModelModalities", () => {
         expect(outputs("sora-2-pro")).toEqual(["video"]);
         expect(outputs("veo-3.1-generate-preview")).toEqual(["video"]);
         expect(outputs("grok-imagine-video")).toEqual(["video"]);
+        expect(outputs("grok-imagine-video-1.5")).toEqual(["video"]);
         expect(outputs("imagen-4.0-generate-001")).toEqual(["image"]);
-        expect(outputs("grok-imagine-image")).not.toEqual(["video"]);
+        expect(outputs("grok-imagine-image")).toEqual(["image"]);
+        expect(outputs("grok-imagine-image-2.0")).toEqual(["image"]);
+        expect(outputs("wan2.7-image")).toEqual(["image"]);
+        expect(outputs("wan2.7-image-pro")).toEqual(["image"]);
+        expect(outputs("wan3.0-video")).toEqual(["video"]);
+        expect(outputs("wan2.1-t2v-14b")).toEqual(["video"]);
         expect(guessModelModalities({ slug: "sora-2" }).input_modalities).toEqual([
             "text",
             "image",
         ]);
         expect(
             guessModelModalities({ slug: "flux-video-edit" }).input_modalities,
+        ).toEqual(["text", "image", "video"]);
+        expect(guessModelModalities({ slug: "grok-imagine-image" })).toEqual({
+            input_modalities: ["text", "image"],
+            output_modalities: ["image"],
+            supports_tools: false,
+        });
+        expect(
+            guessModelModalities({ slug: "wan3.0-video" }).input_modalities,
         ).toEqual(["text", "image", "video"]);
     });
 
