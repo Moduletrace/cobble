@@ -28,16 +28,16 @@ type Args = {
 /**
  * Offers the user concrete next steps as buttons under the bot's answer.
  * Clicking one puts it in their input; nothing waits on it, unlike
- * `ask_user`. Once per run, so every suggestion lands in one row. It ends
- * the reply (`ClosingToolNames`): the buttons belong under the answer, and
- * a run that kept going would replace that answer with a later line.
+ * `ask_user`. Once per run, so every suggestion lands in one row. It shares
+ * the closing turn with `send_reply` (`ClosingToolNames`): the buttons
+ * belong under that answer, and a later turn would replace it.
  */
 export default function suggestNextStepsTool({ user_id, bot_id, session_id, workspace_id, onSuggest }: Params): HarnessTool<Args> {
     let suggested = false;
 
     return {
         name: "suggest_next_steps",
-        description: `Offer the user next steps they can take from here, shown as buttons under your answer: clicking one puts it in their input for them to send. Use it once the work is done or a reply is complete, to make follow-ups one click away (your best suggestion first). This never waits for a response: don't ask the user to pick one, don't put the answers on hold, and put it up in the same turn as the answer it belongs under. When their answer decides what you do next, use ask_user instead. Don't suggest what they already asked for, and don't repeat the steps in your text.`,
+        description: `Offer the user next steps they can take from here, shown as buttons under your answer: clicking one puts it in their input for them to send. Call it in the same turn as send_reply, once the work is done, so the buttons belong to the message that turn sends (your best suggestion first). A later turn cannot add them: that turn would replace the answer. This never waits for a response: don't ask the user to pick one, don't put the answers on hold. When their answer decides what you do next, use ask_user in that same turn instead. Don't suggest what they already asked for, and don't repeat the steps in your text.`,
         schema: z.object({
             title: z
                 .string()

@@ -507,13 +507,13 @@ export const closingNoTextNote = `The card you just put up has no message beside
  * never queued. Bounded by `AppData.HarnessReplyDraftsMax`, then the run
  * fails honestly rather than sending it.
  */
-export const replyDraftNote = `That message was not sent: a reply ends with send_reply, and text on its own is a draft. Write it again beside send_reply: status "done" when nothing is running after it, "working" with work (or after a run you already started) when something is, or "blocked" when it can't go on. The text beside the call is what the user reads.`;
+export const replyDraftNote = `That message was not sent: a reply ends with send_reply, and text on its own is a draft. Write the whole message again in the same turn as send_reply: status "done" when nothing is running after it, "working" with work (or after a run you already started) when something is, or "blocked" when it can't go on. A call with no text beside it sends nothing, and an earlier draft is not filled in for you. In that same turn, and only then, call suggest_next_steps or ask_user when one of them belongs with the answer. The text beside the call is what the user reads, so finish every table, list and code fence before you send it.`;
 
 /**
  * Told when `send_reply` worked but the turn said nothing beside it: the
  * user would get an empty line, and the status alone is not a message.
  */
-export const replyNoTextNote = `The send_reply call went through, but there is no message beside it, so the user would get an empty line. Write the message beside send_reply now and call it again: status "done", "working" (with work, or after a run you started) or "blocked".`;
+export const replyNoTextNote = `The send_reply call went through, but there is no message beside it, so nothing was sent. An earlier draft is not the message: write the whole message again beside send_reply and call it again, status "done", "working" (with work, or after a run you started) or "blocked". suggest_next_steps or ask_user may share that turn when one of them belongs with the answer. Finish every table, list and code fence in the text you write there.`;
 
 /**
  * Told when a turn tried to end without `send_reply` at all: a card alone or
@@ -527,7 +527,7 @@ export const replyClosingRequiredNote = `That turn ended without send_reply, so 
  * can send the message, since the other calls' results go into the
  * conversation after it.
  */
-export const replyClosingMixedNote = `send_reply has to be the only call in its turn: this turn also did other work, so the message was not sent. Call send_reply on its own with the message beside it, after the tools you still need have run.`;
+export const replyClosingMixedNote = `send_reply's turn can also call suggest_next_steps or ask_user, and nothing else: this turn did other work, so the message was not sent. Finish that work first, then call send_reply with the whole message beside it.`;
 
 /**
  * Told when `send_reply` itself refused the turn (status "working" with

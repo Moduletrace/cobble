@@ -21,6 +21,7 @@ import {
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
 import sanitizeAnswerText from "@/src/utils/sanitize-answer-text";
 import repairAnswerText from "@/src/utils/repair-answer-text";
+import unfinishedAnswerText from "@/src/utils/unfinished-answer-text";
 import { logError } from "@/src/functions/backend/logger";
 import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import { ReplyStatuses } from "@/src/dict/reply-status-dict";
@@ -506,6 +507,12 @@ export default async function runTextLoop({
      */
     let told_closing_text = false;
     /**
+     * A message that stopped inside a table, a fence or a bare marker has
+     * been sent back once (`unfinishedAnswerText`). Past that the run
+     * fails rather than shipping the cut-off text.
+     */
+    let told_unfinished = false;
+    /**
      * How many turns the run has spent retrying a closing card: a closing
      * call that failed, or a card put up beside other work. Bounded
      * (`AppData.MaxClosingRetries`) so a model that keeps re-asking into the
@@ -519,12 +526,11 @@ export default async function runTextLoop({
      */
     let reply_drafts = 0;
     /**
-     * The last message a turn wrote with nothing beside it, held for the
-     * run: a model that writes the answer and then calls `send_reply` with
-     * nothing beside it means the sentence it wrote, and dropping it made
-     * the app ask again until the run failed with the answer sitting in the
-     * transcript. Kept across turns, since the call came after another turn
-     * often enough; a card's message is never taken from here.
+     * The last message a turn wrote with nothing beside it. Held so the
+     * note that asks for it again can point at it. It is not the reply:
+     * `send_reply` with no text beside it used to ship this unchanged, and
+     * a scan that stopped mid-table went out as the answer, with no turn
+     * left for the follow-up (session 130, message 874).
      */
     let draft_text = "";
     /**
@@ -1124,6 +1130,13 @@ export default async function runTextLoop({
          */
         const called_card = tool_calls.some((call) => isClosingTool({ name: call.name }));
         const called_send_reply = tool_calls.some((call) => call.name === SendReplyToolName);
+        /**
+         * A closing turn is `send_reply` plus the cards that belong under
+         * that answer, and nothing else. `ask_user` and `suggest_next_steps`
+         * are closing tools, so they share the turn. A research tool beside
+         * `send_reply` is still mixed: its result arrives after the message,
+         * and the message would describe work the turn had not finished.
+         */
         const closing = tool_calls.every((call) => isClosingTool({ name: call.name }));
         /**
          * A required closing answer needs `send_reply` itself, not just any
@@ -1143,19 +1156,25 @@ export default async function runTextLoop({
         const closing_failed = closing_uses.some((use) => !use.ok);
         const closing_worked = closing && !closing_failed && closing_required;
         /**
-         * The message this turn carries: its own, or the last one a turn
-         * wrote with nothing beside it (`draft_text`). A model that writes
-         * the answer and then calls `send_reply` with no text means that
-         * sentence; asking for it again ended runs whose answer was already
-         * in the transcript. A card is never paired with an older sentence:
-         * "which date rule?" beside a message about something else is worse
-         * than the note that asks for one.
+         * The message this turn wrote beside the call. An earlier draft is
+         * not filled in: the model spent its stop on that draft, and the
+         * next turn only stamped `send_reply` on it, so a cut-off scan went
+         * out with no follow-up. The draft is offered once, after the model
+         * has been told to write it again and still sent nothing, and only
+         * when that draft is a finished message.
          */
         const written_text = (answer.text || "").trim();
+        /**
+         * A card is never paired with an older sentence: the card asked
+         * something, and the draft was about something else. Filling it in
+         * would put "I checked the date rules." under "Which date rule?".
+         */
         const asked_something = tool_calls.some(
             (call) => call.name !== SendReplyToolName && isClosingTool({ name: call.name }),
         );
-        const message_text = written_text ? answer.text || "" : asked_something ? "" : draft_text;
+        const carry_draft =
+            told_closing_text && !asked_something && !unfinishedAnswerText({ text: draft_text });
+        const message_text = written_text || (carry_draft ? draft_text : "");
 
         if (called_card && (closing_failed || !closing || !closing_required)) {
             /**
@@ -1242,17 +1261,39 @@ export default async function runTextLoop({
             /**
              * Checked before it goes out, as any reply is: a note comes
              * back and the answer is written again (the card stays on the
-             * reply, its ref is already recorded). A message held from the
-             * turn before went out with this call, which is what the model
-             * meant by writing it there.
+             * reply, its ref is already recorded). A draft carried after
+             * the one reminder is said so, so the debug view shows why an
+             * earlier turn's text went out.
              */
             if (!written_text && message_text) {
                 await traced({
                     kind: "event",
                     index,
                     name: "draft_carried",
-                    text: "The message was written in an earlier turn, so it went out with this send_reply.",
+                    text: "The message was written in an earlier turn. send_reply had no text beside it after one reminder, so that finished draft went out.",
                 });
+            }
+
+            const unfinished = unfinishedAnswerText({ text: message_text });
+
+            if (unfinished) {
+                if (!told_unfinished && !(wrap_up && !wrap_up_saving)) {
+                    told_unfinished = true;
+                    draft_text = "";
+                    pushUserTurn({ transcript, content: unfinished });
+                    await traced({ kind: "event", index, name: "unfinished", text: unfinished });
+                    continue;
+                }
+
+                return {
+                    text: "",
+                    review_note: unfinished,
+                    messages: transcript,
+                    steps: index + 1,
+                    candidate: answer.candidate,
+                    usage,
+                    tool_uses,
+                };
             }
 
             const final_turn = wrap_up && !wrap_up_saving;

@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -1933,14 +1933,38 @@ describe("runTextLoop required send_reply", () => {
         expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: replyNoTextNote });
     });
 
-    test("a message written in the turn before goes out with send_reply", async () => {
+    test("send_reply with no text does not ship the previous draft on the first pass", async () => {
         /**
-         * A model that writes the answer, then calls send_reply with
-         * nothing beside it, means the sentence it just wrote. Asked to
-         * write it again it wrote nothing, and the run failed with the
-         * answer sitting in the transcript.
+         * The model spent its stop on the draft. The next turn only stamped
+         * send_reply on it, and that draft went out mid-table with no turn
+         * left for a follow-up. The first bare call is told to write the
+         * message again.
          */
         const { generate, seen } = scripted([
+            { text: "No, I didn't add it anywhere." },
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+            {
+                text: "No, I didn't add it anywhere.",
+                tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Did you add a bot?" }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("No, I didn't add it anywhere.");
+        expect(result.steps).toBe(3);
+        expect(seen[2]!.messages.at(-1)).toMatchObject({ role: "user", content: replyNoTextNote });
+    });
+
+    test("a finished draft goes out only after the one reminder still gets no text", async () => {
+        const { generate } = scripted([
             { text: "No, I didn't add it anywhere." },
             { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
             { tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }] },
@@ -1956,12 +1980,11 @@ describe("runTextLoop required send_reply", () => {
         });
 
         expect(result.text).toBe("No, I didn't add it anywhere.");
-        expect(result.steps).toBe(2);
-        expect(seen[1]!.messages.some((message) => message.content === replyNoTextNote)).toBe(false);
+        expect(result.steps).toBe(3);
     });
 
-    test("the message still goes out when a tool turn comes between it and send_reply", async () => {
-        const { generate } = scripted([
+    test("a tool turn between the draft and send_reply still gets the one reminder", async () => {
+        const { generate, seen } = scripted([
             { text: "No, I didn't add it anywhere." },
             { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"checked"}` }] },
             { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
@@ -1978,23 +2001,129 @@ describe("runTextLoop required send_reply", () => {
         });
 
         expect(result.text).toBe("No, I didn't add it anywhere.");
-        expect(result.steps).toBe(3);
+        expect(result.steps).toBe(4);
+        expect(seen[3]!.messages.at(-1)).toMatchObject({ role: "user", content: replyNoTextNote });
     });
 
-    test("a card is never paired with a message written earlier", async () => {
-        asked.length = 0;
+    test("send_reply and suggest_next_steps in one turn end the run and keep both", async () => {
+        suggested.length = 0;
         const { generate } = scripted([
-            { text: "Which date rule?" },
             {
+                text: "Both repos are scanned. Nothing was pulled in.",
                 tool_calls: [
-                    { id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` },
+                    { id: "g1", name: "suggest_next_steps", arguments: `{"steps":["Pull email_frameworks.md in full"]}` },
+                    { id: "s1", name: "send_reply", arguments: `{"status":"done"}` },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan the repos." }],
+            tools: [suggestNextSteps, sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Both repos are scanned. Nothing was pulled in.");
+        expect(result.steps).toBe(1);
+        expect(suggested).toEqual(["Pull email_frameworks.md in full"]);
+        expect(result.tool_uses.map((use) => use.name)).toEqual(["suggest_next_steps", "send_reply"]);
+    });
+
+    test("send_reply beside a research tool is still mixed and unsent", async () => {
+        const { generate, seen } = scripted([
+            {
+                text: "Scanned.",
+                tool_calls: [
+                    { id: "c1", name: "remember", arguments: `{"note":"scanned"}` },
                     { id: "s1", name: "send_reply", arguments: `{"status":"done"}` },
                 ],
             },
             {
+                text: "Scanned both repos.",
+                tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan the repos." }],
+            tools: [remember, sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Scanned both repos.");
+        expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: replyClosingMixedNote });
+    });
+
+    test("a table that stops mid-row is sent back once, then goes out finished", async () => {
+        const cut = ["| Skill | Focus |", "| **revops** | Lead routing"].join("\n");
+        const whole = ["| Skill | Focus |", "| **revops** | Lead routing |"].join("\n");
+        const { generate, seen } = scripted([
+            {
+                text: cut,
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+            {
+                text: whole,
+                tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan the repos." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe(whole);
+        expect(result.steps).toBe(2);
+        expect(String(seen[1]!.messages.at(-1)!.content)).toContain("table row");
+    });
+
+    test("a cut-off draft is never carried, even after the reminder", async () => {
+        const cut = ["| Skill | Focus |", "| **revops** | Lead routing"].join("\n");
+        const { generate } = scripted([
+            { text: cut },
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+            { tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Scan the repos." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe(replyNoTextNote);
+    });
+
+    test("a card is never paired with a message written earlier", async () => {
+        /**
+         * The first bare send_reply is told to write the message again.
+         * Writing nothing the second time must not fill the card's turn
+         * with the earlier sentence: the card asked something else, and
+         * that sentence is not its answer.
+         */
+        asked.length = 0;
+        const { generate, seen } = scripted([
+            { text: "I checked the date rules." },
+            { tool_calls: [{ id: "s0", name: "send_reply", arguments: `{"status":"done"}` }] },
+            {
                 tool_calls: [
-                    { id: "q2", name: "ask_user", arguments: `{"question":"Which date rule?"}` },
-                    { id: "s2", name: "send_reply", arguments: `{"status":"done"}` },
+                    { id: "q1", name: "ask_user", arguments: `{"question":"Which date rule?"}` },
+                    { id: "s1", name: "send_reply", arguments: `{"status":"done"}` },
                 ],
             },
         ]);
@@ -2010,6 +2139,8 @@ describe("runTextLoop required send_reply", () => {
 
         expect(result.text).toBe("");
         expect(result.review_note).toBe(replyNoTextNote);
+        expect(asked).toEqual(["Which date rule?"]);
+        expect(seen[2]!.messages.some((message) => message.content === replyNoTextNote)).toBe(true);
     });
 
     test("the wrap up still offers send_reply", async () => {
