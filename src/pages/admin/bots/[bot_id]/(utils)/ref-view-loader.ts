@@ -31,12 +31,48 @@ type Params = {
 const known = new Map<string, unknown>();
 const inFlight = new Map<string, Promise<unknown | null>>();
 
+type RefViewListener = (view: RefView) => void;
+
+/**
+ * Who is showing one view on the page now, by key. A bot's message can
+ * carry the same card twice (the one that made it, and a later one saying
+ * it's still waiting), and each chip keeps its own state, so without this
+ * the other card went on saying "Waiting for you" after the user decided
+ * on it, until a reload.
+ */
+const listeners = new Map<string, Set<RefViewListener>>();
+
+/**
+ * Follows one view, so a change another chip made reaches this one:
+ * returns the unsubscribe. Called before the read, since a card decided
+ * while it loads must not be overwritten by the answer already in flight.
+ */
+export function subscribeRefView({ key, listener }: { key: string; listener: RefViewListener }) {
+    const listening = listeners.get(key) || new Set<RefViewListener>();
+
+    listening.add(listener);
+    listeners.set(key, listening);
+
+    return () => {
+        listening.delete(listener);
+
+        if (!listening.size) listeners.delete(key);
+    };
+}
+
 /**
  * Keeps a view the page already has (a question answered in its card, its
- * chip now saying so) without asking the app for it again.
+ * chip now saying so) without asking the app for it again, and tells every
+ * chip naming it, so they all say so.
  */
 export function primeRefView({ key, view }: { key: string; view: unknown }) {
+    remember({ key, view });
+}
+
+function remember({ key, view }: { key: string; view: unknown }) {
     known.set(key, view);
+
+    for (const listener of listeners.get(key) || []) listener(view as RefView);
 }
 
 /**
@@ -64,7 +100,7 @@ export default async function loadRefView<T extends RefView>({
         .then((view) => {
             inFlight.delete(key);
 
-            if (view) known.set(key, view);
+            if (view) remember({ key, view });
 
             return view as T | null;
         })

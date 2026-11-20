@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BotQuestionView } from "@/src/types";
-import loadRefView, { primeRefView } from "../(utils)/ref-view-loader";
+import loadRefView, { primeRefView, subscribeRefView } from "../(utils)/ref-view-loader";
 
 type Params = {
     question_id: number;
@@ -11,7 +11,8 @@ type Params = {
  * when the chip renders, so it shows whether they're still waiting. Only
  * the user they were asked of can read them; anyone else gets null. A
  * read that failed or hung is tried again (`loadRefView`) instead of
- * leaving the card unopenable until the page is reloaded.
+ * leaving the card unopenable until the page is reloaded, and answering
+ * one card tells the thread's other cards of the same question.
  */
 export default function useBotQuestion({ question_id }: Params) {
     const [view, setViewState] = useState<BotQuestionView | null>(null);
@@ -19,11 +20,21 @@ export default function useBotQuestion({ question_id }: Params) {
 
     useEffect(() => {
         let live = true;
+        const key = `question:${question_id}`;
 
         setLoading(true);
 
+        const unsubscribe = subscribeRefView({
+            key,
+            listener: (next) => {
+                if (!live) return;
+                setViewState(next as BotQuestionView);
+                setLoading(false);
+            },
+        });
+
         loadRefView<BotQuestionView>({
-            key: `question:${question_id}`,
+            key,
             url: `/api/admin/bot-questions/get-question?question_id=${question_id}`,
         }).then((result) => {
             if (!live) return;
@@ -33,6 +44,7 @@ export default function useBotQuestion({ question_id }: Params) {
 
         return () => {
             live = false;
+            unsubscribe();
         };
     }, [question_id]);
 

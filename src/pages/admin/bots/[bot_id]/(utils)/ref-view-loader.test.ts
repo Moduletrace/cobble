@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import loadRefView, { primeRefView } from "./ref-view-loader";
+import loadRefView, { primeRefView, subscribeRefView } from "./ref-view-loader";
 
 /**
  * A read standing in for the app's: one answer per call, in order, and a
@@ -99,5 +99,66 @@ describe("loadRefView", () => {
         await loadRefView({ key: "suggestion:15", url: "/get-suggestion?suggestion_id=15", readOnce, retryDelaysMs: [] });
 
         expect(asked).toEqual(["/get-question?question_id=15", "/get-suggestion?suggestion_id=15"]);
+    });
+});
+describe("subscribeRefView", () => {
+    test("tells every chip naming a view when one of them changes it", () => {
+        const first: unknown[] = [];
+        const second: unknown[] = [];
+
+        const stopFirst = subscribeRefView({ key: "test:shared-chip", listener: (view) => first.push(view) });
+        const stopSecond = subscribeRefView({ key: "test:shared-chip", listener: (view) => second.push(view) });
+
+        primeRefView({ key: "test:shared-chip", view: { id: 21, status: "confirmed" } });
+
+        expect(first).toEqual([{ id: 21, status: "confirmed" }]);
+        expect(second).toEqual([{ id: 21, status: "confirmed" }]);
+
+        stopFirst();
+        stopSecond();
+    });
+
+    test("tells only the chips naming that view", () => {
+        const mine: unknown[] = [];
+        const other: unknown[] = [];
+
+        const stopMine = subscribeRefView({ key: "test:mine", listener: (view) => mine.push(view) });
+        const stopOther = subscribeRefView({ key: "test:other", listener: (view) => other.push(view) });
+
+        primeRefView({ key: "test:mine", view: { id: 23 } });
+
+        expect(mine).toEqual([{ id: 23 }]);
+        expect(other).toEqual([]);
+
+        stopMine();
+        stopOther();
+    });
+
+    test("stops following once the chip is gone", () => {
+        const seen: unknown[] = [];
+
+        const stop = subscribeRefView({ key: "test:unsubscribed", listener: (view) => seen.push(view) });
+
+        stop();
+        primeRefView({ key: "test:unsubscribed", view: { id: 25 } });
+
+        expect(seen).toEqual([]);
+    });
+
+    test("tells the chips already showing it when a read lands", async () => {
+        const seen: unknown[] = [];
+
+        const stop = subscribeRefView({ key: "test:read-lands", listener: (view) => seen.push(view) });
+
+        await loadRefView({
+            key: "test:read-lands",
+            url: "/get?id=27",
+            readOnce: async () => ({ id: 27 }),
+            retryDelaysMs: [],
+        });
+
+        expect(seen).toEqual([{ id: 27 }]);
+
+        stop();
     });
 });
