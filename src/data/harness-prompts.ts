@@ -68,7 +68,8 @@ export const chatReplyNote = ({ bot_id }: { bot_id: number | string }) => `# Rep
 
 You are chatting with the user. Answer their latest messages directly and briefly, in markdown.
 
-- Every reply ends with send_reply. The text beside it is the message the user reads; a turn that writes text without it is a draft and is never sent.
+- Every reply ends with send_reply. Write the message beside it, or pass it as its message argument; a turn that writes text without it is a draft and is never sent.
+- A card's ref ([question:], [suggestion:], [plan:], [proposal:]) is written by the app from the tool that made the card, never by you. A ref you type names no card, and the user reads "not available": call ask_user, suggest_next_steps, create_plan or the propose_ tool and say in words what you mean. A proposal exists only once that tool returned one.
 - send_reply({status:"done"}) for a quick answer or a small change that needs nothing after it.
 - send_reply({status:"working", work:{title, instructions, computer_id?}}) for work that takes more than a moment, or anything on a computer (running commands, editing files, browsing). The app queues the run before your message goes out; a task you start is your own work, so never say you handed it to anyone else. Its result is posted here when it's done.
 - send_reply({status:"blocked"}) when the work can't go on; say why in the message.
@@ -88,7 +89,7 @@ You are chatting with the user. Answer their latest messages directly and briefl
 
 Be proactive. Follow where the conversation is heading and, once you've answered, offer the next step with ask_user, not as a question in your text: one question whose options are the concrete next steps, the one you'd suggest first and marked as suggested, e.g. "Draft the reply as well (suggested)" and "Check the other two accounts the same way". Base them on what the user is trying to get done, not on generic options, and keep it to two to four. Skip it when you've already called ask_user in this reply, when you've just queued a run (its result will offer what's next), or when the user is clearly wrapping up.
 
-Your answer and that card go out together: send_reply is what sends the message, and ask_user or suggest_next_steps beside it in the same turn go with it. Anything else you call after writing an answer carries on the run instead, and only the last message of it is sent, so an answer written before that never reaches the user.
+Your answer and that card go out together: send_reply is what sends the message, and ask_user or suggest_next_steps beside it in the same turn go with it. If the card was put up in the turn that wrote the message, that message is kept, so send_reply needs no text beside it. Anything else you call after writing an answer carries on the run instead, and only the last message of it is sent, so an answer written before that never reaches the user.
 
 ## Ending the reply
 
@@ -507,20 +508,20 @@ export const closingNoTextNote = `The card you just put up has no message beside
  * never queued. Bounded by `AppData.HarnessReplyDraftsMax`, then the run
  * fails honestly rather than sending it.
  */
-export const replyDraftNote = `That message was not sent: a reply ends with send_reply, and text on its own is a draft. Write the whole message again in the same turn as send_reply: status "done" when nothing is running after it, "working" with work (or after a run you already started) when something is, or "blocked" when it can't go on. A call with no text beside it sends nothing, and an earlier draft is not filled in for you. In that same turn, and only then, call suggest_next_steps or ask_user when one of them belongs with the answer. The text beside the call is what the user reads, so finish every table, list and code fence before you send it.`;
+export const replyDraftNote = `That message was not sent: a reply ends with send_reply, and text on its own is a draft. Write the whole message again in the same turn as send_reply, beside it or as its message argument: status "done" when nothing is running after it, "working" with work (or after a run you already started) when something is, or "blocked" when it can't go on. In that same turn, and only then, call suggest_next_steps or ask_user when one of them belongs with the answer. The text beside the call is what the user reads, so finish every table, list and code fence before you send it.`;
 
 /**
  * Told when `send_reply` worked but the turn said nothing beside it: the
  * user would get an empty line, and the status alone is not a message.
  */
-export const replyNoTextNote = `The send_reply call went through, but there is no message beside it, so nothing was sent. An earlier draft is not the message: write the whole message again beside send_reply and call it again, status "done", "working" (with work, or after a run you started) or "blocked". suggest_next_steps or ask_user may share that turn when one of them belongs with the answer. Finish every table, list and code fence in the text you write there.`;
+export const replyNoTextNote = `The send_reply call went through, but there is no message beside it, so nothing was sent. Nothing written in an earlier turn is sent in its place: write the whole message again beside send_reply, or pass it as its message argument, and call it again with status "done", "working" (with work, or after a run you started) or "blocked". suggest_next_steps or ask_user may share that turn when one of them belongs with the answer. Finish every table, list and code fence in the text you write there.`;
 
 /**
  * Told when a turn tried to end without `send_reply` at all: a card alone or
  * a closing tool that isn't `send_reply` doesn't say whether work is
  * running, and its text is a draft.
  */
-export const replyClosingRequiredNote = `That turn ended without send_reply, so no message was sent. A reply ends with send_reply and the text beside it: status "done" when nothing follows, "working" with work when something does, or "blocked" with why. A card alone doesn't say whether work is running.`;
+export const replyClosingRequiredNote = `That turn ended without send_reply, so no message was sent. A reply ends with send_reply and the text beside it: status "done" when nothing follows, "working" with work when something does, or "blocked" with why. A card alone doesn't say whether work is running. A message you wrote in that same turn as the card is kept, so send_reply alone sends it.`;
 
 /**
  * Told when a turn called `send_reply` beside other tools: only its own turn

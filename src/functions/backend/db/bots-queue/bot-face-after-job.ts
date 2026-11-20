@@ -1,7 +1,8 @@
 import type { BUN_SQLITE_COBBLE_BOTS_QUEUE } from "@/db/types/db";
-import { BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
+import { BotComputerBusyStatusLine, BotWaitingStatusLine } from "@/src/dict/bot-queue-dict";
 import setBotFace from "../bots/set-bot-face";
 import answeringAskFace from "./answering-ask-face";
+import botWaitsOnComputer from "./bot-waits-on-computer";
 import countOpenBotJobs from "./count-open-bot-jobs";
 import grabRunningBotJobFace from "./grab-running-bot-job-face";
 
@@ -42,14 +43,16 @@ export default async function botFaceAfterJob({ bot_id, user_id, kind }: Params)
     }
 
     /**
-     * Jobs are open for this user but none is running (`deferBotJob` put
-     * them back while every model rests, or they wait in the queue): the
-     * bot waits, rather than showing work that isn't happening.
+     * Jobs are open for this user but none is running: they wait in the
+     * queue, behind another run on the same computer or while every model
+     * rests (`deferBotJob`). The line says which, since "waiting for a free
+     * model" over a run that is only second in line on a computer sends the
+     * user looking at the wrong thing.
      */
     return await setBotFace({
         bot_id,
         user_id,
         face: "asleep",
-        status_line: BotWaitingStatusLine,
+        status_line: (await botWaitsOnComputer({ bot_id, user_id })) ? BotComputerBusyStatusLine : BotWaitingStatusLine,
     });
 }

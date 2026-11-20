@@ -695,7 +695,17 @@ export type BotUpdatedData = {
     id: number;
     face: BotFace;
     status_line: string;
+    /**
+     * The newest of the user's active tasks, null when there is none. Kept
+     * for a reader that wants one; `tasks` has them all, since the newest
+     * may be in another conversation.
+     */
     task: BotTaskWithSteps | null;
+    /**
+     * Every active task the user has with the bot, newest first: the
+     * conversation picks the one from its own session.
+     */
+    tasks?: BotTaskWithSteps[];
     /**
      * The computer the bot is on, when the push knows it (a switch, or the
      * live relay). Null means its main one.

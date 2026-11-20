@@ -27,13 +27,15 @@ type Params = {
 };
 
 type Args = {
-    status: (typeof ReplyStatuses)[number];
+    status?: (typeof ReplyStatuses)[number];
     work?: BotTaskWork;
+    message?: string;
+    text?: string;
 };
 
 /**
  * The one way a reply or a task report ends. The text written beside this
- * call is the message the user gets; the call declares what happens after
+ * call or passed in message/text is the message the user gets; the call declares what happens after
  * it, so the app never has to guess intent from prose.
  *
  * `done` says nothing runs once the message is out. `working` says a run
@@ -60,13 +62,16 @@ export default function sendReplyTool({
 
     return {
         name: "send_reply",
-        description: `End every reply with this call, in the same turn as the message. The text you write beside it is what the user gets; a call with no text sends nothing, and a message from an earlier turn is not filled in. This call only says what happens after it. status done: nothing runs once the message goes out, so the text must not say work is under way. status working: a run is carrying the work on and its result will be posted here; pass work to queue it now, or it must already be open. status blocked: the work cannot go on, and the text says why. Never write a message that says work is under way and end with done. In this same turn, and no other, you may also call suggest_next_steps or ask_user when one of them belongs with the answer. No other tool shares this turn. A message sent without this call is a draft and never reaches the user. Finish every table, list and code fence in the text. ${
+        description: `End every reply with this call, in the same turn as the message. The text you write beside it, or in message/text, is what the user gets; a call with neither sends nothing. A message written beside a card in an earlier turn is kept for the send_reply that closes it; anything else written earlier is not filled in. This call only says what happens after it. status done: nothing runs once the message goes out, so the text must not say work is under way. status working: a run is carrying the work on and its result will be posted here; pass work to queue it now, or it must already be open. status blocked: the work cannot go on, and the text says why. Never write a message that says work is under way and end with done. In this same turn, and no other, you may also call suggest_next_steps or ask_user when one of them belongs with the answer. No other tool shares this turn. A message sent without this call is a draft and never reaches the user. Finish every table, list and code fence in the text. ${
             computers.length
                 ? `Computers you can use: ${listed}. Defaults to ${computers[0]!.id}, the one you're on.`
                 : `You have no computer, so work that needs one can't run.`
         }`,
         schema: z.object({
-            status: z.enum(ReplyStatuses).describe("done: nothing runs after this message. working: a run carries the work on. blocked: the work cannot go on."),
+            status: z
+                .enum(ReplyStatuses)
+                .default("done")
+                .describe("done: nothing runs after this message. working: a run carries the work on. blocked: the work cannot go on."),
             work: z
                 .object({
                     title: z.string().min(1).max(80).describe("A short label, e.g. \"Check the backup logs\""),
@@ -88,13 +93,23 @@ export default function sendReplyTool({
                 })
                 .optional()
                 .describe("The run to start with this message. Required when status is working and no run of yours is open here."),
+            message: z
+                .string()
+                .optional()
+                .describe("The message to send the user with this reply, when not written directly in the assistant turn."),
+            text: z
+                .string()
+                .optional()
+                .describe("Alias for message: the message to send the user with this reply."),
         }),
         run: async ({ args }) => {
-            if (args.status !== "working" && args.work) {
+            const status = args.status ?? (args.work ? "working" : "done");
+
+            if (status !== "working" && args.work) {
                 throw new Error(`work can only be passed with status "working": it queues a run, so the message must say that work is under way. Nothing was sent.`);
             }
 
-            if (args.status === "working") {
+            if (status === "working") {
                 if (args.work) {
                     if (!queued) {
                         queued = await queueBotTask({
@@ -129,7 +144,7 @@ export default function sendReplyTool({
                 return `A run of yours is still open here, so status "working" holds. Your message beside this call goes out with it: say what it's doing, in one sentence, and that its result will be posted here.`;
             }
 
-            if (args.status === "blocked") {
+            if (status === "blocked") {
                 return `Your message beside this call goes out, marked blocked. Say plainly what stopped the work and what you need from the user to go on.`;
             }
 

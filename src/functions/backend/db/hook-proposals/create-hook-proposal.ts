@@ -3,6 +3,7 @@ import type { BUN_SQLITE_COBBLE_HOOK_PROPOSALS, BunSQLiteTables } from "@/db/typ
 import { AppData } from "@/src/data/app-data";
 import type { HookProposalData } from "@/src/schemas/bot-hook-schema";
 import checkHookProposal from "./check-hook-proposal";
+import replacePendingHookProposals from "./replace-pending-hook-proposals";
 
 type Params = {
     user_id: number | string;
@@ -60,18 +61,13 @@ export default async function createHookProposal({
 
     if (!res.success || !id) throw new Error(`Couldn't store the proposal: ${res.msg}`);
 
-    await BunSQLite.sql({
-        sql: `UPDATE hook_proposals SET status = 'replaced', outcome = ?, decided_at = ?, updated_at = ?
-            WHERE session_id = ? AND status = 'pending' AND id != ?
-            AND (${checked.current?.id ? "hook_id = ?" : "hook_id IS NULL AND title = ? COLLATE NOCASE"})`,
-        values: [
-            `Replaced by proposal #${id}.`,
-            now,
-            now,
-            Number(session_id),
-            id,
-            checked.current?.id || checked.title,
-        ],
+    await replacePendingHookProposals({
+        proposal_id: id,
+        user_id,
+        bot_id,
+        workspace_id,
+        hook_id: checked.current?.id,
+        title: checked.title,
     });
 
     return id;

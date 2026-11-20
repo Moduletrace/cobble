@@ -142,4 +142,21 @@ describe("sendReplyTool", () => {
         expect(result).toContain("what stopped the work");
         expect(queued).toHaveLength(0);
     });
+
+    test("accepts text and message in arguments and defaults status to done", async () => {
+        const result = await tool().run({ args: { message: "Here is your skill." }, signal });
+
+        expect(result).toContain("marked done");
+        expect(queued).toHaveLength(0);
+    });
+
+    test("infers status working when work is passed without status", async () => {
+        const result = await tool().run({
+            args: { work: { title: "Look up files", instructions: "Inspect them." } },
+            signal,
+        });
+
+        expect(result).toContain("Run #100 queued");
+        expect(queued).toHaveLength(1);
+    });
 });

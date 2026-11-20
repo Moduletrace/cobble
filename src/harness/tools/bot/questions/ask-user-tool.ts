@@ -67,9 +67,7 @@ export default function askUserTool({
         }),
         run: async ({ args }) => {
             if (asked) {
-                throw new Error(
-                    `You already asked the user in this run. Put every question in one ask_user call, then wait for their answers.`,
-                );
+                return `The questions are already asked and will go out with your message. Finish your reply with send_reply.`;
             }
 
             const id = await createBotQuestion({
@@ -94,7 +92,7 @@ export default function askUserTool({
             return `Asked the user ${count} question${count == 1 ? "" : "s"}: the card is on your message. ${
                 in_task
                     ? `Stop working on what you asked about and finish with your report (if you asked to settle something before going on, say you're waiting for their answers).`
-                    : `End your reply now with a short line saying what you need settled; their answers arrive as their next message.`
+                    : `End your reply now: write the short line saying what you need settled beside send_reply; their answers arrive as their next message.`
             } Don't repeat the questions or options in your text.`;
         },
     };

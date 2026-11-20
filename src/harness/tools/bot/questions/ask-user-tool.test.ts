@@ -1,9 +1,24 @@
-import { describe, expect, test } from "bun:test";
-import askUserTool from "./ask-user-tool";
+import { afterAll, describe, expect, mock, test } from "bun:test";
+
+let created = 0;
+let next_id = 41;
+
+mock.module("@/src/functions/backend/db/bot-questions/create-bot-question", () => ({
+    default: async () => {
+        created++;
+        return next_id++;
+    },
+}));
+
+const { default: askUserTool } = await import("./ask-user-tool");
+
+afterAll(() => {
+    mock.restore();
+});
 
 const tool = askUserTool({ user_id: 1, bot_id: 2, session_id: 3, onAsk: () => {} });
 
-const question = { question: "Which environment?", kind: "single", options: ["Staging", "Production"] };
+const question = { question: "Which environment?", kind: "single" as const, options: ["Staging", "Production"] };
 
 describe("askUserTool", () => {
     test("takes a set of questions", () => {
@@ -22,5 +37,27 @@ describe("askUserTool", () => {
 
     test("caps how many questions one card holds", () => {
         expect(tool.schema?.safeParse({ questions: Array.from({ length: 7 }, () => question) }).success).toBe(false);
+    });
+
+    test("asks once per run, so a second call points at the card already up", async () => {
+        /**
+         * A model that re-asked while the loop asked it for `send_reply`
+         * was refused by a thrown error, which the loop read as a failed
+         * closing call: session 146 lost its whole answer to it. The card
+         * is up either way, so the second call just says so.
+         */
+        created = 0;
+        const refs: string[] = [];
+        const once = askUserTool({ user_id: 1, bot_id: 2, session_id: 3, onAsk: ({ ref }) => refs.push(ref) });
+        const signal = new AbortController().signal;
+
+        const first = await once.run({ args: { questions: [question] }, signal });
+        const second = await once.run({ args: { questions: [question] }, signal });
+
+        expect(created).toBe(1);
+        expect(refs).toHaveLength(1);
+        expect(String(first)).toContain("Asked the user 1 question");
+        expect(String(second)).toContain("already asked");
+        expect(String(second)).toContain("send_reply");
     });
 });

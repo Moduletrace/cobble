@@ -49,7 +49,7 @@ export default function suggestNextStepsTool({ user_id, bot_id, session_id, work
         }),
         run: async ({ args }) => {
             if (suggested) {
-                throw new Error(`You already suggested next steps in this run. Put every suggestion in one suggest_next_steps call.`);
+                return `The suggested steps are already attached to your message. Finish your reply with send_reply.`;
             }
 
             const id = await createBotSuggestion({

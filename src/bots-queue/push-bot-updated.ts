@@ -2,7 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOTS } from "@/db/types/db";
 import grabBotAudience from "@/src/functions/backend/db/access/grab-bot-audience";
 import { logError } from "@/src/functions/backend/logger";
-import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
+import grabActiveBotTasks from "@/src/functions/backend/db/bots/grab-active-bot-tasks";
 import grabBotFace from "@/src/functions/backend/db/bots/grab-bot-face";
 import { sendToUser } from "@/src/websocket/(functions)/send-to-user";
 
@@ -89,6 +89,12 @@ async function push({
     for (const viewer_id of audience) {
         if (users && !users.has(String(viewer_id))) continue;
 
+        /**
+         * Read per viewer, and every one of them: the push can't know which
+         * conversation is open, so the page picks its own task out.
+         */
+        const tasks = await grabActiveBotTasks({ bot_id, user_id: viewer_id });
+
         sendToUser({
             user_id: viewer_id,
             data: {
@@ -102,7 +108,8 @@ async function push({
                     admin_workspace_ids,
                     ...(computer_id !== undefined ? { computer_id: computer_id || null } : {}),
                     ...(workspace_ids !== undefined ? { workspace_ids } : {}),
-                    task: await grabActiveBotTask({ bot_id, user_id: viewer_id }),
+                    task: tasks[0] || null,
+                    tasks,
                 },
             },
         });

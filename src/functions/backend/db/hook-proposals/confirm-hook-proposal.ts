@@ -6,6 +6,7 @@ import updateBotHook from "../bot-hooks/update-bot-hook";
 import checkHookProposal from "./check-hook-proposal";
 import claimHookProposal from "./claim-hook-proposal";
 import grabHookProposal from "./grab-hook-proposal";
+import replacePendingHookProposals from "./replace-pending-hook-proposals";
 
 type Params = {
     user_id: number | string;
@@ -26,6 +27,16 @@ export default async function confirmHookProposal({ user_id, proposal_id }: Para
     const proposal = await grabHookProposal({ proposal_id, user_id });
 
     await claimHookProposal({ proposal, status: "confirmed" });
+
+    await replacePendingHookProposals({
+        proposal_id: proposal.id,
+        user_id: proposal.user_id,
+        bot_id: proposal.bot_id,
+        workspace_id: proposal.workspace_id,
+        hook_id: proposal.hook_id,
+        title: proposal.title,
+        reason: `Replaced by proposal #${proposal.id}, which was confirmed.`,
+    });
 
     let token: string | undefined;
 

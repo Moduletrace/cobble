@@ -1,10 +1,7 @@
-import type {
-    BUN_SQLITE_COBBLE_BOT_TASK_STEPS,
-    BUN_SQLITE_COBBLE_BOT_TASKS,
-} from "@/db/types/db";
+import type { BUN_SQLITE_COBBLE_BOT_TASKS } from "@/db/types/db";
 import type { BotTaskWithSteps } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
-import grabBotJobUpdates from "../bots-queue/grab-bot-job-updates";
+import withBotTaskSteps from "./with-bot-task-steps";
 
 type Params = {
     bot_id: number | string;
@@ -21,7 +18,9 @@ type Params = {
 /**
  * The bot's most recent active task (in one session or one user's
  * conversations, when given), its
- * steps and what its job has done so far, for the working-on panel.
+ * steps and what its job has done so far, for the working-on panel. A push
+ * sends every active task instead (`grabActiveBotTasks`), since this one
+ * may belong to a conversation the viewer isn't reading.
  */
 export default async function grabActiveBotTask({
     bot_id,
@@ -42,14 +41,5 @@ export default async function grabActiveBotTask({
         return null;
     }
 
-    const steps_res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_TASK_STEPS>({
-        sql: `SELECT * FROM bot_task_steps WHERE task_id = ? ORDER BY position ASC, id ASC`,
-        values: [task.id],
-    });
-
-    return {
-        ...task,
-        steps: steps_res.payload || [],
-        updates: await grabBotJobUpdates({ task_id: task.id }),
-    };
+    return withBotTaskSteps({ task });
 }

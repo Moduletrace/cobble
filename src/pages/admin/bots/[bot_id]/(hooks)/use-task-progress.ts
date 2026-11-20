@@ -27,6 +27,25 @@ function fromTask({ task }: { task: BotTaskWithSteps | null }): Progress {
 }
 
 /**
+ * The task of the session on screen, out of every task the push carries:
+ * the newest of them all is often a run in another conversation, and taking
+ * that one left this thread with nothing (`task` alone, when the push has no
+ * list).
+ */
+function ownTask({
+    data,
+    session_id,
+}: {
+    data: Pick<BotUpdatedData, "task" | "tasks">;
+    session_id?: number | null;
+}): BotTaskWithSteps | null {
+    const tasks = data.tasks || (data.task ? [data.task] : []);
+    const mine = session_id ? tasks.find((task) => task.session_id == session_id) : tasks[0];
+
+    return mine || null;
+}
+
+/**
  * The open session's active task and its latest step (a
  * `bots_queue_updates` row's text), kept current from
  * `server:bot-job-update`. Starts over when `server:bot-updated` brings a
@@ -54,7 +73,7 @@ export default function useTaskProgress({ bot_id, session_id, task }: Params) {
              * The user's active task with the bot may be in another of
              * their conversations with it.
              */
-            const task = data.task && (!session_id || data.task.session_id == session_id) ? data.task : null;
+            const task = ownTask({ data, session_id });
 
             setProgress((prev) => ((task?.id || null) == prev.task_id ? prev : fromTask({ task })));
         },

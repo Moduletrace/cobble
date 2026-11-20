@@ -301,15 +301,35 @@ const wrapUpToolsPrompt = ({
 };
 
 /**
- * The status a `send_reply` call declared, for the review: a call whose
- * arguments don't parse or name an unknown status is left undefined, and
- * the tool's own schema refuses it before this matters.
+ * The status a `send_reply` call declared, for the review: defaults to "working"
+ * when work is passed, otherwise "done". A call whose arguments don't parse or name an
+ * unknown status is left undefined.
  */
 const replyStatusFromCall = ({ call }: { call: HarnessToolCall }): ReplyStatus | undefined => {
     try {
         const args = JSON.parse(call.arguments || "{}");
+        const status = args?.status || (args?.work ? "working" : "done");
 
-        return ReplyStatuses.includes(args?.status) ? (args.status as ReplyStatus) : undefined;
+        return ReplyStatuses.includes(status) ? (status as ReplyStatus) : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+/**
+ * Message or text passed in send_reply's arguments, when the model placed the
+ * reply content in the tool call rather than assistant prose.
+ */
+const replyTextFromCall = ({ call }: { call: HarnessToolCall }): string | undefined => {
+    try {
+        const args = JSON.parse(call.arguments || "{}");
+        if (typeof args?.message === "string" && args.message.trim()) {
+            return args.message.trim();
+        }
+        if (typeof args?.text === "string" && args.text.trim()) {
+            return args.text.trim();
+        }
+        return undefined;
     } catch {
         return undefined;
     }
@@ -533,6 +553,16 @@ export default async function runTextLoop({
      * left for the follow-up (session 130, message 874).
      */
     let draft_text = "";
+    /**
+     * The message a turn wrote beside a card but without `send_reply`
+     * (`closing_required`). That prose is the sentence the card belongs
+     * under, not a draft about something else, so a later bare `send_reply`
+     * carries it instead of making the model write the whole answer again.
+     * Session 146 lost six answers this way: the text went out with
+     * `ask_user`, the loop asked for `send_reply`, and the next turn had
+     * nothing left to say.
+     */
+    let card_text = "";
     /**
      * A run whose prompt no longer fits the working context, with nothing
      * trimmable left, has been told, once (`oversizedRequestNote`).
@@ -800,6 +830,11 @@ export default async function runTextLoop({
         const tool_calls = offered.filter((call) => !wrap_up || wrap_tools.some((tool) => tool.name == call.name));
         const reply_call = tool_calls.filter((call) => call.name === SendReplyToolName).at(-1);
         const reply_status = reply_call ? replyStatusFromCall({ call: reply_call }) : undefined;
+        const call_text = reply_call ? replyTextFromCall({ call: reply_call }) : undefined;
+
+        if (!answer.text && call_text) {
+            answer.text = call_text;
+        }
 
         /**
          * What the app would never show as its own word comes out before
@@ -913,6 +948,7 @@ export default async function runTextLoop({
             if (!(wrap_up && !wrap_up_saving) && reply_drafts < AppData.HarnessReplyDraftsMax) {
                 reply_drafts += 1;
                 draft_text = answer.text || "";
+                card_text = "";
                 pushUserTurn({ transcript, content: replyDraftNote });
                 await traced({ kind: "event", index, name: "reply_draft", text: replyDraftNote });
                 continue;
@@ -982,7 +1018,20 @@ export default async function runTextLoop({
                 };
             }
 
-            if (check.verdict === "sent_back") continue;
+            if (check.verdict === "sent_back") {
+                /**
+                 * The answer is being written again, so nothing held from
+                 * the refused one may go out in its place: a draft or a
+                 * card's sentence re-sent unchanged is a fault again, and
+                 * three of those cost the user the answer (session 146).
+                 * The reminder flag goes with it, so the rewrite can be
+                 * told to write beside the call once more.
+                 */
+                draft_text = "";
+                card_text = "";
+                told_closing_text = false;
+                continue;
+            }
 
             /**
              * A wrap-up rewrite the review let through is the answer. The
@@ -1163,7 +1212,7 @@ export default async function runTextLoop({
          * has been told to write it again and still sent nothing, and only
          * when that draft is a finished message.
          */
-        const written_text = (answer.text || "").trim();
+        const written_text = (answer.text || call_text || "").trim();
         /**
          * A card is never paired with an older sentence: the card asked
          * something, and the draft was about something else. Filling it in
@@ -1172,11 +1221,29 @@ export default async function runTextLoop({
         const asked_something = tool_calls.some(
             (call) => call.name !== SendReplyToolName && isClosingTool({ name: call.name }),
         );
+        /**
+         * The sentence a card turn wrote is the one that card belongs under,
+         * so it is held for the `send_reply` that closes it, whether that
+         * turn is the next one or shares the card. No second reminder is
+         * needed: the loop already asked for the call, not the message. An
+         * earlier draft is not held that way: it was about something else,
+         * and pairing it with "Which date rule?" put "I checked the date
+         * rules." under it.
+         */
+        const carry_card = Boolean(card_text.trim()) && !unfinishedAnswerText({ text: card_text });
         const carry_draft =
             told_closing_text && !asked_something && !unfinishedAnswerText({ text: draft_text });
-        const message_text = written_text || (carry_draft ? draft_text : "");
+        const message_text = written_text || (carry_card ? card_text : carry_draft ? draft_text : "");
 
         if (called_card && (closing_failed || !closing || !closing_required)) {
+            /**
+             * A turn that put a card up and wrote the message beside it, but
+             * ended without `send_reply`, has written the reply: the next
+             * turn is asked for the call, not the whole message again.
+             */
+            if (closing && !closing_failed && !called_send_reply && written_text) {
+                card_text = written_text;
+            }
             /**
              * Bounded: past the retries a card-only turn ends on the answer
              * it wrote, reviewed like any reply, rather than looping on a
@@ -1270,7 +1337,9 @@ export default async function runTextLoop({
                     kind: "event",
                     index,
                     name: "draft_carried",
-                    text: "The message was written in an earlier turn. send_reply had no text beside it after one reminder, so that finished draft went out.",
+                    text: carry_card
+                        ? "The message was written beside a card in an earlier turn. send_reply had no text beside it after one reminder, so that message went out with the card under it."
+                        : "The message was written in an earlier turn. send_reply had no text beside it after one reminder, so that finished draft went out.",
                 });
             }
 
@@ -1280,6 +1349,7 @@ export default async function runTextLoop({
                 if (!told_unfinished && !(wrap_up && !wrap_up_saving)) {
                     told_unfinished = true;
                     draft_text = "";
+                    card_text = "";
                     pushUserTurn({ transcript, content: unfinished });
                     await traced({ kind: "event", index, name: "unfinished", text: unfinished });
                     continue;
@@ -1338,7 +1408,17 @@ export default async function runTextLoop({
                 };
             }
 
-            if (check.verdict === "sent_back") continue;
+            if (check.verdict === "sent_back") {
+                /**
+                 * Nothing held from the refused message may go out in its
+                 * place, and the reminder flag goes with it so the rewrite
+                 * can be asked for the text beside the call once more.
+                 */
+                draft_text = "";
+                card_text = "";
+                told_closing_text = false;
+                continue;
+            }
 
             return {
                 text: message_text,

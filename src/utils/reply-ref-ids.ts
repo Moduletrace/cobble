@@ -3,7 +3,7 @@ type Params = {
     /**
      * The ref's kind, as in `[file:12]`, `[task:20]` or `[suggestion:4]`.
      */
-    kind: "file" | "task" | "suggestion" | "question" | "plan" | "graphic";
+    kind: "file" | "task" | "suggestion" | "question" | "plan" | "graphic" | "proposal" | "hook-proposal";
 };
 
 /**

@@ -5,6 +5,7 @@ import type { HarnessContentPart, HarnessMessage, HarnessToolUse } from "@/src/h
 import type { BotMessageReaction, BotMessageWithAttachments } from "@/src/types";
 import describeMessageRefs, { type MessageRefNames } from "@/src/utils/describe-message-refs";
 import { AppRecordPrefix } from "@/src/utils/strip-app-records";
+import stripCardRefs from "@/src/utils/strip-card-refs";
 import describeAttachment from "./describe-attachment";
 import crewMessageBlock from "@/src/utils/crew-message-block";
 
@@ -106,8 +107,16 @@ function messageParts({
     }
 
     const own = message.text?.trim() || "";
+    /**
+     * The refs of the app's own cards (`[question:]`, `[suggestion:]`,
+     * `[plan:]`) are added to a stored message after the model wrote it, so
+     * replaying them as the bot's own words is what taught it to write
+     * `[question:24]` itself (session 146, job 785). They come out of the
+     * bot's history here; the message the user reads keeps them.
+     */
+    const said = role == "assistant" && own ? stripCardRefs({ text: own }) : own;
     const mentions = role == "user" && refs && own ? describeMessageRefs({ text: own, names: refs }) : "";
-    const text = replyContext({ message, text: mentions ? `${own}\n\n${mentions}` : own });
+    const text = replyContext({ message, text: mentions ? `${said}\n\n${mentions}` : said });
     const content: HarnessContentPart[] = text ? [{ type: "text", text }] : [];
 
     if (role == "assistant") {

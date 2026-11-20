@@ -271,6 +271,12 @@ export default function Conversation() {
     useReplyCatchUp({
         session_id,
         awaiting_reply,
+        /**
+         * A queued or running task of this session keeps the poll going after
+         * the reply that queued it landed: nothing else reads it again, so a
+         * run waiting behind another on its computer would never show.
+         */
+        running: Boolean(progress.task_id) || Boolean(open_reply_jobs),
         last_message_id: last_saved_id,
         on_open_jobs: ({ open_jobs }) => setOpenReplyJobs(open_jobs),
     });

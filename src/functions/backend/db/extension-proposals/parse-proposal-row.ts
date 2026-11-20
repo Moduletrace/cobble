@@ -28,6 +28,7 @@ export type ExtensionProposalRecord = {
     user_id: number;
     bot_id: number;
     session_id: number;
+    workspace_id: number | null;
 } & (
     | { kind: "mcp"; data: SaveMcpServerRequest }
     | { kind: "tool"; data: SaveCustomToolRequest }
@@ -54,6 +55,7 @@ export default function parseProposalRow({ row }: Params): ExtensionProposalReco
         user_id: Number(row.user_id),
         bot_id: Number(row.bot_id),
         session_id: Number(row.session_id),
+        workspace_id: row.workspace_id ? Number(row.workspace_id) : null,
     };
 
     if (kind == "mcp") return { ...base, kind, data: parseWithSchema({ schema: SaveMcpServerRequestSchema, data: raw }) };

@@ -1786,12 +1786,14 @@ describe("runTextLoop closing tools", () => {
 });
 
 describe("runTextLoop required send_reply", () => {
-    const sendReply: HarnessTool<{ status: "done" | "working" | "blocked"; work?: unknown }> = {
+    const sendReply: HarnessTool<{ status?: "done" | "working" | "blocked"; work?: unknown; message?: string; text?: string }> = {
         name: "send_reply",
         description: "Sends the message.",
         schema: z.object({
-            status: z.enum(["done", "working", "blocked"]),
+            status: z.enum(["done", "working", "blocked"]).optional(),
             work: z.unknown().optional(),
+            message: z.string().optional(),
+            text: z.string().optional(),
         }),
         run: async () => "Sent.",
     };
@@ -2164,6 +2166,125 @@ describe("runTextLoop required send_reply", () => {
 
         expect(seen[1]!.tools!.map((tool) => tool.name)).toEqual(["send_reply"]);
         expect(result.text).toBe("Report.");
+    });
+
+    test("send_reply with text in tool arguments sends the message directly", async () => {
+        const { generate } = scripted([
+            {
+                tool_calls: [
+                    {
+                        id: "s1",
+                        name: "send_reply",
+                        arguments: JSON.stringify({ status: "done", text: "Here is your skill." }),
+                    },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Install skill." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Here is your skill.");
+        expect(result.steps).toBe(1);
+    });
+
+    test("send_reply with message in tool arguments and no status defaults to done and sends the message", async () => {
+        const { generate } = scripted([
+            {
+                tool_calls: [
+                    {
+                        id: "s1",
+                        name: "send_reply",
+                        arguments: JSON.stringify({ message: "Link-building next, as you picked." }),
+                    },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "What next?" }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("Link-building next, as you picked.");
+        expect(result.steps).toBe(1);
+    });
+
+    test("a message written beside a card goes out when send_reply follows alone", async () => {
+        /**
+         * Session 146, job 795: the model wrote the whole answer in the
+         * turn that put the question up, the loop asked for `send_reply`,
+         * and the next turn had nothing left to say. The sentence beside
+         * the card is that card's sentence, so it is kept.
+         */
+        asked.length = 0;
+        const { generate } = scripted([
+            {
+                text: "RevOps is proposed. Which skill should I take next?",
+                tool_calls: [{ id: "q1", name: "ask_user", arguments: `{"question":"Which skill next?"}` }],
+            },
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Propose RevOps, then ask me." }],
+            tools: [askUser, sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("RevOps is proposed. Which skill should I take next?");
+        expect(result.steps).toBe(2);
+        expect(asked).toEqual(["Which skill next?"]);
+    });
+
+    test("an answer the review sends back is never carried a second time", async () => {
+        /**
+         * Session 146, job 785: the refused draft stayed held, so every
+         * later bare `send_reply` re-sent the same faulted text and used up
+         * the whole rewrite budget. It is dropped with the refusal.
+         */
+        const reviewed: string[] = [];
+        const notes = ["You named [proposal:999], which was never made."];
+        const { generate } = scripted([
+            { text: "Proposed [proposal:999] for you." },
+            { tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }] },
+            { tool_calls: [{ id: "s2", name: "send_reply", arguments: `{"status":"done"}` }] },
+            {
+                text: "The proposal is up for you.",
+                tool_calls: [{ id: "s3", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Propose it." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+            review: async ({ text }) => {
+                reviewed.push(text);
+
+                return notes.shift() || null;
+            },
+        });
+
+        expect(result.text).toBe("The proposal is up for you.");
+        expect(result.steps).toBe(4);
+        expect(reviewed).toEqual(["Proposed [proposal:999] for you.", "The proposal is up for you."]);
     });
 });
 

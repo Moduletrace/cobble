@@ -54,7 +54,11 @@ export const handler: BunextAPIRouteHandler<SessionMessagesResponse> = async ({ 
             bot: {
                 id: bot_id,
                 ...(await grabBotFace({ bot_id, user_id: user.id })),
-                task: await grabActiveBotTask({ bot_id, user_id: user.id }),
+                /**
+                 * The task of this session: the newest active one may be a
+                 * run in another conversation, which the page would drop.
+                 */
+                task: await grabActiveBotTask({ bot_id, user_id: user.id, session_id: session.id }),
             },
             step: await grabSessionReplyStep({ session_id: session.id }),
             open_jobs: await grabSessionOpenReplies({ session_id: session.id }),

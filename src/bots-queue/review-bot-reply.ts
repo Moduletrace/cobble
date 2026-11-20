@@ -6,6 +6,8 @@ import assertUserReachesTask from "@/src/functions/backend/db/tasks/assert-user-
 import { taskRowSql } from "@/src/functions/backend/db/tasks/run-task-sql";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import grabBotGraphic from "@/src/functions/backend/db/bot-graphics/grab-bot-graphic";
+import grabExtensionProposal from "@/src/functions/backend/db/extension-proposals/grab-extension-proposal";
+import grabHookProposal from "@/src/functions/backend/db/hook-proposals/grab-hook-proposal";
 import describeToolUses from "@/src/harness/text/describe-tool-uses";
 import type { HarnessToolUse } from "@/src/harness/types";
 import type { ReplyStatus } from "@/src/dict/reply-status-dict";
@@ -84,6 +86,28 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
     }
 
     /**
+     * A proposal ref names the card it makes, so it only exists once that
+     * card does: a number the model guessed describes a proposal the user
+     * never got. A row made to someone else doesn't open for this user
+     * either, so the lookup is by user, like the file check.
+     */
+    const missing_proposal_ids: number[] = [];
+
+    for (const proposal_id of replyRefIds({ text, kind: "proposal" })) {
+        const row = await grabExtensionProposal({ proposal_id, user_id }).catch(() => null);
+
+        if (!row) missing_proposal_ids.push(proposal_id);
+    }
+
+    const missing_hook_proposal_ids: number[] = [];
+
+    for (const proposal_id of replyRefIds({ text, kind: "hook-proposal" })) {
+        const row = await grabHookProposal({ proposal_id, user_id }).catch(() => null);
+
+        if (!row) missing_hook_proposal_ids.push(proposal_id);
+    }
+
+    /**
      * The cards the app adds under the message itself: any ref of theirs in
      * the answer was written by the model, since the app's own refs are
      * added after this check (`withTakeOverRefs`).
@@ -100,6 +124,8 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
         missing_mentioned_task_ids,
         unresolved_setting_refs: unresolvedSettingRefs({ text }),
         missing_graphic_ids,
+        missing_proposal_ids,
+        missing_hook_proposal_ids,
         written_card_refs,
         has_open_work: await hasOpenWork({ bot_id, session_id, exclude_job_id: job_id }),
         status,

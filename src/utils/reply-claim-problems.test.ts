@@ -287,6 +287,43 @@ I'll report what the run actually finds when it reports back.`;
         expect(problems[0]).toContain("list_graphics");
     });
 
+    test("names a proposal that was never made", () => {
+        /**
+         * Session 146: the model wrote `[proposal:19]` before proposal 19
+         * existed (it guessed the next number), and the user read "I didn't
+         * get the proposal" four times. Only the tool's own ref may appear.
+         */
+        const problems = replyClaimProblems({
+            text: "Proposed as [proposal:19]: Co-Marketing.",
+            tool_uses: [{ name: "send_reply", ok: true }],
+            missing_proposal_ids: [19],
+            missing_hook_proposal_ids: [4],
+        });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("[proposal:19]");
+        expect(problems[0]).toContain("was ever made");
+
+        expect(
+            replyClaimProblems({
+                text: "Proposed as [proposal:19]: Co-Marketing.",
+                tool_uses: [{ name: "propose_skill", ok: true }],
+            }),
+        ).toEqual([]);
+    });
+
+    test("names a hook proposal that was never made", () => {
+        const problems = replyClaimProblems({
+            text: "The hook is on the card: [hook-proposal:4]",
+            tool_uses: [{ name: "send_reply", ok: true }],
+            missing_hook_proposal_ids: [4],
+        });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("[hook-proposal:4]");
+        expect(problems[0]).toContain("was ever made");
+    });
+
     test("an answer that holds up has no problems", () => {
         expect(replyClaimProblems({ text: "Task #20 is cancelled.", tool_uses: [] })).toEqual([]);
     });

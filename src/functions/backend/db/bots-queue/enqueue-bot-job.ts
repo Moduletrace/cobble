@@ -9,6 +9,8 @@ import AppError from "@/src/utils/app-error";
 import grabUserBot from "../bots/grab-user-bot";
 import grabBotComputers from "../computers/grab-bot-computers";
 import grabUserBotSession from "../bot-sessions/grab-user-bot-session";
+import wakeBotsQueue from "@/src/bots-queue/wake-bots-queue";
+import pushBotUpdated from "@/src/bots-queue/push-bot-updated";
 
 type Params = {
     /**
@@ -159,6 +161,18 @@ export default async function enqueueBotJob({
     if (!res.success || !job_id) {
         throw new Error(`Couldn't queue the job: ${res.msg || res.error}`);
     }
+
+    /**
+     * The queue starts on this job now instead of at its next tick, and the
+     * user is told about the run straight away: the bot's face and every
+     * active task are pushed, so a queued run shows as one instead of
+     * appearing when the queue happens to claim it (a run waiting behind
+     * another on the same computer waits for that one to end). Best effort:
+     * the push logs its own failure, and a queue not running in this process
+     * picks the job up on its next poll.
+     */
+    wakeBotsQueue();
+    await pushBotUpdated({ bot_id: Number(bot.id), user_id: Number(user_id) });
 
     return job_id;
 }

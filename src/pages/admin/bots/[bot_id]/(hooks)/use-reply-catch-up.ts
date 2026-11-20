@@ -15,6 +15,12 @@ type Params = {
      */
     awaiting_reply: boolean;
     /**
+     * Something of this session's is still to show its work here (a queued
+     * run, or one working on a computer): a reply that already landed says
+     * nothing about it, so the poll keeps reading until it's done.
+     */
+    running?: boolean;
+    /**
      * The thread's last message: only newer ones are replayed.
      */
     last_message_id?: number | null;
@@ -46,6 +52,7 @@ type Params = {
 export default function useReplyCatchUp({
     session_id,
     awaiting_reply,
+    running,
     last_message_id,
     on_open_jobs,
 }: Params) {
@@ -114,16 +121,19 @@ export default function useReplyCatchUp({
     useRefocus({ onRefocus: () => void check() });
 
     /**
-     * While a reply is due, a poll covers a reply whose push was missed
-     * while the page stayed in front (a socket that dropped silently).
+     * While a reply is due, or something of this session's is still running,
+     * a poll covers a push that was missed while the page stayed in front (a
+     * socket that dropped silently). A run queued behind another on the same
+     * computer shows nothing at all without it: its reply already landed, so
+     * no reply is due, and nothing else would read the session again.
      */
     useEffect(() => {
-        if (!awaiting_reply || !session_id) return;
+        if ((!awaiting_reply && !running) || !session_id) return;
 
         const timer = setInterval(() => void check(), AppData.BotReplyCatchUpMs);
 
         return () => clearInterval(timer);
-    }, [awaiting_reply, session_id, check]);
+    }, [awaiting_reply, running, session_id, check]);
 
     /**
      * The socket was down while the page stayed open: going back online or

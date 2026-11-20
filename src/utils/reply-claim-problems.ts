@@ -42,6 +42,14 @@ type Params = {
      */
     written_card_refs?: string[];
     /**
+     * `[proposal:ID]` / `[hook-proposal:ID]` refs in the text that name no
+     * proposal the user was ever made: the model guessed the next id and
+     * described a card nobody got ("I didn't get the proposal", four times
+     * in one conversation).
+     */
+    missing_proposal_ids?: number[];
+    missing_hook_proposal_ids?: number[];
+    /**
      * A run of the bot's, a job it handed over or a room it asked, still
      * open from this conversation: its result is still to come.
      */
@@ -98,6 +106,8 @@ export default function replyClaimProblems({
     unresolved_setting_refs = [],
     missing_graphic_ids = [],
     written_card_refs = [],
+    missing_proposal_ids = [],
+    missing_hook_proposal_ids = [],
     has_open_work,
     status,
 }: Params): string[] {
@@ -130,6 +140,22 @@ export default function replyClaimProblems({
     if (missing_graphic_ids.length) {
         problems.push(
             `It names ${missing_graphic_ids.map((id) => `[graphic:${id}]`).join(", ")}, but no such graphic exists for the user. create_graphic returns the ref to write; list_graphics shows what's there.`,
+        );
+    }
+
+    /**
+     * A proposal ref that names nothing the user was made: a guessed number.
+     * The card only exists once the tool that proposes returned it, so a
+     * ref written beside the answer describes one nobody got.
+     */
+    if (missing_proposal_ids.length || missing_hook_proposal_ids.length) {
+        const refs = [
+            ...missing_proposal_ids.map((id) => `[proposal:${id}]`),
+            ...missing_hook_proposal_ids.map((id) => `[hook-proposal:${id}]`),
+        ];
+
+        problems.push(
+            `It names ${refs.join(", ")}, and no such proposal was ever made to the user. A proposal exists only once the tool that proposes one returned its ref (propose_skill, propose_browser, propose_hook and the like); the app puts that ref under your message itself, so never write one or guess the next number. Call the tool again if the proposal should be made now.`,
         );
     }
 

@@ -25,9 +25,8 @@ type Params = {
 
 /**
  * Wraps up a job that is out of attempts: stamps `finished_at` (so it's
- * reported once), tells the user in the bot's conversation and sets the
- * bot to needs-you for that user. Its task stays active, since the work isn't done. A
- * handed-over job's failure also goes to the bot that handed it over, and
+ * reported once), closes its own `bot_tasks` row, tells the user in the
+ * bot's conversation and sets the bot to needs-you for that user. A handed-over job's failure also goes to the bot that handed it over, and
  * blocks the handed-over task it worked on (`noteTrackerTask`). A hook run's
  * calls keep why it failed (`recordHookCallResponse`). A job working a crew request ends it
  * (`onAskJobEnded`) and leaves the bot's face alone.
@@ -44,6 +43,20 @@ export default async function notifyBotJobFailed({
         sql: `UPDATE bots_queue SET finished_at = ? WHERE id = ?`,
         values: [Date.now(), job.id],
     });
+
+    /**
+     * The run's own row is over too: left active it is the task every read
+     * of `grabActiveBotTask` returns for that user, so the conversation
+     * keeps showing a run that ended (one failed task in October was still
+     * the active task of its conversation months later), and no later run's
+     * progress could show in its place.
+     */
+    if (job.task_id) {
+        await BunSQLite.sql({
+            sql: `UPDATE bot_tasks SET status = 'done', updated_at = ? WHERE id = ?`,
+            values: [Date.now(), job.task_id],
+        });
+    }
 
     /**
      * A handed-over task's failed run links to that task.

@@ -15,6 +15,7 @@ import checkProposalData from "./check-proposal-data";
 import claimExtensionProposal from "./claim-extension-proposal";
 import grabExtensionProposal from "./grab-extension-proposal";
 import grabProposalEnvs from "./grab-proposal-envs";
+import replacePendingExtensionProposals from "./replace-pending-extension-proposals";
 
 type Params = {
     user_id: number | string;
@@ -33,6 +34,24 @@ export default async function confirmExtensionProposal({ user_id, proposal_id }:
     const proposal = await grabExtensionProposal({ proposal_id, user_id });
 
     await claimExtensionProposal({ proposal, status: "confirmed" });
+
+    /**
+     * Every other pending card for the same thing is replaced now that one
+     * was confirmed: a card left pending can still be pressed, and its
+     * outcome is already written (proposal #41 dangled a day after #42
+     * made the same skill).
+     */
+    await replacePendingExtensionProposals({
+        proposal_id: proposal.id,
+        user_id: proposal.user_id,
+        bot_id: proposal.bot_id,
+        workspace_id: proposal.workspace_id,
+        kind: proposal.kind,
+        slug: proposal.kind == "skill" ? proposal.data.slug : null,
+        extension_id: proposal.extension_id,
+        name: proposal.data.name,
+        reason: `Replaced by proposal #${proposal.id}, which was confirmed.`,
+    });
 
     try {
         if (proposal.kind == "skill") {
