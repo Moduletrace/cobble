@@ -89,6 +89,7 @@ export default function ToolsSettingsSection() {
                         onChanged={changed}
                         onRefreshed={setOverview}
                         onError={failed}
+                        onCopied={(msg) => setStatus({ success: true, msg })}
                     />
                 ))}
             </SettingsList>

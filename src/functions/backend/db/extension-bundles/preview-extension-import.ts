@@ -7,11 +7,11 @@ import type {
     ExtensionImportStatus,
 } from "@/src/types";
 import hasEnvTemplate from "@/src/utils/has-env-template";
-import extensionItemSchema from "./extension-item-schemas";
+import extensionItemSchema from "@/src/utils/extension-item-schema";
+import normalizeExtensionConfig from "@/src/utils/normalize-extension-config";
 import grabExistingExtensionItems from "./grab-existing-extension-items";
 import matchExtensionItem, { type ExistingExtensionItem } from "./match-extension-item";
 import missingEnvKeys from "./missing-env-keys";
-import normalizeExtensionConfig from "./normalize-extension-config";
 
 type Params = {
     bundle: ExtensionBundle;

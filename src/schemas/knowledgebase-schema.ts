@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
+import { ExtensionBundleDocumentSchema } from "@/src/schemas/extension-bundle-schema";
 
 const Id = z.coerce.number().int().positive();
 
@@ -12,6 +13,13 @@ export const SaveKnowledgebaseRequestSchema = z.object({
 });
 
 export type SaveKnowledgebaseRequest = z.infer<typeof SaveKnowledgebaseRequestSchema>;
+
+/**
+ * A knowledgebase saved together with documents a paste brought along.
+ */
+export const SaveKnowledgebaseWithDocumentsRequestSchema = SaveKnowledgebaseRequestSchema.extend({
+    documents: z.array(ExtensionBundleDocumentSchema).max(AppData.ExtensionBundleMaxDocuments).default([]),
+});
 
 export const KnowledgebaseIdRequestSchema = z.object({
     knowledgebase_id: Id,

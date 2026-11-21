@@ -9,6 +9,7 @@ import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowMenu from "../../(partials)/settings-row-menu";
 import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
 import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
+import CopyExtensionMenuItem from "../../(partials)/copy-extension-menu-item";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
 import knowledgebaseIndexState from "@/src/utils/knowledgebase-index-state";
@@ -26,6 +27,7 @@ type Props = {
     embedding_model: string | null;
     onChanged: (overview: KnowledgebasesOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
+    onCopied: (msg: string) => void;
     /**
      * Whether it is picked for an export.
      */
@@ -39,7 +41,7 @@ type Props = {
  * documents, who gets it, and for a super admin editing, retrying the
  * ones that failed, reading every document again, and deleting it.
  */
-export default function KnowledgebaseRow({ selected, onSelected, knowledgebase, targets, embedding_model, onChanged, onError }: Props) {
+export default function KnowledgebaseRow({ selected, onSelected, knowledgebase, targets, embedding_model, onChanged, onError, onCopied }: Props) {
     const [open, setOpen] = useState<"documents" | "edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -109,6 +111,16 @@ export default function KnowledgebaseRow({ selected, onSelected, knowledgebase, 
                             <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
                         ) : null}
                         <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <CopyExtensionMenuItem
+                                kind="knowledgebase"
+                                id={knowledgebase.id}
+                                one="knowledgebase"
+                                disabled={busy}
+                                onCopied={onCopied}
+                                onError={onError}
+                            />
+                        ) : null}
                         {targets.can_edit && knowledgebase.warning_count ? (
                             <SettingsRowMenuItem
                                 icon={RotateCcw}

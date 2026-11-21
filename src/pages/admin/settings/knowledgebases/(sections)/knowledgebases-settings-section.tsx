@@ -116,6 +116,7 @@ export default function KnowledgebasesSettingsSection() {
                         embedding_model={overview.embedding_model}
                         onChanged={changed}
                         onError={failed}
+                        onCopied={(msg) => setStatus({ success: true, msg })}
                     />
                 ))}
             </SettingsList>

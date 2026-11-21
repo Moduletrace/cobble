@@ -9,6 +9,7 @@ import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowMenu from "../../(partials)/settings-row-menu";
 import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
 import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
+import CopyExtensionMenuItem from "../../(partials)/copy-extension-menu-item";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
 import SkillModal from "./skill-modal";
@@ -19,6 +20,7 @@ type Props = {
     limits: SkillLimitsOverview;
     onChanged: (overview: SkillsOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
+    onCopied: (msg: string) => void;
     /**
      * Whether it is picked for an export.
      */
@@ -30,7 +32,7 @@ type Props = {
  * One skill: its slug and when it applies, and who gets it. Its actions
  * live in the three-dot menu: edit, who gets it and deleting it.
  */
-export default function SkillRow({ selected, onSelected, skill, targets, limits, onChanged, onError }: Props) {
+export default function SkillRow({ selected, onSelected, skill, targets, limits, onChanged, onError, onCopied }: Props) {
     const [open, setOpen] = useState<"edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -76,6 +78,16 @@ export default function SkillRow({ selected, onSelected, skill, targets, limits,
                             <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
                         ) : null}
                         <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <CopyExtensionMenuItem
+                                kind="skill"
+                                id={skill.id}
+                                one="skill"
+                                disabled={busy}
+                                onCopied={onCopied}
+                                onError={onError}
+                            />
+                        ) : null}
                         {targets.can_edit ? (
                             <SettingsRowMenuItem
                                 icon={Trash2}

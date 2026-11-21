@@ -10,6 +10,8 @@ import CodeEditor from "@/src/components/general/code-editor";
 import { CustomToolKinds, type CustomToolKind } from "@/src/dict/custom-tool-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { CustomToolsOverviewPayload, PublicCustomTool } from "@/src/types";
+import type { ExtensionPaste } from "@/src/utils/read-extension-paste";
+import PasteExtensionModal from "../../(partials)/paste-extension-modal";
 import { DefaultToolConfigs, DefaultToolParameters } from "../(data)/tool-defaults";
 import CustomToolKindFields, { type ToolConfigs } from "./custom-tool-kind-fields";
 import CustomToolTestPanel from "./custom-tool-test-panel";
@@ -44,8 +46,41 @@ export default function CustomToolModal({ tool, onSaved, onCancel }: Props) {
     const [all_bots, setAllBots] = useState(tool?.access.all_bots ?? false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
+    /**
+     * Remounts the form after a paste: a code field reads its text only
+     * when it is created.
+     */
+    const [form_version, setFormVersion] = useState(0);
+    /**
+     * The JSON paste: its own modal, over this form.
+     */
+    const [paste_open, setPasteOpen] = useState(false);
+    /**
+     * What a pasted export brought along, under the form.
+     */
+    const [notice, setNotice] = useState<string>();
 
     const id = `tool-${tool?.id || "new"}`;
+
+    /**
+     * Fills the form from JSON another install exported.
+     */
+    const fill = ({ paste, notice }: { paste: ExtensionPaste; notice: string }) => {
+        if (paste.kind != "tool") return;
+
+        const config = paste.config;
+
+        setName(config.name);
+        setDescription(config.description);
+        setKind(config.kind);
+        setParameters(JSON.stringify(config.parameters, null, 2));
+        setConfigs({ ...DefaultToolConfigs, [config.kind]: config.config });
+        setEnabled(config.enabled);
+        setAllBots(config.all_bots);
+        setError(undefined);
+        setNotice(notice);
+        setFormVersion((prev) => prev + 1);
+    };
 
     /**
      * The tool as the form has it, for a test that saves nothing.
@@ -106,7 +141,7 @@ export default function CustomToolModal({ tool, onSaved, onCancel }: Props) {
             title={tool ? `Edit ${tool.name}` : "Add a tool"}
             description={"Bots get it once it's attached to them."}
         >
-            <Form className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
+            <Form key={form_version} className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
                 <Input
                     id={`${id}-name`}
                     title="Name"
@@ -154,8 +189,18 @@ export default function CustomToolModal({ tool, onSaved, onCancel }: Props) {
                     checked={all_bots}
                     changeHandler={setAllBots}
                 />
-                <AddFormActions submit_label={tool ? "Save" : "Add tool"} loading={loading} error={error} onCancel={onCancel} />
+                <AddFormActions
+                    submit_label={tool ? "Save" : "Add tool"}
+                    loading={loading}
+                    error={error}
+                    notice={notice}
+                    onCancel={onCancel}
+                    action={!tool ? { label: "Paste JSON", onClick: () => setPasteOpen(true) } : undefined}
+                />
             </Form>
+            {!tool && paste_open ? (
+                <PasteExtensionModal kind="tool" onFill={fill} onCancel={() => setPasteOpen(false)} />
+            ) : null}
         </AddModalShell>
     );
 }

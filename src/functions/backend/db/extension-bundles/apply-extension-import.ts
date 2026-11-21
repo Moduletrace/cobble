@@ -20,10 +20,10 @@ import saveSkill from "../extensions/save-skill";
 import grabKnowledgebasesOverview from "../knowledgebases/grab-knowledgebases-overview";
 import recordKnowledgebaseDocument from "../knowledgebases/record-knowledgebase-document";
 import saveKnowledgebase from "../knowledgebases/save-knowledgebase";
-import extensionItemSchema from "./extension-item-schemas";
+import extensionItemSchema from "@/src/utils/extension-item-schema";
+import normalizeExtensionConfig from "@/src/utils/normalize-extension-config";
 import grabExistingExtensionItems from "./grab-existing-extension-items";
 import matchExtensionItem, { type ExistingExtensionItem } from "./match-extension-item";
-import normalizeExtensionConfig from "./normalize-extension-config";
 import uniqueCopyName from "./unique-copy-name";
 
 type Params = {

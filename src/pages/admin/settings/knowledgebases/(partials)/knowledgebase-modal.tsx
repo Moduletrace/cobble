@@ -6,7 +6,9 @@ import Form from "@moduletrace/twui/form/Form";
 import Input from "@moduletrace/twui/form/Input";
 import Textarea from "@moduletrace/twui/form/Textarea";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
-import type { KnowledgebasesOverviewPayload, PublicKnowledgebase } from "@/src/types";
+import type { ExtensionBundleDocument, KnowledgebasesOverviewPayload, PublicKnowledgebase } from "@/src/types";
+import type { ExtensionPaste } from "@/src/utils/read-extension-paste";
+import PasteExtensionModal from "../../(partials)/paste-extension-modal";
 
 type Props = {
     /**
@@ -29,8 +31,43 @@ export default function KnowledgebaseModal({ knowledgebase, onSaved, onCancel }:
     const [all_bots, setAllBots] = useState(knowledgebase?.access.all_bots ?? false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
+    /**
+     * The documents a pasted export brings, added when it's saved.
+     */
+    const [documents, setDocuments] = useState<ExtensionBundleDocument[]>([]);
+    /**
+     * Remounts the form after a paste: an input reads its value only when
+     * it is created.
+     */
+    const [form_version, setFormVersion] = useState(0);
+    /**
+     * The JSON paste: its own modal, over this form.
+     */
+    const [paste_open, setPasteOpen] = useState(false);
+    /**
+     * What a pasted export brought along, under the form.
+     */
+    const [notice, setNotice] = useState<string>();
 
     const id = `knowledgebase-${knowledgebase?.id || "new"}`;
+
+    /**
+     * Fills the form from JSON another install exported.
+     */
+    const fill = ({ paste, notice }: { paste: ExtensionPaste; notice: string }) => {
+        if (paste.kind != "knowledgebase") return;
+
+        const config = paste.config;
+
+        setName(config.name);
+        setDescription(config.description);
+        setEnabled(config.enabled);
+        setAllBots(config.all_bots);
+        setDocuments(paste.item.documents);
+        setError(undefined);
+        setNotice(notice);
+        setFormVersion((prev) => prev + 1);
+    };
 
     const submit = async () => {
         if (
@@ -45,7 +82,7 @@ export default function KnowledgebaseModal({ knowledgebase, onSaved, onCancel }:
 
         const res = await postAdminApi<KnowledgebasesOverviewPayload>({
             path: "knowledgebases/save-knowledgebase",
-            body: { knowledgebase_id: knowledgebase?.id, name, description, enabled, all_bots },
+            body: { knowledgebase_id: knowledgebase?.id, name, description, enabled, all_bots, documents },
         });
 
         setLoading(false);
@@ -63,9 +100,9 @@ export default function KnowledgebaseModal({ knowledgebase, onSaved, onCancel }:
             open
             setOpen={(next) => !next && onCancel()}
             title={knowledgebase ? `Edit ${knowledgebase.name}` : "Add a knowledgebase"}
-            description="Bots search it once it's attached to them. Add its documents from its row."
+            description="Bots search it once it's attached to them. Add its documents from its row, or paste an export that brings them."
         >
-            <Form className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
+            <Form key={form_version} className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
                 <Input
                     id={`${id}-name`}
                     title="Name"
@@ -99,9 +136,14 @@ export default function KnowledgebaseModal({ knowledgebase, onSaved, onCancel }:
                     submit_label={knowledgebase ? "Save" : "Add knowledgebase"}
                     loading={loading}
                     error={error}
+                    notice={notice}
                     onCancel={onCancel}
+                    action={!knowledgebase ? { label: "Paste JSON", onClick: () => setPasteOpen(true) } : undefined}
                 />
             </Form>
+            {!knowledgebase && paste_open ? (
+                <PasteExtensionModal kind="knowledgebase" onFill={fill} onCancel={() => setPasteOpen(false)} />
+            ) : null}
         </AddModalShell>
     );
 }

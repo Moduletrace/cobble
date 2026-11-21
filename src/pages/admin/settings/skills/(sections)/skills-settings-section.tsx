@@ -90,6 +90,7 @@ export default function SkillsSettingsSection() {
                         limits={overview.limits}
                         onChanged={changed}
                         onError={failed}
+                        onCopied={(msg) => setStatus({ success: true, msg })}
                     />
                 ))}
             </SettingsList>

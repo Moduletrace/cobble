@@ -8,6 +8,8 @@ import Textarea from "@moduletrace/twui/form/Textarea";
 import CodeEditor from "@/src/components/general/code-editor";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { PublicSkill, SkillLimitsOverview, SkillsOverviewPayload } from "@/src/types";
+import type { ExtensionPaste } from "@/src/utils/read-extension-paste";
+import PasteExtensionModal from "../../(partials)/paste-extension-modal";
 
 type Props = {
     /**
@@ -36,8 +38,40 @@ export default function SkillModal({ skill, limits, onSaved, onCancel }: Props) 
     const [all_bots, setAllBots] = useState(skill?.access.all_bots ?? false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
+    /**
+     * Remounts the form after a paste: a code field reads its text only
+     * when it is created.
+     */
+    const [form_version, setFormVersion] = useState(0);
+    /**
+     * The JSON paste: its own modal, over this form.
+     */
+    const [paste_open, setPasteOpen] = useState(false);
+    /**
+     * What a pasted export brought along, under the form.
+     */
+    const [notice, setNotice] = useState<string>();
 
     const id = `skill-${skill?.id || "new"}`;
+
+    /**
+     * Fills the form from JSON another install exported.
+     */
+    const fill = ({ paste, notice }: { paste: ExtensionPaste; notice: string }) => {
+        if (paste.kind != "skill") return;
+
+        const config = paste.config;
+
+        setName(config.name);
+        setSlug(config.slug);
+        setDescription(config.description);
+        setBody(config.body);
+        setEnabled(config.enabled);
+        setAllBots(config.all_bots);
+        setError(undefined);
+        setNotice(notice);
+        setFormVersion((prev) => prev + 1);
+    };
 
     const submit = async () => {
         if (loading || !window.confirm(skill ? `Save ${skill.name}?` : `Add ${name || "this skill"}?`)) return;
@@ -67,7 +101,7 @@ export default function SkillModal({ skill, limits, onSaved, onCancel }: Props) 
             title={skill ? `Edit ${skill.name}` : "Add a skill"}
             description={"Bots get it once it's attached to them."}
         >
-            <Form className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
+            <Form key={form_version} className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
                 <Input
                     id={`${id}-name`}
                     title="Name"
@@ -116,8 +150,18 @@ export default function SkillModal({ skill, limits, onSaved, onCancel }: Props) 
                     checked={all_bots}
                     changeHandler={setAllBots}
                 />
-                <AddFormActions submit_label={skill ? "Save" : "Add skill"} loading={loading} error={error} onCancel={onCancel} />
+                <AddFormActions
+                    submit_label={skill ? "Save" : "Add skill"}
+                    loading={loading}
+                    error={error}
+                    notice={notice}
+                    onCancel={onCancel}
+                    action={!skill ? { label: "Paste JSON", onClick: () => setPasteOpen(true) } : undefined}
+                />
             </Form>
+            {!skill && paste_open ? (
+                <PasteExtensionModal kind="skill" onFill={fill} onCancel={() => setPasteOpen(false)} />
+            ) : null}
         </AddModalShell>
     );
 }

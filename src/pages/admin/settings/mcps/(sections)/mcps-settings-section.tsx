@@ -88,6 +88,7 @@ export default function McpsSettingsSection() {
                         targets={overview}
                         onChanged={changed}
                         onError={failed}
+                        onCopied={(msg) => setStatus({ success: true, msg })}
                     />
                 ))}
             </SettingsList>

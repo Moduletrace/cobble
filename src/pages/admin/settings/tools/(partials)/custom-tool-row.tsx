@@ -11,6 +11,7 @@ import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowMenu from "../../(partials)/settings-row-menu";
 import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
 import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
+import CopyExtensionMenuItem from "../../(partials)/copy-extension-menu-item";
 import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
@@ -26,6 +27,7 @@ type Props = {
      */
     onRefreshed: (overview: CustomToolsOverviewPayload) => void;
     onError: (msg: string) => void;
+    onCopied: (msg: string) => void;
     /**
      * Whether it is picked for an export.
      */
@@ -38,7 +40,7 @@ type Props = {
  * last run went (a bot's call or a try). Its actions live in the three-dot
  * menu: edit, who gets it, trying it and deleting it.
  */
-export default function CustomToolRow({ selected, onSelected, tool, targets, onChanged, onRefreshed, onError }: Props) {
+export default function CustomToolRow({ selected, onSelected, tool, targets, onChanged, onRefreshed, onError, onCopied }: Props) {
     const [open, setOpen] = useState<"edit" | "access" | "try">();
     const [busy, setBusy] = useState(false);
 
@@ -92,6 +94,16 @@ export default function CustomToolRow({ selected, onSelected, tool, targets, onC
                             <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
                         ) : null}
                         <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <CopyExtensionMenuItem
+                                kind="tool"
+                                id={tool.id}
+                                one="tool"
+                                disabled={busy}
+                                onCopied={onCopied}
+                                onError={onError}
+                            />
+                        ) : null}
                         {targets.can_edit ? (
                             <SettingsRowMenuItem
                                 icon={Play}

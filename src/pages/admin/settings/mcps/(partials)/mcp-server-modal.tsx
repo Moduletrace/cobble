@@ -16,8 +16,10 @@ import type { EnvKeyOption, McpServersOverviewPayload, McpServerTestPayload, Pub
 import SettingsStatus from "../../(partials)/settings-status";
 import parseTemplateLines, { templateLines } from "@/src/utils/parse-template-lines";
 import parseMcpHeaders, { composeMcpHeaders, envTemplate } from "@/src/utils/mcp-headers";
+import type { ExtensionPaste } from "@/src/utils/read-extension-paste";
 import McpAuthFields from "../../(partials)/mcp-auth-fields";
 import NewEnvModal from "../../(partials)/envs/new-env-modal";
+import PasteExtensionModal from "../../(partials)/paste-extension-modal";
 import listGeneralEnvs from "../../(functions)/list-general-envs";
 import McpToolToggle from "./mcp-tool-toggle";
 
@@ -75,6 +77,19 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
     const [tools, setTools] = useState(server?.tools || []);
     const [testing, setTesting] = useState(false);
     const [test, setTest] = useState<{ ok: boolean; msg: string; error?: string }>();
+    /**
+     * Remounts the form after a paste: a code field reads its text only
+     * when it is created.
+     */
+    const [form_version, setFormVersion] = useState(0);
+    /**
+     * The JSON paste: its own modal, over this form.
+     */
+    const [paste_open, setPasteOpen] = useState(false);
+    /**
+     * What a pasted export brought along, under the form.
+     */
+    const [notice, setNotice] = useState<string>();
 
     const id = `mcp-${server?.id || "new"}`;
 
@@ -128,6 +143,38 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
     });
 
     /**
+     * Fills the form from JSON another install exported.
+     */
+    const fill = ({ paste, notice }: { paste: ExtensionPaste; notice: string }) => {
+        if (paste.kind != "mcp") return;
+
+        const config = paste.config;
+
+        setName(config.name);
+        setDescription(config.description);
+        setTransport(config.transport);
+        setUrl(config.url);
+        setHeaderFields(
+            parseMcpHeaders({
+                headers: config.headers,
+                scheme: config.auth_scheme,
+                header_name: config.auth_header,
+            }),
+        );
+        setCommand(config.command);
+        setSetupCommand(config.setup_command);
+        setEnv(templateLines({ map: config.env, separator: "=" }));
+        setExcluded(config.excluded_tools);
+        setEnabled(config.enabled);
+        setAllBots(config.all_bots);
+        setTools([]);
+        setTest(undefined);
+        setError(undefined);
+        setNotice(notice);
+        setFormVersion((prev) => prev + 1);
+    };
+
+    /**
      * Connects as the form is now, saved or not, and shows its tools.
      */
     const runTest = async () => {
@@ -179,7 +226,7 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
             title={server ? `Edit ${server.name}` : "Add an MCP server"}
             description={"Bots get its tools once it's attached to them. Saving connects and lists them."}
         >
-            <Form className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
+            <Form key={form_version} className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>
                 <Input
                     id={`${id}-name`}
                     title="Name"
@@ -326,9 +373,14 @@ export default function McpServerModal({ server, busy, onReinstall, onSaved, onC
                     submit_label={server ? "Save and connect" : "Add and connect"}
                     loading={loading}
                     error={error}
+                    notice={notice}
                     onCancel={onCancel}
+                    action={!server ? { label: "Paste JSON", onClick: () => setPasteOpen(true) } : undefined}
                 />
             </Form>
+            {!server && paste_open ? (
+                <PasteExtensionModal kind="mcp" onFill={fill} onCancel={() => setPasteOpen(false)} />
+            ) : null}
             {new_env_for ? <NewEnvModal onSaved={pickNewEnv} onCancel={() => setNewEnvFor(undefined)} /> : null}
         </AddModalShell>
     );

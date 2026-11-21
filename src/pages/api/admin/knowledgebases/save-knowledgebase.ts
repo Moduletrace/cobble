@@ -1,8 +1,9 @@
 import grabSuperAdminUser from "@/src/functions/backend/backups/grab-super-admin-user";
 import grabKnowledgebasesOverview from "@/src/functions/backend/db/knowledgebases/grab-knowledgebases-overview";
+import recordKnowledgebaseDocument from "@/src/functions/backend/db/knowledgebases/record-knowledgebase-document";
 import saveKnowledgebase from "@/src/functions/backend/db/knowledgebases/save-knowledgebase";
 import logEvent, { grabRequestIP } from "@/src/functions/backend/logger";
-import { SaveKnowledgebaseRequestSchema } from "@/src/schemas/knowledgebase-schema";
+import { SaveKnowledgebaseWithDocumentsRequestSchema } from "@/src/schemas/knowledgebase-schema";
 import type { KnowledgebasesOverviewPayload } from "@/src/types";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
@@ -29,14 +30,28 @@ export const handler: BunextAPIRouteHandler<
             throw new AppError(`Only a super admin can do that.`);
         }
 
-        const data = parseWithSchema({ schema: SaveKnowledgebaseRequestSchema, data: body });
+        const data = parseWithSchema({ schema: SaveKnowledgebaseWithDocumentsRequestSchema, data: body });
         const knowledgebase_id = await saveKnowledgebase({ user_id: user.id, data });
+
+        for (const document of data.documents) {
+            await recordKnowledgebaseDocument({
+                user_id: user.id,
+                knowledgebase_id,
+                name: document.name,
+                source: "text",
+                content: document.text,
+                mime_type: document.mime_type || "text/markdown",
+                size: Buffer.byteLength(document.text, "utf8"),
+            });
+        }
+
+        const documents = data.documents.length ? ` with ${data.documents.length} document(s)` : "";
 
         await logEvent({
             title: data.knowledgebase_id ? "Knowledgebase changed" : "Knowledgebase added",
             category: "system",
             user_id: user.id,
-            plain_text: `User #${user.id} ${data.knowledgebase_id ? "changed" : "added"} the knowledgebase ${data.name} (#${knowledgebase_id}).`,
+            plain_text: `User #${user.id} ${data.knowledgebase_id ? "changed" : "added"} the knowledgebase ${data.name}${documents} (#${knowledgebase_id}).`,
             metadata: { knowledgebase_id },
             ip_address: grabRequestIP(req),
         });

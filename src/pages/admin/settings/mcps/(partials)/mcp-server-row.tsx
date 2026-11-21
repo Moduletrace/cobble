@@ -11,6 +11,7 @@ import SettingsListRow from "../../(partials)/settings-list-row";
 import SettingsRowMenu from "../../(partials)/settings-row-menu";
 import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
 import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
+import CopyExtensionMenuItem from "../../(partials)/copy-extension-menu-item";
 import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
@@ -21,6 +22,7 @@ type Props = {
     targets: ExtensionTargets;
     onChanged: (overview: McpServersOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
+    onCopied: (msg: string) => void;
     /**
      * Whether it is picked for an export.
      */
@@ -34,7 +36,7 @@ type Props = {
  * live in the three-dot menu: edit, who gets it, refreshing its tools and
  * deleting it.
  */
-export default function McpServerRow({ selected, onSelected, server, targets, onChanged, onError }: Props) {
+export default function McpServerRow({ selected, onSelected, server, targets, onChanged, onError, onCopied }: Props) {
     const [open, setOpen] = useState<"edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -85,6 +87,16 @@ export default function McpServerRow({ selected, onSelected, server, targets, on
                             <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
                         ) : null}
                         <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <CopyExtensionMenuItem
+                                kind="mcp"
+                                id={server.id}
+                                one="MCP server"
+                                disabled={busy}
+                                onCopied={onCopied}
+                                onError={onError}
+                            />
+                        ) : null}
                         {targets.can_edit ? (
                             <SettingsRowMenuItem
                                 icon={RefreshCw}
