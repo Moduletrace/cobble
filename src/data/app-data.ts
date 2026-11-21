@@ -57,6 +57,13 @@ export const AppData = {
      * it stays as they left it in every conversation.
      */
     DebugViewStorageKey: `${SiteData["SiteSlug"]}_debug_view_open`,
+    /**
+     * Which conversations were left with Plan mode on, on this device
+     * (`readPlanMode`/`rememberPlanMode`): keyed by bot and workspace, so
+     * a mode turned on here doesn't follow the user to another
+     * conversation.
+     */
+    PlanModeStorageKey: `${SiteData["SiteSlug"]}_plan_mode`,
     ServerHealthMessage: "Server Running Well",
     AuthKeyCookieName: `${SiteData["SiteSlug"]}_auth_key`,
     AuthCSRFCookieName: `${SiteData["SiteSlug"]}_auth_csrf`,

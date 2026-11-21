@@ -108,6 +108,11 @@ type Params = {
      * Called with a file the reply sent, so the message carries it.
      */
     onAttach?: (params: { media_id: number; name: string }) => void;
+    /**
+     * Plan mode: the reply plans and reads, and starts nothing. `send_reply`
+     * refuses work, and `run-bot-reply` filters the tools to the allowlist.
+     */
+    plan_mode?: boolean;
 };
 
 /**
@@ -158,6 +163,7 @@ export default async function grabBotChatTools({
     onWorkspaceAdmin,
     onTask,
     onAttach,
+    plan_mode,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const dirs = computerRunDirs({ bot_id, bot_kind: bot.kind, user_id, workspace_id });
@@ -184,6 +190,7 @@ export default async function grabBotChatTools({
             job_id,
             run_kind,
             onQueue,
+            plan_mode,
         }),
         ...(computers.length
             ? [

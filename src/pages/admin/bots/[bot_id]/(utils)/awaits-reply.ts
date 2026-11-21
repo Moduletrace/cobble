@@ -33,6 +33,11 @@ type Params = {
  * message last with nothing on its way, and the row would wait forever. A
  * reply asked for again is the exception, since its job may not have been
  * claimed when the open jobs were read.
+ *
+ * A plan step is a reply the app queues with no user message before it, so
+ * the bot's own report has the last word while the next step is already on
+ * its way: an open reply job is a reply due here, whatever the last message
+ * says.
  */
 export default function awaitsReply({
     moved_on,
@@ -43,7 +48,8 @@ export default function awaitsReply({
 }: Params) {
     if (moved_on) return false;
     if (rerun_message_id != null) return true;
+    if ((open_reply_jobs ?? 0) > 0) return true;
     if (!isAwaitingReply({ last_message, face })) return false;
 
-    return open_reply_jobs == null || open_reply_jobs > 0;
+    return open_reply_jobs == null;
 }

@@ -2385,6 +2385,13 @@ export type ConversationHistory = {
      */
     step?: BotJobUpdateData | null;
     /**
+     * How many replies are still to come in the session (queued and being
+     * written). A plan step is one of them, and it answers with no user
+     * message before it, so this is what tells the thread a reply is on its
+     * way and its thinking row should show.
+     */
+    open_jobs?: number | null;
+    /**
      * When the session shown was carried over into a newer one (it stays
      * closed, to read): that session. Null otherwise.
      */

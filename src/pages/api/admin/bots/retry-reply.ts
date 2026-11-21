@@ -79,8 +79,8 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
         ).payload?.[0];
 
         const latest_user = (
-            await BunSQLite.sql<{ id: number }>({
-                sql: `SELECT id FROM bot_messages
+            await BunSQLite.sql<{ id: number; plan_mode: number | null }>({
+                sql: `SELECT id, plan_mode FROM bot_messages
                     WHERE session_id = ? AND author = 'user'
                     ORDER BY id DESC LIMIT 1`,
                 values: [Number(message.session_id)],
@@ -151,7 +151,10 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, b
             bot_id: Number(message.bot_id),
             session_id: Number(message.session_id),
             message_id: Number(latest_user?.id),
-            params: { retry_of: Number(message.id) },
+            params: {
+                retry_of: Number(message.id),
+                ...(latest_user?.plan_mode ? { plan_mode: true } : {}),
+            },
         });
 
         wakeBotsQueue();

@@ -46,6 +46,16 @@ describe("awaitsReply", () => {
         ).toBe(false);
     });
 
+    test("a plan step on its way stands the row over the bot's own report", () => {
+        expect(
+            awaitsReply({
+                last_message: bot_message,
+                face: "working",
+                open_reply_jobs: 1,
+            }),
+        ).toBe(true);
+    });
+
     test("a reply asked for again waits even before its job is claimed", () => {
         expect(
             awaitsReply({

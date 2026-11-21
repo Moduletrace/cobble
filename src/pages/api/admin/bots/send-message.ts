@@ -57,8 +57,16 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             throw new AppError(`This user can only read records.`);
         }
 
-        const { bot_id, workspace_id, text, media_ids, reply_to_message_id, session_id, client_id } =
-            parseWithSchema({
+        const {
+            bot_id,
+            workspace_id,
+            text,
+            media_ids,
+            reply_to_message_id,
+            session_id,
+            client_id,
+            plan_mode,
+        } = parseWithSchema({
                 schema: SendBotMessageRequestSchema,
                 data: body,
             });
@@ -99,6 +107,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
                     bot_id: bot.id,
                     session_id: Number(stored.session_id),
                     message_id: Number(stored.id),
+                    params: stored.plan_mode ? { plan_mode: true } : undefined,
                 });
 
                 wakeBotsQueue();
@@ -168,6 +177,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             reply_to,
             media,
             client_id,
+            plan_mode,
         });
 
         try {
@@ -176,6 +186,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
                 bot_id: bot.id,
                 session_id: Number(session.id),
                 message_id: message.id || 0,
+                params: plan_mode ? { plan_mode: true } : undefined,
             });
         } catch (error: unknown) {
             /**

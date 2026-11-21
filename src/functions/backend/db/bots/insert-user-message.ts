@@ -41,6 +41,12 @@ type Params = {
      * (a lost answer, a retry) is recognised rather than stored again.
      */
     client_id?: string;
+    /**
+     * Plan mode was on when it was sent: its reply plans and inspects and
+     * changes nothing. Kept on the message so Retry and Run again hold the
+     * reply to the same read-only tools.
+     */
+    plan_mode?: boolean;
 };
 
 /**
@@ -59,6 +65,7 @@ export default async function insertUserMessage({
     from_ask_id,
     from_install_request_id,
     client_id,
+    plan_mode,
 }: Params): Promise<BotMessageWithAttachments> {
     const now = Date.now();
 
@@ -90,6 +97,7 @@ export default async function insertUserMessage({
                 from_ask_id,
                 from_install_request_id,
                 client_id,
+                plan_mode: plan_mode ? 1 : 0,
             },
         ],
     });

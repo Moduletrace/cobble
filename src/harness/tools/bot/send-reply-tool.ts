@@ -24,6 +24,12 @@ type Params = {
      * can cancel it if the review refuses that message.
      */
     onQueue?: (params: { job_id: number }) => void;
+    /**
+     * Plan mode: the answer plans, and nothing runs after it. `work` is
+     * not part of the call and `working` is refused, so a planning run
+     * can't queue the work it was only meant to plan.
+     */
+    plan_mode?: boolean;
 };
 
 type Args = {
@@ -53,6 +59,7 @@ export default function sendReplyTool({
     job_id,
     run_kind,
     onQueue,
+    plan_mode,
 }: Params): HarnessTool<Args> {
     let queued: { job_id: number; ahead: number; ask_id?: number } | null = null;
 
@@ -62,48 +69,71 @@ export default function sendReplyTool({
 
     return {
         name: "send_reply",
-        description: `End every reply with this call, in the same turn as the message. The text you write beside it, or in message/text, is what the user gets; a call with neither sends nothing. A message written beside a card in an earlier turn is kept for the send_reply that closes it; anything else written earlier is not filled in. This call only says what happens after it. status done: nothing runs once the message goes out, so the text must not say work is under way. status working: a run is carrying the work on and its result will be posted here; pass work to queue it now, or it must already be open. status blocked: the work cannot go on, and the text says why. Never write a message that says work is under way and end with done. In this same turn, and no other, you may also call suggest_next_steps or ask_user when one of them belongs with the answer. No other tool shares this turn. A message sent without this call is a draft and never reaches the user. Finish every table, list and code fence in the text. ${
+        description: `${plan_mode ? "Plan mode is on: this reply plans and reads, and changes nothing. Write the plan or the answer, ask when a choice is the user's, and never queue work: status working and work are refused. " : ""}End every reply with this call, in the same turn as the message. The text you write beside it, or in message/text, is what the user gets; a call with neither sends nothing. A message written beside a card in an earlier turn is kept for the send_reply that closes it; anything else written earlier is not filled in. This call only says what happens after it. status done: nothing runs once the message goes out, so the text must not say work is under way. status working: a run is carrying the work on and its result will be posted here; pass work to queue it now, or it must already be open. status blocked: the work cannot go on, and the text says why. Never write a message that says work is under way and end with done. In this same turn, and no other, you may also call suggest_next_steps or ask_user when one of them belongs with the answer. No other tool shares this turn. A message sent without this call is a draft and never reaches the user. Finish every table, list and code fence in the text. ${
             computers.length
                 ? `Computers you can use: ${listed}. Defaults to ${computers[0]!.id}, the one you're on.`
                 : `You have no computer, so work that needs one can't run.`
         }`,
-        schema: z.object({
-            status: z
-                .enum(ReplyStatuses)
-                .default("done")
-                .describe("done: nothing runs after this message. working: a run carries the work on. blocked: the work cannot go on."),
-            work: z
-                .object({
-                    title: z.string().min(1).max(80).describe("A short label, e.g. \"Check the backup logs\""),
-                    instructions: z.string().min(1).max(8000),
-                    computer_id: z.number().int().optional(),
-                    separate: z
-                        .boolean()
-                        .optional()
-                        .describe("For different work while another run of yours is open here on that computer: it's queued and starts when that one ends. Never to retry or redo the open run."),
-                    max_steps: z
-                        .number()
-                        .int()
-                        .min(1)
-                        .max(AppData.BotStepLimitMax)
-                        .optional()
-                        .describe(
-                            "The most model turns the run may take (each turn is one or more tool calls), enforced by the app; leave out for the install's limit. Set it whenever the user asked to keep a run short or cheap, and for lookups and searches (about 15 to 30), so a run that can't find something stops and reports what it tried instead of searching on.",
-                        ),
-                })
-                .optional()
-                .describe("The run to start with this message. Required when status is working and no run of yours is open here."),
-            message: z
-                .string()
-                .optional()
-                .describe("The message to send the user with this reply, when not written directly in the assistant turn."),
-            text: z
-                .string()
-                .optional()
-                .describe("Alias for message: the message to send the user with this reply."),
-        }),
+        schema: plan_mode
+            ? z.object({
+                  status: z
+                      .enum(["done", "blocked"])
+                      .default("done")
+                      .describe("Plan mode: done sends the plan or answer, blocked says what stopped the work. Work is never queued in plan mode."),
+                  message: z
+                      .string()
+                      .optional()
+                      .describe("The message to send the user with this reply, when not written directly in the assistant turn."),
+                  text: z
+                      .string()
+                      .optional()
+                      .describe("Alias for message: the message to send the user with this reply."),
+              })
+            : z.object({
+                  status: z
+                      .enum(ReplyStatuses)
+                      .default("done")
+                      .describe("done: nothing runs after this message. working: a run carries the work on. blocked: the work cannot go on."),
+                  work: z
+                      .object({
+                          title: z.string().min(1).max(80).describe("A short label, e.g. \"Check the backup logs\""),
+                          instructions: z.string().min(1).max(8000),
+                          computer_id: z.number().int().optional(),
+                          separate: z
+                              .boolean()
+                              .optional()
+                              .describe(
+                                  "For different work while another run of yours is open here on that computer: it's queued and starts when that one ends. Never to retry or redo the open run.",
+                              ),
+                          max_steps: z
+                              .number()
+                              .int()
+                              .min(1)
+                              .max(AppData.BotStepLimitMax)
+                              .optional()
+                              .describe(
+                                  "The most model turns the run may take (each turn is one or more tool calls), enforced by the app; leave out for the install's limit. Set it whenever the user asked to keep a run short or cheap, and for lookups and searches (about 15 to 30), so a run that can't find something stops and reports what it tried instead of searching on.",
+                              ),
+                      })
+                      .optional()
+                      .describe("The run to start with this message. Required when status is working and no run of yours is open here."),
+                  message: z
+                      .string()
+                      .optional()
+                      .describe("The message to send the user with this reply, when not written directly in the assistant turn."),
+                  text: z
+                      .string()
+                      .optional()
+                      .describe("Alias for message: the message to send the user with this reply."),
+              }),
         run: async ({ args }) => {
             const status = args.status ?? (args.work ? "working" : "done");
+
+            if (plan_mode && (status === "working" || args.work)) {
+                throw new Error(
+                    `Plan mode is on for this reply: it plans and reads, and starts nothing. Nothing was queued and nothing was sent. Write the plan or the answer with status "done", or say what stopped the work with "blocked".`,
+                );
+            }
 
             if (status !== "working" && args.work) {
                 throw new Error(`work can only be passed with status "working": it queues a run, so the message must say that work is under way. Nothing was sent.`);

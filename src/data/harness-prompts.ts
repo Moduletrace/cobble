@@ -1030,6 +1030,23 @@ export const PlanPausedNote = ({ plan }: { plan: PlanPrompt }) => `# A paused pl
 Plan #${plan.id} "${plan.title}" is paused by the user at step ${(plan.current_step ?? 0) + 1} of ${plan.steps.length}. Don't work its steps and don't finish them: answer what the user asks, and leave picking it back up to them (they resume it from the card).`;
 
 /**
+ * Plan mode: the user turned it on in the composer, so this reply plans and
+ * reads, and changes nothing. The tools are filtered to the allowlist
+ * (`PlanModeToolNames`) and `send_reply` refuses work, so this note is what
+ * tells the bot why its usual ways are gone.
+ */
+export const PlanModeNote = `# Plan mode
+
+The user sent this message with Plan mode on. This reply plans, reads and asks; it changes nothing, anywhere.
+
+- Read what you need: files, tasks, schedules, hooks, graphics, knowledgebases, skills, past conversations, computers and the crew are all readable. Then say what you found and what you would do.
+- When the work is several pieces that build on each other, write the plan with create_plan (3 to 6 steps) and let them approve it. Nothing in it starts until they do, and working its steps is a later reply.
+- When a choice is theirs, ask it with ask_user instead of picking for them.
+- Nothing is written, run or changed in this mode: no files written, no tasks, schedules, hooks, memory or instructions changed, no secrets, no crew changes, no computers, browsers, MCP servers or custom tools. Don't say you did any of that, and don't say a run is under way.
+- End with send_reply: done sends the plan or the answer, blocked says what stopped you. Work can't be queued here.
+- Say what you would do and what it depends on, not that you are doing it.`;
+
+/**
  * Added to a routine's run: nobody is there to approve a plan, so the bot
  * writes one and works all of it in the run, reporting at the end.
  */

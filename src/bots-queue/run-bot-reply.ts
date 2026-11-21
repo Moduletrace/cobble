@@ -29,6 +29,7 @@ import {
     PlanStepNote,
     PlanActiveNote,
     PlanPausedNote,
+    PlanModeNote,
 } from "@/src/data/harness-prompts";
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
 import workspaceAdminsNote from "./workspace-admins-note";
@@ -40,7 +41,9 @@ import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
 import runTextLoop from "@/src/harness/text/run-text-loop";
+import type { HarnessTool } from "@/src/harness/types";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
+import filterPlanModeTools from "@/src/harness/tools/bot/plan-mode-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
@@ -147,6 +150,12 @@ export default async function runBotReply({
      * that plan's current step, whether or not the user wrote anything.
      */
     const on_plan_step = Number(job_params.plan_id) > 0;
+    /**
+     * The user sent the message with Plan mode on (`bot_messages.plan_mode`):
+     * the answer plans and reads, and changes nothing. The tools are filtered
+     * to `PlanModeToolNames`, and `send_reply` refuses work.
+     */
+    const plan_mode = Boolean(job_params.plan_mode);
     /**
      * A retried reply (`retry-reply`): the user asked for the answer again
      * after a failure, so it runs even when the failure notice is the
@@ -380,6 +389,7 @@ export default async function runBotReply({
         },
         onTask: ({ task_id }) => task_ids.push(task_id),
         onAttach: ({ media_id }) => attachments.push(media_id),
+        plan_mode,
     });
 
     /**
@@ -468,6 +478,104 @@ export default async function runBotReply({
      */
     const reply_max_steps = await grabReplyMaxToolSteps();
 
+    /**
+     * Every tool the reply may call, built once so Plan mode can hold the
+     * whole list to its allowlist (`filterPlanModeTools`).
+     */
+    const reply_tools: HarnessTool[] = [
+        ...tools,
+        sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
+        ...(ask_id_for_updates
+            ? [
+                  updateRequesterTool({
+                      user_id,
+                      session_id: Number(session_id),
+                      ask_id: ask_id_for_updates,
+                  }),
+              ]
+            : []),
+        continueInNewSessionTool({
+            bot_id: bot.id!,
+            user_id,
+            session_id: Number(session_id),
+            workspace_id,
+            job_id: job.id || null,
+            onMove: (moved) => {
+                session_id = moved.session_id;
+            },
+        }),
+        ...grabBotSecretTools({
+            user_id,
+            bot_id: bot.id,
+            session_id,
+            workspace_id,
+            computer_id: computers[0]?.id || null,
+            /**
+             * A card is answered in a conversation the user follows:
+             * in a hidden session (a crew request, a hook call, a
+             * room) nobody sees it, so the bot is told to ask in the
+             * chat instead of leaving a request hanging.
+             */
+            onRequest: attended ? ({ ref }) => proposals.push(ref) : undefined,
+            onShow: ({ ref }) => shown.push(ref),
+        }),
+        /**
+         * Only where the user follows the conversation: a hidden
+         * session has no card they could answer, and a
+         * question there was once shown to the coordinator as a bare
+         * ref, its answer never reaching the bot.
+         */
+        ...(attended
+            ? [
+                  askUserTool({
+                      user_id,
+                      bot_id: bot.id,
+                      session_id,
+                      workspace_id,
+                      onAsk: ({ ref }) => proposals.push(ref),
+                  }),
+                  suggestNextStepsTool({
+                      user_id,
+                      bot_id: bot.id,
+                      session_id,
+                      workspace_id,
+                      onSuggest: ({ ref }) => shown.push(ref),
+                  }),
+              ]
+            : []),
+        ...(attended && !asked
+            ? grabBotPlanTools({
+                  user_id,
+                  bot_id: bot.id,
+                  session_id,
+                  workspace_id,
+                  on_step: on_plan_step,
+                  /**
+                   * A plan nobody approved yet needs the user, so
+                   * it goes with the refs that set `needs_you`: the
+                   * bot is waiting on them, not on itself.
+                   */
+                  onPlan: ({ ref, waiting }) => (waiting ? plan_refs.push(ref) : shown.push(ref)),
+              })
+            : []),
+        ...(has_past_sessions
+            ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]
+            : []),
+        ...file_tools,
+        ...grabBotGraphicTools({
+            bot_id: bot.id,
+            user_id,
+            session_id,
+            workspace_id,
+            job_id: job.id || null,
+            onGraphic: ({ ref }) => shown.push(ref),
+        }),
+        ...extensions.tools,
+        ...browsers.tools,
+        ...skills.tools,
+        ...knowledge.tools,
+    ];
+
     try {
         const result = await runTextLoop({
             system: [
@@ -475,6 +583,7 @@ export default async function runBotReply({
                 carry_over,
                 long_session_note,
                 chatReplyNote({ bot_id: bot.id }),
+                plan_mode ? PlanModeNote : "",
                 is_retry ? RerunReplyNote : "",
                 retry_failure ? RetryFailureNote({ reason: retry_failure.reason }) : "",
                 botFilesNote({ bot_id: bot.id }),
@@ -498,17 +607,21 @@ export default async function runBotReply({
                 composeEnvsNote({ ...envs, has_computer: computers.length > 0 }),
                 GraphicsNote,
                 workspace_id ? WorkspaceLearningNote : "",
-                composeComputersNote({
-                    computers,
-                    is_coordinator: powers.is_coordinator,
-                    in_workspace: Boolean(workspace_id),
-                    has_browser: browsers.browsers.length > 0,
-                }),
-                composeBrowsersNote({
-                    browsers: browsers.browsers,
-                    has_computer_browser: computers.length > 0,
-                    run_kind: browser_run_kind,
-                }),
+                plan_mode
+                    ? ""
+                    : composeComputersNote({
+                          computers,
+                          is_coordinator: powers.is_coordinator,
+                          in_workspace: Boolean(workspace_id),
+                          has_browser: browsers.browsers.length > 0,
+                      }),
+                plan_mode
+                    ? ""
+                    : composeBrowsersNote({
+                          browsers: browsers.browsers,
+                          has_computer_browser: computers.length > 0,
+                          run_kind: browser_run_kind,
+                      }),
                 crew_note,
                 openRunsNote({ runs: open_runs }),
                 powers.is_coordinator || !attended ? "" : AskRulesNote,
@@ -522,99 +635,7 @@ export default async function runBotReply({
                 .filter(Boolean)
                 .join("\n\n"),
             messages: await messagesToTurns({ messages: history, user_id }),
-            tools: [
-                ...tools,
-                sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
-                ...(ask_id_for_updates
-                    ? [
-                          updateRequesterTool({
-                              user_id,
-                              session_id: Number(session_id),
-                              ask_id: ask_id_for_updates,
-                          }),
-                      ]
-                    : []),
-                continueInNewSessionTool({
-                    bot_id: bot.id!,
-                    user_id,
-                    session_id: Number(session_id),
-                    workspace_id,
-                    job_id: job.id || null,
-                    onMove: (moved) => {
-                        session_id = moved.session_id;
-                    },
-                }),
-                ...grabBotSecretTools({
-                    user_id,
-                    bot_id: bot.id,
-                    session_id,
-                    workspace_id,
-                    computer_id: computers[0]?.id || null,
-                    /**
-                     * A card is answered in a conversation the user follows:
-                     * in a hidden session (a crew request, a hook call, a
-                     * room) nobody sees it, so the bot is told to ask in the
-                     * chat instead of leaving a request hanging.
-                     */
-                    onRequest: attended ? ({ ref }) => proposals.push(ref) : undefined,
-                    onShow: ({ ref }) => shown.push(ref),
-                }),
-                /**
-                 * Only where the user follows the conversation: a hidden
-                 * session has no card they could answer, and a
-                 * question there was once shown to the coordinator as a bare
-                 * ref, its answer never reaching the bot.
-                 */
-                ...(attended
-                    ? [
-                          askUserTool({
-                              user_id,
-                              bot_id: bot.id,
-                              session_id,
-                              workspace_id,
-                              onAsk: ({ ref }) => proposals.push(ref),
-                          }),
-                          suggestNextStepsTool({
-                              user_id,
-                              bot_id: bot.id,
-                              session_id,
-                              workspace_id,
-                              onSuggest: ({ ref }) => shown.push(ref),
-                          }),
-                      ]
-                    : []),
-                ...(attended && !asked
-                    ? grabBotPlanTools({
-                          user_id,
-                          bot_id: bot.id,
-                          session_id,
-                          workspace_id,
-                          on_step: on_plan_step,
-                          /**
-                           * A plan nobody approved yet needs the user, so
-                           * it goes with the refs that set `needs_you`: the
-                           * bot is waiting on them, not on itself.
-                           */
-                          onPlan: ({ ref, waiting }) => (waiting ? plan_refs.push(ref) : shown.push(ref)),
-                      })
-                    : []),
-                ...(has_past_sessions
-                    ? [searchPastSessionsTool(past_scope), readPastSessionTool(past_scope)]
-                    : []),
-                ...file_tools,
-                ...grabBotGraphicTools({
-                    bot_id: bot.id,
-                    user_id,
-                    session_id,
-                    workspace_id,
-                    job_id: job.id || null,
-                    onGraphic: ({ ref }) => shown.push(ref),
-                }),
-                ...extensions.tools,
-                ...browsers.tools,
-                ...skills.tools,
-                ...knowledge.tools,
-            ],
+            tools: plan_mode ? filterPlanModeTools({ tools: reply_tools }) : reply_tools,
             max_steps: reply_max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
             context_budget: await grabContextBudgetTokens(),

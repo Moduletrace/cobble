@@ -7,6 +7,7 @@ import { BotComputersContext } from "../(data)/bot-computers-context";
 import { composerKnowledgebasesCopy, composerToolsCopy } from "../(data)/composer-extensions-copy";
 import ComposerBrowserButton from "./composer-browser-button";
 import ComposerComputerButton from "./composer-computer-button";
+import ComposerPlanButton from "./composer-plan-button";
 import ComposerToolsModal from "./composer-tools-modal";
 import { Dot } from "lucide-react";
 
@@ -19,16 +20,30 @@ type Props = {
      * nothing to pick, so the Browser button stays away.
      */
     has_browsers?: boolean;
+    /**
+     * Whether the next message goes in Plan mode, and the way to turn it
+     * off from here.
+     */
+    plan_mode?: boolean;
+    on_toggle_plan_mode?: () => void;
 };
 
 /**
- * Under the composer: one button counting the MCP servers, tools and
- * skills the bot can use here, one beside it counting the knowledgebases it
- * searches (each opens in a modal, so ten of them don't fill the
- * composer), then the user's browsers here (only once they've added one)
- * and the computer it's on, opening it in the viewer.
+ * Under the composer: Plan mode (always there, since it changes what the
+ * bot may touch), one button counting the MCP servers, tools and skills the
+ * bot can use here, one beside it counting the knowledgebases it searches
+ * (each opens in a modal, so ten of them don't fill the composer), then the
+ * user's browsers here (only once they've added one) and the computer it's
+ * on, opening it in the viewer.
  */
-export default function ComposerTools({ bot, workspace_id, initial, has_browsers }: Props) {
+export default function ComposerTools({
+    bot,
+    workspace_id,
+    initial,
+    has_browsers,
+    plan_mode,
+    on_toggle_plan_mode,
+}: Props) {
     const bot_name = bot.name || "this bot";
     const extensions = useExtensions({
         owner: { bot_id: bot.id || 0, workspace_id },
@@ -53,6 +68,10 @@ export default function ComposerTools({ bot, workspace_id, initial, has_browsers
 
     return (
         <Row className="w-full max-w-container mx-auto gap-1.5! items-center px-3 md:px-6 pb-3 -mt-3">
+            {on_toggle_plan_mode ? (
+                <ComposerPlanButton plan_mode={Boolean(plan_mode)} onToggle={on_toggle_plan_mode} />
+            ) : null}
+
             {has_tools ? (
                 <ComposerToolsModal
                     bot_name={bot_name}

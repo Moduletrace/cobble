@@ -601,6 +601,13 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     defaultValue: 0,
                 },
                 {
+                    fieldName: "plan_mode",
+                    fieldDescription: `Sent with Plan mode on in the composer: the reply answers with a plan, reads only and changes nothing (no files, tasks, memory, computers, browsers or extensions), a strictly planning run`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
                     fieldName: "reply_to_message_id",
                     fieldDescription: `The message this one replies to, quoted above it. Not a foreign key, so deleting the quoted message only drops the quote`,
                     dataType: "INTEGER",

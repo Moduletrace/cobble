@@ -5,6 +5,7 @@ import H1 from "@moduletrace/twui/layout/H1";
 import Span from "@moduletrace/twui/layout/Span";
 import Button from "@moduletrace/twui/layout/Button";
 import Dropdown from "@moduletrace/twui/elements/Dropdown";
+import Tag from "@moduletrace/twui/elements/Tag";
 import useStatus from "@moduletrace/twui/hooks/useStatus";
 import { EllipsisVertical } from "lucide-react";
 import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
@@ -38,6 +39,11 @@ type Props = {
      */
     model?: BotTextModel | null;
     onModelChange: (model: BotTextModel | null) => void;
+    /**
+     * Whether the composer's Plan mode is on: the name wears a tag, since
+     * the mode decides what every reply may touch.
+     */
+    plan_mode?: boolean;
 };
 
 /**
@@ -53,6 +59,7 @@ export default function ConversationHeader({
     has_other_unread,
     model,
     onModelChange,
+    plan_mode,
 }: Props) {
     const { computers } = useContext(BotComputersContext);
     const { pageProps } = useContext(AppContext);
@@ -97,6 +104,15 @@ export default function ConversationHeader({
                     <H1 className="min-w-0 text-lg! leading-6! tracking-normal! font-bold text-ink truncate line-clamp-1">
                         {bot.name}
                     </H1>
+                    {plan_mode ? (
+                        <Tag
+                            color="success"
+                            title="Plan mode is on: the bot plans and reads, and changes nothing"
+                            className="shrink-0"
+                        >
+                            Plan
+                        </Tag>
+                    ) : null}
                     {workspace?.id && is_admin ? (
                         <AdminShield size={16} label={`Admin of ${workspace.name || "this workspace"}`} />
                     ) : null}

@@ -41,13 +41,14 @@ afterAll(() => {
 });
 
 const signal = new AbortController().signal;
-const tool = () =>
+const tool = (overrides: Partial<Parameters<typeof sendReplyTool>[0]> = {}) =>
     sendReplyTool({
         user_id: 1,
         bot_id: 5,
         session_id: 9,
         computers: [],
         job_id: 55,
+        ...overrides,
     });
 
 beforeEach(() => {
@@ -158,5 +159,50 @@ describe("sendReplyTool", () => {
 
         expect(result).toContain("Run #100 queued");
         expect(queued).toHaveLength(1);
+    });
+
+    describe("in Plan mode", () => {
+        test("refuses work before it can queue anything", async () => {
+            await expect(
+                tool({ plan_mode: true }).run({
+                    args: { status: "working", work: { title: "Check the logs", instructions: "Read them." } },
+                    signal,
+                }),
+            ).rejects.toThrow("Plan mode is on for this reply");
+            expect(queued).toHaveLength(0);
+        });
+
+        test("refuses status working even when a run is already open", async () => {
+            open_work = true;
+
+            await expect(
+                tool({ plan_mode: true }).run({ args: { status: "working" }, signal }),
+            ).rejects.toThrow("Plan mode is on for this reply");
+
+            expect(open_work_calls).toEqual([]);
+            expect(queued).toHaveLength(0);
+        });
+
+        test("leaves work out of the arguments the model is offered", () => {
+            const schema = tool({ plan_mode: true }).schema!;
+
+            expect(schema.parse({ status: "done", work: { title: "x", instructions: "y" }, message: "A plan." })).toEqual({
+                status: "done",
+                message: "A plan.",
+            });
+            expect(schema.safeParse({ status: "working" }).success).toBe(false);
+        });
+
+        test("still sends the plan as the answer", async () => {
+            const result = await tool({ plan_mode: true }).run({ args: { status: "done", message: "Here is the plan." }, signal });
+
+            expect(result).toContain("marked done");
+            expect(queued).toHaveLength(0);
+        });
+
+        test("says in its description that it plans and reads", () => {
+            expect(tool({ plan_mode: true }).description).toContain("Plan mode is on");
+            expect(tool().description).not.toContain("Plan mode is on");
+        });
     });
 });

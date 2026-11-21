@@ -30,6 +30,8 @@ import useStopBot from "../(hooks)/use-stop-bot";
 import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
 import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
+import useOpenReplyJobs from "../(hooks)/use-open-reply-jobs";
+import usePlanMode from "../(hooks)/use-plan-mode";
 import useSpeakMessage from "../(hooks)/use-speak-message";
 import useOlderMessages from "../(hooks)/use-older-messages";
 import ConversationHeader from "../(partials)/conversation-header";
@@ -136,6 +138,37 @@ export default function Conversation() {
     const [reply_to, setReplyTo] = useState<BotMessageWithAttachments | null>(
         null,
     );
+    /**
+     * Plan mode: the next message asks the bot to plan and read, and
+     * change nothing. It belongs to this conversation, stays where the user
+     * left it on this device, and Tab anywhere on the page turns it on and
+     * off.
+     */
+    const { plan_mode, toggle_plan_mode } = usePlanMode({
+        bot_id: bot?.id,
+        workspace_id,
+    });
+
+    /**
+     * Tab anywhere on the page turns Plan mode on and off. Bubble phase and
+     * `defaultPrevented`, so the composer's mention menu (`Tab` picks an
+     * item) and an open modal keep their own keys, and modifiers keep the
+     * browser's.
+     */
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key != "Tab" || event.defaultPrevented) return;
+            if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+            if (document.querySelector('[role="listbox"], [role="dialog"]')) return;
+
+            event.preventDefault();
+            toggle_plan_mode();
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [toggle_plan_mode]);
 
     /**
      * A quote picked in one session doesn't follow the thread to another,
@@ -234,7 +267,7 @@ export default function Conversation() {
             });
             progress.reset({ task: history.task });
             setReplyStep(history.step || null);
-            setOpenReplyJobs(null);
+            setOpenReplyJobs(history.open_jobs ?? null);
             setRerunAfterId(null);
         },
     });
@@ -279,6 +312,17 @@ export default function Conversation() {
         running: Boolean(progress.task_id) || Boolean(open_reply_jobs),
         last_message_id: last_saved_id,
         on_open_jobs: ({ open_jobs }) => setOpenReplyJobs(open_jobs),
+    });
+
+    /**
+     * A plan step is queued by the app with no user message before it, so
+     * the bot's own report has the last word while the next step runs: a
+     * step pushed for this session stands the thinking row over it.
+     */
+    useOpenReplyJobs({
+        bot_id: Number(bot?.id) || 0,
+        session_id,
+        on_open_jobs: () => setOpenReplyJobs(1),
     });
 
     /**
@@ -505,6 +549,7 @@ export default function Conversation() {
                                     has_other_unread={has_other_unread}
                                     model={text_model}
                                     onModelChange={setTextModel}
+                                    plan_mode={plan_mode}
                                 />
                                 {moved_to_session_id ? null : (
                                     <AskSessionBar
@@ -567,6 +612,8 @@ export default function Conversation() {
                                         previous_messages={thread_messages}
                                         reply_to={reply_to}
                                         onCancelReply={() => setReplyTo(null)}
+                                        plan_mode={plan_mode}
+                                        onTogglePlanMode={toggle_plan_mode}
                                         onSendStart={({ message }) => {
                                             /**
                                              * A reply is queued for it, so

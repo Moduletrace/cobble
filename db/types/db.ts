@@ -422,6 +422,10 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     interim?: 0 | 1 | "";
     /** 
+     * Sent with Plan mode on in the composer: the reply answers with a plan, reads only and changes nothing (no files, tasks, memory, computers, browsers or extensions), a strictly planning run
+     */
+    plan_mode?: 0 | 1 | "";
+    /** 
      * The message this one replies to, quoted above it. Not a foreign key, so deleting the quoted message only drops the quote
      */
     reply_to_message_id?: number | "";

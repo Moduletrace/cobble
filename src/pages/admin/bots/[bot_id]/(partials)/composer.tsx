@@ -34,6 +34,7 @@ import ComposerAttachments from "./composer-attachments";
 import ComposerClearButton from "./composer-clear-button";
 import ComposerEditor from "./composer-editor";
 import ComposerMentionList from "./composer-mention-list";
+import ComposerPlanNotice from "./composer-plan-notice";
 import ComposerReplyPreview from "./composer-reply-preview";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
@@ -93,6 +94,12 @@ type Props = {
     reply_to?: BotMessageWithAttachments | null;
     onCancelReply?: () => void;
     /**
+     * Plan mode: the next message asks the bot to plan and read, and change
+     * nothing. Sent with the message, and shown above the input while on.
+     */
+    plan_mode?: boolean;
+    onTogglePlanMode?: () => void;
+    /**
      * The message is put in the thread at once, before the server has it.
      */
     onSendStart: (params: { message: BotMessageWithAttachments }) => void;
@@ -133,6 +140,8 @@ export default function Composer({
     session_id,
     reply_to,
     onCancelReply,
+    plan_mode,
+    onTogglePlanMode,
     onSendStart,
     onSent,
     onSendFailed,
@@ -376,6 +385,7 @@ export default function Composer({
             reply_to_message_id: reply_to?.id || null,
             session_id: session_id || null,
             client_id: request_id,
+            plan_mode,
         });
 
         if (!res.success || !res.singleRes) {
@@ -423,6 +433,7 @@ export default function Composer({
                     />
                 ) : null}
                 {input.menu ? <ComposerMentionList menu={input.menu} /> : null}
+                {plan_mode ? <ComposerPlanNotice /> : null}
                 <Row
                     className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
                     onMouseDown={(e) => {
@@ -480,6 +491,8 @@ export default function Composer({
                     workspace_id={workspace_id}
                     initial={extensions}
                     has_browsers={has_browsers}
+                    plan_mode={plan_mode}
+                    on_toggle_plan_mode={onTogglePlanMode}
                 />
             </Stack>
         </Stack>

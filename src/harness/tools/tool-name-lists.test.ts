@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import path from "path";
 import { WrapUpHandOffToolNames, WrapUpSaveToolNames } from "@/src/harness/text/run-text-loop";
 import { WritingToolNames } from "./writing-tool-names";
 import { AppCardRefToolNames, WorkStartingTools } from "@/src/utils/reply-claim-problems";
 import { AppStateTools } from "@/src/utils/reply-app-state-claims";
+import { PlanModeToolNames } from "./bot/plan-mode-tools";
 
 /**
  * Tool names written straight into a list go stale when a tool is renamed:
@@ -13,12 +15,27 @@ import { AppStateTools } from "@/src/utils/reply-app-state-claims";
  */
 async function declaredToolNames() {
     const names = new Set<string>();
+    const roots = [import.meta.dir, path.resolve(import.meta.dir, "../../dict")];
+    const patterns = [
+        /name:\s*"([a-z][a-z0-9_]{2,})"/g,
+        /**
+         * A name kept in a dict as a constant (`LoadSkillToolName`) is
+         * declared too: the list must follow it if its value changes.
+         */
+        /ToolName\s*=\s*"([a-z][a-z0-9_]{2,})"/g,
+    ];
 
-    for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir, absolute: true })) {
-        if (file.endsWith(".test.ts")) continue;
+    for (const root of roots) {
+        for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: root, absolute: true })) {
+            if (file.endsWith(".test.ts")) continue;
 
-        for (const matched of (await Bun.file(file).text()).matchAll(/name:\s*"([a-z][a-z0-9_]{2,})"/g)) {
-            names.add(matched[1]!);
+            const text = await Bun.file(file).text();
+
+            for (const pattern of patterns) {
+                for (const matched of text.matchAll(pattern)) {
+                    names.add(matched[1]!);
+                }
+            }
         }
     }
 
@@ -32,6 +49,7 @@ const Lists: Record<string, readonly string[]> = {
     WritingToolNames,
     WrapUpSaveToolNames,
     WrapUpHandOffToolNames,
+    PlanModeToolNames,
 };
 
 describe("harness tool name lists", () => {
