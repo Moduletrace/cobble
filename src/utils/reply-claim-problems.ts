@@ -3,6 +3,7 @@ import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import claimsWorkUnderWay from "./claims-work-under-way";
 import unsupportedAppRecordLines from "./app-record-claims";
 import replyAppStateClaims, { AppStateTools } from "./reply-app-state-claims";
+import proseChoiceQuestion from "./prose-choice-question";
 
 type Params = {
     text: string;
@@ -173,6 +174,22 @@ export default function replyClaimProblems({
 
         problems.push(
             `It writes ${refs.join(", ")} itself, but only the app writes that ref: ${tool} makes the ${card} and the app puts its ref under your message. A ref written by hand names a card that was never made, which the user reads as "not available", or copies one from an earlier message. Take the ref out of the answer; call ${tool} if the ${card} should be there, and say in words what you mean.`,
+        );
+    }
+
+    /**
+     * A choice asked in the text instead of on an `ask_user` card: the user
+     * would have to retype an option. Both runs in session 133 sent a
+     * numbered choice under "What would you like to do?" and "Which would
+     * you like?" with no card, so the ask was a paragraph, not a click.
+     * Free-form details the card can't collect stay in the message; the
+     * choice itself belongs on the card.
+     */
+    const prose_choice = proseChoiceQuestion({ text });
+
+    if (prose_choice && !tool_uses.some((use) => use.name == "ask_user" && use.ok)) {
+        problems.push(
+            `It asks the user to choose in the text ("${prose_choice.question}") with ${prose_choice.options} options. A choice written as a list makes them retype an option; ask_user puts the same question on a card they answer in a click, with your suggestion first. Call ask_user in the same turn as send_reply with those options, keep only free-form details the card can't hold (names, addresses, a table) in the message, and don't repeat the options in the text.`,
         );
     }
 

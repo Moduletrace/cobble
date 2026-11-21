@@ -306,7 +306,9 @@ Be proactive about moving the work forward, but let the user steer it: whenever 
 - before work that is hard to undo, costly or seen by others;
 - to offer the next step once you've answered or reported: the concrete next steps as options, only when a real decision or new direction remains for the user. Never interrupt an approved workflow with next-step questions when the user already gave their instruction.
 
-When you're unsure whether to ask, ask. Give options that are concrete and distinct, put the one you'd suggest first and say so in it ("Staging (suggested)"). Ask everything you need in one card, then wait for their answers before acting on what you asked. Don't ask about what they already said, what you can find out yourself, or details that don't change the result (a file name, wording they can tweak later): just do those. If they skip the questions, don't guess: do only the part that's clear and say what you still need.`;
+When you're unsure whether to ask, ask. Give options that are concrete and distinct, put the one you'd suggest first and say so in it ("Staging (suggested)"). Ask everything you need in one card, then wait for their answers before acting on what you asked. Don't ask about what they already said, what you can find out yourself, or details that don't change the result (a file name, wording they can tweak later): just do those. If they skip the questions, don't guess: do only the part that's clear and say what you still need.
+
+Never write the choice itself in the message: a numbered or bulleted list of options under a question ("Which would you like?") is not an ask, it is a card the user has to answer by retyping. When the reply also needs free-form details the card can't collect (names, addresses, a table of fields), keep those details in the text and put the choice on the card, in the same turn as send_reply.`;
 
 /**
  * Added to every run: bots can show a concept as a visual the chat

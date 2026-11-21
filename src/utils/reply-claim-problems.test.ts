@@ -434,12 +434,26 @@ describe("replyClaimProblems: the app's own state", () => {
         expect(problems.length).toBe(1);
     });
 
-    test("leaves the error it was given, word for word, alone", () => {
-        expect(
-            replyClaimProblems({
-                text: "qwen-image-3.0-pro: Alibaba Cloud Token Plan: HTTP 404 at POST https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/images/generations - no endpoint at that address; check the provider's base URL",
-                tool_uses: [],
-            }),
-        ).toEqual([]);
+    test("faults a choice list asked in the text instead of on a card", () => {
+        const text = `Which would you like?
+- **Option A:** Deepen the planning for Steps 3-6
+- **Option B:** Pause planning and execute Step 2 later`;
+
+        const problems = replyClaimProblems({ text, tool_uses: [] });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("ask_user");
+    });
+
+    test("passes the same choice once ask_user made the card", () => {
+        const text = `Which would you like?
+- **Option A:** Deepen the planning for Steps 3-6
+- **Option B:** Pause planning and execute Step 2 later`;
+
+        expect(replyClaimProblems({ text, tool_uses: [{ name: "ask_user", ok: true }] })).toEqual([]);
+    });
+
+    test("leaves an ordinary follow-up question alone", () => {
+        expect(replyClaimProblems({ text: "The audit is done. Want me to send it?", tool_uses: [] })).toEqual([]);
     });
 });
