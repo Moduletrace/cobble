@@ -596,7 +596,7 @@ export default async function runBotReply({
          * the app would carry the plan on past work nobody did.
          */
         const review_answer = ({ text, tool_uses, status }: { text: string; tool_uses: HarnessToolUse[]; status?: ReplyStatus }) =>
-            reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes, job_id: job.id })({ text, tool_uses, status }).then((note) => {
+            reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes, job_id: job.id, plan_mode })({ text, tool_uses, status }).then((note) => {
                 if (note) return note;
 
                 return planStepReviewNote({ plan, on_step: on_plan_step, tool_uses, status });

@@ -4,6 +4,7 @@ import claimsWorkUnderWay from "./claims-work-under-way";
 import unsupportedAppRecordLines from "./app-record-claims";
 import replyAppStateClaims, { AppStateTools } from "./reply-app-state-claims";
 import proseChoiceQuestion from "./prose-choice-question";
+import planModeFileEscape from "./plan-mode-file-escape";
 
 type Params = {
     text: string;
@@ -62,6 +63,12 @@ type Params = {
      * with a run behind it.
      */
     status?: ReplyStatus;
+    /**
+     * The reply is running with Plan mode on: the tools that write are left
+     * out on purpose, so a file can't be saved until the user leaves the
+     * mode or answers an `ask_user` card (which runs with the save allowed).
+     */
+    plan_mode?: boolean;
 };
 
 /**
@@ -111,6 +118,7 @@ export default function replyClaimProblems({
     missing_hook_proposal_ids = [],
     has_open_work,
     status,
+    plan_mode,
 }: Params): string[] {
     const problems: string[] = [];
 
@@ -190,6 +198,20 @@ export default function replyClaimProblems({
     if (prose_choice && !tool_uses.some((use) => use.name == "ask_user" && use.ok)) {
         problems.push(
             `It asks the user to choose in the text ("${prose_choice.question}") with ${prose_choice.options} options. A choice written as a list makes them retype an option; ask_user puts the same question on a card they answer in a click, with your suggestion first. Call ask_user in the same turn as send_reply with those options, keep only free-form details the card can't hold (names, addresses, a table) in the message, and don't repeat the options in the text.`,
+        );
+    }
+
+    /**
+     * A document handed over in Plan mode with the write given back to the
+     * user: a made-up missing tool, or an instruction to save it themselves.
+     * The tool exists and the mode is what stops it, so the answer asked the
+     * wrong thing; 969 pasted the whole roadmap this way.
+     */
+    const file_escape = plan_mode ? planModeFileEscape({ text }) : null;
+
+    if (file_escape) {
+        problems.push(
+            `It is Plan mode, and the answer ${file_escape == "missing_tool" ? "says there is no write tool" : "asks the user to save the document themselves"}. write_file exists and Plan mode is the only thing stopping it. Don't paste the document and don't call the tool missing: say in one sentence that Plan mode stops the save, and call ask_user with "Save it and send the file" first; their answer runs with the save allowed, so write the file then. A short template the user asked to read can stay in the message.`,
         );
     }
 

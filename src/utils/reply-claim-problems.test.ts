@@ -456,4 +456,30 @@ describe("replyClaimProblems: the app's own state", () => {
     test("leaves an ordinary follow-up question alone", () => {
         expect(replyClaimProblems({ text: "The audit is done. Want me to send it?", tool_uses: [] })).toEqual([]);
     });
+
+    test("faults a Plan mode answer that hands the save back to the user", () => {
+        const text = "Since I don't have a `write_file` tool available in this environment, here's the complete document for you to save:";
+
+        const problems = replyClaimProblems({ text, tool_uses: [], plan_mode: true });
+
+        expect(problems.length).toBe(1);
+        expect(problems[0]).toContain("Plan mode");
+        expect(problems[0]).toContain("ask_user");
+    });
+
+    test("the same words outside Plan mode are not about the mode", () => {
+        const text = "Here is the document for you to save.";
+
+        expect(replyClaimProblems({ text, tool_uses: [] })).toEqual([]);
+    });
+
+    test("passes a Plan mode answer that offers to save it", () => {
+        expect(
+            replyClaimProblems({
+                text: "Plan mode stops me saving files. Shall I save it as a document once you turn it off?",
+                tool_uses: [],
+                plan_mode: true,
+            }),
+        ).toEqual([]);
+    });
 });

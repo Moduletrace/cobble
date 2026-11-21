@@ -8,6 +8,11 @@ type Params = {
     user_id: number | string;
     session_id: number | string;
     job_id?: number | string;
+    /**
+     * The run is a reply with Plan mode on (`PlanModeToolNames`), so a file
+     * can't be saved until the user leaves the mode or answers a card.
+     */
+    plan_mode?: boolean;
     scopes: StorageScope[];
 };
 
@@ -17,7 +22,7 @@ type Params = {
  * record (`reviewBotReply`). One place so a task report is held to the
  * same record as a chat reply.
  */
-export default function reviewRunAnswer({ bot_id, user_id, session_id, job_id, scopes }: Params) {
+export default function reviewRunAnswer({ bot_id, user_id, session_id, job_id, plan_mode, scopes }: Params) {
     return ({ text, tool_uses, status }: { text: string; tool_uses: HarnessToolUse[]; status?: ReplyStatus }) =>
-        reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, job_id, status, scopes });
+        reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, job_id, plan_mode, status, scopes });
 }

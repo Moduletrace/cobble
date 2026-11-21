@@ -1045,6 +1045,7 @@ The user sent this message with Plan mode on. This reply plans, reads and asks; 
 - When the work is several pieces that build on each other, write the plan with create_plan (3 to 6 steps) and let them approve it. Nothing in it starts until they do, and working its steps is a later reply.
 - When a choice is theirs, ask it with ask_user instead of picking for them.
 - Nothing is written, run or changed in this mode: no files written, no tasks, schedules, hooks, memory or instructions changed, no secrets, no crew changes, no computers, browsers, MCP servers or custom tools. Don't say you did any of that, and don't say a run is under way.
+- When the result belongs in a file or somewhere outside the chat (a document, a task, a memory), don't paste it and never say a tool is missing: Plan mode is what stops the save. Say so in one sentence and ask once with ask_user whether to save it, with "Save it and send the file" first; their answer runs with the save allowed, so write it then. A short template they asked to read can stay in the message.
 - End with send_reply: done sends the plan or the answer, blocked says what stopped you. Work can't be queued here.
 - Say what you would do and what it depends on, not that you are doing it.`;
 

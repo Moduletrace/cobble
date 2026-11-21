@@ -29,6 +29,11 @@ type Params = {
      */
     job_id?: number | string;
     /**
+     * The reply was sent with Plan mode on, so the writing tools are left
+     * out on purpose (`PlanModeToolNames`).
+     */
+    plan_mode?: boolean;
+    /**
      * What the reply declared with `send_reply`.
      */
     status?: ReplyStatus;
@@ -51,7 +56,7 @@ type Params = {
  * one wrote `[suggestion:11]` after the last real one was `[suggestion:10]`
  * and the user got buttons reading "not available".
  */
-export default async function reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, job_id, status, scopes }: Params) {
+export default async function reviewBotReply({ text, tool_uses, bot_id, user_id, session_id, job_id, plan_mode, status, scopes }: Params) {
     if (!text.trim()) return null;
 
     const missing_file_ids: number[] = [];
@@ -129,6 +134,7 @@ export default async function reviewBotReply({ text, tool_uses, bot_id, user_id,
         written_card_refs,
         has_open_work: await hasOpenWork({ bot_id, session_id, exclude_job_id: job_id }),
         status,
+        plan_mode,
     });
 
     if (!problems.length) return null;
