@@ -80,6 +80,13 @@ export type BotJobOutcome = {
      * run asked for the user or started work that runs on its own.
      */
     plan_id?: number;
+    /**
+     * The plan the reply's message belongs to: the step it worked, or the
+     * one it wrote. Kept on the message as a chip (`bot_messages.plan_id`),
+     * separately from `plan_id`, since a plan that is only written is not
+     * worked on.
+     */
+    plan_message_id?: number;
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

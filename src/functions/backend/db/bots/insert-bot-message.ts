@@ -35,6 +35,11 @@ type Params = {
      */
     task_ids?: (number | string | null | undefined)[];
     /**
+     * The plan this message belongs to: the one it wrote, or the step of it
+     * the run worked, shown as a chip under it.
+     */
+    plan_id?: number | string | null;
+    /**
      * Opens a session the conversation moved into
      * (`carryOverBotSession`): the session it carries on from.
      */
@@ -61,6 +66,7 @@ export default async function insertBotMessage({
     media_ids = [],
     tool_log,
     task_ids,
+    plan_id,
     carried_from_session_id,
     failed_job_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
@@ -87,6 +93,7 @@ export default async function insertBotMessage({
                 interim: interim_flag,
                 tool_log: tool_log_json,
                 task_ids: task_ids_json,
+                plan_id: plan_id ? Number(plan_id) : undefined,
                 carried_from_session_id,
                 failed_job_id,
             },
@@ -131,6 +138,7 @@ export default async function insertBotMessage({
         interim: interim_flag,
         tool_log: tool_log_json,
         task_ids: task_ids_json,
+        plan_id: plan_id ? Number(plan_id) : undefined,
         carried_from_session_id,
         failed_job_id,
         created_at: now,

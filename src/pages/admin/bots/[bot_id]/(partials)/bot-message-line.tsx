@@ -15,6 +15,7 @@ import MessageReactions from "./message-reactions";
 import MessageReplyQuote from "./message-reply-quote";
 import MessageImages from "./message-images";
 import MessageNoToolsChip from "./message-no-tools-chip";
+import MessagePlanChip from "./message-plan-chip";
 import MessageTaskChips from "./message-task-chips";
 import MessageUsageChip from "./message-usage-chip";
 import NeedsYouChip from "./needs-you-chip";
@@ -85,6 +86,7 @@ function BotMessageLine({ message, bot_name, at, rerun }: Props) {
             </Stack>
             <MessageImages message={message} />
             <MessageTaskChips tasks={message.tasks} />
+            {message.plan_id ? <MessagePlanChip plan_id={Number(message.plan_id)} /> : null}
             {message.id ? (
                 <MessageReactions
                     message_id={message.id}

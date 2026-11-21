@@ -25,3 +25,16 @@ export function botPlanRefId({ href }: { href?: string | null }) {
 
     return plan_id;
 }
+
+/**
+ * The plan id in a message's text (`botPlanRef`), or null when it names
+ * none: how a run knows which plan its reply belongs to, so the chip under
+ * it opens that plan.
+ */
+export function botPlanRefIdFromText({ text }: { text?: string | null }) {
+    const plan_id = Number(/\[plan:(\d+)\]/.exec(text || "")?.[1] || 0);
+
+    if (!Number.isInteger(plan_id) || plan_id <= 0) return null;
+
+    return plan_id;
+}

@@ -86,6 +86,7 @@ import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
 import grabBotPlanTools from "@/src/harness/tools/bot/plans/grab-bot-plan-tools";
 import grabSessionPlan from "@/src/functions/backend/db/bot-plans/grab-session-plan";
+import { botPlanRefIdFromText } from "@/src/utils/bot-plan-ref";
 import grabBotPlan from "@/src/functions/backend/db/bot-plans/grab-bot-plan";
 import toBotPlanView from "@/src/functions/backend/db/bot-plans/to-bot-plan-view";
 import type { BotMessageWithAttachments } from "@/src/types";
@@ -300,6 +301,11 @@ export default async function runBotReply({
      * to approve it, so the reply needs them.
      */
     const plan_refs: string[] = [];
+    /**
+     * The plan this reply belongs to, written or changed in it: its message
+     * carries a chip that opens the plan from anywhere in the thread.
+     */
+    let message_plan_id: number | undefined;
     /**
      * Files the bot wrote and asked to send with its reply.
      */
@@ -555,7 +561,12 @@ export default async function runBotReply({
                    * it goes with the refs that set `needs_you`: the
                    * bot is waiting on them, not on itself.
                    */
-                  onPlan: ({ ref, waiting }) => (waiting ? plan_refs.push(ref) : shown.push(ref)),
+                  onPlan: ({ ref, waiting }) => {
+                      message_plan_id = botPlanRefIdFromText({ text: ref }) || message_plan_id;
+
+                      if (waiting) plan_refs.push(ref);
+                      else shown.push(ref);
+                  },
               })
             : []),
         ...(has_past_sessions
@@ -720,6 +731,7 @@ export default async function runBotReply({
             tool_log: result.tool_uses,
             task_ids,
             plan_id: on_plan_step ? plan?.id : undefined,
+            plan_message_id: message_plan_id ?? (on_plan_step ? plan?.id : undefined),
             /**
              * A reply handed a tracker task (`params.tracker_task_id`) that
              * used every step it had stopped short of finishing it: left

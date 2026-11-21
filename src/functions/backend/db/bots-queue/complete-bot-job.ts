@@ -51,6 +51,12 @@ type Params = {
      */
     task_ids?: number[];
     /**
+     * The plan the message belongs to: the one the run wrote, or the step of
+     * it the run worked (`BotJobOutcome.plan_message_id`), shown as a chip
+     * under the message.
+     */
+    plan_id?: number;
+    /**
      * The run used every step it was allowed (`BotJobOutcome.exhausted`):
      * a handed-over task it left open is blocked by `noteTrackerTask`, since
      * a run that spent its whole budget and did no work says so itself.
@@ -79,6 +85,7 @@ export default async function completeBotJob({
     attachments,
     tool_log,
     task_ids = [],
+    plan_id,
     exhausted,
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
@@ -111,6 +118,7 @@ export default async function completeBotJob({
               media_ids: attachments,
               tool_log,
               task_ids: message_task_ids,
+              plan_id,
           });
 
     if (job.id && inserted?.id) {

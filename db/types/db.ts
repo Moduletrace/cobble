@@ -430,6 +430,10 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     reply_to_message_id?: number | "";
     /** 
+     * The plan (`bot_plans`) this message belongs to: the one it wrote, or the step of it the run worked. Shown as a chip under the message so the plan can be opened from anywhere in the thread, and kept because a plan outlives the job that made it. Not a foreign key
+     */
+    plan_id?: number | "";
+    /** 
      * JSON `[{ name, ok }]`: every tool call the run behind a bot message made (names only, never arguments), told to the bot with the message in later turns so it can't build on work it never did. Null: not recorded (user messages, interim ones, older messages)
      */
     tool_log?: string;

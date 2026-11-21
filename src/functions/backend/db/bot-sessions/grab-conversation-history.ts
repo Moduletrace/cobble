@@ -1,9 +1,11 @@
 import { AppData } from "@/src/data/app-data";
-import type { ConversationHistory } from "@/src/types";
+import type { BotPlanView, ConversationHistory } from "@/src/types";
 import grabActiveBotTask from "../bots/grab-active-bot-task";
 import grabBotMessages from "../bots/grab-bot-messages";
 import grabSessionReplyStep from "../bots-queue/grab-session-reply-step";
 import grabSessionOpenReplies from "../bots-queue/grab-session-open-replies";
+import grabSessionPlan from "../bot-plans/grab-session-plan";
+import toBotPlanView from "../bot-plans/to-bot-plan-view";
 import ensureBotSession from "./ensure-bot-session";
 import grabCarriedToSessionId from "./grab-carried-to-session-id";
 import reopenBotSession from "./reopen-bot-session";
@@ -89,7 +91,7 @@ export default async function grabConversationHistory({
         session.unread = 0;
     }
 
-    const [messages, task, step, open_jobs] = await Promise.all([
+    const [messages, task, step, open_jobs, plan_row] = await Promise.all([
         grabBotMessages({
             session_id: session.id!,
             user_id,
@@ -98,6 +100,7 @@ export default async function grabConversationHistory({
         grabActiveBotTask({ bot_id: open_bot_id, session_id: session.id }),
         grabSessionReplyStep({ session_id: session.id! }),
         grabSessionOpenReplies({ session_id: session.id! }),
+        grabSessionPlan({ session_id: session.id! }),
     ]);
 
     const has_more = messages.length > AppData.ConversationFirstMessages;
@@ -109,6 +112,7 @@ export default async function grabConversationHistory({
         task,
         step,
         open_jobs,
+        plan: plan_row ? (toBotPlanView({ row: plan_row }) as BotPlanView) : null,
         moved_to_session_id: carried_to,
     };
 }

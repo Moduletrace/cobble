@@ -7,6 +7,7 @@ import type {
     BotJobUpdateData,
     BotMessageReactionData,
     BotMessageWithAttachments,
+    BotPlanView,
 } from "@/src/types";
 import { AppContext } from "@/src/pages/__root";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
@@ -31,6 +32,7 @@ import useTaskProgress from "../(hooks)/use-task-progress";
 import useReplyProgress from "../(hooks)/use-reply-progress";
 import useReplyCatchUp from "../(hooks)/use-reply-catch-up";
 import useOpenReplyJobs from "../(hooks)/use-open-reply-jobs";
+import useSessionPlan from "../(hooks)/use-session-plan";
 import usePlanMode from "../(hooks)/use-plan-mode";
 import useSpeakMessage from "../(hooks)/use-speak-message";
 import useOlderMessages from "../(hooks)/use-older-messages";
@@ -51,6 +53,7 @@ import mergeLoadedHistory from "../(utils)/merge-loaded-history";
 import LoadingLine from "@/src/components/general/loading-line";
 import SessionMovedBar from "../(partials)/session-moved-bar";
 import AskSessionBar from "../(partials)/ask-session-bar";
+import SessionPlanBar from "../(partials)/session-plan-bar";
 import NoModelNotice from "../(partials)/no-model-notice";
 import syncSessionQuery from "../(utils)/sync-session-query";
 import announceShownSession from "@/src/functions/frontend/announce-shown-session";
@@ -112,6 +115,12 @@ export default function Conversation() {
      * thread would wait on an answer that is never coming.
      */
     const [open_reply_jobs, setOpenReplyJobs] = useState<number | null>(null);
+    /**
+     * The plan open in this session, as the history read and its pushes
+     * leave it: the bar above the thread keeps it one click away however
+     * far the conversation has moved on.
+     */
+    const [session_plan, setSessionPlan] = useState<BotPlanView | null>(null);
     /**
      * The bot's message the user asked to run again, while its answer is on
      * its way. The new reply lands as another message, so this stands the
@@ -268,6 +277,7 @@ export default function Conversation() {
             progress.reset({ task: history.task });
             setReplyStep(history.step || null);
             setOpenReplyJobs(history.open_jobs ?? null);
+            setSessionPlan(history.plan ?? null);
             setRerunAfterId(null);
         },
     });
@@ -324,6 +334,8 @@ export default function Conversation() {
         session_id,
         on_open_jobs: () => setOpenReplyJobs(1),
     });
+
+    useSessionPlan({ session_id, on_change: setSessionPlan });
 
     /**
      * The thread's pull-to-reload: the page's crew read again (the layout
@@ -551,6 +563,7 @@ export default function Conversation() {
                                     onModelChange={setTextModel}
                                     plan_mode={plan_mode}
                                 />
+                                <SessionPlanBar plan={session_plan} />
                                 {moved_to_session_id ? null : (
                                     <AskSessionBar
                                         bot_id={Number(bot.id)}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import botPlanRef, { botPlanRefId, BotPlanRefHrefPrefix } from "./bot-plan-ref";
+import botPlanRef, { botPlanRefId, botPlanRefIdFromText, BotPlanRefHrefPrefix } from "./bot-plan-ref";
 import linkComputerRefs from "./link-computer-refs";
 
 /**
@@ -19,6 +19,17 @@ describe("botPlanRef", () => {
         expect(botPlanRefId({ href: `${BotPlanRefHrefPrefix}twelve` })).toBeNull();
         expect(botPlanRefId({ href: "#suggestion-4" })).toBeNull();
         expect(botPlanRefId({ href: undefined })).toBeNull();
+    });
+});
+
+describe("botPlanRefIdFromText", () => {
+    test("reads the plan a message names, and nothing from text that names none", () => {
+        expect(botPlanRefIdFromText({ text: "Written it: [plan:4]. Approve when ready." })).toBe(4);
+        expect(botPlanRefIdFromText({ text: "[plan:12]" })).toBe(12);
+        expect(botPlanRefIdFromText({ text: "no plan here" })).toBeNull();
+        expect(botPlanRefIdFromText({ text: "[plan:0]" })).toBeNull();
+        expect(botPlanRefIdFromText({ text: "[plan:twelve]" })).toBeNull();
+        expect(botPlanRefIdFromText({ text: null })).toBeNull();
     });
 });
 

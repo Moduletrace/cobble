@@ -319,6 +319,7 @@ export default async function processBotJob({
             attachments: outcome.attachments,
             tool_log: outcome.tool_log,
             task_ids: outcome.task_ids,
+            plan_id: outcome.plan_message_id,
             exhausted: outcome.exhausted,
         });
 

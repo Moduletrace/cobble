@@ -2392,6 +2392,12 @@ export type ConversationHistory = {
      */
     open_jobs?: number | null;
     /**
+     * The plan open in the session (\`bot_plans\`, waiting, being worked or
+     * paused), so the thread's plan bar shows without another read. Null:
+     * none open.
+     */
+    plan?: BotPlanView | null;
+    /**
      * When the session shown was carried over into a newer one (it stays
      * closed, to read): that session. Null otherwise.
      */
