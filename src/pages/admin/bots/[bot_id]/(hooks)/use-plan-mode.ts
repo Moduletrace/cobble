@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import readPlanMode from "@/src/functions/frontend/read-plan-mode";
 import rememberPlanMode from "@/src/functions/frontend/remember-plan-mode";
+import { PlanModeOffEvent } from "@/src/utils/plan-mode-event";
 
 type Params = {
     bot_id?: number | string | null;
@@ -35,6 +36,18 @@ export default function usePlanMode({ bot_id, workspace_id }: Params) {
     const togglePlanMode = useCallback(() => {
         setPlanMode(!plan_mode);
     }, [plan_mode, setPlanMode]);
+
+    /**
+     * Approving (or resuming) a plan ends Plan mode: its steps do the work,
+     * so the toggle's promise that nothing changes would be false.
+     */
+    useEffect(() => {
+        const turnOff = () => setPlanMode(false);
+
+        window.addEventListener(PlanModeOffEvent, turnOff);
+
+        return () => window.removeEventListener(PlanModeOffEvent, turnOff);
+    }, [setPlanMode]);
 
     return { plan_mode, set_plan_mode: setPlanMode, toggle_plan_mode: togglePlanMode };
 }

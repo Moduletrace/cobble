@@ -24,7 +24,8 @@ export default function SessionPlanBar({ plan }: Props) {
     if (!plan || !BotPlanOpenStates.includes(plan.status)) return null;
 
     const status = BotPlanStates.find((state) => state.value == plan.status)?.title || plan.status;
-    const color = plan.status == "active" ? "success" : plan.status == "paused" ? "warning" : "gray";
+    const color = plan.status == "paused" ? "warning" : "gray";
+    const variant = plan.status == "active" ? "outlined" : undefined;
     const step = Math.min(plan.finished_steps + 1, plan.total_steps);
     const progress =
         plan.status == "planned"
@@ -50,7 +51,7 @@ export default function SessionPlanBar({ plan }: Props) {
                 <Span className="min-w-0 grow truncate text-[13px] leading-5 font-bold text-ink">
                     {plan.title || `Plan ${plan.id}`}
                 </Span>
-                <Tag color={color} className="shrink-0">
+                <Tag color={color} variant={variant} className="shrink-0">
                     {status}
                 </Tag>
                 <Span className="shrink-0 text-[12px] leading-4 text-ink-secondary whitespace-nowrap">

@@ -19,6 +19,11 @@ type Params = {
      * waits for it instead of talking over it.
      */
     tool_names?: string[];
+    /**
+     * The reply queued a run (`send_reply` with work), whose report is still
+     * to come: the plan waits for it rather than working over it.
+     */
+    started_work?: boolean;
 };
 
 /**
@@ -31,7 +36,7 @@ type Params = {
  * meanwhile, or when the conversation already has a reply waiting (a message
  * the user sent mid-step, whose own run picks the plan up from there).
  */
-export default async function continueBotPlan({ plan_id, session_id, needs_you, tool_names }: Params) {
+export default async function continueBotPlan({ plan_id, session_id, needs_you, tool_names, started_work }: Params) {
     const row = await grabBotPlan({ plan_id });
     const steps = parseBotPlanSteps({ text: row.steps });
 
@@ -48,6 +53,7 @@ export default async function continueBotPlan({ plan_id, session_id, needs_you, 
         status: row.status || "",
         needs_you,
         tool_names,
+        started_work,
         plan_session_id: row.session_id,
         session_id,
         has_pending_step: currentPlanStepIndex({ steps }) != null,

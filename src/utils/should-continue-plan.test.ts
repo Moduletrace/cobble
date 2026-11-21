@@ -33,6 +33,10 @@ describe("shouldContinuePlan", () => {
         }
     });
 
+    test("stops when send_reply queued a run of its own", () => {
+        expect(shouldContinuePlan({ ...go, started_work: true })).toBe(false);
+    });
+
     test("stops when the plan was paused or ended mid-step", () => {
         expect(shouldContinuePlan({ ...go, status: "paused" })).toBe(false);
         expect(shouldContinuePlan({ ...go, status: "cancelled" })).toBe(false);

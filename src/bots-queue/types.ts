@@ -87,6 +87,12 @@ export type BotJobOutcome = {
      * worked on.
      */
     plan_message_id?: number;
+    /**
+     * The closing `send_reply` queued a run (`status: "working"`): its report
+     * is still to come, so the plan waits for it instead of queueing its
+     * next step (`continueBotPlan`).
+     */
+    started_work?: boolean;
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

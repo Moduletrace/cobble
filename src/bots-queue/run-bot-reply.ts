@@ -75,6 +75,7 @@ import withTakeOverRefs from "./with-take-over-refs";
 import stripAppRecords from "@/src/utils/strip-app-records";
 import hasUnansweredMessage from "./has-unanswered-message";
 import reviewRunAnswer from "./review-run-answer";
+import planStepReviewNote from "./plan-step-review";
 import cancelBotJob from "@/src/functions/backend/db/bots-queue/cancel-bot-job";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
 import grabRetryFailure from "@/src/functions/backend/db/bots-queue/grab-retry-failure";
@@ -90,7 +91,8 @@ import { botPlanRefIdFromText } from "@/src/utils/bot-plan-ref";
 import grabBotPlan from "@/src/functions/backend/db/bot-plans/grab-bot-plan";
 import toBotPlanView from "@/src/functions/backend/db/bot-plans/to-bot-plan-view";
 import type { BotMessageWithAttachments } from "@/src/types";
-import type { HarnessMessage } from "@/src/harness/types";
+import type { HarnessMessage, HarnessToolUse } from "@/src/harness/types";
+import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 
@@ -588,6 +590,18 @@ export default async function runBotReply({
     ];
 
     try {
+        /**
+         * The app's record of the answer, then the plan's own check: a run
+         * queued for a step must finish that step or say why it can't, or
+         * the app would carry the plan on past work nobody did.
+         */
+        const review_answer = ({ text, tool_uses, status }: { text: string; tool_uses: HarnessToolUse[]; status?: ReplyStatus }) =>
+            reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes, job_id: job.id })({ text, tool_uses, status }).then((note) => {
+                if (note) return note;
+
+                return planStepReviewNote({ plan, on_step: on_plan_step, tool_uses, status });
+            });
+
         const result = await runTextLoop({
             system: [
                 prompt,
@@ -660,7 +674,7 @@ export default async function runBotReply({
              * Files, tasks and work the answer names are checked against
              * the app's record before it goes out.
              */
-            review: reviewRunAnswer({ bot_id: bot.id!, user_id, session_id, scopes, job_id: job.id }),
+            review: review_answer,
             /**
              * The message goes out only through `send_reply`: text a turn
              * writes without it is a draft, so no answer can promise work
@@ -689,14 +703,14 @@ export default async function runBotReply({
             throw new BotJobFatalError(unsentAnswerMessage({ note: result.review_note }));
         }
 
-        const answer = stripAppRecords({ text: result.text }).trim();
+        const answer_text = stripAppRecords({ text: result.text }).trim();
 
         /**
          * Nothing said is nothing to send: an empty message lands in the
          * thread as a bubble with no text, and the user has no idea what
          * happened. The job fails with why instead, which they do see.
          */
-        if (!answer && !shown.length && !attachments.length) {
+        if (!answer_text && !shown.length && !attachments.length) {
             await dropUnsentQuestions({ refs: proposals });
 
             for (const queued of queued_jobs) {
@@ -721,12 +735,21 @@ export default async function runBotReply({
             await markReplyAnswered({ job_id: job.id, message_id: answering_id });
         }
 
+        const answer_parts = withTakeOverRefs({
+            text: answer_text,
+            refs: [...take_overs, ...proposals, ...plan_refs],
+            shown,
+        });
+
         return {
-            ...withTakeOverRefs({
-                text: answer,
-                refs: [...take_overs, ...proposals, ...plan_refs],
-                shown,
-            }),
+            ...answer_parts,
+            /**
+             * A step the run says is blocked stops the plan: carrying on to
+             * the next step over work that didn't happen is how a plan moved
+             * on while its reports said something else.
+             */
+            needs_you: answer_parts.needs_you || result.status == "blocked" || undefined,
+            started_work: result.status == "working" || undefined,
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,

@@ -336,6 +336,7 @@ export default async function processBotJob({
                 plan_id: outcome.plan_id,
                 session_id: Number(completion.message?.session_id || job.session_id),
                 needs_you: Boolean(outcome.needs_you),
+                started_work: Boolean(outcome.started_work),
                 tool_names: (outcome.tool_log || []).map((use) => use.name),
             }).then((job_id) => {
                 if (job_id) wakeBotsQueue();

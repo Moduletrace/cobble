@@ -19,6 +19,12 @@ type Params = {
      */
     tool_names?: string[];
     /**
+     * The closing `send_reply` queued a run (`status: "working"`), whose
+     * report comes later: the plan waits for it just as it does for a
+     * `start_task`.
+     */
+    started_work?: boolean;
+    /**
      * The plan's session and the finished step's: a step job is queued for
      * the conversation it belongs to, never another one's.
      */
@@ -51,12 +57,15 @@ export default function shouldContinuePlan({
     status,
     needs_you,
     tool_names,
+    started_work,
     plan_session_id,
     session_id,
     has_pending_step,
     has_waiting_reply,
 }: Params) {
     if (needs_you) return false;
+
+    if (started_work) return false;
 
     if ((tool_names || []).some((name) => WorkStartingTools.includes(name))) return false;
 

@@ -7,6 +7,7 @@ import { BotPlanStates, type BotPlanState } from "@/src/dict/bot-plan-dict";
 import setBotPlanState from "../(functions)/set-bot-plan-state";
 import useBotPlan from "../(hooks)/use-bot-plan";
 import botPlanStatusLine from "../(utils)/bot-plan-status-line";
+import announcePlanModeOff from "@/src/utils/plan-mode-event";
 import BotPlanEditModal from "./bot-plan-edit-modal";
 import BotPlanStepRow from "./bot-plan-step-row";
 
@@ -58,6 +59,13 @@ export default function BotPlanCard({ plan_id }: Props) {
             setError(res.msg || `Couldn't move the plan.`);
             return;
         }
+
+        /**
+         * Starting or resuming the plan starts its work, which writes:
+         * Plan mode would say nothing changes, so it ends here rather than
+         * sitting on while the steps run.
+         */
+        if (status == "active") announcePlanModeOff();
 
         setView(res.singleRes);
     };
