@@ -923,6 +923,17 @@ export const AppData = {
     ExtensionResearchMaxChars: 6000,
     ExtensionResearchSourcesMax: 10,
     /**
+     * Extension bundles (Settings > MCP servers, Tools, Skills,
+     * Knowledgebases): the most items one imported file may hold, and the
+     * most documents one knowledgebase item carries.
+     */
+    ExtensionBundleMaxItems: 500,
+    ExtensionBundleMaxDocuments: 2000,
+    /**
+     * The biggest bundle the import modal reads, before parsing.
+     */
+    ExtensionBundleMaxBytes: 25_000_000,
+    /**
      * `search_computers`: how long the command may run on each computer,
      * and how much of each computer's output the bot reads.
      */

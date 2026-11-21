@@ -1,12 +1,14 @@
 import { useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Pencil, Trash2, Users } from "lucide-react";
 import IconTile from "@/src/components/general/icon-tile";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { ExtensionTargets, PublicSkill, SkillLimitsOverview, SkillsOverviewPayload } from "@/src/types";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
-import SettingsRowAction from "../../(partials)/settings-row-action";
+import SettingsRowMenu from "../../(partials)/settings-row-menu";
+import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
 import SkillModal from "./skill-modal";
@@ -17,13 +19,18 @@ type Props = {
     limits: SkillLimitsOverview;
     onChanged: (overview: SkillsOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
+    /**
+     * Whether it is picked for an export.
+     */
+    selected?: boolean;
+    onSelected?: (checked: boolean) => void;
 };
 
 /**
- * One skill: its slug and when it applies, and who gets it. Edit and Access
- * open in a modal.
+ * One skill: its slug and when it applies, and who gets it. Its actions
+ * live in the three-dot menu: edit, who gets it and deleting it.
  */
-export default function SkillRow({ skill, targets, limits, onChanged, onError }: Props) {
+export default function SkillRow({ selected, onSelected, skill, targets, limits, onChanged, onError }: Props) {
     const [open, setOpen] = useState<"edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -49,6 +56,8 @@ export default function SkillRow({ skill, targets, limits, onChanged, onError }:
     return (
         <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
             <SettingsListRow
+                selected={selected}
+                onSelected={onSelected}
                 avatar={<IconTile Icon={BookOpen} />}
                 title={skill.name}
                 badge={skill.enabled ? undefined : "Off"}
@@ -61,23 +70,22 @@ export default function SkillRow({ skill, targets, limits, onChanged, onError }:
                     .filter(Boolean)
                     .join(" · ")}
             >
-                {targets.can_edit ? (
-                    <SettingsRowAction
-                        title={`Edit ${skill.name}`}
-                        label="Edit"
-                        disabled={busy}
-                        onClick={() => setOpen(open == "edit" ? undefined : "edit")}
-                    />
-                ) : null}
-                <SettingsRowAction
-                    title={`Choose who gets ${skill.name}`}
-                    label="Access"
-                    disabled={busy}
-                    onClick={() => setOpen(open == "access" ? undefined : "access")}
-                />
-                {targets.can_edit ? (
-                    <SettingsRowAction title={`Delete ${skill.name}`} label="Delete" disabled={busy} onClick={remove} />
-                ) : null}
+                <SettingsRowMenu title={`${skill.name} menu`} disabled={busy}>
+                    <SettingsRowMenuPanel>
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
+                        ) : null}
+                        <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem
+                                icon={Trash2}
+                                title="Delete"
+                                description="Delete it. Bots lose it at once."
+                                onClick={remove}
+                            />
+                        ) : null}
+                    </SettingsRowMenuPanel>
+                </SettingsRowMenu>
             </SettingsListRow>
             {open == "edit" ? (
                 <SkillModal skill={skill} limits={limits} onSaved={saved} onCancel={() => setOpen(undefined)} />

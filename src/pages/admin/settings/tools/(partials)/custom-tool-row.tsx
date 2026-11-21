@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { Wrench } from "lucide-react";
+import { Pencil, Play, Trash2, Users, Wrench } from "lucide-react";
 import IconTile from "@/src/components/general/icon-tile";
 import { CustomToolKinds } from "@/src/dict/custom-tool-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
@@ -8,7 +8,9 @@ import type { CustomToolsOverviewPayload, ExtensionTargets, PublicCustomTool } f
 import ExtensionStatusLine from "../../(partials)/extension-status-line";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
-import SettingsRowAction from "../../(partials)/settings-row-action";
+import SettingsRowMenu from "../../(partials)/settings-row-menu";
+import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
 import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
@@ -24,18 +26,21 @@ type Props = {
      */
     onRefreshed: (overview: CustomToolsOverviewPayload) => void;
     onError: (msg: string) => void;
+    /**
+     * Whether it is picked for an export.
+     */
+    selected?: boolean;
+    onSelected?: (checked: boolean) => void;
 };
 
 /**
  * One custom tool: its name, kind and who gets it, and under it how its
- * last run went (a bot's call or a try). Edit, Access and Try open in a
- * modal.
+ * last run went (a bot's call or a try). Its actions live in the three-dot
+ * menu: edit, who gets it, trying it and deleting it.
  */
-export default function CustomToolRow({ tool, targets, onChanged, onRefreshed, onError }: Props) {
+export default function CustomToolRow({ selected, onSelected, tool, targets, onChanged, onRefreshed, onError }: Props) {
     const [open, setOpen] = useState<"edit" | "access" | "try">();
     const [busy, setBusy] = useState(false);
-
-    const toggle = (panel: "edit" | "access" | "try") => setOpen(open == panel ? undefined : panel);
 
     const saved = (overview: CustomToolsOverviewPayload, msg: string) => {
         setOpen(undefined);
@@ -67,6 +72,8 @@ export default function CustomToolRow({ tool, targets, onChanged, onRefreshed, o
     return (
         <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
             <SettingsListRow
+                selected={selected}
+                onSelected={onSelected}
                 avatar={<IconTile Icon={Wrench} />}
                 title={tool.name}
                 badge={tool.enabled ? undefined : "Off"}
@@ -79,21 +86,30 @@ export default function CustomToolRow({ tool, targets, onChanged, onRefreshed, o
                     .filter(Boolean)
                     .join(" · ")}
             >
-                {targets.can_edit ? (
-                    <SettingsRowAction title={`Edit ${tool.name}`} label="Edit" disabled={busy} onClick={() => toggle("edit")} />
-                ) : null}
-                <SettingsRowAction
-                    title={`Choose who gets ${tool.name}`}
-                    label="Access"
-                    disabled={busy}
-                    onClick={() => toggle("access")}
-                />
-                {targets.can_edit ? (
-                    <SettingsRowAction title={`Try ${tool.name}`} label="Try" disabled={busy} onClick={() => toggle("try")} />
-                ) : null}
-                {targets.can_edit ? (
-                    <SettingsRowAction title={`Delete ${tool.name}`} label="Delete" disabled={busy} onClick={remove} />
-                ) : null}
+                <SettingsRowMenu title={`${tool.name} menu`} disabled={busy}>
+                    <SettingsRowMenuPanel>
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
+                        ) : null}
+                        <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem
+                                icon={Play}
+                                title="Try"
+                                description="Run it once to check it works."
+                                onClick={() => setOpen("try")}
+                            />
+                        ) : null}
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem
+                                icon={Trash2}
+                                title="Delete"
+                                description="Delete it. Bots lose it at once."
+                                onClick={remove}
+                            />
+                        ) : null}
+                    </SettingsRowMenuPanel>
+                </SettingsRowMenu>
             </SettingsListRow>
             <ExtensionStatusLine state={tool.status} {...status} />
             {open == "edit" ? (

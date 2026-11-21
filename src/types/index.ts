@@ -1783,6 +1783,130 @@ export type CustomToolsOverviewPayload = ExtensionTargets & {
 };
 
 /**
+ * An extension bundle: what one install exports for another (Settings >
+ * MCP servers, Tools, Skills, Knowledgebases). Its `config` is the shape a
+ * save already takes, so nothing is written that the forms couldn't.
+ */
+export type ExtensionBundleKind = "mcp" | "tool" | "skill" | "knowledgebase";
+
+export type ExtensionBundleDocument = {
+    name: string;
+    mime_type: string;
+    text: string;
+};
+
+export type ExtensionBundleItem = {
+    kind: ExtensionBundleKind;
+    /**
+     * What two installs call the same thing: an MCP server's slug, a tool's
+     * or a knowledgebase's name, a skill's slug.
+     */
+    key: string;
+    config: Record<string, unknown>;
+    /**
+     * Values the export left behind, named: a server's own keys.
+     */
+    redacted: string[];
+    /**
+     * The env keys the item's templates ask for.
+     */
+    env_keys: string[];
+    /**
+     * What the export had to leave out or cut.
+     */
+    notes: string[];
+    documents: ExtensionBundleDocument[];
+};
+
+export type ExtensionBundle = {
+    format: "cobble-extensions";
+    version: 1;
+    exported_at: number;
+    app_version: string;
+    items: ExtensionBundleItem[];
+};
+
+/**
+ * What an imported item is, against what the install already has: the same
+ * thing and the same settings, the same thing changed, nothing like it, or
+ * a file that can't be read.
+ */
+export type ExtensionImportStatus = "new" | "same" | "conflict" | "invalid";
+
+export type ExtensionImportPreviewItem = {
+    /**
+     * Where it sits in the bundle, which is how it's picked again when the
+     * import is confirmed.
+     */
+    index: number;
+    kind: ExtensionBundleKind;
+    key: string;
+    name: string;
+    status: ExtensionImportStatus;
+    /**
+     * The row with this key, when there is one.
+     */
+    existing_id: number | null;
+    /**
+     * For a conflict: the settings that differ.
+     */
+    differing: string[];
+    /**
+     * For one that can't be imported: why.
+     */
+    problem: string;
+    warnings: string[];
+    redacted: string[];
+    env_keys: string[];
+    document_count: number;
+    /**
+     * Several rows here already have this name, so it can only go in as a
+     * copy.
+     */
+    copy_only: boolean;
+};
+
+export type ExtensionImportPreview = {
+    kind: ExtensionBundleKind;
+    exported_at: number;
+    app_version: string;
+    counts: Record<ExtensionImportStatus, number>;
+    items: ExtensionImportPreviewItem[];
+    /**
+     * Items of other kinds the file holds: imported from their own pages.
+     */
+    other_kinds: number;
+};
+
+/**
+ * What to do with one previewed item: leave it, add it, replace the row it
+ * matched, or add it beside it under a new name.
+ */
+export type ExtensionImportAction = "skip" | "add" | "overwrite" | "copy";
+
+export type ExtensionImportDecision = {
+    index: number;
+    action: ExtensionImportAction;
+};
+
+export type ExtensionImportOutcome = {
+    index: number;
+    name: string;
+    action: ExtensionImportAction;
+    ok: boolean;
+    msg: string;
+};
+
+/**
+ * What an import did, and the page's list again, for the kind it came from.
+ */
+export type ExtensionImportApplyPayload =
+    | { kind: "mcp"; outcomes: ExtensionImportOutcome[]; overview: McpServersOverviewPayload }
+    | { kind: "tool"; outcomes: ExtensionImportOutcome[]; overview: CustomToolsOverviewPayload }
+    | { kind: "skill"; outcomes: ExtensionImportOutcome[]; overview: SkillsOverviewPayload }
+    | { kind: "knowledgebase"; outcomes: ExtensionImportOutcome[]; overview: KnowledgebasesOverviewPayload };
+
+/**
  * What testing an MCP server's form returned: its tools, or why it didn't
  * connect.
  */

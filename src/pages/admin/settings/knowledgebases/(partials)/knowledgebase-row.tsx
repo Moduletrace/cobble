@@ -26,6 +26,11 @@ type Props = {
     embedding_model: string | null;
     onChanged: (overview: KnowledgebasesOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
+    /**
+     * Whether it is picked for an export.
+     */
+    selected?: boolean;
+    onSelected?: (checked: boolean) => void;
 };
 
 /**
@@ -34,7 +39,7 @@ type Props = {
  * documents, who gets it, and for a super admin editing, retrying the
  * ones that failed, reading every document again, and deleting it.
  */
-export default function KnowledgebaseRow({ knowledgebase, targets, embedding_model, onChanged, onError }: Props) {
+export default function KnowledgebaseRow({ selected, onSelected, knowledgebase, targets, embedding_model, onChanged, onError }: Props) {
     const [open, setOpen] = useState<"documents" | "edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -72,6 +77,8 @@ export default function KnowledgebaseRow({ knowledgebase, targets, embedding_mod
     return (
         <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
             <SettingsListRow
+                selected={selected}
+                onSelected={onSelected}
                 avatar={<IconTile Icon={Library} />}
                 title={knowledgebase.name}
                 badge={knowledgebase.enabled ? undefined : "Off"}

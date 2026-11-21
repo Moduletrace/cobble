@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { Plug } from "lucide-react";
+import { Pencil, Plug, RefreshCw, Trash2, Users } from "lucide-react";
 import IconTile from "@/src/components/general/icon-tile";
 import { McpTransports } from "@/src/dict/mcp-dict";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
@@ -8,7 +8,9 @@ import type { ExtensionTargets, McpServersOverviewPayload, PublicMcpServer } fro
 import ExtensionStatusLine from "../../(partials)/extension-status-line";
 import ExtensionAccessModal from "../../(partials)/extension-access-modal";
 import SettingsListRow from "../../(partials)/settings-list-row";
-import SettingsRowAction from "../../(partials)/settings-row-action";
+import SettingsRowMenu from "../../(partials)/settings-row-menu";
+import SettingsRowMenuItem from "../../(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "../../(partials)/settings-row-menu-panel";
 import checkedAgo from "../../(utils)/checked-ago";
 import extensionAccessLabel from "../../(utils)/extension-access-label";
 import updatedAgo from "../../(utils)/updated-ago";
@@ -19,14 +21,20 @@ type Props = {
     targets: ExtensionTargets;
     onChanged: (overview: McpServersOverviewPayload, msg: string) => void;
     onError: (msg: string) => void;
+    /**
+     * Whether it is picked for an export.
+     */
+    selected?: boolean;
+    onSelected?: (checked: boolean) => void;
 };
 
 /**
  * One MCP server: how it's reached and who gets it, and under it whether
- * it connected (when it was last checked, and why it failed). Edit and
- * Access open in a modal.
+ * it connected (when it was last checked, and why it failed). Its actions
+ * live in the three-dot menu: edit, who gets it, refreshing its tools and
+ * deleting it.
  */
-export default function McpServerRow({ server, targets, onChanged, onError }: Props) {
+export default function McpServerRow({ selected, onSelected, server, targets, onChanged, onError }: Props) {
     const [open, setOpen] = useState<"edit" | "access">();
     const [busy, setBusy] = useState(false);
 
@@ -58,6 +66,8 @@ export default function McpServerRow({ server, targets, onChanged, onError }: Pr
     return (
         <Stack className="w-full gap-0! items-stretch border-0 border-b border-solid border-hairline last:border-b-0">
             <SettingsListRow
+                selected={selected}
+                onSelected={onSelected}
                 avatar={<IconTile Icon={Plug} />}
                 title={server.name}
                 badge={server.enabled ? undefined : "Off"}
@@ -69,42 +79,38 @@ export default function McpServerRow({ server, targets, onChanged, onError }: Pr
                     .filter(Boolean)
                     .join(" · ")}
             >
-                {targets.can_edit ? (
-                    <SettingsRowAction
-                        title={`Edit ${server.name}`}
-                        label="Edit"
-                        disabled={busy}
-                        onClick={() => setOpen(open == "edit" ? undefined : "edit")}
-                    />
-                ) : null}
-                <SettingsRowAction
-                    title={`Choose who gets ${server.name}`}
-                    label="Access"
-                    disabled={busy}
-                    onClick={() => setOpen(open == "access" ? undefined : "access")}
-                />
-                {targets.can_edit ? (
-                    <SettingsRowAction
-                        title={`List ${server.name}'s tools again`}
-                        label={busy ? "Connecting…" : "Refresh"}
-                        disabled={busy || !server.enabled}
-                        onClick={() => post({ path: "mcps/sync-mcp", body: { mcp_server_id: server.id } })}
-                    />
-                ) : null}
-                {targets.can_edit ? (
-                    <SettingsRowAction
-                        title={`Delete ${server.name}`}
-                        label="Delete"
-                        disabled={busy}
-                        onClick={() =>
-                            post({
-                                path: "mcps/delete-mcp",
-                                body: { mcp_server_id: server.id },
-                                confirm: `Delete ${server.name}? Bots lose its tools at once.`,
-                            })
-                        }
-                    />
-                ) : null}
+                <SettingsRowMenu title={`${server.name} menu`} disabled={busy}>
+                    <SettingsRowMenuPanel>
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem icon={Pencil} title="Edit" onClick={() => setOpen("edit")} />
+                        ) : null}
+                        <SettingsRowMenuItem icon={Users} title="Who gets it" onClick={() => setOpen("access")} />
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem
+                                icon={RefreshCw}
+                                title="Refresh"
+                                description="List its tools again."
+                                disabled={!server.enabled}
+                                loading={busy}
+                                onClick={() => post({ path: "mcps/sync-mcp", body: { mcp_server_id: server.id } })}
+                            />
+                        ) : null}
+                        {targets.can_edit ? (
+                            <SettingsRowMenuItem
+                                icon={Trash2}
+                                title="Delete"
+                                description="Delete it. Bots lose its tools at once."
+                                onClick={() =>
+                                    post({
+                                        path: "mcps/delete-mcp",
+                                        body: { mcp_server_id: server.id },
+                                        confirm: `Delete ${server.name}? Bots lose its tools at once.`,
+                                    })
+                                }
+                            />
+                        ) : null}
+                    </SettingsRowMenuPanel>
+                </SettingsRowMenu>
             </SettingsListRow>
             <ExtensionStatusLine state={server.status} {...status} />
             {open == "edit" ? (

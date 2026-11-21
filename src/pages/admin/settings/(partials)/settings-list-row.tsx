@@ -4,6 +4,7 @@ import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
+import Checkbox from "@moduletrace/twui/form/Checkbox";
 
 type Props = {
     avatar: ReactNode;
@@ -26,6 +27,12 @@ type Props = {
     title_icon?: ReactNode;
     subtitle?: string;
     /**
+     * Whether it is picked, for a list whose rows can be picked for an
+     * export. Giving `onSelected` is what shows the box.
+     */
+    selected?: boolean;
+    onSelected?: (checked: boolean) => void;
+    /**
      * Its actions, at the end of the row.
      */
     children?: ReactNode;
@@ -35,7 +42,18 @@ type Props = {
  * One row of a settings list: an avatar, a title and one line about it,
  * then what can be done with it.
  */
-export default function SettingsListRow({ avatar, title, href, onOpen, badge, title_icon, subtitle, children }: Props) {
+export default function SettingsListRow({
+    avatar,
+    title,
+    href,
+    onOpen,
+    badge,
+    title_icon,
+    subtitle,
+    selected,
+    onSelected,
+    children,
+}: Props) {
     const title_content = (
         <Span className="block text-sm font-bold leading-5 text-ink truncate w-full">
             {title}
@@ -46,6 +64,19 @@ export default function SettingsListRow({ avatar, title, href, onOpen, badge, ti
 
     return (
         <Row className="w-full min-h-14 gap-3! flex-nowrap items-center px-3 py-2">
+            {onSelected ? (
+                <Checkbox
+                    noLabel
+                    title={`Pick ${title}`}
+                    checked={!!selected}
+                    /**
+                     * The box's own root may not shrink: the title's
+                     * `truncate` would squeeze it into the avatar.
+                     */
+                    wrapperWrapperProps={{ className: "shrink-0" }}
+                    clickDispatchHandler={(checked) => onSelected(checked)}
+                />
+            ) : null}
             {avatar}
             <Stack className="grow min-w-0 gap-0!">
                 {href ? (
