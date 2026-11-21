@@ -19,6 +19,7 @@ import MessagePlanChip from "./message-plan-chip";
 import MessageTaskChips from "./message-task-chips";
 import MessageUsageChip from "./message-usage-chip";
 import NeedsYouChip from "./needs-you-chip";
+import PlanModeOffButton from "./plan-mode-off-button";
 import SpeakMessageButton from "./speak-message-button";
 
 /**
@@ -49,7 +50,8 @@ type Props = {
  * switch the bot to them. A quoted reply sits above it, the images it's
  * about (attached or named as files) under its text, the tracker tasks
  * it's about and its reactions below, and a row under it replies, reacts, reads it aloud and shows
- * why it needs you. Its text can be selected and quoted.
+ * why it needs you, and a reply that ran in Plan mode carries the button
+ * that leaves the mode. Its text can be selected and quoted.
  *
  * Memoized: a message only renders (and parses its markdown) again when
  * it changes, not on every live step of the thread.
@@ -85,6 +87,11 @@ function BotMessageLine({ message, bot_name, at, rerun }: Props) {
                 </Markdown>
             </Stack>
             <MessageImages message={message} />
+            {message.plan_mode ? (
+                <Row className="gap-2! items-center">
+                    <PlanModeOffButton />
+                </Row>
+            ) : null}
             <MessageTaskChips tasks={message.tasks} />
             {message.plan_id ? <MessagePlanChip plan_id={Number(message.plan_id)} /> : null}
             {message.id ? (

@@ -211,7 +211,7 @@ export default function replyClaimProblems({
 
     if (file_escape) {
         problems.push(
-            `It is Plan mode, and the answer ${file_escape == "missing_tool" ? "says there is no write tool" : "asks the user to save the document themselves"}. write_file exists and Plan mode is the only thing stopping it. Don't paste the document and don't call the tool missing: say in one sentence that Plan mode stops the save, and either write it as a plan they can approve (its steps save it) or tell them to turn Plan mode off (Tab) and you will write it. Answering a question does not end Plan mode. A short template the user asked to read can stay in the message.`,
+            `It is Plan mode, and the answer ${file_escape == "missing_tool" ? "says there is no write tool" : "asks the user to save the document themselves"}. write_file exists and Plan mode is the only thing stopping it. Don't paste the document and don't call the tool missing: say in one sentence that Plan mode stops the save, and either write it as a plan they can approve (its steps save it) or say what you will do once they turn Plan mode off (the button under the answer, or Tab). Answering a question does not end Plan mode. A short template the user asked to read can stay in the message.`,
         );
     }
 

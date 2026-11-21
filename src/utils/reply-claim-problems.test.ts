@@ -464,7 +464,7 @@ describe("replyClaimProblems: the app's own state", () => {
 
         expect(problems.length).toBe(1);
         expect(problems[0]).toContain("Plan mode");
-        expect(problems[0]).toContain("turn Plan mode off (Tab)");
+        expect(problems[0]).toContain("turn Plan mode off (the button under the answer, or Tab)");
         expect(problems[0]).not.toContain("their answer runs with the save allowed");
     });
 

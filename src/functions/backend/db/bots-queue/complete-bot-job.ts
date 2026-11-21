@@ -21,6 +21,7 @@ import onAskJobEnded from "../asks/on-ask-job-ended";
 import isUnattendedHookSession from "../bot-hooks/is-unattended-hook-session";
 import settleInstallRequest from "../install-requests/settle-install-request";
 import jobTrackerTaskId from "./job-tracker-task-id";
+import jobPlanMode from "./job-plan-mode";
 
 type Params = {
     job_id: number | string;
@@ -119,6 +120,7 @@ export default async function completeBotJob({
               tool_log,
               task_ids: message_task_ids,
               plan_id,
+              plan_mode: jobPlanMode({ job }),
           });
 
     if (job.id && inserted?.id) {

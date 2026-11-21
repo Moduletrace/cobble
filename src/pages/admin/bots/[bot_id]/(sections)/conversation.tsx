@@ -24,6 +24,7 @@ import {
     type StopBotState,
 } from "../(data)/stop-bot-context";
 import reactToBotMessage from "../(functions)/react-to-bot-message";
+import turnOffPlanMode from "../(functions)/turn-off-plan-mode";
 import botBusyState from "../(utils)/bot-busy-state";
 import dropSentMessage from "../(utils)/drop-sent-message";
 import useBotComputers from "../(hooks)/use-bot-computers";
@@ -153,7 +154,7 @@ export default function Conversation() {
      * left it on this device, and Tab anywhere on the page turns it on and
      * off.
      */
-    const { plan_mode, toggle_plan_mode } = usePlanMode({
+    const { plan_mode, set_plan_mode, toggle_plan_mode } = usePlanMode({
         bot_id: bot?.id,
         workspace_id,
     });
@@ -497,7 +498,9 @@ export default function Conversation() {
 
     /**
      * Kept the same across renders, so a live step or a face change
-     * doesn't re-render every message (they read it from context).
+     * doesn't re-render every message (they read it from context). It
+     * changes only when Plan mode does, which is what those messages'
+     * button reads.
      */
     const message_actions = useMemo(
         () => ({
@@ -521,8 +524,14 @@ export default function Conversation() {
             },
             onUseSuggestion: ({ text }: { text: string }) =>
                 composer.current?.insertText({ text }),
+            plan_mode,
+            onTurnOffPlanMode: () =>
+                turnOffPlanMode({
+                    set_plan_mode,
+                    insert_text: (params) => composer.current?.insertText(params),
+                }),
         }),
-        [],
+        [plan_mode, set_plan_mode],
     );
 
     if (!bot?.id || !live_bot) return null;

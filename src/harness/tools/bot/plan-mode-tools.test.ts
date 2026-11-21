@@ -56,7 +56,7 @@ describe("Plan mode's tool gate", () => {
 
             expect(refusal).toContain("Plan mode is on for this reply");
             expect(refusal).toContain(`${planned_tool.name} did not run`);
-            expect(refusal).toContain("turn Plan mode off (Tab)");
+            expect(refusal).toContain("turn it off (the button under your answer, or Tab)");
         }
     });
 

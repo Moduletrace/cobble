@@ -422,7 +422,7 @@ export type BUN_SQLITE_COBBLE_BOT_MESSAGES = {
      */
     interim?: 0 | 1 | "";
     /** 
-     * Sent with Plan mode on in the composer: the reply answers with a plan, reads only and changes nothing (no files, tasks, memory, computers, browsers or extensions), a strictly planning run
+     * Sent or answered with Plan mode on: the user's message that asked for a planning run, and the reply it got (which the thread offers to leave the mode under), a run that reads only and changes nothing (no files, tasks, memory, computers, browsers or extensions)
      */
     plan_mode?: 0 | 1 | "";
     /** 

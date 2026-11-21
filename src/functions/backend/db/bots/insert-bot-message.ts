@@ -45,6 +45,11 @@ type Params = {
      */
     carried_from_session_id?: number;
     /**
+     * Set on a bot message whose reply ran in Plan mode: the thread offers
+     * to leave the mode under it.
+     */
+    plan_mode?: boolean;
+    /**
      * Set on the app's failure notice: the job that failed
      * (`notifyBotJobFailed`). The thread offers Retry on a failed reply,
      * and the model's history skips the notice.
@@ -68,6 +73,7 @@ export default async function insertBotMessage({
     task_ids,
     plan_id,
     carried_from_session_id,
+    plan_mode,
     failed_job_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
     const now = Date.now();
@@ -95,6 +101,7 @@ export default async function insertBotMessage({
                 task_ids: task_ids_json,
                 plan_id: plan_id ? Number(plan_id) : undefined,
                 carried_from_session_id,
+                plan_mode: plan_mode ? 1 : 0,
                 failed_job_id,
             },
         ],

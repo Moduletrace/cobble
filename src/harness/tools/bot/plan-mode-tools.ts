@@ -59,7 +59,7 @@ const allowed = new Set<string>(PlanModeToolNames);
  * instead read as "there is no tool called ...", which was untrue.
  */
 function planModeRefusal({ name }: { name: string }) {
-    return `Plan mode is on for this reply: it plans and reads, and changes nothing, so ${name} did not run and nothing was changed. Say plainly that Plan mode stops it, and that they can turn Plan mode off (Tab) to have it done; otherwise finish with send_reply.`;
+    return `Plan mode is on for this reply: it plans and reads, and changes nothing, so ${name} did not run and nothing was changed. Say plainly that Plan mode stops it, and that they can turn it off (the button under your answer, or Tab) to have it done; otherwise finish with send_reply.`;
 }
 
 /**
