@@ -6,7 +6,10 @@ import type {
 } from "@/db/types/db";
 import type { BotFilePurpose, BotFileScope, BotFileSource } from "@/src/dict/bot-file-dict";
 import type { MediaType } from "@/src/types";
+import AppError from "@/src/utils/app-error";
+import extensionOf from "@/src/utils/extension-of";
 import grabDirNames from "@/src/utils/grab-dir-names";
+import looksLikeImage from "@/src/utils/looks-like-image";
 import resolveBotPath from "@/src/utils/resolve-bot-path";
 import assertStorageRoom from "./assert-storage-room";
 import grabStorageDir from "./grab-storage-dir";
@@ -70,6 +73,24 @@ export default async function recordBotFile({
 
     const existing = await grabBotFileRow({ scope, owner_id, path: resolved.relative });
     const previous_size = Number(existing?.size) || 0;
+
+    /**
+     * What `write_file` saved as an image has to look like one: text under
+     * `.png` became a 2.6 KB "image" the user could not open, while the
+     * reply said a 1376x768 PNG was attached. Other writers make real bytes
+     * (`generate_image`, an import, an upload), so only a bot's own write is
+     * checked here.
+     */
+    if (
+        media_type_resolved == "image" &&
+        source == "bot-write" &&
+        extensionOf({ name: resolved.name }) != "svg" &&
+        !looksLikeImage({ bytes })
+    ) {
+        throw new AppError(
+            `${resolved.relative} isn't an image: it was saved as text, so the user would get a file that does not open. Make it with generate_image (or transform_image), or bring it in with import_file.`,
+        );
+    }
 
     await assertStorageRoom({
         scope,

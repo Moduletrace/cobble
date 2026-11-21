@@ -13,6 +13,7 @@ import {
     botFilesNote,
     chatReplyNote,
     RerunReplyNote,
+    RetryFailureNote,
     ComputerFilesNote,
     coordinatorReplyNote,
     longSessionNote,
@@ -73,6 +74,7 @@ import hasUnansweredMessage from "./has-unanswered-message";
 import reviewRunAnswer from "./review-run-answer";
 import cancelBotJob from "@/src/functions/backend/db/bots-queue/cancel-bot-job";
 import grabAnsweredMessageId from "@/src/functions/backend/db/bots-queue/grab-answered-message-id";
+import grabRetryFailure from "@/src/functions/backend/db/bots-queue/grab-retry-failure";
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
 import updateRequesterTool from "@/src/harness/tools/bot/update-requester-tool";
@@ -151,6 +153,14 @@ export default async function runBotReply({
      * session's last message and nothing looks unanswered.
      */
     const is_retry = Number(job_params.retry_of) > 0;
+    /**
+     * Why the attempt before this one ended without an answer
+     * (`grabRetryFailure`): what it claimed to have done may be exactly
+     * what it never did, so the retry is told rather than repeating it.
+     */
+    const retry_failure = is_retry
+        ? await grabRetryFailure({ message_id: Number(job_params.retry_of) }).catch(() => null)
+        : null;
 
     if (!on_plan_step && !is_retry && !hasUnansweredMessage({ history, answered_id })) {
         return { result: "", silent: true };
@@ -369,6 +379,7 @@ export default async function runBotReply({
             led = admin;
         },
         onTask: ({ task_id }) => task_ids.push(task_id),
+        onAttach: ({ media_id }) => attachments.push(media_id),
     });
 
     /**
@@ -465,8 +476,9 @@ export default async function runBotReply({
                 long_session_note,
                 chatReplyNote({ bot_id: bot.id }),
                 is_retry ? RerunReplyNote : "",
+                retry_failure ? RetryFailureNote({ reason: retry_failure.reason }) : "",
                 botFilesNote({ bot_id: bot.id }),
-                ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: false }),
+                ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: computers.length > 0 }),
                 TasksNote,
                 TaskReminderNote,
                 can_hand_over ? HandOverTaskNote : "",

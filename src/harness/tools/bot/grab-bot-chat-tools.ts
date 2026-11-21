@@ -4,6 +4,7 @@ import grabCrewWorkers from "@/src/functions/backend/db/bots/grab-crew-workers";
 import type { StorageScope } from "@/src/utils/storage-access";
 import type { HarnessTool } from "../../types";
 import askToTakeOverTool from "../computer/ask-to-take-over-tool";
+import importFileTool from "../computer/import-file-tool";
 import searchComputersTool from "../computer/search-computers-tool";
 import addBotToWorkspaceTool from "./add-bot-to-workspace-tool";
 import assignComputerTool from "./assign-computer-tool";
@@ -103,13 +104,19 @@ type Params = {
      * posts links to it (`bot_messages.task_ids`).
      */
     onTask?: (params: { task_id: number }) => void;
+    /**
+     * Called with a file the reply sent, so the message carries it.
+     */
+    onAttach?: (params: { media_id: number; name: string }) => void;
 };
 
 /**
  * The tools a bot replies in chat with: its own (memory, instructions, and
  * in a workspace switching its default computer), send_reply for the message
- * and the longer work it queues, search_computers to find what's on its computers,
- * ask_user_to_take_over when only the user can do something on one, and
+ * and the longer work it queues, search_computers to find what's on its
+ * computers, import_file to keep a file one of them made (an image, a PDF,
+ * an export) in its own files, ask_user_to_take_over when only the user can
+ * do something on one, and
  * for the coordinator (the super admin's alone) create_workspace and
  * update_workspace (a workspace and its shared context, which
  * find_workspace reads back wherever the coordinator works), create_bot to
@@ -129,8 +136,9 @@ type Params = {
  * workspace admin, in the workspace it leads, gets
  * `grabWorkspaceAdminTools`. A worker gets no work to hand out, but it may
  * pass on a task of its own to a bot it could ask (`hand_over_task`). Every
- * gate reads the bot's types (`powers`), never `bots.kind`. Anything else on
- * a computer goes through a task, never mid-reply.
+ * gate reads the bot's types (`powers`), never `bots.kind`. Longer work on
+ * a computer, and anything that changes it, still goes through a task,
+ * never mid-reply.
  */
 export default async function grabBotChatTools({
     bot,
@@ -149,8 +157,10 @@ export default async function grabBotChatTools({
     onPropose,
     onWorkspaceAdmin,
     onTask,
+    onAttach,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
+    const dirs = computerRunDirs({ bot_id, bot_kind: bot.kind, user_id, workspace_id });
     const tools = [
         ...(await grabBotTools({
             user_id,
@@ -182,7 +192,15 @@ export default async function grabBotChatTools({
                       user_id,
                       computers,
                       workspace_id,
-                      dirs: computerRunDirs({ bot_id, bot_kind: bot.kind, user_id, workspace_id }),
+                      dirs,
+                  }),
+                  importFileTool({
+                      computers,
+                      scopes,
+                      bot_id,
+                      user_id,
+                      dirs,
+                      onAttach,
                   }),
                   askToTakeOverTool({ computers, onAsk: (params) => onTakeOver?.(params) }),
               ]

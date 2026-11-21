@@ -20,12 +20,14 @@ import downloadComputerFile, { type ComputerDownload } from "@/src/functions/bac
 import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
 import shellQuote from "@/src/utils/shell-quote";
 import walkRegularFiles from "@/src/utils/walk-regular-files";
+import pickImportComputer from "./import-computer";
 
 type Params = {
     /**
-     * The computer the run is on: what it made is in its workspace.
+     * The computers the run reaches (`grabBotComputers`), the current one
+     * first: the import reads from the one the bot names, else this one.
      */
-    computer_id: number | string;
+    computers: { id?: number | string | null; name?: string | null }[];
     /**
      * The directories the run may write to (`grabStorageScopes`): the first
      * is where an import lands.
@@ -44,13 +46,18 @@ type Params = {
 type Args = {
     path: string;
     name?: string;
+    /**
+     * Which of the run's computers to read from (its id); the first one
+     * when left out.
+     */
+    computer?: number | string;
     attach?: boolean;
 };
 
 /**
- * Copies what a bot made on its computer into its own files: one file, or
- * a whole folder (taken as a gzipped tar and unpacked into one row per
- * file). The copies are kept with the app, stay after the computer is
+ * Copies what a bot made on one of its computers into its own files: one
+ * file, or a whole folder (taken as a gzipped tar and unpacked into one row
+ * per file). The copies are kept with the app, stay after the computer is
  * rebuilt, and are readable at once; the originals stay on the computer,
  * where the message's folder ref points at the folder holding them.
  *
@@ -60,7 +67,7 @@ type Args = {
  * import at 30,047 characters.
  */
 export default function importFileTool({
-    computer_id,
+    computers,
     scopes,
     bot_id,
     user_id,
@@ -69,10 +76,20 @@ export default function importFileTool({
 }: Params): HarnessTool<Args> {
     const own = scopes[0];
     const max_mb = Math.round(AppData.BotFileImportMaxBytes / (1024 * 1024));
+    const first = computers[0];
+    const choices = computers
+        .map((computer) => `${computer.id}${computer.name ? ` (${computer.name})` : ""}`)
+        .join(", ");
 
     return {
         name: "import_file",
-        description: `Copy a file or folder from this computer into your own files, so it is kept with the app and stays after the computer is rebuilt. Give its path on the computer, relative to your folder there (${dirs.cwd}), e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
+        description: `Copy a file or folder from one of your computers into your own files, so it is kept with the app and stays after the computer is rebuilt.${
+            computers.length > 1
+                ? ` Your computers: ${choices}; "computer" picks one, the first by default.`
+                : first
+                  ? ` It reads computer ${first.id}${first.name ? ` (${first.name})` : ""}.`
+                  : ""
+        } Give its path on the computer, relative to your folder there (${dirs.cwd}), e.g. "seo/coderank/raw/crawl.json" or "seo/coderank/raw"; a folder comes in as it is, in one go. Up to ${max_mb} MB. Check with list_files and the computer's own tools what you already imported: importing the same thing twice just writes over the copy, so do it once.${
             own?.scope == "workspace" ? " The copies land in the workspace's shared files." : ""
         } Imports are readable at once. Name a copy with its [file:ID] ref. Import the report you wrote before the last long steps of a run, so it is never lost to the step limit. The other direction is export_file, which puts one of your own files back on the computer.`,
         schema: z.object({
@@ -86,10 +103,22 @@ export default function importFileTool({
                 .max(AppData.BotFilePathMaxChars)
                 .optional()
                 .describe(`Where to save it in your files, e.g. "reports/coderank-audit.md"`),
+            computer: z
+                .union([z.string(), z.number()])
+                .optional()
+                .describe(`Which of your computers (its id); the first one when left out`),
             attach: z.boolean().optional().describe(`Also send it to the user with this reply`),
         }),
         run: async ({ args, signal }) => {
             if (!own) return `You have no files folder to import into.`;
+
+            const chosen = pickImportComputer({ computers, wanted: args.computer });
+
+            if (!chosen) {
+                return computers.length
+                    ? `That isn't one of your computers. Yours: ${choices}.`
+                    : `You have no computer to import from.`;
+            }
 
             /**
              * Workspace-relative from here on, which is what a folder ref
@@ -100,6 +129,7 @@ export default function importFileTool({
 
             if (!source) return `Give a file or folder inside your folder, e.g. "seo/coderank/raw".`;
 
+            const computer_id = chosen.id || 0;
             const target = await grabComputerMcpUrl({ computer_id });
 
             if (!target) return `Computer #${computer_id} has no container to copy from.`;

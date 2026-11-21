@@ -116,6 +116,19 @@ The user asked for this reply again. Work from their latest messages and write i
 - If the answer did go out, write it again for what they asked, as if it were the first time. The earlier one stays in the thread, so don't repeat it word for word if you have something better to say, and don't assume they missed it.
 - Start the work now, in this reply or with send_reply status "working" and work: never answer that you'll look into it.`;
 
+/**
+ * Added beside `RerunReplyNote` when the attempt before this one failed:
+ * `reason` is the job's `last_error` (`grabRetryFailure`), so the run knows
+ * what went wrong instead of starting from the same wrong premise. Cut
+ * short: the note is guidance, not the failure log.
+ */
+export const RetryFailureNote = ({ reason }: { reason: string }) => `# The attempt before this one
+
+It ended without sending an answer${reason ? `: ${reason.slice(0, 400)}` : "."}
+
+- Check what that attempt actually left on record before you repeat it: list_files for what it says it saved, and the computer's own folders for what it says it made there. Take its word for nothing.
+- If it set off on a premise that wasn't true (a file that wasn't saved, a script that never existed), correct the premise first: that is the reason this attempt exists.`;
+
 export const botFilesNote = ({ bot_id }: { bot_id: number | string }) => `# Your files
 
 You have a folder of your own, kept with the app (not on a computer), and it stays between runs and conversations.
@@ -137,8 +150,9 @@ You have a folder of your own, kept with the app (not on a computer), and it sta
 
 /**
  * Added to a run that has a computer: what it leaves there is not in its
- * files, but the user can still open it. `can_import` is false in a chat
- * reply, where the import only happens inside a task.
+ * files, but the user can still open it. `can_import` is false when the run
+ * has no computer to read from (a reply whose bot has none): then file work
+ * on one is a task.
  *
  * A folder ref is always a folder, so a file left on the computer is named
  * by the folder that holds it, never by the file's own path.

@@ -24,6 +24,7 @@ import {
     PlanActiveNote,
     PlanPausedNote,
     ScheduledPlanNote,
+    RetryFailureNote,
 } from "./harness-prompts";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 
@@ -95,6 +96,26 @@ describe("harness prompts", () => {
     test("notes with nothing bot-specific carry no ref example", () => {
         expect(TasksNote).not.toContain("[folder:bot:");
         expect(TasksNote).not.toContain("[bot:");
+    });
+
+    test("a retry is told why the attempt before it failed", () => {
+        const note = RetryFailureNote({ reason: "The answer didn't hold up against the app's record." });
+
+        expect(note).toContain("The answer didn't hold up against the app's record.");
+        expect(note).toContain("list_files");
+        expect(note).toContain("correct the premise first");
+    });
+
+    test("a retry outside the few hundred characters that matter keeps the start of the failure", () => {
+        const reason = `${"first".repeat(80)}${"last".repeat(10)}`;
+        const note = RetryFailureNote({ reason });
+
+        expect(note).toContain(`first${"first".repeat(78)}`);
+        expect(note).not.toContain("lastlastlastlast");
+    });
+
+    test("a retry with no reason recorded still reads as a failure", () => {
+        expect(RetryFailureNote({ reason: "" })).toContain("It ended without sending an answer.");
     });
 });
 

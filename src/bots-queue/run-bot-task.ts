@@ -182,6 +182,19 @@ export default async function runBotTask({
     try {
         const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
         const computers = await grabBotComputers({ bot_id: bot.id, workspace_id });
+        /**
+         * `import_file` reads only the computer this run works on: what it
+         * made is there. The row is read again when the list no longer has
+         * it, so the tool still names the job's computer.
+         */
+        const job_computers = job.computer_id
+            ? computers.filter((row) => Number(row.id) == Number(job.computer_id))
+            : [];
+        const import_computers = job_computers.length
+            ? job_computers
+            : job.computer_id
+              ? [{ id: job.computer_id }]
+              : [];
 
         /**
          * What the bot's types let it do here. A coordinator's task can
@@ -395,7 +408,7 @@ export default async function runBotTask({
             ...(job.computer_id
                 ? [
                       importFileTool({
-                          computer_id: job.computer_id,
+                          computers: import_computers,
                           scopes,
                           bot_id: bot.id,
                           user_id,

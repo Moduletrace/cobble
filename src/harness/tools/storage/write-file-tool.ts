@@ -3,6 +3,7 @@ import { AppData } from "@/src/data/app-data";
 import type { BotFilePurpose } from "@/src/dict/bot-file-dict";
 import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file";
 import type { HarnessTool } from "../../types";
+import binaryWriteProblem from "./binary-write-problem";
 import {
     describeScope,
     fileRef,
@@ -22,7 +23,8 @@ type Args = {
 /**
  * Writes a text file (markdown, CSV, JSON, code, plain text) into one of
  * the bot's directories, making folders as needed. The file stays for
- * later runs.
+ * later runs. A binary extension is refused: text saved under `.png`
+ * reached the user as a file that would not open.
  */
 export default function writeFileTool(context: StorageToolContext): HarnessTool<Args> {
     const own = context.scopes[0];
@@ -31,7 +33,7 @@ export default function writeFileTool(context: StorageToolContext): HarnessTool<
         name: "write_file",
         description: `Save a text file for later: markdown, CSV, JSON, code or plain text. Give it a path like "reports/q3.md"; folders are made as needed. Files belong to ${
             own?.scope == "workspace" ? "the workspace you're working in" : "you"
-        } and stay between runs: write a file before telling the user something is saved, and list_files (by name or path) to find one you wrote before. It is readable at once.${
+        } and stay between runs: write a file before telling the user something is saved, and list_files (by name or path) to find one you wrote before. It is readable at once. It saves text only: an image comes from generate_image, a PDF from make_pdf, and a file a computer made from import_file, never from writing base64 here.${
             context.scopes.length > 1
                 ? ` "scope" picks a directory: ${context.scopes.map((s) => `${s.scope}:${s.owner_id}`).join(", ")}.`
                 : ""
@@ -61,6 +63,9 @@ export default function writeFileTool(context: StorageToolContext): HarnessTool<
                     .map((s) => `${s.scope}:${s.owner_id}`)
                     .join(", ")}.`;
             }
+
+            const binary = binaryWriteProblem({ path: args.path });
+            if (binary) return binary;
 
             const file = await recordBotFile({
                 bot_id: context.bot_id,

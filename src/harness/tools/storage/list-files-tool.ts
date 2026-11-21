@@ -22,7 +22,7 @@ type Args = {
 export default function listFilesTool(context: StorageToolContext): HarnessTool<Args> {
     return {
         name: "list_files",
-        description: `List the files you have saved, newest first: one folder's with "folder", everything with "recursive", or the ones whose name or path has "search". Each line has its path, size and [file:ID] ref (e.g. [file:12]) to read it. The answer also names the folder as a folder ref, which opens it in Files without downloading anything: a file is a [file:ID] ref, a folder is a [folder:...] ref.`,
+        description: `List the files you have saved, newest first: one folder's with "folder", everything with "recursive", or the ones whose name or path has "search" (in every folder, so a file saved deep in a tree is found). Each line has its path, size and [file:ID] ref (e.g. [file:12]) to read it. The answer also names the folder as a folder ref, which opens it in Files without downloading anything: a file is a [file:ID] ref, a folder is a [folder:...] ref.`,
         schema: z.object({
             folder: z.string().max(AppData.BotFilePathMaxChars).optional(),
             search: z.string().max(120).optional(),
@@ -34,18 +34,23 @@ export default function listFilesTool(context: StorageToolContext): HarnessTool<
         }),
         run: async ({ args }) => {
             const folder = args.folder?.trim() || "";
+            const search = args.search?.trim() || "";
 
             const files = await listBotFiles({
                 scopes: context.scopes,
-                folder,
+                folder: folder || undefined,
                 recursive: args.recursive,
-                search: args.search,
+                search: search || undefined,
             });
 
             if (!files.length) {
-                return folder
-                    ? `Nothing in ${folder}.`
-                    : `You have no files yet. Write one with write_file.`;
+                if (folder) return `Nothing in ${folder}.`;
+
+                if (search) {
+                    return `Nothing matches "${search}" in your files. Try a shorter name, or list_files with no arguments to see everything.`;
+                }
+
+                return `You have no files yet. Write one with write_file.`;
             }
 
             const lines = files.map((file) => {

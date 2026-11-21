@@ -2,17 +2,18 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_FILES } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
 import type { StorageScope } from "@/src/utils/storage-access";
+import botFilesFilter from "./bot-files-filter";
 
 type Params = {
     scopes: StorageScope[];
     /**
-     * Only this directory's files (a folder path), or, with `recursive`,
-     * everything under it.
+     * Only this folder's files (a folder path), or, with `recursive`,
+     * everything under it. Left out, every folder is listed.
      */
     folder?: string | null;
     recursive?: boolean;
     /**
-     * Match the name or the path, case-insensitive.
+     * Match the name or the path, case-insensitive, in every folder.
      */
     search?: string | null;
     limit?: number;
@@ -31,32 +32,7 @@ export default async function listBotFiles({
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_FILES[]> {
     if (!scopes.length) return [];
 
-    const target = (folder || "").trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-
-    const owner_sql = scopes.map(() => `(scope = ? AND owner_id = ?)`).join(" OR ");
-    const owner_values = scopes.flatMap((s) => [s.scope, s.owner_id]);
-
-    const where = [owner_sql];
-    const values: (string | number)[] = [...owner_values];
-
-    if (target) {
-        where.push(
-            recursive
-                ? `(folder = ? OR folder LIKE ?)`
-                : `folder = ?`,
-        );
-
-        values.push(target);
-
-        if (recursive) values.push(`${target}/%`);
-    } else if (!recursive) {
-        where.push(`(folder = '' OR folder IS NULL)`);
-    }
-
-    if (search?.trim()) {
-        where.push(`(name LIKE ? OR path LIKE ?)`);
-        values.push(`%${search.trim()}%`, `%${search.trim()}%`);
-    }
+    const { where, values } = botFilesFilter({ scopes, folder, recursive, search });
 
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_BOT_FILES>({
         sql: `SELECT * FROM bot_files WHERE ${where.join(" AND ")} ORDER BY updated_at DESC, id DESC LIMIT ?`,
