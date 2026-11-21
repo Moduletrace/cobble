@@ -43,6 +43,14 @@ describe("ProposalCard", () => {
         expect(html).toContain(">Confirm<");
     });
 
+    test("caps its body so a long brief can't take over the thread", () => {
+        const html = render({ view: { ...github, research: "Long brief. ".repeat(400) } });
+
+        expect(html).toContain("max-h-[24rem]");
+        expect(html).toContain("overflow-y-auto");
+        expect(html).toContain(">Confirm<");
+    });
+
     test("offers no buttons once it's decided or expired", () => {
         expect(render({ view: { ...github, status: "confirmed", outcome: "Saved as MCP server #9." } })).not.toContain(
             ">Confirm<",

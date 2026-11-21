@@ -72,23 +72,26 @@ export default function ProposalCard({ view, onDecided }: Props) {
 
     return (
         <Stack className="w-full gap-0! items-stretch">
-            {is_skill ? null : <ProposalReachSection view={view} keys={keys} missing={missing} />}
+            {/* The proposal's own content is capped so a long brief can't take over the thread; the decision stays in view below. */}
+            <Stack className="max-h-[24rem] w-full gap-0! items-stretch overflow-y-auto overscroll-contain">
+                {is_skill ? null : <ProposalReachSection view={view} keys={keys} missing={missing} />}
 
-            <MessageDetailsHeading>What would be saved</MessageDetailsHeading>
-            {view.details.map((detail) => (
-                <ProposalDetailRow key={detail.label} {...detail} />
-            ))}
+                <MessageDetailsHeading>What would be saved</MessageDetailsHeading>
+                {view.details.map((detail) => (
+                    <ProposalDetailRow key={detail.label} {...detail} />
+                ))}
 
-            <MessageDetailsHeading>
-                {is_skill ? "Review (written by the bot)" : "Background check (written by the bot)"}
-            </MessageDetailsHeading>
-            <Span className="whitespace-pre-wrap text-[13px] leading-5 text-ink break-words">{view.research}</Span>
-            <Stack className="mt-1 w-full gap-0! items-stretch">
-                {view.sources.length ? (
-                    view.sources.map((url) => <ProposalSourceRow key={url} url={url} />)
-                ) : (
-                    <Span className="text-[12px] leading-4 text-ink-secondary">No pages given.</Span>
-                )}
+                <MessageDetailsHeading>
+                    {is_skill ? "Review (written by the bot)" : "Background check (written by the bot)"}
+                </MessageDetailsHeading>
+                <Span className="whitespace-pre-wrap text-[13px] leading-5 text-ink break-words">{view.research}</Span>
+                <Stack className="mt-1 w-full gap-0! items-stretch">
+                    {view.sources.length ? (
+                        view.sources.map((url) => <ProposalSourceRow key={url} url={url} />)
+                    ) : (
+                        <Span className="text-[12px] leading-4 text-ink-secondary">No pages given.</Span>
+                    )}
+                </Stack>
             </Stack>
 
             {view.outcome ? (
