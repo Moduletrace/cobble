@@ -18,7 +18,7 @@ For the current UI read `src/layouts/bots/` (rail, workspace rail, user popover)
 - **Runtime:** Bun, not Node. Use `bun`, never `npm`/`npx`.
 - **Framework:** `@moduletrace/bunext`, not Next.js. Filesystem routing under `src/pages/`, served by `Bun.serve` in `src/server.ts`.
 - **Database:** `@moduletrace/bun-sqlite` (SQLite). Schema `db/schema.ts`, generated types `db/types/db.ts`, config `bun-sqlite.config.ts`.
-- **UI:** Tailwind v4 + `@moduletrace/twui` (the only component system: no shadcn, no `tailwind.config`, no `components.json`) + `src/components/general/`. CSS chain: `src/pages/__root.tsx` -> `src/styles/main.css` -> `@moduletrace/twui/base.css`. Theme tokens in the `@theme inline` block of `main.css`.
+- **UI:** Tailwind v4 + `@moduletrace/twui` (the only component system: no shadcn, no `tailwind.config`, no `components.json`) + `src/components/general/`. The library lives in its own repo at `/home/archben/Projects/Git/moduletrace/libraries/tailwind-ui-library` (playground `bun run dev` on 7010, tests `bun test src`). CSS chain: `src/pages/__root.tsx` -> `src/styles/main.css` -> `@moduletrace/twui/base.css`. Theme tokens in the `@theme inline` block of `main.css`.
 - **Icons:** `lucide-react`. Never render a lucide icon by name (twui `LucideIcon`, a string `beforeIcon`): it ships every icon. Import the icon.
 - **Validation:** `zod` v4 (`zod@4.1.12`).
 - **Branding:** site name/slug only in `src/data/site-data.ts`. Logo source `public/logos/logo.svg` (the ember stone, rendered via `BotStone` in `logo-icon.tsx`).
@@ -298,7 +298,7 @@ Route-local code under `src/pages` goes in non-routed meta folders: `(sections)`
 - **No em dashes (U+2014) anywhere** (code, comments, docs, copy). Use `-` or restructure.
 - Always object parameters (`{ foo, bar }`), never positional.
 - Prefer existing patterns over new abstractions.
-- **Do not patch `@moduletrace/twui`** (shared, publishable). Compose in `src/components/general/` or `main.css`.
+- **Do not patch `@moduletrace/twui`** (shared, publishable; its repo is named in Stack). Fix it there, then publish, and compose app-side changes in `src/components/general/` or `main.css`. **Ask the user before publishing a new twui version, every single time:** a change that needs a release is not permission to publish one.
 - `.env` (secrets, gitignored, dockerignored) and `secrets/` are never committed. `external/` binary dirs are gitignored.
 - **Rate limit** unauthenticated endpoints that check secrets or send email (`src/utils/rate-limit.ts`).
 - **Validate** untrusted bodies with `src/schemas/` via `parseWithSchema`. Throw `AppError` for safe messages; catch blocks return `safeErrorMessage`.
