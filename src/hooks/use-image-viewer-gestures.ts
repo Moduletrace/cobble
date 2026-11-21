@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import type { ImageViewerMode } from "@/src/dict/image-viewer-dict";
 import type { ImageViewerPoint } from "./use-image-viewer";
+import typingInField from "@/src/utils/typing-in-field";
 
 type Params = {
     container_ref: RefObject<HTMLDivElement | null>;
@@ -15,14 +16,6 @@ type Params = {
  * Ctrl+wheel steps, a mouse wheel as large ones).
  */
 const WheelZoomRate = 0.0025;
-
-function typingInField({ target }: { target: EventTarget | null }) {
-    if (!(target instanceof HTMLElement)) return false;
-
-    if (target.isContentEditable) return true;
-
-    return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
-}
 
 /**
  * The image preview's hands: Ctrl/Cmd + wheel (and a trackpad pinch) zooms

@@ -1,12 +1,5 @@
 import { useEffect, useRef } from "react";
-
-function typingInField({ target }: { target: EventTarget | null }) {
-    if (!(target instanceof HTMLElement)) return false;
-
-    if (target.isContentEditable) return true;
-
-    return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
-}
+import typingInField from "@/src/utils/typing-in-field";
 
 /**
  * The left and right arrow keys step a preview's gallery back and forth,

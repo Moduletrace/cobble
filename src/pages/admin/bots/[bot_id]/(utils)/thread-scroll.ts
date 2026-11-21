@@ -100,3 +100,20 @@ export function scrollThreadToBottom({
 }) {
     element.scrollTo({ top: element.scrollHeight, behavior });
 }
+
+/**
+ * Puts the thread at its start, animated or at once, showing the oldest
+ * message it has loaded. A reversed column reports its start differently
+ * across engines (0 where the column's own direction reads normally, a
+ * negative `scrollTop` where its bottom is 0), so a value past the start
+ * clamps back onto it either way, the mirror of `scrollThreadToBottom`.
+ */
+export function scrollThreadToTop({
+    element,
+    behavior = "auto",
+}: {
+    element: HTMLElement;
+    behavior?: ScrollBehavior;
+}) {
+    element.scrollTo({ top: -element.scrollHeight, behavior });
+}

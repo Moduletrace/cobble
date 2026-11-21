@@ -3,6 +3,8 @@ import { AppData } from "@/src/data/app-data";
 import {
     ThreadBottomSlack,
     atThreadEnd,
+    scrollThreadToBottom,
+    scrollThreadToTop,
     shouldFollowThread,
     threadOffset,
 } from "./thread-scroll";
@@ -129,5 +131,46 @@ describe("shouldFollowThread", () => {
                 kept_last_message: false,
             }),
         ).toBe(true);
+    });
+});
+
+/** A scrolling column that records where it was sent, as a fake scroll. */
+function column({ scroll_height }: { scroll_height: number }) {
+    const calls: ScrollToOptions[] = [];
+
+    return {
+        calls,
+        element: {
+            scrollHeight: scroll_height,
+            scrollTo: (options: ScrollToOptions) => calls.push(options),
+        } as unknown as HTMLElement,
+    };
+}
+
+describe("scrollThreadToTop", () => {
+    test("asks for a position past the start, which clamps onto it", () => {
+        const { calls, element } = column({ scroll_height: 1200 });
+
+        scrollThreadToTop({ element });
+
+        expect(calls).toEqual([{ top: -1200, behavior: "auto" }]);
+    });
+
+    test("animates when asked, the caller deciding on reduced motion", () => {
+        const { calls, element } = column({ scroll_height: 800 });
+
+        scrollThreadToTop({ element, behavior: "smooth" });
+
+        expect(calls).toEqual([{ top: -800, behavior: "smooth" }]);
+    });
+});
+
+describe("scrollThreadToBottom", () => {
+    test("asks for a position past the end, which clamps onto it", () => {
+        const { calls, element } = column({ scroll_height: 900 });
+
+        scrollThreadToBottom({ element });
+
+        expect(calls).toEqual([{ top: 900, behavior: "auto" }]);
     });
 });

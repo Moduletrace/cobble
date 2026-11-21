@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { BotMessageWithAttachments } from "@/src/types";
+import typingInField from "@/src/utils/typing-in-field";
 import {
     ThreadJumpWindowMs,
     atThreadEnd,
     scrollThreadToBottom,
+    scrollThreadToTop,
     shouldFollowThread,
     threadOffset,
 } from "../(utils)/thread-scroll";
@@ -19,7 +21,8 @@ type Params = {
  * Keeps the thread's bottom in view: a chat sitting at the bottom follows
  * every new message, a chat scrolled up stays where it is (except for a
  * message the user just sent, which brings the thread to it) and offers a
- * button to get back down. Whether it sits at the bottom is read from where
+ * button to get back down. End does what that button does and Home goes
+ * back to the thread's top. Whether it sits at the bottom is read from where
  * the content ends, not from `scrollTop`, whose sign a reversed column
  * reports differently across engines. Content that grows while the thread
  * is at the bottom (images landing, a wider window) is followed too.
@@ -89,7 +92,7 @@ export default function useThreadScroll({ messages }: Params) {
         setJumpVisible(!offset.near_bottom);
     };
 
-    const jumpToBottom = () => {
+    const jumpToBottom = useCallback(() => {
         const column = column_ref.current;
 
         if (!column) return;
@@ -110,7 +113,56 @@ export default function useThreadScroll({ messages }: Params) {
             element: column,
             behavior: reduced ? "auto" : "smooth",
         });
-    };
+    }, []);
+
+    const scrollToTop = useCallback(() => {
+        const column = column_ref.current;
+
+        if (!column) return;
+
+        const reduced = Boolean(
+            globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+        );
+
+        /**
+         * A jump the press before was still animating belongs to the other
+         * direction: this one takes over, and the thread stops following,
+         * so a message landing on the way doesn't drag it back down. The
+         * scrolling itself raises the jump button, as any scroll up does.
+         */
+        jump.current.active = false;
+        following.current = false;
+
+        scrollThreadToTop({
+            element: column,
+            behavior: reduced ? "auto" : "smooth",
+        });
+    }, []);
+
+    /**
+     * End and Home on the page do what the thread's own controls do: End
+     * jumps to the latest message, Home to the top of the messages loaded
+     * so far. A field the user is typing in (the composer, a form) keeps
+     * its own End and Home, and an open menu or modal keeps the keys too.
+     */
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.defaultPrevented) return;
+            if (event.key != "End" && event.key != "Home") return;
+            if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+            if (typingInField({ target: event.target })) return;
+            if (document.querySelector('[role="listbox"], [role="dialog"]')) return;
+
+            event.preventDefault();
+
+            if (event.key == "End") jumpToBottom();
+            else scrollToTop();
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [jumpToBottom, scrollToTop]);
 
     useLayoutEffect(() => {
         const column = column_ref.current;
