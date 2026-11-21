@@ -3,10 +3,10 @@ import Divider from "@moduletrace/twui/layout/Divider";
 import H3 from "@moduletrace/twui/layout/H3";
 import H4 from "@moduletrace/twui/layout/H4";
 import H5 from "@moduletrace/twui/layout/H5";
-import P from "@moduletrace/twui/layout/P";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import MarkdownCodeBlock from "../(partials)/markdown-code-block";
+import MarkdownParagraph from "../(partials)/markdown-paragraph";
 import MarkdownLink from "../(partials)/markdown-link";
 import MarkdownList from "../(partials)/markdown-list";
 
@@ -20,11 +20,7 @@ const HeadingClassName = "my-0! text-[15px]! leading-6! tracking-normal! font-bo
  * elements.
  */
 export const MessageMarkdownComponents: Components = {
-    p: ({ children }) => (
-        <P noMargin className="w-full text-sm leading-5 text-ink">
-            {children}
-        </P>
-    ),
+    p: ({ children }) => <MarkdownParagraph>{children}</MarkdownParagraph>,
     h1: ({ children }) => <H3 className={HeadingClassName}>{children}</H3>,
     h2: ({ children }) => <H3 className={HeadingClassName}>{children}</H3>,
     h3: ({ children }) => <H4 className={HeadingClassName}>{children}</H4>,

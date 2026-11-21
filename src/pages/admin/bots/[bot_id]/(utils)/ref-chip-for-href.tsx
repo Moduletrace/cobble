@@ -20,17 +20,17 @@ import { taskRefId } from "@/src/utils/task-ref";
 import { askRefId } from "@/src/utils/ask-ref";
 import { generalSettingsRefId } from "@/src/utils/general-settings-ref";
 import BotPlanCard from "../(partials)/bot-plan-card";
-import BotQuestionRefChip from "../(partials)/bot-question-ref-chip";
+import BotQuestionRefCard from "../(partials)/bot-question-ref-card";
 import BotSuggestionsRef from "../(partials)/bot-suggestions-ref";
 import BotRefChip from "../(partials)/bot-ref-chip";
 import ComputerRefChip from "../(partials)/computer-ref-chip";
 import FileRefChip from "../(partials)/file-ref-chip";
 import FolderRefChip from "../(partials)/folder-ref-chip";
 import GraphicRefCard from "../(partials)/graphic-ref-card";
-import HookProposalRefChip from "../(partials)/hook-proposal-ref-chip";
-import ProposalRefChip from "../(partials)/proposal-ref-chip";
+import HookProposalRefCard from "../(partials)/hook-proposal-ref-card";
+import ProposalRefCard from "../(partials)/proposal-ref-card";
 import SecretRefChip from "../(partials)/secret-ref-chip";
-import SecretRequestRefChip from "../(partials)/secret-request-ref-chip";
+import SecretRequestRefCard from "../(partials)/secret-request-ref-card";
 import SettingRefChip from "../(partials)/setting-ref-chip";
 import TakeOverChip from "../(partials)/take-over-chip";
 import TaskRefChip from "../(partials)/task-ref-chip";
@@ -90,13 +90,13 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
     if (href?.startsWith(ProposalRefHrefPrefix)) {
         const proposal_id = Number(href.slice(ProposalRefHrefPrefix.length));
 
-        if (proposal_id) return <ProposalRefChip proposal_id={proposal_id} />;
+        if (proposal_id) return <ProposalRefCard proposal_id={proposal_id} />;
     }
 
     if (href?.startsWith(HookProposalRefHrefPrefix)) {
         const proposal_id = Number(href.slice(HookProposalRefHrefPrefix.length));
 
-        if (proposal_id) return <HookProposalRefChip proposal_id={proposal_id} />;
+        if (proposal_id) return <HookProposalRefCard proposal_id={proposal_id} />;
     }
 
     if (href?.startsWith(SecretRefHrefPrefix)) {
@@ -108,11 +108,11 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
     if (href?.startsWith(SecretRequestRefHrefPrefix)) {
         const request_id = Number(href.slice(SecretRequestRefHrefPrefix.length));
 
-        if (request_id) return <SecretRequestRefChip request_id={request_id} />;
+        if (request_id) return <SecretRequestRefCard request_id={request_id} />;
     }
 
     const question_id = botQuestionRefId({ href });
-    if (question_id) return <BotQuestionRefChip question_id={question_id} />;
+    if (question_id) return <BotQuestionRefCard question_id={question_id} />;
 
     const suggestion_id = botSuggestionRefId({ href });
     if (suggestion_id) return <BotSuggestionsRef suggestion_id={suggestion_id} />;
