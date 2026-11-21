@@ -1038,6 +1038,22 @@ export const AppData = {
      */
     PullToRefreshMinLoadingMs: 1000,
     /**
+     * The phone's sideways swipes, anywhere on a page, in pixels: how far
+     * the finger travels before the drag counts as a swipe at all
+     * (`MobileSwipeMinPx`), and how much more sideways than up or down it
+     * has to be (`MobileSwipeAxisRatio`), so a diagonal drag that is
+     * mostly scrolling stays a scroll.
+     */
+    MobileSwipeMinPx: 50,
+    MobileSwipeAxisRatio: 1.5,
+    /**
+     * How long the finger may be down before the drag stops counting as a
+     * swipe, in milliseconds: a swipe is a flick, while a finger that has
+     * rested on the page is scrolling, selecting text or reaching for a
+     * quote, not changing panes.
+     */
+    MobileSwipeMaxMs: 800,
+    /**
      * The most model calls a message's details modal lists one by one. A
      * long task can take hundreds; the totals still count every one.
      */

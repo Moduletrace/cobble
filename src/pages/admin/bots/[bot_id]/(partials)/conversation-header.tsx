@@ -1,7 +1,6 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import H1 from "@moduletrace/twui/layout/H1";
 import Span from "@moduletrace/twui/layout/Span";
 import Button from "@moduletrace/twui/layout/Button";
 import Dropdown from "@moduletrace/twui/elements/Dropdown";
@@ -18,7 +17,8 @@ import { AppContext } from "@/src/pages/__root";
 import WorkspaceAvatar from "@/src/components/general/workspace-avatar";
 import RailDrawerButton from "@/src/layouts/bots/(partials)/rail-drawer-button";
 import { BotComputersContext } from "../(data)/bot-computers-context";
-import BotProfileModal from "./bot-profile-modal";
+import BotPanel from "./bot-panel";
+import BotPanelName from "./bot-panel-name";
 import BotModelsModal from "./bot-models-modal";
 import BotComputersModal from "./bot-computers-modal";
 import ConversationHeaderMenu from "./conversation-header-menu";
@@ -51,7 +51,8 @@ type Props = {
  * computer it's on. On the right, one menu
  * holding everything the header used to show as icons: sessions, a new
  * session, the computer, the models and the bot's settings. Kept here so a
- * save or a switch shows under the name at once.
+ * save or a switch shows under the name at once. The avatar and the name both
+ * open the bot's panel, slid in over the conversation.
  */
 export default function ConversationHeader({
     bot,
@@ -73,6 +74,13 @@ export default function ConversationHeader({
         setIsAdmin(Boolean(bot.is_admin));
     }, [bot.is_admin]);
     const { open: open_menu, setOpen: set_open_menu } = useStatus();
+    /**
+     * The bot's panel, slid in from the right: its avatar, its name or a
+     * swipe bring it.
+     */
+    const [bot_panel_open, set_bot_panel_open] = useState(false);
+    const open_bot_panel = useCallback(() => set_bot_panel_open(true), []);
+    const close_bot_panel = useCallback(() => set_bot_panel_open(false), []);
     const computer = computers[0];
     const computer_name = computer?.id
         ? computer.name || `Computer ${computer.id}`
@@ -98,12 +106,15 @@ export default function ConversationHeader({
         <Row className="h-16 shrink-0 gap-2! md:gap-3! flex-nowrap items-center px-3 md:px-6 border-0 border-b border-solid border-hairline">
             <RailDrawerButton />
             {is_workspace ? <BackButton /> : null}
-            <BotProfileModal bot={bot} />
+            <BotPanel
+                bot={bot}
+                open={bot_panel_open}
+                on_open={open_bot_panel}
+                on_close={close_bot_panel}
+            />
             <Stack className="min-w-0 gap-0!">
                 <Row className="w-full min-w-0 gap-1.5! flex-nowrap">
-                    <H1 className="min-w-0 text-lg! leading-6! tracking-normal! font-bold text-ink truncate line-clamp-1">
-                        {bot.name}
-                    </H1>
+                    <BotPanelName bot={bot} on_open={open_bot_panel} />
                     {plan_mode ? (
                         <Tag
                             color="success"

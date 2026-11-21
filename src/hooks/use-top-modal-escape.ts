@@ -11,13 +11,22 @@ const OpenModals: string[] = [];
  * a file) would take both away. Listening first, on the window's capture
  * phase, the modal on top closes itself and the press goes no further.
  */
-export default function useTopModalEscape({ onClose }: { onClose: () => void }) {
+export default function useTopModalEscape({
+    onClose,
+    enabled = true,
+}: {
+    onClose: () => void;
+    /** Off while the modal only exists on the page, closed (`SidePanel`). */
+    enabled?: boolean;
+}) {
     const id = useId();
     const close_ref = useRef(onClose);
 
     close_ref.current = onClose;
 
     useEffect(() => {
+        if (!enabled) return;
+
         OpenModals.push(id);
 
         const onKey = (event: KeyboardEvent) => {
@@ -36,5 +45,5 @@ export default function useTopModalEscape({ onClose }: { onClose: () => void }) 
 
             if (index >= 0) OpenModals.splice(index, 1);
         };
-    }, [id]);
+    }, [id, enabled]);
 }

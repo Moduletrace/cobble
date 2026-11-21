@@ -6,6 +6,8 @@ import Row from "@moduletrace/twui/layout/Row";
 import { AppContext } from "@/src/pages/__root";
 import useConnectionEpoch from "@/src/hooks/use-connection-epoch";
 import useOnlineStatus from "@/src/hooks/use-online-status";
+import useHorizontalSwipe from "@/src/hooks/use-horizontal-swipe";
+import requestBotPanel from "@/src/utils/bot-panel-open-event";
 import { RailDrawerContext } from "./(data)/rail-drawer-context";
 import BotsRail from "./(sections)/bots-rail";
 import LiveSocket from "./(sections)/live-socket";
@@ -21,7 +23,9 @@ import railWorkspaceId from "./(utils)/rail-workspace-id";
  * settings), inside the Add flow both can open. A graphic's own page
  * (`isRaillessPage`) goes without the rail. No cards, no shadows;
  * regions are separated by 1px hairlines. Below `md` the rail slides over
- * the page instead of taking width. Height is `dvh`, so the on-screen
+ * the page instead of taking width, and two swipes anywhere on the page
+ * move between panes: to the right opens the rail's drawer, to the left the
+ * conversation's bot panel. Height is `dvh`, so the on-screen
  * keyboard doesn't push the composer out of view.
  */
 export default function BotsLayout({
@@ -55,6 +59,20 @@ export default function BotsLayout({
     }, [drawer_open]);
 
     const has_rail = !isRaillessPage({ pathname });
+
+    /**
+     * The phone's sideways swipes: right opens the rail's drawer, left asks
+     * the page for its bot panel (`cobble:open-bot-panel`, which the
+     * conversation's header answers). Neither runs while the drawer is
+     * open, so a swipe on it cannot open the other panel above it.
+     */
+    useHorizontalSwipe({
+        enabled: !drawer_open,
+        on_swipe_right: () => {
+            if (has_rail) setDrawerOpen(true);
+        },
+        on_swipe_left: () => requestBotPanel(),
+    });
 
     /**
      * The crew the rail lists, read again whenever the user comes back to
