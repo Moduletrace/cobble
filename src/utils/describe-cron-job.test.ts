@@ -38,4 +38,36 @@ describe("describeCronJob", () => {
             `#4 "Remind me", \`30 14 21 10 *\` (UTC), in your own chat, paused, 0 of 1 runs so far, last error: This bot has no access to that computer.`,
         );
     });
+
+    test("names the bot that runs a schedule in its own chat when someone else reads it", () => {
+        expect(
+            describeCronJob({
+                cron_job: {
+                    id: 4,
+                    title: "Remind me",
+                    schedule: "30 14 21 10 *",
+                    enabled: 0,
+                    run_count: 0,
+                    max_runs: 1,
+                },
+                owner: "Personal Assistant",
+            }),
+        ).toBe(`#4 "Remind me", \`30 14 21 10 *\` (UTC), in Personal Assistant's own chat, paused, 0 of 1 runs so far`);
+    });
+
+    test("a workspace is named as the workspace, whoever reads it", () => {
+        expect(
+            describeCronJob({
+                cron_job: {
+                    id: 3,
+                    title: "Morning digest",
+                    schedule: "0 9 * * MON-FRI",
+                    enabled: 1,
+                    run_count: 1,
+                    workspace_name: "Launch",
+                },
+                owner: "Personal Assistant",
+            }),
+        ).toContain("in the workspace Launch");
+    });
 });

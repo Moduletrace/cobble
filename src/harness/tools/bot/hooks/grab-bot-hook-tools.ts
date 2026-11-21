@@ -19,6 +19,10 @@ type Params = {
      */
     hooked?: boolean;
     /**
+     * The coordinator reaches every hook the user has, not only its own.
+     */
+    is_coordinator?: boolean;
+    /**
      * Called with each proposal's ref, so the reply carries its card. Only
      * a chat reply proposes: someone is there to confirm.
      */
@@ -40,16 +44,17 @@ export default function grabBotHookTools({
     workspace_id,
     computers,
     hooked,
+    is_coordinator,
     onPropose,
 }: Params): HarnessTool[] {
     if (hooked) return [];
 
     return [
-        listHooksTool({ user_id, bot_id }),
-        searchHookCallsTool({ user_id, bot_id }),
-        readHookCallTool({ user_id, bot_id }),
-        pauseHookTool({ user_id, bot_id }),
-        deleteHookTool({ user_id, bot_id }),
+        listHooksTool({ user_id, bot_id, is_coordinator }),
+        searchHookCallsTool({ user_id, bot_id, is_coordinator }),
+        readHookCallTool({ user_id, bot_id, is_coordinator }),
+        pauseHookTool({ user_id, bot_id, is_coordinator }),
+        deleteHookTool({ user_id, bot_id, is_coordinator }),
         ...(session_id && onPropose
             ? [proposeHookTool({ user_id, bot_id, session_id, workspace_id, computers, onPropose })]
             : []),

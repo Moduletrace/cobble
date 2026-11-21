@@ -25,6 +25,11 @@ type Params = {
      * handed over, and they stay there.
      */
     workspace_id?: number | string | null;
+    /**
+     * The coordinator hands over any of the user's routines, not only its
+     * own.
+     */
+    is_coordinator?: boolean;
     requester_name: string;
     /**
      * The bots it can hand routines to (in a workspace, its members).
@@ -48,16 +53,18 @@ type Args = {
 };
 
 /**
- * Lets the coordinator or a workspace admin give one of its own routines
- * to a crew member (`handOverCronJob`): a routine in a workspace keeps
- * running there, one in its own chat moves to the member's own chat or a
- * workspace it names.
+ * Lets the coordinator or a workspace admin give a routine to a crew
+ * member (`handOverCronJob`): the coordinator any of the user's, on any
+ * bot; a workspace admin one of its own. A routine in a workspace keeps
+ * running there, one in its bot's own chat moves to the member's own chat
+ * or a workspace it names.
  */
 export default function handOverScheduleTool({
     user_id,
     session_id,
     bot_id,
     workspace_id,
+    is_coordinator,
     requester_name,
     workers,
     workspaces = [],
@@ -65,13 +72,17 @@ export default function handOverScheduleTool({
 }: Params): HarnessTool<Args> {
     const crew = workers.map((bot) => `${bot.id}: ${bot.name}`).join("; ");
     const places = workspaces.map((w) => `${w.id}: ${w.name}`).join("; ");
+    const which = is_coordinator
+        ? `one of the user's schedules (routines, list_schedules), on any bot`
+        : `one of your own schedules (routines, list_schedules)`;
+    const whose = is_coordinator ? "its bot's" : "your";
 
     return {
         name: "hand_over_schedule",
-        description: `Give one of your own schedules (routines, list_schedules) to a crew member: from then on it runs as theirs, on the same schedule, and its results land in their conversation. Use it instead of deleting a schedule and asking them to make a new one. A schedule that runs in a workspace keeps running there.${
+        description: `Give ${which} to a crew member: from then on it runs as theirs, on the same schedule, and its results land in their conversation. Use it instead of deleting a schedule and asking them to make a new one. A schedule that runs in a workspace keeps running there.${
             workspace_id
                 ? ` You are in a workspace, so only the schedules that run here can be handed over.`
-                : ` For one that runs in your own chat, leave workspace_id out to move it to the crew member's own chat, or add it to run it in one of the user's workspaces (the member is added to it when it isn't in it yet). Workspaces: ${places || "none"}.`
+                : ` For one that runs in ${whose} own chat, leave workspace_id out to move it to the crew member's own chat, or add it to run it in one of the user's workspaces (the member is added to it when it isn't in it yet). Workspaces: ${places || "none"}.`
         } Pass the user's own words asking for this in because; a quote they did not write in this conversation is refused. Crew: ${crew}.`,
         schema: z.object({
             schedule_id: z.number().int(),
@@ -90,7 +101,11 @@ export default function handOverScheduleTool({
                 action: "give a schedule to another bot",
             });
 
-            const cron_job = await grabUserCronJob({ user_id, cron_job_id: args.schedule_id, bot_id });
+            const cron_job = await grabUserCronJob({
+                user_id,
+                cron_job_id: args.schedule_id,
+                ...(is_coordinator ? {} : { bot_id }),
+            });
 
             if (workspace_id && Number(cron_job.workspace_id || 0) != Number(workspace_id)) {
                 throw new Error(`Schedule #${cron_job.id} doesn't run in this workspace. Only the ones that run here can be handed over from here.`);
@@ -114,13 +129,16 @@ export default function handOverScheduleTool({
             const handed = await handOverCronJob({
                 user_id,
                 cron_job_id: Number(cron_job.id),
-                from_bot_id: bot_id,
+                from_bot_id: Number(cron_job.bot_id),
                 to_bot_id: Number(worker.id),
                 workspace_id: args.workspace_id,
                 handed_by: requester_name,
             });
 
-            return `Handed over to ${worker.name}: ${describeCronJob({ cron_job: handed.cron_job })}.${handed.joined}${
+            return `Handed over to ${worker.name}: ${describeCronJob({
+                cron_job: handed.cron_job,
+                owner: is_coordinator ? handed.cron_job.bot_name || undefined : undefined,
+            })}.${handed.joined}${
                 handed.computer_dropped ? ` Its computer isn't one ${worker.name} reaches there, so it runs on their default one.` : ""
             }`;
         },

@@ -24,6 +24,15 @@ describe("describeHookCall", () => {
         );
     });
 
+    test("names the bot whose run answered when the coordinator reads the crew's calls", () => {
+        expect(
+            describeHookCall({
+                call: { id: 7, hook_id: 2, hook_title: "Orders", bot_id: 4, status: "done", response: "Shipped" },
+                crew: true,
+            }),
+        ).toBe([`Call #7 to hook #2 "Orders", on [bot:4], unknown time, done`, `  the run answered: Shipped`].join("\n"));
+    });
+
     test("says why a call was refused or its run failed", () => {
         expect(describeHookCall({ call: { id: 1, hook_id: 2, status: "rejected", error: "Bad signature" } })).toContain(
             "rejected, error: Bad signature",

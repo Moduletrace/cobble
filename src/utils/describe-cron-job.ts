@@ -2,18 +2,28 @@ import type { CronJobWithNames } from "@/src/types";
 
 type Params = {
     cron_job: CronJobWithNames;
+    /**
+     * The bot that runs it, when the reader isn't that bot: a coordinator
+     * reading the whole crew's routines. Its own chat is then named as
+     * that bot's.
+     */
+    owner?: string;
 };
 
 /**
  * One schedule as a bot reads it: id, title, expression, where it runs,
  * its state and next run (ISO, UTC), and the last error if any.
  */
-export default function describeCronJob({ cron_job }: Params) {
+export default function describeCronJob({ cron_job, owner }: Params) {
     const runs = Number(cron_job.run_count || 0);
     const parts = [
         `#${cron_job.id} "${cron_job.title}"`,
         `\`${cron_job.schedule}\` (UTC)`,
-        cron_job.workspace_name ? `in the workspace ${cron_job.workspace_name}` : `in your own chat`,
+        cron_job.workspace_name
+            ? `in the workspace ${cron_job.workspace_name}`
+            : owner
+              ? `in ${owner}'s own chat`
+              : `in your own chat`,
         cron_job.computer_id ? `on computer ${cron_job.computer_id}` : "",
         cron_job.enabled
             ? cron_job.next_run_at

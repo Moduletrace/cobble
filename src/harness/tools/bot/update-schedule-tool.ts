@@ -6,6 +6,10 @@ import type { HarnessTool } from "../../types";
 type Params = {
     user_id: number | string;
     bot_id: number | string;
+    /**
+     * The coordinator changes any of the user's routines, not only its own.
+     */
+    is_coordinator?: boolean;
 };
 
 type Args = {
@@ -18,12 +22,15 @@ type Args = {
 };
 
 /**
- * Lets a bot change, pause or resume one of its own schedules.
+ * Lets a bot change, pause or resume one of its own schedules, or as the
+ * coordinator any of the user's.
  */
-export default function updateScheduleTool({ user_id, bot_id }: Params): HarnessTool<Args> {
+export default function updateScheduleTool({ user_id, bot_id, is_coordinator }: Params): HarnessTool<Args> {
     return {
         name: "update_schedule",
-        description: `Change one of your schedules (ids from list_schedules): its title, instructions, cron expression (UTC), or pause it (enabled false) and resume it (enabled true). Only the fields you give change; max_runs null runs it until stopped.`,
+        description: is_coordinator
+            ? `Change one of the user's schedules, on any bot (ids from list_schedules): its title, instructions, cron expression (UTC), or pause it (enabled false) and resume it (enabled true). Only the fields you give change; max_runs null runs it until stopped.`
+            : `Change one of your schedules (ids from list_schedules): its title, instructions, cron expression (UTC), or pause it (enabled false) and resume it (enabled true). Only the fields you give change; max_runs null runs it until stopped.`,
         schema: z.object({
             schedule_id: z.number().int(),
             title: z.string().min(1).max(80).optional(),
@@ -34,9 +41,14 @@ export default function updateScheduleTool({ user_id, bot_id }: Params): Harness
         }),
         run: async ({ args }) => {
             const { schedule_id, ...data } = args;
-            const cron_job = await updateCronJob({ user_id, bot_id, cron_job_id: schedule_id, data });
+            const cron_job = await updateCronJob({
+                user_id,
+                cron_job_id: schedule_id,
+                ...(is_coordinator ? {} : { bot_id }),
+                data,
+            });
 
-            return `Schedule updated: ${describeCronJob({ cron_job })}.`;
+            return `Schedule updated: ${describeCronJob({ cron_job, owner: is_coordinator ? cron_job.bot_name || undefined : undefined })}.`;
         },
     };
 }

@@ -112,11 +112,11 @@ export default async function grabBotTools({
             ? []
             : [
                   createScheduleTool({ user_id, bot_id, workspace_id, computers }),
-                  updateScheduleTool({ user_id, bot_id }),
-                  deleteScheduleTool({ user_id, bot_id }),
+                  updateScheduleTool({ user_id, bot_id, is_coordinator }),
+                  deleteScheduleTool({ user_id, bot_id, is_coordinator }),
               ]),
-        listSchedulesTool({ user_id, bot_id }),
-        ...grabBotHookTools({ user_id, bot_id, session_id, workspace_id, computers, hooked, onPropose }),
+        listSchedulesTool({ user_id, bot_id, is_coordinator }),
+        ...grabBotHookTools({ user_id, bot_id, session_id, workspace_id, computers, hooked, is_coordinator, onPropose }),
         ...(session_id ? [reactToMessageTool({ bot_id, user_id, session_id })] : []),
         /**
          * A worker asks another bot only through the coordinator's gate,

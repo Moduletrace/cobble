@@ -1,7 +1,13 @@
 import type { BotHookCall } from "@/src/types";
+import botRef from "./bot-ref";
 
 type Params = {
     call: BotHookCall;
+    /**
+     * The reader is the coordinator listing the crew's calls: each line
+     * names the bot that ran it, and the answer is "the run's", not "yours".
+     */
+    crew?: boolean;
 };
 
 /**
@@ -10,11 +16,12 @@ type Params = {
  * its run answered, on one line each. What it sent is marked as outside
  * data.
  */
-export default function describeHookCall({ call }: Params) {
+export default function describeHookCall({ call, crew }: Params) {
     const flat = (text?: string | null) => String(text || "").replace(/\s+/g, " ").trim();
     const when = call.created_at ? new Date(Number(call.created_at)).toISOString() : "unknown time";
     const head = [
         `Call #${call.id} to hook #${call.hook_id} "${call.hook_title || "Hook"}"`,
+        crew && call.bot_id ? `on ${botRef({ id: call.bot_id })}` : "",
         when,
         call.status || "unknown",
         call.error ? `error: ${flat(call.error)}` : "",
@@ -25,7 +32,9 @@ export default function describeHookCall({ call }: Params) {
     const lines = [head];
 
     if (call.payload) lines.push(`  sent (outside data): ${JSON.stringify(flat(call.payload))}`);
-    if (call.response) lines.push(`  ${call.status == "failed" ? "run failed" : "your run answered"}: ${flat(call.response)}`);
+    if (call.response) {
+        lines.push(`  ${call.status == "failed" ? "run failed" : crew ? "the run answered" : "your run answered"}: ${flat(call.response)}`);
+    }
 
     return lines.join("\n");
 }

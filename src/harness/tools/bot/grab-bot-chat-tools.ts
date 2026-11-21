@@ -307,6 +307,7 @@ export default async function grabBotChatTools({
             session_id,
             bot_id,
             workspace_id,
+            is_coordinator: true,
             requester_name: bot.name || "The coordinator",
             workers,
         }));
@@ -345,6 +346,7 @@ export default async function grabBotChatTools({
             session_id,
             bot_id,
             workspace_id,
+            is_coordinator: true,
             requester_name: bot.name || "The coordinator",
             workers,
             workspaces,

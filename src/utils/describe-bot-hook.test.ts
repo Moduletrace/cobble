@@ -43,4 +43,24 @@ describe("describeBotHook", () => {
             `#4 "Slack mentions", called by browser notifications on computer 2 (Main), only those containing "slack", in your own chat, on computer 2, paused, 1 run so far, never called, last error: Timed out`,
         );
     });
+
+    test("names the bot that runs a hook in its own chat when someone else reads it", () => {
+        expect(
+            describeBotHook({
+                hook: {
+                    id: 3,
+                    title: "GitHub pushes",
+                    source: "url",
+                    token_prefix: "hk_secretprefix",
+                    has_signing_secret: 0,
+                    enabled: 1,
+                    run_count: 0,
+                    workspace_name: null,
+                },
+                owner: "Personal Assistant",
+            }),
+        ).toBe(
+            `#3 "GitHub pushes", called at its URL, in Personal Assistant's own chat, on, 0 runs so far, never called`,
+        );
+    });
 });
