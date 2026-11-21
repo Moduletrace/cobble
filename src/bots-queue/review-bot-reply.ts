@@ -29,8 +29,8 @@ type Params = {
      */
     job_id?: number | string;
     /**
-     * The reply was sent with Plan mode on, so the writing tools are left
-     * out on purpose (`PlanModeToolNames`).
+     * The reply was sent with Plan mode on, so the writing tools are gated on
+     * purpose (`PlanModeToolNames`).
      */
     plan_mode?: boolean;
     /**

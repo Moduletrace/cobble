@@ -78,8 +78,8 @@ export const SendBotMessageRequestSchema = z.object({
     client_id: z.string().trim().max(64).optional(),
     /**
      * Plan mode: the reply plans and inspects, and changes nothing. For a
-     * user who clicked Plan in the composer or pressed Tab, the run is
-     * held to the read-only tools (`PlanModeToolNames`).
+     * user who clicked Plan in the composer or pressed Tab, the run's write
+     * tools are gated (`PlanModeToolNames`).
      */
     plan_mode: z.boolean().optional(),
 }).refine((body) => body.text || body.media_ids.length, "Write a message or attach a file first");

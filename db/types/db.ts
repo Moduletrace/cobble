@@ -1292,6 +1292,10 @@ export type BUN_SQLITE_COBBLE_BOT_QUESTIONS = {
      * The session's workspace; null for the bot's own chat. Not a foreign key
      */
     workspace_id?: number | "";
+    /** 
+     * Asked in a Plan mode reply: their answer and skip are run in Plan mode too, since answering is not a way out of the mode
+     */
+    plan_mode?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOT_SUGGESTIONS = {

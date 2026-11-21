@@ -7,6 +7,10 @@ type Params = {
     bot_id: number | string;
     session_id: number | string;
     workspace_id?: number | string | null;
+    /**
+     * Asked in a Plan mode reply: the answers are run in Plan mode too.
+     */
+    plan_mode?: boolean;
     title: string;
     questions: BotQuestionItem[];
 };
@@ -15,7 +19,7 @@ type Params = {
  * Stores questions a bot asks the user, pending until they answer or skip
  * them in its card. Returns its id.
  */
-export default async function createBotQuestion({ user_id, bot_id, session_id, workspace_id, title, questions }: Params) {
+export default async function createBotQuestion({ user_id, bot_id, session_id, workspace_id, plan_mode, title, questions }: Params) {
     const res = await BunSQLite.insert<BUN_SQLITE_COBBLE_BOT_QUESTIONS, (typeof BunSQLiteTables)[number]>({
         table: "bot_questions",
         data: [
@@ -27,6 +31,7 @@ export default async function createBotQuestion({ user_id, bot_id, session_id, w
                 bot_id: Number(bot_id),
                 session_id: Number(session_id),
                 workspace_id: workspace_id ? Number(workspace_id) : undefined,
+                plan_mode: plan_mode ? 1 : 0,
             },
         ],
     });

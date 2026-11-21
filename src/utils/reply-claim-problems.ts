@@ -64,9 +64,9 @@ type Params = {
      */
     status?: ReplyStatus;
     /**
-     * The reply is running with Plan mode on: the tools that write are left
-     * out on purpose, so a file can't be saved until the user leaves the
-     * mode or answers an `ask_user` card (which runs with the save allowed).
+     * The reply is running with Plan mode on: every tool that writes is
+     * gated, so a file can't be saved until the user leaves the mode (Tab)
+     * or approves a plan. Answering an `ask_user` card does not leave it.
      */
     plan_mode?: boolean;
 };
@@ -211,7 +211,7 @@ export default function replyClaimProblems({
 
     if (file_escape) {
         problems.push(
-            `It is Plan mode, and the answer ${file_escape == "missing_tool" ? "says there is no write tool" : "asks the user to save the document themselves"}. write_file exists and Plan mode is the only thing stopping it. Don't paste the document and don't call the tool missing: say in one sentence that Plan mode stops the save, and call ask_user with "Save it and send the file" first; their answer runs with the save allowed, so write the file then. A short template the user asked to read can stay in the message.`,
+            `It is Plan mode, and the answer ${file_escape == "missing_tool" ? "says there is no write tool" : "asks the user to save the document themselves"}. write_file exists and Plan mode is the only thing stopping it. Don't paste the document and don't call the tool missing: say in one sentence that Plan mode stops the save, and either write it as a plan they can approve (its steps save it) or tell them to turn Plan mode off (Tab) and you will write it. Answering a question does not end Plan mode. A short template the user asked to read can stay in the message.`,
         );
     }
 

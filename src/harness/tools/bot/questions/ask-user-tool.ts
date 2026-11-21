@@ -13,6 +13,12 @@ type Params = {
     session_id: number | string;
     workspace_id?: number | string | null;
     /**
+     * The run asked in Plan mode: its answer is run in Plan mode too, since
+     * answering a question is not a way out of the mode (only Tab or an
+     * approved plan is).
+     */
+    plan_mode?: boolean;
+    /**
      * Whether the run is a task, which stops and reports rather than waits.
      */
     in_task?: boolean;
@@ -40,6 +46,7 @@ export default function askUserTool({
     bot_id,
     session_id,
     workspace_id,
+    plan_mode,
     in_task,
     onAsk,
 }: Params): HarnessTool<Args> {
@@ -75,6 +82,7 @@ export default function askUserTool({
                 bot_id,
                 session_id,
                 workspace_id,
+                plan_mode: Boolean(plan_mode),
                 title: args.title?.trim() || "",
                 questions: args.questions.map((item) => ({
                     question: item.question,

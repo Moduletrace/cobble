@@ -110,7 +110,7 @@ type Params = {
     onAttach?: (params: { media_id: number; name: string }) => void;
     /**
      * Plan mode: the reply plans and reads, and starts nothing. `send_reply`
-     * refuses work, and `run-bot-reply` filters the tools to the allowlist.
+     * refuses work, and `run-bot-reply` gates the tools to the allowlist.
      */
     plan_mode?: boolean;
 };

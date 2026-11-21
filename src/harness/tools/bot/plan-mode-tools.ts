@@ -4,7 +4,7 @@ import type { HarnessTool } from "../../types";
 
 /**
  * Everything a reply may still call with Plan mode on. It is an allowlist,
- * never a denylist: a tool added to a factory later is left out until it
+ * never a denylist: a tool added to a factory later is refused until it
  * is named here on purpose, so a planning run can't gain a way to write
  * just because someone shipped one.
  *
@@ -52,10 +52,37 @@ export const PlanModeToolNames = [
 const allowed = new Set<string>(PlanModeToolNames);
 
 /**
- * The run's tools, held to the plan-mode allowlist. Applied after every
- * factory has had its say, so the mode holds whatever the run's bot type,
- * workspace, extensions, browsers or skills would otherwise hand it.
+ * What a write tool called in Plan mode answers the model, worded like
+ * `send_reply`'s refusal. It says the tool did nothing and why, so the
+ * bot tells the user Plan mode stopped it instead of inventing a reason
+ * or looking for another way in. A tool that vanished from the list
+ * instead read as "there is no tool called ...", which was untrue.
  */
-export default function filterPlanModeTools({ tools }: { tools: HarnessTool[] }): HarnessTool[] {
-    return tools.filter((tool) => allowed.has(tool.name));
+function planModeRefusal({ name }: { name: string }) {
+    return `Plan mode is on for this reply: it plans and reads, and changes nothing, so ${name} did not run and nothing was changed. Say plainly that Plan mode stops it, and that they can turn Plan mode off (Tab) to have it done; otherwise finish with send_reply.`;
+}
+
+/**
+ * The run's tools with every write held off. Applied after every factory
+ * has had its say, so the mode holds whatever the run's bot type,
+ * workspace, extensions, browsers or skills would otherwise hand it.
+ *
+ * The tools stay listed, with their own name, description and schema: the
+ * bot is meant to see the write it is reaching for and be told why it
+ * can't, rather than wonder why the tool it needs doesn't exist. Only
+ * `run` is replaced, and it throws so the call is reported as failed.
+ * `load_tools` is here too, so a deferred MCP or browser tool can never
+ * be pulled into a planning run.
+ */
+export default function gatePlanModeTools({ tools }: { tools: HarnessTool[] }): HarnessTool[] {
+    return tools.map((tool) =>
+        allowed.has(tool.name)
+            ? tool
+            : {
+                  ...tool,
+                  run: async () => {
+                      throw new Error(planModeRefusal({ name: tool.name }));
+                  },
+              },
+    );
 }

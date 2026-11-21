@@ -10,7 +10,8 @@ type Params = {
     job_id?: number | string;
     /**
      * The run is a reply with Plan mode on (`PlanModeToolNames`), so a file
-     * can't be saved until the user leaves the mode or answers a card.
+     * can't be saved until the user leaves the mode (Tab) or approves a
+     * plan. Answering a card does not leave it.
      */
     plan_mode?: boolean;
     scopes: StorageScope[];

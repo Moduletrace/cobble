@@ -32,6 +32,45 @@ Which would you like?
         expect(proseChoiceQuestion({ text: "The audit is done. Want me to send it?" })).toBeNull();
     });
 
+    test("leaves a colon heading with no offer cue alone", () => {
+        const text = `Which files I read:
+- src/server.ts
+- src/hosted/messenger/paths.ts`;
+
+        expect(proseChoiceQuestion({ text })).toBeNull();
+    });
+
+    test("leaves an options heading alone when it asks nothing", () => {
+        const text = `The options are:
+- Hosting for a year
+- A domain name`;
+
+        expect(proseChoiceQuestion({ text })).toBeNull();
+    });
+
+    test("finds the offer from session 135, which ends in a colon", () => {
+        const text = `Tool **email_smtp_imap_manager** (custom tool #1) is created and enabled. No bots have it yet - I can grant access to specific bots or all bots when you say.
+
+Want me to:
+- Give it to one or more bots now?
+- Run a quick test against one of your mailboxes (you'd provide the connection details via env vars first)?`;
+
+        expect(proseChoiceQuestion({ text })).toEqual({
+            question: "Want me to:",
+            options: 2,
+        });
+    });
+
+    test("finds an offer written with a colon and no question mark", () => {
+        const text = `The report is written.
+
+Should I:
+- Send it to the team
+- Leave it for you to review first`;
+
+        expect(proseChoiceQuestion({ text })?.options).toBe(2);
+    });
+
     test("leaves a section heading over facts alone", () => {
         const text = `What's included?
 - Hosting for a year

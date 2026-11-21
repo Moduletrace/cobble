@@ -43,7 +43,7 @@ import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import type { HarnessTool } from "@/src/harness/types";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
-import filterPlanModeTools from "@/src/harness/tools/bot/plan-mode-tools";
+import gatePlanModeTools from "@/src/harness/tools/bot/plan-mode-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
@@ -155,8 +155,9 @@ export default async function runBotReply({
     const on_plan_step = Number(job_params.plan_id) > 0;
     /**
      * The user sent the message with Plan mode on (`bot_messages.plan_mode`):
-     * the answer plans and reads, and changes nothing. The tools are filtered
-     * to `PlanModeToolNames`, and `send_reply` refuses work.
+     * the answer plans and reads, and changes nothing. Every write tool
+     * stays listed and refuses (`gatePlanModeTools`), and `send_reply`
+     * refuses work.
      */
     const plan_mode = Boolean(job_params.plan_mode);
     /**
@@ -488,7 +489,7 @@ export default async function runBotReply({
 
     /**
      * Every tool the reply may call, built once so Plan mode can hold the
-     * whole list to its allowlist (`filterPlanModeTools`).
+     * whole list to its allowlist (`gatePlanModeTools`).
      */
     const reply_tools: HarnessTool[] = [
         ...tools,
@@ -540,6 +541,11 @@ export default async function runBotReply({
                       bot_id: bot.id,
                       session_id,
                       workspace_id,
+                      /**
+                       * Recorded on the card: its answer stays in Plan mode
+                       * when it was asked in it (`postBotQuestionAnswers`).
+                       */
+                      plan_mode,
                       onAsk: ({ ref }) => proposals.push(ref),
                   }),
                   suggestNextStepsTool({
@@ -660,7 +666,7 @@ export default async function runBotReply({
                 .filter(Boolean)
                 .join("\n\n"),
             messages: await messagesToTurns({ messages: history, user_id }),
-            tools: plan_mode ? filterPlanModeTools({ tools: reply_tools }) : reply_tools,
+            tools: plan_mode ? gatePlanModeTools({ tools: reply_tools }) : reply_tools,
             max_steps: reply_max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
             context_budget: await grabContextBudgetTokens(),

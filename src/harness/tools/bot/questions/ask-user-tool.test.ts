@@ -2,10 +2,12 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 
 let created = 0;
 let next_id = 41;
+let last_params: Record<string, unknown> = {};
 
 mock.module("@/src/functions/backend/db/bot-questions/create-bot-question", () => ({
-    default: async () => {
+    default: async (params: Record<string, unknown>) => {
         created++;
+        last_params = params;
         return next_id++;
     },
 }));
@@ -37,6 +39,24 @@ describe("askUserTool", () => {
 
     test("caps how many questions one card holds", () => {
         expect(tool.schema?.safeParse({ questions: Array.from({ length: 7 }, () => question) }).success).toBe(false);
+    });
+
+    test("records Plan mode on the card, so the answer stays in it", async () => {
+        last_params = {};
+        const planned = askUserTool({ user_id: 1, bot_id: 2, session_id: 3, plan_mode: true, onAsk: () => {} });
+
+        await planned.run({ args: { questions: [question] }, signal: new AbortController().signal });
+
+        expect(last_params.plan_mode).toBe(true);
+    });
+
+    test("an ordinary card carries no Plan mode", async () => {
+        last_params = {};
+        const ordinary = askUserTool({ user_id: 1, bot_id: 2, session_id: 3, onAsk: () => {} });
+
+        await ordinary.run({ args: { questions: [question] }, signal: new AbortController().signal });
+
+        expect(last_params.plan_mode).toBe(false);
     });
 
     test("asks once per run, so a second call points at the card already up", async () => {

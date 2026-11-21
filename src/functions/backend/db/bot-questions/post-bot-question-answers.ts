@@ -31,11 +31,19 @@ export default async function postBotQuestionAnswers({ view, user_id }: Params) 
 
         const session = await pickSession({ row, user_id });
 
+        /**
+         * Asked in Plan mode, answered and skipped in it: a question is
+         * about what to plan, so its answer must not unlock the write
+         * tools (the only ways out are Tab and approving a plan).
+         */
+        const plan_mode = Boolean(row.plan_mode);
+
         const message = await insertUserMessage({
             bot_id: Number(row.bot_id),
             session_id: Number(session.id),
             workspace_id: session.workspace_id || null,
             text: botQuestionAnswersText({ view }),
+            plan_mode,
         });
 
         await pushBotNotice({ bot_id: row.bot_id, message });
@@ -45,6 +53,7 @@ export default async function postBotQuestionAnswers({ view, user_id }: Params) 
             bot_id: row.bot_id,
             session_id: Number(session.id),
             message_id: Number(message.id),
+            ...(plan_mode ? { params: { plan_mode: true } } : {}),
         });
 
         wakeBotsQueue();

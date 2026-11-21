@@ -2000,6 +2000,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     fieldDescription: `The session's workspace; null for the bot's own chat. Not a foreign key`,
                     dataType: "INTEGER",
                 },
+                {
+                    fieldName: "plan_mode",
+                    fieldDescription: `Asked in a Plan mode reply: their answer and skip are run in Plan mode too, since answering is not a way out of the mode`,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
             ],
             indexes: [
                 {

@@ -7,10 +7,11 @@ export type PlanModeFileEscape = "missing_tool" | "save_it_yourself";
 /**
  * The claim that the app has no way to write a file, or the request that the
  * user save it, in a reply sent with Plan mode on. The tool exists and Plan
- * mode is the only thing that stops it, so the answer should have asked to
- * save instead of handing over the document. 969 in session 133 said "Since
- * I don't have a write_file tool available in this environment, here's the
- * complete document for you to save" and pasted the whole roadmap.
+ * mode is the only thing that stops it, so the answer should have said the
+ * mode stops the save and offered to write it once they turn the mode off
+ * or approve a plan. 969 in session 133 said "Since I don't have a
+ * write_file tool available in this environment, here's the complete
+ * document for you to save" and pasted the whole roadmap.
  */
 const MissingWriteTool =
     /\b(?:don'?t|do not|doesn'?t|didn'?t)\s+(?:have|get|see)\b[^.!?\n]{0,40}\b(?:write_file|write tools?|file[- ]writing tools?)\b/i;
@@ -24,8 +25,8 @@ const SaveItYourself =
 /**
  * What in a Plan mode answer gives the write back to the user instead of
  * asking to leave the mode: a made-up missing tool, or an instruction to
- * save the document themselves. Null when the answer asks, or when it only
- * says Plan mode stops it and offers to save.
+ * save the document themselves. Null when the answer offers to write it once
+ * the mode is off or a plan is approved, or only says Plan mode stops it.
  */
 export default function planModeFileEscape({ text }: Params): PlanModeFileEscape | null {
     if (MissingWriteTool.test(text) || WriteToolUnavailable.test(text)) return "missing_tool";
