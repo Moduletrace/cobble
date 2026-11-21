@@ -20,7 +20,11 @@ export default function EmbeddingModelNote({ model }: Props) {
             {model
                 ? `Searched by meaning with ${model}, the install's embedding model. Change it under `
                 : "No embedding model is set, so bots find passages by their words only, which misses questions worded differently. Pick one under "}
-            <Link href="/admin/settings/models" title="Models settings" className="text-ink underline">
+            <Link
+                href="/admin/settings/models"
+                title="Models settings"
+                className="text-ink underline"
+            >
                 Settings, Models
             </Link>
             {model
