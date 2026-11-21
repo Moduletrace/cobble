@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Select from "@moduletrace/twui/form/Select";
+import SearchSelect from "@moduletrace/twui/form/SearchSelect";
 import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 
@@ -15,24 +15,35 @@ type Props = {
 };
 
 /**
- * A select of things to add, and an Add button beside it.
+ * A searchable select of things to add, and an Add button beside it, so a
+ * long list (many tools, bots or workspaces) is narrowed by typing rather
+ * than scrolled.
  */
 export default function InlineAddSelect({ id, noun, options, loading, onAdd }: Props) {
     const [value, setValue] = useState("");
+    const [reset_key, setResetKey] = useState(0);
 
     if (!options.length) return null;
 
+    const add = () => {
+        if (!value || loading) return;
+
+        onAdd({ value });
+        // The given one leaves `options`, and SearchSelect reads its value
+        // only on mount, so the field is remounted empty.
+        setValue("");
+        setResetKey((key) => key + 1);
+    };
+
     return (
         <Row className="w-full gap-2! flex-nowrap items-end">
-            <Select
+            <SearchSelect
+                key={reset_key}
                 id={id}
                 title={`Pick a ${noun}`}
-                aria-label={`Pick a ${noun}`}
-                options={[
-                    { value: "", title: `Pick a ${noun}…`, default: !value },
-                    ...options.map((option) => ({ ...option, default: option.value == value })),
-                ]}
-                changeHandler={(next) => setValue(String(next))}
+                placeholder={`Pick a ${noun}…`}
+                options={options}
+                changeHandler={(next) => setValue(Array.isArray(next) ? next[0] || "" : next)}
                 wrapperWrapperProps={{ className: "grow min-w-0" }}
             />
             <Button
@@ -43,7 +54,7 @@ export default function InlineAddSelect({ id, noun, options, loading, onAdd }: P
                 color="gray"
                 loading={loading}
                 disabled={!value || loading}
-                onClick={() => value && onAdd({ value })}
+                onClick={add}
                 className="shrink-0"
             >
                 Add
