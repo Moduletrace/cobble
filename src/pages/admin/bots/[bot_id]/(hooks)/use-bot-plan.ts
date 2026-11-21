@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BotPlanChangedData, BotPlanView } from "@/src/types";
 import useServerEvent from "@/src/hooks/use-server-event";
+import { BotPlanChangedEvent } from "@/src/utils/bot-plan-changed-event";
 import fetchBotPlan from "../(functions)/fetch-bot-plan";
 
 type Params = {
@@ -62,6 +63,22 @@ export default function useBotPlan({ plan_id }: Params) {
             void read();
         },
     });
+
+    useEffect(() => {
+        const listener = (event: Event) => {
+            const plan = (event as CustomEvent<{ plan?: BotPlanView }>).detail?.plan;
+
+            if (!plan || Number(plan.id) != plan_id) return;
+
+            setViewState(plan);
+            setError(undefined);
+            setLoading(false);
+        };
+
+        window.addEventListener(BotPlanChangedEvent, listener);
+
+        return () => window.removeEventListener(BotPlanChangedEvent, listener);
+    }, [plan_id]);
 
     /**
      * The card's own moves replace what was read, so it shows the change

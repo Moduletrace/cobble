@@ -34,7 +34,6 @@ import ComposerAttachments from "./composer-attachments";
 import ComposerClearButton from "./composer-clear-button";
 import ComposerEditor from "./composer-editor";
 import ComposerMentionList from "./composer-mention-list";
-import ComposerPlanNotice from "./composer-plan-notice";
 import ComposerReplyPreview from "./composer-reply-preview";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
@@ -433,7 +432,6 @@ export default function Composer({
                     />
                 ) : null}
                 {input.menu ? <ComposerMentionList menu={input.menu} /> : null}
-                {plan_mode ? <ComposerPlanNotice /> : null}
                 <Row
                     className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
                     onMouseDown={(e) => {

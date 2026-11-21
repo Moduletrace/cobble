@@ -8,6 +8,7 @@ import setBotPlanState from "../(functions)/set-bot-plan-state";
 import useBotPlan from "../(hooks)/use-bot-plan";
 import botPlanStatusLine from "../(utils)/bot-plan-status-line";
 import announcePlanModeOff from "@/src/utils/plan-mode-event";
+import announceBotPlanChanged from "@/src/utils/bot-plan-changed-event";
 import BotPlanEditModal from "./bot-plan-edit-modal";
 import BotPlanStepRow from "./bot-plan-step-row";
 
@@ -68,6 +69,7 @@ export default function BotPlanCard({ plan_id }: Props) {
         if (status == "active") announcePlanModeOff();
 
         setView(res.singleRes);
+        announceBotPlanChanged({ plan: res.singleRes });
     };
 
     const can_change = view.status == "planned" || view.status == "active" || view.status == "paused";

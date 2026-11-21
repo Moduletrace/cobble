@@ -4,7 +4,11 @@ import type { ComposerExtensionsCopy } from "../(partials)/composer-tools-modal"
 /**
  * The composer's tools button: MCP servers, tools and skills.
  */
-export function composerToolsCopy({ bot_name }: { bot_name: string }): ComposerExtensionsCopy {
+export function composerToolsCopy({
+    bot_name,
+}: {
+    bot_name: string;
+}): ComposerExtensionsCopy {
     return {
         id: "composer-add-extension",
         Icon: Wrench,
@@ -22,7 +26,11 @@ export function composerToolsCopy({ bot_name }: { bot_name: string }): ComposerE
 /**
  * The composer's knowledgebases button, beside the tools.
  */
-export function composerKnowledgebasesCopy({ bot_name }: { bot_name: string }): ComposerExtensionsCopy {
+export function composerKnowledgebasesCopy({
+    bot_name,
+}: {
+    bot_name: string;
+}): ComposerExtensionsCopy {
     return {
         id: "composer-add-knowledgebase",
         Icon: Library,
