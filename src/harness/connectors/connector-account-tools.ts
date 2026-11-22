@@ -7,6 +7,7 @@ import mcpResultToText from "../mcp/mcp-result-to-text";
 import type { HarnessTool } from "../types";
 import type { ConnectorProvider } from "./connector-provider";
 import ensureConnectorEndpoint from "./ensure-connector-endpoint";
+import expandPreviewResult from "./expand-preview-result";
 
 type Params = {
     connector: ConnectorRecord;
@@ -113,7 +114,13 @@ export default function connectorAccountTools({
                             user_id,
                         });
 
-                        return redact(typeof result == "string" ? result : JSON.stringify(result, null, 2));
+                        // Already the provider's REST answer, so there is no
+                        // fuller call to ask for a cut result again.
+                        return redact(
+                            await expandPreviewResult({
+                                text: typeof result == "string" ? result : JSON.stringify(result, null, 2),
+                            }),
+                        );
                     }
 
                     const { text, images } = mcpResultToText({
@@ -124,10 +131,27 @@ export default function connectorAccountTools({
                         }),
                     });
 
-                    if (!images.length) return redact(text);
+                    // The MCP router answers a large result with a preview.
+                    // The provider's REST API returns the whole one, so a
+                    // preview is asked again there: one more action of the
+                    // same tool, counted as the one action this call made.
+                    const answer = redact(
+                        await expandPreviewResult({
+                            text,
+                            retry: () =>
+                                provider.execute({
+                                    tool: tool.name,
+                                    args,
+                                    account: account.provider_account_id,
+                                    user_id,
+                                }),
+                        }),
+                    );
+
+                    if (!images.length) return answer;
 
                     return {
-                        text: redact(text),
+                        text: answer,
                         images: images.map(({ data, mime_type }) => ({
                             url: `data:${mime_type};base64,${data}`,
                             focus: `This came back from ${connector.name}. Describe what it shows and quote any text in it.`,

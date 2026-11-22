@@ -215,6 +215,7 @@ export const ConnectorsNote = ({ lines }: { lines: string[] }) => `# Connectors
 The user connected these apps themselves, through Settings > Connectors. Their tools are deferred: load the ones you need with load_tools first (an app's tools all share its prefix, e.g. names ["gmail*"]).
 
 - This is the user's own account. Read and send only what the request is about, and nothing else in it.
+- An app that answers with a preview (the rest was cut, or saved somewhere you can't open) gave you a truncated sample: it is never the total and never an empty result. Ask again for a smaller page (fewer results, no message payload, or ids only) and never report a count from a preview.
 ${lines.map((line) => `- ${line}`).join("\n")}
 `;
 
