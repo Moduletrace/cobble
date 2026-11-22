@@ -1,4 +1,5 @@
 import grabBotExtensions from "@/src/functions/backend/db/extensions/grab-bot-extensions";
+import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import grabRunEnvs from "@/src/functions/backend/db/extensions/grab-run-envs";
 import type { KnowledgebaseRecord, SkillRecord } from "@/src/types";
 import mcpToolName from "@/src/utils/mcp-tool-name";
@@ -77,6 +78,24 @@ export default async function openBotExtensions({
     }
 
     const envs = await grabRunEnvs({ bot_id, user_id, workspace_id });
+    /**
+     * A custom tool's arguments are filled the same way its template is
+     * (`fillEnvArgs`), and a key the run only has on its computer is one the
+     * model is told to use by name: an argument naming it must fill in, not
+     * be sent as that template. The run's own envs win on a key they share.
+     */
+    const arg_envs = tools.length
+        ? [
+              ...new Map(
+                  [
+                      ...(computer_id
+                          ? await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id })
+                          : []),
+                      ...envs,
+                  ].map((env) => [env.key, env]),
+              ).values(),
+          ]
+        : [];
     const secrets = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
     const names = new Set(taken);
@@ -91,7 +110,7 @@ export default async function openBotExtensions({
     };
 
     for (const tool of tools) {
-        add(buildCustomTool({ tool, envs, computer_id, bot_id, user_id, workspace_id, dirs }));
+        add(buildCustomTool({ tool, envs, arg_envs, computer_id, bot_id, user_id, workspace_id, dirs }));
     }
 
     for (const server of servers) {

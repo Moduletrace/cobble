@@ -100,7 +100,7 @@ describe("HostDirectoryLinkRow", () => {
         const html = render({
             state: "unknown",
             checked_at: null,
-            error: "No such image: ghcr.io/moduletrace/cobble-computer:1.4.4",
+            error: "No such image: ghcr.io/moduletrace/cobble-computer:1.4.5",
         });
 
         expect(html).toContain("Couldn&#x27;t check it:");

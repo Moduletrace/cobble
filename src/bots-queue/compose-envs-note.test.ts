@@ -38,4 +38,15 @@ describe("composeEnvsNote", () => {
     test("says so when nothing is set", () => {
         expect(composeEnvsNote({ on_computer: [], tools_only: [], has_computer: false })).toContain("No envs are set");
     });
+
+    test("says a custom tool fills {{env.KEY}} in its arguments", () => {
+        const note = composeEnvsNote({
+            on_computer: [{ key: "A", description: "" }],
+            tools_only: [{ key: "B", description: "" }],
+            has_computer: true,
+        });
+
+        expect(note).toContain("{{env.KEY}} in a custom tool's arguments");
+        expect(note).toContain("{{env.KEY}} in a custom tool's settings");
+    });
 });

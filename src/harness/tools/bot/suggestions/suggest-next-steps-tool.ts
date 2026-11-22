@@ -18,6 +18,12 @@ type Params = {
      * their buttons.
      */
     onSuggest: (params: { ref: string }) => void;
+    /**
+     * Blank out what must not reach the user (a secret env's value, a
+     * password a page showed). Blanked here, since this is where the words
+     * leave the run.
+     */
+    redact?: (text: string) => string;
 };
 
 type Args = {
@@ -32,7 +38,7 @@ type Args = {
  * the closing turn with `send_reply` (`ClosingToolNames`): the buttons
  * belong under that answer, and a later turn would replace it.
  */
-export default function suggestNextStepsTool({ user_id, bot_id, session_id, workspace_id, onSuggest }: Params): HarnessTool<Args> {
+export default function suggestNextStepsTool({ user_id, bot_id, session_id, workspace_id, onSuggest, redact = (text) => text }: Params): HarnessTool<Args> {
     let suggested = false;
 
     return {
@@ -57,8 +63,8 @@ export default function suggestNextStepsTool({ user_id, bot_id, session_id, work
                 bot_id,
                 session_id,
                 workspace_id,
-                title: args.title?.trim() || "",
-                steps: args.steps,
+                title: args.title?.trim() ? redact(args.title.trim()) : "",
+                steps: args.steps.map((step) => redact(step)),
             });
 
             suggested = true;

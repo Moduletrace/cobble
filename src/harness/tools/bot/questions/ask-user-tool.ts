@@ -27,6 +27,12 @@ type Params = {
      * card.
      */
     onAsk: (params: { ref: string }) => void;
+    /**
+     * Blank out what must not reach the user (a secret env's value, a
+     * password a page showed). Blanked here, since this is where the words
+     * leave the run: the card is stored and read like a message.
+     */
+    redact?: (text: string) => string;
 };
 
 type Args = {
@@ -49,6 +55,7 @@ export default function askUserTool({
     plan_mode,
     in_task,
     onAsk,
+    redact = (text) => text,
 }: Params): HarnessTool<Args> {
     let asked = false;
 
@@ -83,11 +90,11 @@ export default function askUserTool({
                 session_id,
                 workspace_id,
                 plan_mode: Boolean(plan_mode),
-                title: args.title?.trim() || "",
+                title: args.title?.trim() ? redact(args.title.trim()) : "",
                 questions: args.questions.map((item) => ({
-                    question: item.question,
+                    question: redact(item.question),
                     kind: item.kind,
-                    options: item.options,
+                    options: item.options.map((option) => redact(option)),
                     allow_other: Boolean(item.allow_other),
                 })),
             });

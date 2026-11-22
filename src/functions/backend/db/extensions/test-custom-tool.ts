@@ -4,6 +4,7 @@ import buildCustomTool from "@/src/harness/tools/custom/build-custom-tool";
 import AppError from "@/src/utils/app-error";
 import type { DraftCustomTool } from "@/src/schemas/extension-schema";
 import type { CustomToolRecord } from "@/src/types";
+import grabComputerEnvs from "../envs/grab-computer-envs";
 import grabCustomTool from "./grab-custom-tool";
 import grabRunEnvs from "./grab-run-envs";
 
@@ -49,7 +50,18 @@ export default async function testCustomTool({ custom_tool_id, draft, args, comp
         (await BunSQLite.sql<{ id: number }>({ sql: `SELECT id FROM computers WHERE kind = 'main' ORDER BY id LIMIT 1` }))
             .payload?.[0]?.id;
 
-    const harness_tool = buildCustomTool({ tool, envs: await grabRunEnvs(), computer_id: main, record: !draft });
+    const envs = await grabRunEnvs();
+    /**
+     * The same arguments a bot's run would fill: its computer's envs count
+     * too, by name, when the tool reads one as `{{env.KEY}}`.
+     */
+    const arg_envs = [
+        ...new Map(
+            [...(main ? await grabComputerEnvs({ computer_id: main }) : []), ...envs].map((env) => [env.key, env]),
+        ).values(),
+    ];
+
+    const harness_tool = buildCustomTool({ tool, envs, arg_envs, computer_id: main, record: !draft });
 
     if (!harness_tool) throw new AppError(`There's no computer to run this script on.`);
 

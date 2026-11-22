@@ -11,6 +11,7 @@ import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
 import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import type { StorageScope } from "@/src/utils/storage-access";
 import redactSecrets from "@/src/utils/redact-secrets";
+import maskPasswordFieldValues from "@/src/utils/mask-password-field-values";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import grabMcpTools from "../../mcp/grab-mcp-tools";
 import type { HarnessTool } from "../../types";
@@ -150,6 +151,12 @@ export default async function openComputerTools({
      */
     const secrets: { key: string; value: string }[] = envs.filter((env) => env.secret);
     const redact = (text: string) => redactSecrets({ text, secrets });
+    /**
+     * A browser reads a page, and a page can hold a password Chrome filled in
+     * from its own vault: a value this install never knew, so blanking the
+     * envs can't catch it.
+     */
+    const redact_page = (text: string) => redact(maskPasswordFieldValues({ text }));
 
     const client = browser
         ? await connectMcpServer({ url: target.url, headers: { authorization: `Bearer ${target.token}` }, signal })
@@ -170,7 +177,7 @@ export default async function openComputerTools({
             ? await grabMcpTools({
                   client,
                   exclude: ComputerMcpExcludedTools,
-                  redact,
+                  redact: redact_page,
                   image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
               })
             : [];

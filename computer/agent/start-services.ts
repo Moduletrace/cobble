@@ -9,6 +9,7 @@ import findBrowserBinary from "./find-browser-binary";
 import isPortAnswering from "./is-port-answering";
 import log from "./log";
 import pruneProfileCache from "./prune-profile-cache";
+import pruneProfileSecrets from "./prune-profile-secrets";
 import superviseProcess, { type Supervised } from "./supervise-process";
 import userEnv from "./user-env";
 import waitUntil from "./wait-until";
@@ -95,9 +96,12 @@ export default async function startServices({ parking }: { parking: BrowserParki
             clearProfileLocks({ profile_dir: AgentConfig.ProfileDir });
             /**
              * No browser runs now (this is its start): the caches it built
-             * last time are free to go, so the profile stops growing.
+             * last time are free to go, so the profile stops growing, and
+             * so are the passwords it saved, which a bot must never read
+             * off a page (`prune-profile-secrets`).
              */
             pruneProfileCache({ profile_dir: AgentConfig.ProfileDir });
+            pruneProfileSecrets({ profile_dir: AgentConfig.ProfileDir });
 
             return browserArgs({
                 profile_dir: AgentConfig.ProfileDir,

@@ -19,6 +19,11 @@ type Params = {
      * Saves and pushes the message (`insertBotMessage`, `pushBotNotice`).
      */
     post?: (params: { text: string }) => Promise<{ id?: number | "" }>;
+    /**
+     * Blank out what must not reach the user (a secret env's value, a
+     * password a page showed).
+     */
+    redact?: (text: string) => string;
 };
 
 type Args = {
@@ -37,6 +42,7 @@ export default function sendMessageTool({
     session_id,
     workspace_id,
     onSend,
+    redact = (text) => text,
     post = async ({ text }) => {
         const message = await insertBotMessage({ bot_id, session_id, workspace_id, text, interim: true });
 
@@ -60,7 +66,7 @@ export default function sendMessageTool({
                 );
             }
 
-            const message = await post({ text: args.text });
+            const message = await post({ text: redact(args.text) });
 
             sent++;
             onSend?.({ message_id: Number(message.id) });

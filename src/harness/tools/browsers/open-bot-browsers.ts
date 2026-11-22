@@ -8,6 +8,7 @@ import grabRunEnvs from "@/src/functions/backend/db/extensions/grab-run-envs";
 import parseJsonColumn from "@/src/functions/backend/db/extensions/parse-json-column";
 import { decrypt } from "@/src/utils/crypt";
 import mcpToolName from "@/src/utils/mcp-tool-name";
+import maskPasswordFieldValues from "@/src/utils/mask-password-field-values";
 import redactSecrets from "@/src/utils/redact-secrets";
 import connectMcpServer from "../../mcp/connect-mcp-server";
 import mcpHarnessTool from "../../mcp/mcp-harness-tool";
@@ -57,7 +58,11 @@ export default async function openBotBrowsers({
 
     const envs = await grabRunEnvs({ bot_id, user_id, workspace_id });
     const secrets = envs.filter((env) => env.secret);
-    const redact = (text: string) => redactSecrets({ text, secrets });
+    /**
+     * A page can hold a password the browser saved itself: a value this
+     * install never knew, so blanking the envs can't catch it.
+     */
+    const redact = (text: string) => redactSecrets({ text: maskPasswordFieldValues({ text }), secrets });
     const names = new Set(taken);
     const tools: HarnessTool[] = [];
     const connections: Promise<Client>[] = [];

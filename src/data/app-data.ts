@@ -124,7 +124,7 @@ export const AppData = {
      * `computer/` (the release workflow builds that tag), and bump
      * `ComputerWorkspaceLayout` too when existing computers must move to it.
      */
-    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.4",
+    ComputerImage: "ghcr.io/moduletrace/cobble-computer:1.4.5",
     ComputerContainerPrefix: `${SiteData["SiteSlug"]}-computer`,
     /**
      * Only a computer's workspace (`ComputerWorkspaceDir` in its

@@ -68,6 +68,8 @@ import composeBrowsersNote from "./compose-browsers-note";
 import composeComputersNote from "./compose-computers-note";
 import composeEnvsNote from "./compose-envs-note";
 import grabReachableEnvs from "@/src/functions/backend/db/envs/grab-reachable-envs";
+import redactSecrets from "@/src/utils/redact-secrets";
+import maskPasswordFieldValues from "@/src/utils/mask-password-field-values";
 import grabSessionCarryOver from "./grab-session-carry-over";
 import continueInNewSessionTool from "@/src/harness/tools/bot/continue-in-new-session-tool";
 import searchPastSessionsTool from "@/src/harness/tools/bot/sessions/search-past-sessions-tool";
@@ -246,6 +248,16 @@ export default async function runBotReply({
         workspace_id,
         computer_id: computers[0]?.id || null,
     });
+
+    /**
+     * A password can reach a model by ways the app never sees, a page that
+     * had one filled in being the one that did (a snapshot reported the
+     * login form's value, and the bot put it in a question): what it sends
+     * out is read here, so a secret env's value and a password field's
+     * value never reach the user.
+     */
+    const reply_secrets = [...envs.on_computer, ...envs.tools_only].filter((env) => env.secret);
+    const redact_reply = (text: string) => redactSecrets({ text: maskPasswordFieldValues({ text }), secrets: reply_secrets });
 
     /**
      * A summary that can't be written now (no model free) is left out
@@ -525,7 +537,7 @@ export default async function runBotReply({
      */
     const reply_tools: HarnessTool[] = [
         ...tools,
-        sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id }),
+        sendMessageTool({ bot_id: bot.id, session_id: Number(session_id), workspace_id, redact: redact_reply }),
         ...(ask_id_for_updates
             ? [
                   updateRequesterTool({
@@ -579,6 +591,7 @@ export default async function runBotReply({
                        */
                       plan_mode,
                       onAsk: ({ ref }) => proposals.push(ref),
+                      redact: redact_reply,
                   }),
                   suggestNextStepsTool({
                       user_id,
@@ -586,6 +599,7 @@ export default async function runBotReply({
                       session_id,
                       workspace_id,
                       onSuggest: ({ ref }) => shown.push(ref),
+                      redact: redact_reply,
                   }),
               ]
             : []),
@@ -743,7 +757,7 @@ export default async function runBotReply({
             throw new BotJobFatalError(unsentAnswerMessage({ note: result.review_note }));
         }
 
-        const answer_text = stripAppRecords({ text: result.text }).trim();
+        const answer_text = redact_reply(stripAppRecords({ text: result.text })).trim();
 
         /**
          * Nothing said is nothing to send: an empty message lands in the

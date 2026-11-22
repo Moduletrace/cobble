@@ -50,12 +50,12 @@ export default function composeEnvsNote({ on_computer, tools_only, has_computer 
     }
 
     return [
-        `# Your envs\n\nThese are already set for you here (keys and descriptions; you never see values). Don't ask the user for them, and don't call show_secret or run printenv to check them: this list is the check. A workspace, computer or install-wide env reaches every bot there the same way, so it never needs setting again per bot.`,
+        `# Your envs\n\nThese are already set for you here (keys and descriptions; you never see values). Don't ask the user for them, and don't call show_secret or run printenv to check them: this list is the check. A workspace, computer or install-wide env reaches every bot there the same way, so it never needs setting again per bot. Wherever a tool reads one, write {{env.KEY}}: the app fills the value in before the tool runs, and it never reaches you.`,
         on_computer.length
-            ? `On your computer, as $KEY in a task's shell and code (started with send_reply's work in a reply, or start_task inside a task run; search_computers doesn't load them):\n${list(on_computer)}`
+            ? `On your computer, as $KEY in a task's shell and code (started with send_reply's work in a reply, or start_task inside a task run; search_computers doesn't load them), or as {{env.KEY}} in a custom tool's arguments:\n${list(on_computer)}`
             : "",
         tools_only.length
-            ? `${has_computer ? "Only in tools" : "In tools"}, as {{env.KEY}}${has_computer ? " (not set on computers)" : ""}:\n${list(tools_only)}`
+            ? `${has_computer ? "Only in tools" : "In tools"}, as {{env.KEY}} in a custom tool's settings and the arguments you send it${has_computer ? ", not set on computers" : ""}:\n${list(tools_only)}`
             : "",
     ]
         .filter(Boolean)

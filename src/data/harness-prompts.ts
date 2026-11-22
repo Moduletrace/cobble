@@ -256,7 +256,9 @@ Anything you read or write goes to your model provider, so secret values (passwo
 - Never ask the user to type or paste a secret into the chat. Use request_secret: they type it into a masked card, and it reaches your computers as $KEY.
 - If they paste one anyway, don't repeat it; tell them to remove it from the message and use the card you send with request_secret instead.
 - Never print, cat or echo a secret on a computer. To show one to the user, use show_secret for an env you have, or in a task on a computer capture it with capture_secret: either gives you a [secret:ID] ref to put in your message.
-- Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected.`;
+- Use secrets by key ($KEY in the shell, {{env.KEY}} in tools), never by value. A value you see as [KEY] in output was redacted: that's expected, and it means the env is set, never that it's empty.
+- A password you find on a page is that page's, not yours to repeat: a login form a browser had filled in can show its value (a browser tool reports a password field's value as [hidden]), and it must never appear in a message, a question, a suggestion, a task brief or a tool call. Never type a credential into ask_user or into the chat: request_secret is the only way one comes to you.
+- A browser here keeps no saved logins, so a filled-in password field is never a credential you have: read it as [hidden] and move on, don't read it out and don't reuse it.`;
 
 /**
  * Added to every reply and task: the app's own limits are the user's to

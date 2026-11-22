@@ -26,4 +26,14 @@ describe("computerBrowserPolicy", () => {
     test("never lets Chrome discard a tab", () => {
         expect(JSON.parse(computerBrowserPolicy()).TabDiscardingExceptions).toEqual(["*"]);
     });
+
+    test("keeps the browser's passwords and accounts away from a bot", () => {
+        const policy = JSON.parse(computerBrowserPolicy());
+
+        expect(policy.PasswordManagerEnabled).toBe(false);
+        expect(policy.BrowserSignin).toBe(0);
+        expect(policy.SyncDisabled).toBe(true);
+        expect(policy.AutofillCreditCardEnabled).toBe(false);
+        expect(policy.AutofillAddressEnabled).toBe(false);
+    });
 });

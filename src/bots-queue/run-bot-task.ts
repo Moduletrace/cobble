@@ -41,6 +41,7 @@ import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import redactTrace from "@/src/harness/trace/redact-trace";
+import maskPasswordFieldValues from "@/src/utils/mask-password-field-values";
 import { isUnlimitedLimit, smallerRunLimit } from "@/src/utils/run-limit";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotBrowsers, { type OpenBotBrowsers } from "@/src/harness/tools/browsers/open-bot-browsers";
@@ -176,6 +177,13 @@ export default async function runBotTask({
               signal,
           })
         : null;
+
+    /**
+     * A password can reach a model by ways the app never sees, a page that
+     * had one filled in being the one that did: what a task sends out is
+     * read here too, so a password field's value never reaches the user.
+     */
+    const redact_text = (text: string) => maskPasswordFieldValues({ text: computer ? computer.redact(text) : text });
 
     let extensions: OpenBotExtensions | undefined;
     let browsers: OpenBotBrowsers | undefined;
@@ -379,6 +387,7 @@ export default async function runBotTask({
                           workspace_id,
                           in_task: true,
                           onAsk: ({ ref }) => take_overs.push(ref),
+                          redact: redact_text,
                       }),
                       suggestNextStepsTool({
                           user_id,
@@ -386,6 +395,7 @@ export default async function runBotTask({
                           session_id,
                           workspace_id,
                           onSuggest: ({ ref }) => suggestions.push(ref),
+                          redact: redact_text,
                       }),
                   ]
                 : []),
@@ -725,7 +735,7 @@ export default async function runBotTask({
             workspace_id,
             signal,
             onStep: (step) =>
-                report({ ...step, text: step.text && computer ? computer.redact(step.text) : step.text }),
+                report({ ...step, text: step.text ? redact_text(step.text) : step.text }),
             /**
              * The trace also holds a computer's own secrets: what the bot
              * captured mid-run (`capture_secret`) never reaches the
@@ -777,7 +787,7 @@ export default async function runBotTask({
         });
 
         if (failure) {
-            throw new ScheduledRunFailedError(computer ? computer.redact(failure) : failure);
+            throw new ScheduledRunFailedError(redact_text(failure));
         }
 
         /**
@@ -826,7 +836,7 @@ export default async function runBotTask({
 
         return {
             ...withTakeOverRefs({
-                text: computer ? computer.redact(text) : text,
+                text: redact_text(text),
                 refs: take_overs,
                 shown: [...shown, ...suggestions],
             }),

@@ -3,6 +3,7 @@ import type { CustomToolRecord } from "@/src/types";
 import redactSecrets from "@/src/utils/redact-secrets";
 import type { HarnessTool } from "../../types";
 import checkRequiredArgs from "./check-required-args";
+import fillEnvArgs from "./fill-env-args";
 import runHttpTool from "./run-http-tool";
 import runPromptTool from "./run-prompt-tool";
 import runScriptTool from "./run-script-tool";
@@ -15,6 +16,12 @@ type Params = {
      * out of every result and error.
      */
     envs: { key: string; value: string; secret: boolean }[];
+    /**
+     * What `{{env.KEY}}` reads when the model writes it in an argument:
+     * every env the run can reach on this computer, not only the ones tools
+     * fill in themselves. Defaults to `envs`.
+     */
+    arg_envs?: { key: string; value: string; secret: boolean }[];
     /**
      * Where a script tool runs. Without one, a script tool isn't offered.
      */
@@ -47,6 +54,7 @@ type Params = {
 export default function buildCustomTool({
     tool,
     envs,
+    arg_envs,
     computer_id,
     bot_id,
     user_id,
@@ -56,8 +64,27 @@ export default function buildCustomTool({
 }: Params): HarnessTool<Record<string, unknown>> | null {
     if (tool.kind == "script" && !computer_id) return null;
 
-    const secrets = envs.filter((env) => env.secret);
+    /**
+     * A value filled into an argument can come back in the result (the
+     * script echoes it, the server answers with it), so what fills the
+     * arguments is redacted too.
+     */
+    const secrets = [
+        ...new Map(
+            [...envs, ...(arg_envs || [])].filter((env) => env.secret).map((env) => [env.key, env]),
+        ).values(),
+    ];
     const redact = (text: string) => redactSecrets({ text, secrets });
+
+    /**
+     * A prompt tool's filled text IS the model's input, so a secret fills in
+     * there as its `[KEY]` marker, never its value (`runPromptTool` does the
+     * same for the prompt itself). HTTP and script tools get the value: it
+     * stays in the request or the script, where the model never sees it.
+     */
+    const arg_values = (arg_envs || envs).map((env) =>
+        tool.kind == "prompt" && env.secret ? { ...env, value: `[${env.key}]` } : env,
+    );
 
     const call = ({ args, signal }: { args: Record<string, unknown>; signal: AbortSignal }) => {
         switch (tool.kind) {
@@ -79,6 +106,14 @@ export default function buildCustomTool({
         }
     };
 
+    /**
+     * The arguments as the model sent them, with `{{env.KEY}}` filled in:
+     * the run is told that is how a tool reads an env, so an argument that
+     * holds one is a template, not a literal string.
+     */
+    const filledArgs = ({ args }: { args: Record<string, unknown> }) =>
+        fillEnvArgs({ value: args, envs: arg_values }) as Record<string, unknown>;
+
     return {
         name: tool.name,
         description:
@@ -90,7 +125,7 @@ export default function buildCustomTool({
             checkRequiredArgs({ parameters: tool.parameters, args });
 
             try {
-                const result = redact(await call({ args, signal }));
+                const result = redact(await call({ args: filledArgs({ args }), signal }));
                 if (record) await recordCustomToolRun({ custom_tool_id: tool.id });
                 return result;
             } catch (error: unknown) {
