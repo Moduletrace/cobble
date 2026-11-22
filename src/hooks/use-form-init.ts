@@ -12,7 +12,6 @@ import { AppContext } from "../pages/__root";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
 import EJSON from "../utils/ejson";
 import twuiSlugify from "@moduletrace/twui/utils/slugify";
-import _ from "lodash";
 import type { AppContextObject } from "../types";
 
 type Params<T extends {} = BUN_SQLITE_COBBLE_ALL_TYPEDEFS> = {
@@ -96,7 +95,14 @@ export default function useFormInit<
 
         if (local_storage_form_title) {
             try {
-                let form_to_store = _.cloneDeep(form);
+                /**
+                 * A shallow copy is all this needs: the keys being left out
+                 * are taken off the copy, never out of the form itself, and
+                 * EJSON serialises the rest deeply. Importing lodash for
+                 * cloneDeep put the whole library in every page that uses a
+                 * form, the conversation page included.
+                 */
+                const form_to_store: Partial<T> = { ...form };
 
                 if (params?.local_storage_exclude_keys) {
                     params.local_storage_exclude_keys.forEach((k) => {
