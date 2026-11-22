@@ -7,7 +7,6 @@ import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { CircleAlert, type LucideIcon } from "lucide-react";
-import ExtensionAddSelect from "@/src/components/general/extension-add-select";
 import type {
     BotExtension,
     BotExtensionKind,
@@ -15,7 +14,7 @@ import type {
     ConnectorAppIcon,
 } from "@/src/types";
 import ComposerConnectorsSection from "./composer-connectors-section";
-import ComposerToolRow from "./composer-tool-row";
+import ComposerExtensionsList from "./composer-extensions-list";
 import { twMerge } from "tailwind-merge";
 
 /**
@@ -168,45 +167,18 @@ export default function ComposerToolsModal({
                 </Span>
             </Stack>
 
-            {count ? (
-                <Stack
-                    aria-label={copy.title}
-                    className="w-full mt-4 py-1 gap-0! items-stretch rounded-default border border-solid border-hairline bg-surface"
-                >
-                    {attached.map((item) => (
-                        <ComposerToolRow
-                            key={`${item.kind}:${item.id}`}
-                            item={item}
-                            busy={busy == `${item.kind}:${item.id}`}
-                            onRemove={
-                                can_manage && item.source == "bot"
-                                    ? () =>
-                                          onRemove({
-                                              kind: item.kind,
-                                              id: item.id,
-                                              name: item.name,
-                                          })
-                                    : undefined
-                            }
-                        />
-                    ))}
-                </Stack>
-            ) : null}
-
-            {can_manage && addable.length ? (
-                <Stack className="w-full mt-4 gap-2! items-stretch">
-                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                        {copy.add_hint}
-                    </Span>
-                    <ExtensionAddSelect
-                        id={copy.id}
-                        noun={copy.add_noun}
-                        addable={addable}
-                        loading={Boolean(busy)}
-                        onAdd={onAdd}
-                    />
-                </Stack>
-            ) : null}
+            <ComposerExtensionsList
+                id={copy.id}
+                label={copy.title}
+                items={attached}
+                addable={addable}
+                can_manage={can_manage}
+                busy={busy}
+                add_hint={copy.add_hint}
+                add_noun={copy.add_noun}
+                onAdd={onAdd}
+                onRemove={onRemove}
+            />
 
             {connectors ? (
                 <ComposerConnectorsSection

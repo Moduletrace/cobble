@@ -32,9 +32,13 @@ export const WorkspaceBotRequestSchema = z.object({
 
 export type WorkspaceBotRequest = z.infer<typeof WorkspaceBotRequestSchema>;
 
+/**
+ * Either one alone: the bot panel's memory tab saves the workspace memory
+ * without rewriting the instructions here, and vice versa.
+ */
 export const UpdateWorkspaceBotRequestSchema = WorkspaceBotRequestSchema.extend({
-    system_prompt: Prompt.default(""),
-    memory: Prompt.default(""),
+    system_prompt: Prompt.optional(),
+    memory: Prompt.optional(),
 });
 
 export type UpdateWorkspaceBotRequest = z.infer<typeof UpdateWorkspaceBotRequestSchema>;

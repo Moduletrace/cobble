@@ -11,12 +11,12 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * A bot's core instructions, for its edit form in the conversation, which
- * loads them when it opens (page props leave them out). For super admins
- * and admins; only the super admin reaches the coordinator.
+ * A bot's core instructions and memory, for its panel in the conversation,
+ * which loads them when it opens (page props leave them out). For super
+ * admins and admins; only the super admin reaches the coordinator.
  */
 export const handler: BunextAPIRouteHandler<
-    APIResponseObject<{ system_prompt: string }>
+    APIResponseObject<{ system_prompt: string; memory: string }>
 > = async ({ req, body }) => {
     try {
         if (req.method != "POST") {
@@ -40,7 +40,7 @@ export const handler: BunextAPIRouteHandler<
             throw new AppError(`Bot not found.`);
         }
 
-        return { success: true, singleRes: { system_prompt: bot.system_prompt || "" } };
+        return { success: true, singleRes: { system_prompt: bot.system_prompt || "", memory: bot.memory || "" } };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };
     }

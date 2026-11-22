@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
 import Row from "@moduletrace/twui/layout/Row";
@@ -10,19 +10,29 @@ import Loading from "@moduletrace/twui/elements/Loading";
 import { X } from "lucide-react";
 import SidePanel from "@/src/components/general/side-panel";
 import BotAvatar from "@/src/components/general/bot-avatar";
+import TabButton from "@/src/components/general/tab-button";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import { BotPanelOpenEvent } from "@/src/utils/bot-panel-open-event";
 import type { BotWithLastMessage } from "@/src/types";
+import type { BUN_SQLITE_COBBLE_WORKSPACES } from "@/db/types/db";
 import BotForm from "@/src/layouts/bots/(partials)/bot-form";
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import useTopModalEscape from "@/src/hooks/use-top-modal-escape";
 import useBotInstructions from "../(hooks)/use-bot-instructions";
+import useWorkspaceBotInstructions from "../(hooks)/use-workspace-bot-instructions";
+import BotMemoryForm from "./bot-memory-form";
 import BotPanelTrigger from "./bot-panel-trigger";
+import BotToolsTab from "./bot-tools-tab";
 
 type Props = {
     bot: BotWithLastMessage;
+    /**
+     * The workspace the conversation is in, so its memory and instructions
+     * there are edited too.
+     */
+    workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
     /**
      * The header owns it, since the avatar and the name both open the panel.
      */
@@ -31,22 +41,37 @@ type Props = {
     on_close: () => void;
 };
 
+type PanelTab = "settings" | "memory" | "tools";
+
 /**
- * The bot's profile (picture, name, job, colour, instructions) to edit,
- * sliding in from the right over the conversation, for super admins and
- * admins. The avatar and the name beside it open it, and so does a swipe from
- * the right on a phone (`BotPanelOpenEvent`, sent by the layout, so a page
- * without a conversation has nobody listening). The instructions load when
- * it opens, and Escape, the backdrop or the X closes it.
+ * The bot's profile (picture, name, job, colour, instructions), its memory
+ * and what it works with (computer, tools, knowledgebases) to edit, sliding
+ * in from the right over the conversation, for super admins and admins. The
+ * avatar and the name beside it open it, and so does a swipe from the right
+ * on a phone (`BotPanelOpenEvent`, sent by the layout, so a page without a
+ * conversation has nobody listening). The tab's data loads when it opens,
+ * and Escape, the backdrop or the X closes it.
  */
-export default function BotPanel({ bot, open, on_open, on_close }: Props) {
+export default function BotPanel({ bot, workspace, open, on_open, on_close }: Props) {
     const { pageProps } = useContext(AppContext);
     const name = bot.name || "This bot";
     const can_edit = canManageCrew({ user_types: pageProps?.user_types });
-    const { system_prompt, error } = useBotInstructions({
+    const [tab, setTab] = useState<PanelTab>("settings");
+    const workspace_id = Number(workspace?.id) || 0;
+    const { system_prompt, memory, error } = useBotInstructions({
         bot_id: Number(bot.id) || 0,
         enabled: open && can_edit,
     });
+    const workspace_instructions = useWorkspaceBotInstructions({
+        workspace_id,
+        bot_id: Number(bot.id) || 0,
+        enabled: open && can_edit && Boolean(workspace_id) && tab == "memory",
+    });
+    const memory_ready =
+        system_prompt != undefined &&
+        memory != undefined &&
+        (!workspace_id || Boolean(workspace_instructions.instructions));
+    const loaded_error = error || workspace_instructions.error;
 
     useTopModalEscape({ onClose: on_close, enabled: open });
 
@@ -101,26 +126,74 @@ export default function BotPanel({ bot, open, on_open, on_close }: Props) {
                         <X size={18} aria-hidden />
                     </Button>
                 </Row>
+                <Row
+                    role="tablist"
+                    aria-label={`Edit ${name}`}
+                    className="shrink-0 gap-1! flex-nowrap items-center px-3 py-2 border-0 border-b border-solid border-hairline"
+                >
+                    <TabButton title="Settings" active={tab == "settings"} onPick={() => setTab("settings")} />
+                    <TabButton title="Memory" active={tab == "memory"} onPick={() => setTab("memory")} />
+                    <TabButton title="Tools" active={tab == "tools"} onPick={() => setTab("tools")} />
+                </Row>
                 <Stack className="grow min-h-0 overflow-y-auto gap-1! items-stretch px-4 pt-4 pb-6">
-                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                        {bot.kind == "coordinator"
-                            ? "The coordinator keeps its name. Give it a picture, or change its core instructions."
-                            : `${name}'s core instructions apply everywhere. What it does in one workspace is under Instructions here in the menu of its conversation there.`}
-                    </Span>
-                    {!open ? null : system_prompt != undefined ? (
-                        <BotForm
-                            bot={{ ...bot, system_prompt }}
-                            onCancel={on_close}
+                    {open && tab == "settings" ? (
+                        <>
+                            <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                                {bot.kind == "coordinator"
+                                    ? "The coordinator keeps its name. Give it a picture, or change its core instructions."
+                                    : `${name}'s core instructions apply everywhere. What it does in one workspace is under Instructions here in the menu of its conversation there.`}
+                            </Span>
+                            {system_prompt != undefined ? (
+                                <BotForm
+                                    bot={{ ...bot, system_prompt }}
+                                    onCancel={on_close}
+                                />
+                            ) : loaded_error ? (
+                                <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
+                                    {loaded_error}
+                                </Span>
+                            ) : (
+                                <Stack className="w-full py-10 items-center">
+                                    <Loading />
+                                </Stack>
+                            )}
+                        </>
+                    ) : null}
+                    {open && tab == "memory" ? (
+                        memory_ready ? (
+                            <>
+                                <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                                    {`What ${name} keeps in mind, and can add to itself as it works.`}
+                                </Span>
+                                <BotMemoryForm
+                                    bot_id={Number(bot.id) || 0}
+                                    bot_name={name}
+                                    memory={memory || ""}
+                                    workspace_id={workspace_id || undefined}
+                                    workspace_name={workspace?.name}
+                                    workspace_memory={workspace_instructions.instructions?.memory || ""}
+                                    onCancel={on_close}
+                                />
+                            </>
+                        ) : loaded_error ? (
+                            <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
+                                {loaded_error}
+                            </Span>
+                        ) : (
+                            <Stack className="w-full py-10 items-center">
+                                <Loading />
+                            </Stack>
+                        )
+                    ) : null}
+                    {open && tab == "tools" ? (
+                        <BotToolsTab
+                            bot={bot}
+                            workspace_id={workspace_id || null}
+                            initial={pageProps?.bot_extensions}
+                            has_browsers={Boolean(pageProps?.has_browsers)}
+                            open={open && tab == "tools"}
                         />
-                    ) : error ? (
-                        <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
-                            {error}
-                        </Span>
-                    ) : (
-                        <Stack className="w-full py-10 items-center">
-                            <Loading />
-                        </Stack>
-                    )}
+                    ) : null}
                 </Stack>
             </SidePanel>
         </>

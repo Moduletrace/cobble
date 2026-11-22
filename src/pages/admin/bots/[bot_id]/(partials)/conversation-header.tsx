@@ -108,6 +108,7 @@ export default function ConversationHeader({
             {is_workspace ? <BackButton /> : null}
             <BotPanel
                 bot={bot}
+                workspace={workspace}
                 open={bot_panel_open}
                 on_open={open_bot_panel}
                 on_close={close_bot_panel}

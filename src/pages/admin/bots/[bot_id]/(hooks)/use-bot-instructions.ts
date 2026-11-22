@@ -4,23 +4,25 @@ import fetchBotInstructions from "../(functions)/fetch-bot-instructions";
 type Params = {
     bot_id: number;
     /**
-     * Loads each time this turns true (the edit form opens), so the form
-     * starts from what was last saved.
+     * Loads each time this turns true (the panel opens), so its forms start
+     * from what was last saved.
      */
     enabled: boolean;
 };
 
 /**
- * The bot's core instructions for its edit form, loaded when it opens:
- * page props leave them out of every bot row.
+ * The bot's core instructions and memory for its panel, loaded when it
+ * opens: page props leave them out of every bot row.
  */
 export default function useBotInstructions({ bot_id, enabled }: Params) {
     const [system_prompt, setSystemPrompt] = useState<string>();
+    const [memory, setMemory] = useState<string>();
     const [error, setError] = useState<string>();
 
     useEffect(() => {
         /** Cleared on close, so the next open never shows an old copy. */
         setSystemPrompt(undefined);
+        setMemory(undefined);
         setError(undefined);
 
         if (!enabled || !bot_id) return;
@@ -33,6 +35,7 @@ export default function useBotInstructions({ bot_id, enabled }: Params) {
 
                 if (res.success && res.singleRes) {
                     setSystemPrompt(res.singleRes.system_prompt);
+                    setMemory(res.singleRes.memory);
                 } else {
                     setError(res.msg || "Couldn't load the instructions.");
                 }
@@ -46,5 +49,5 @@ export default function useBotInstructions({ bot_id, enabled }: Params) {
         };
     }, [enabled, bot_id]);
 
-    return { system_prompt, error };
+    return { system_prompt, memory, error };
 }

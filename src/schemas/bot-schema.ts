@@ -234,6 +234,19 @@ export const UpdateBotRequestSchema = CreateBotRequestSchema.omit({ workspace_id
 
 export type UpdateBotRequest = z.infer<typeof UpdateBotRequestSchema>;
 
+/**
+ * The bot's core memory, edited from its panel: the whole new text.
+ */
+export const UpdateBotMemoryRequestSchema = z.object({
+    bot_id: z.coerce.number().int().positive("Pick a bot"),
+    memory: z
+        .string()
+        .trim()
+        .max(AppData.PromptMaxLength, `Keep memory under ${AppData.PromptMaxLength} characters`),
+});
+
+export type UpdateBotMemoryRequest = z.infer<typeof UpdateBotMemoryRequestSchema>;
+
 export const UploadBotAttachmentRequestSchema = z.object({
     /**
      * The file as a base64 data URL.
