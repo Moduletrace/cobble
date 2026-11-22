@@ -2623,6 +2623,10 @@ export type BUN_SQLITE_COBBLE_CONNECTOR_REQUESTS = {
      */
     bot_session_id?: number | "";
     /** 
+     * The account this link reconnects, 0 for a new one. A finished sign-in updates that row in place, so a dead account keeps its label and namespace
+     */
+    account_id?: number | "";
+    /** 
      * The account label the user typed, or the one the card suggested
      */
     label?: string;

@@ -12,6 +12,12 @@ type Params = {
      * What the user calls the account they're connecting, e.g. Work Gmail.
      */
     label?: string;
+    /**
+     * The account this sign-in reconnects, when one went dead. Its row is
+     * updated in place once the provider lists the new sign-in, so it keeps
+     * its label and its tool namespace.
+     */
+    account_id?: number | string;
     bot_id?: number | string;
     session_id?: number | string;
 };
@@ -35,6 +41,7 @@ export default async function startConnectorConnection({
     user_id,
     connector_id,
     label,
+    account_id,
     bot_id,
     session_id,
 }: Params): Promise<Result> {
@@ -48,6 +55,7 @@ export default async function startConnectorConnection({
         user_id: Number(user_id),
         connector,
         label,
+        account_id: account_id ? Number(account_id) : undefined,
         bot_id: bot_id ? Number(bot_id) : undefined,
         session_id: session_id ? Number(session_id) : undefined,
     });

@@ -13,6 +13,11 @@ type Params = {
 type StartParams = {
     connector_id: number;
     label: string;
+    /**
+     * The account being reconnected; its row is updated instead of a new
+     * one being added.
+     */
+    account_id?: number;
 };
 
 /**
@@ -39,7 +44,7 @@ export default function useConnectorConnect({ onConnected, onError }: Params) {
         onConnected(msg);
     };
 
-    const start = async ({ connector_id, label }: StartParams) => {
+    const start = async ({ connector_id, label, account_id }: StartParams) => {
         if (busy) return;
 
         setBusy(true);
@@ -51,7 +56,7 @@ export default function useConnectorConnect({ onConnected, onError }: Params) {
 
         const res = await postAdminApi<{ request: ConnectorRequestPayload | null; accounts: ConnectorAccountRecord[] }>({
             path: "connectors/start-connection",
-            body: { connector_id, label },
+            body: { connector_id, label, account_id },
         });
 
         if (!res.success || !res.singleRes) {

@@ -7,11 +7,12 @@ import Input from "@moduletrace/twui/form/Input";
 import Form from "@moduletrace/twui/form/Form";
 import Checkbox from "@moduletrace/twui/form/Checkbox";
 import SearchSelect from "@moduletrace/twui/form/SearchSelect";
-import { CircleSlash } from "lucide-react";
+import { CircleSlash, ExternalLink, RefreshCw } from "lucide-react";
 import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import type { ConnectorAccountRecord, ConnectorRecord, ExtensionTargets } from "@/src/types";
+import useConnectorConnect from "../(hooks)/use-connector-connect";
 
 type Props = {
     connector: ConnectorRecord;
@@ -34,6 +35,12 @@ export default function ConnectorAccountModal({ connector, account, targets, bot
     const [all_bots, setAllBots] = useState(account.all_bots);
     const [busy, setBusy] = useState<"save" | "disconnect">();
     const [error, setError] = useState("");
+    const [reconnect_error, setReconnectError] = useState("");
+    const connect = useConnectorConnect({
+        onConnected: onSaved,
+        onError: (msg) => setReconnectError(msg),
+    });
+
 
     const save = async () => {
         if (busy) return;
@@ -152,6 +159,48 @@ export default function ConnectorAccountModal({ connector, account, targets, bot
                     }
                     info="Every bot working in these workspaces may use the account."
                 />
+
+                {account.status != "connected" ? (
+                    <Stack className="w-full gap-2 rounded-default border border-hairline p-3">
+                        <Span className="text-sm">
+                            This sign-in is no longer connected. Reconnect puts a fresh one in its place, under the same name
+                            and tool names.
+                        </Span>
+                        <Row className="flex-wrap items-center gap-2!">
+                            <Button
+                                title={`Reconnect ${account.label}`}
+                                type="button"
+                                variant="outlined"
+                                size="small"
+                                className="gap-1!"
+                                loading={connect.busy}
+                                onClick={() => {
+                                    setReconnectError("");
+                                    connect.start({ connector_id: connector.id, label: account.label, account_id: account.id });
+                                }}
+                            >
+                                <RefreshCw size={14} aria-hidden />
+                                Reconnect
+                            </Button>
+                            {connect.sign_in ? (
+                                <Button
+                                    title={`Open the ${connect.sign_in.label} sign-in page`}
+                                    href={connect.sign_in.url}
+                                    target="_blank"
+                                    linkProps={{ rel: "noopener noreferrer" }}
+                                    variant="ghost"
+                                    color="gray"
+                                    size="small"
+                                    className="gap-1!"
+                                >
+                                    <ExternalLink size={14} aria-hidden />
+                                    Open the sign-in page
+                                </Button>
+                            ) : null}
+                        </Row>
+                        {reconnect_error ? <Span className="text-sm text-hue-red">{reconnect_error}</Span> : null}
+                    </Stack>
+                ) : null}
 
                 <Row className="w-full items-center justify-between gap-2!">
                     <Button

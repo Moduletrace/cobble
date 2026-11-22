@@ -29,6 +29,7 @@ export const SetBotConnectorRequestSchema = z.object({
 
 export const StartConnectorConnectionRequestSchema = z.object({
     connector_id: Id,
+    account_id: Id.optional(),
     label: z.string().trim().max(80).default(""),
 });
 

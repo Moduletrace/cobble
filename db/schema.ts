@@ -4224,6 +4224,12 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                 },
                 {
+                    fieldName: "account_id",
+                    fieldDescription: `The account this link reconnects, 0 for a new one. A finished sign-in updates that row in place, so a dead account keeps its label and namespace`,
+                    dataType: "INTEGER",
+                    defaultValue: 0,
+                },
+                {
                     fieldName: "label",
                     fieldDescription: `The account label the user typed, or the one the card suggested`,
                     dataType: "TEXT",

@@ -3,13 +3,16 @@ import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { CircleAlert, CircleUser, Plus } from "lucide-react";
+import { twMerge } from "tailwind-merge";
+import { CircleSlash, CircleUser, Plus, RefreshCw } from "lucide-react";
 import { ConnectorAccountStatuses } from "@/src/dict/connector-dict";
 import type {
     ConnectorAccountRecord,
     ConnectorRecord,
     ExtensionTargets,
 } from "@/src/types";
+import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
+import useConnectorConnect from "../(hooks)/use-connector-connect";
 import ConnectorAccountModal from "./connector-account-modal";
 import ConnectorConnectModal from "./connector-connect-modal";
 
@@ -22,43 +25,16 @@ type Props = {
     onError: (msg: string) => void;
 };
 
-const isShared = ({ account }: { account: ConnectorAccountRecord }) =>
-    account.all_bots ||
-    Boolean(account.workspace_ids.length) ||
-    Boolean(account.bot_ids.length);
-
-/**
- * Where a sign-in is in force, in a few words.
- */
-function accountReach({
-    account,
-    targets,
-    bots,
-}: {
-    account: ConnectorAccountRecord;
-    targets: ExtensionTargets;
-    bots: { id: number; name: string }[];
-}) {
-    if (account.all_bots) return "Every bot, every user";
-
-    const names = [
-        ...account.workspace_ids.map(
-            (id) =>
-                targets.workspaces.find((workspace) => workspace.id == id)
-                    ?.name || `workspace ${id}`,
-        ),
-        ...account.bot_ids.map(
-            (id) => bots.find((bot) => bot.id == id)?.name || `bot ${id}`,
-        ),
-    ];
-
-    return names.length ? names.join(", ") : "Only your runs";
-}
+type Busy = {
+    account_id: number;
+    kind: "refresh" | "disconnect";
+};
 
 /**
  * One app's sign-ins: the viewer's own, and any given out to a place they
- * reach. An account opens its own modal: its name, where it may be used,
- * and disconnecting it.
+ * reach. A card carries its name, one status, and the two actions that keep
+ * it alive (check again, or sign in again when it died, and disconnect).
+ * Everything about where it may be used lives in its modal.
  */
 export default function ConnectorAccounts({
     connector,
@@ -70,6 +46,12 @@ export default function ConnectorAccounts({
 }: Props) {
     const [connecting, setConnecting] = useState(false);
     const [open_account, setOpenAccount] = useState<ConnectorAccountRecord>();
+    const [busy, setBusy] = useState<Busy>();
+
+    const connect = useConnectorConnect({
+        onConnected: (msg) => onChanged(msg),
+        onError,
+    });
 
     /**
      * How many of this app's accounts are ready to use, whoever they belong
@@ -83,55 +65,135 @@ export default function ConnectorAccounts({
         ConnectorAccountStatuses.find((entry) => entry.value == status)
             ?.title || status;
 
+    const statusClass = (status: ConnectorAccountRecord["status"]) =>
+        status == "connected"
+            ? "text-success dark:text-success-dark"
+            : status == "pending"
+              ? "text-ink-secondary"
+              : "text-hue-red";
+
+    const refresh = async ({ account }: { account: ConnectorAccountRecord }) => {
+        if (busy) return;
+
+        if (account.status != "connected") {
+            connect.start({
+                connector_id: connector.id,
+                label: account.label,
+                account_id: account.id,
+            });
+            return;
+        }
+
+        setBusy({ account_id: account.id, kind: "refresh" });
+
+        const res = await postAdminApi<{ connector_id: number; account: ConnectorAccountRecord }>({
+            path: "connectors/refresh-account",
+            body: { account_id: account.id },
+        });
+
+        setBusy(undefined);
+
+        if (!res.success) {
+            onError(res.msg || "Couldn't check it.");
+            return;
+        }
+
+        onChanged(res.msg || "Checked.");
+    };
+
+    const disconnect = async ({ account }: { account: ConnectorAccountRecord }) => {
+        if (busy) return;
+        if (!window.confirm(`Disconnect ${account.label}? Runs using it lose it at once.`)) return;
+
+        setBusy({ account_id: account.id, kind: "disconnect" });
+
+        const res = await postAdminApi({
+            path: "connectors/disconnect-account",
+            body: { account_id: account.id },
+        });
+
+        setBusy(undefined);
+
+        if (!res.success) {
+            onError(res.msg || "Couldn't disconnect it.");
+            return;
+        }
+
+        onChanged(res.msg || "Disconnected.");
+    };
+
     return (
         <Stack className="w-full gap-2! items-stretch pl-14 pr-4">
             {accounts.length ? (
-                <Row className="flex-wrap items-center gap-2!">
+                <Stack className="w-full gap-1!">
                     {accounts.map((account) => (
-                        <Button
+                        <Row
                             key={account.id}
-                            title={`${account.label}: ${accountReach({ account, targets, bots })}`}
-                            type="button"
-                            variant="outlined"
-                            color="gray"
-                            size="small"
-                            className="gap-2! w-full"
-                            onClick={() => setOpenAccount(account)}
-                            buttonContentProps={{ className: "w-full" }}
+                            className="w-full items-center gap-1! rounded-default border border-hairline py-0.5! pl-2 pr-1"
                         >
-                            <Row className="w-full justify-between">
-                                <Row>
-                                    <CircleUser size={14} aria-hidden />
-                                    <Span className="text-sm text-ink">
-                                        {account.label}
-                                    </Span>
-                                </Row>
+                            <Button
+                                title={`Edit ${account.label}`}
+                                type="button"
+                                variant="ghost"
+                                color="gray"
+                                size="small"
+                                className="flex-1 min-w-0 justify-start gap-2! overflow-hidden px-1!"
+                                buttonContentProps={{ className: "w-full min-w-0" }}
+                                onClick={() => setOpenAccount(account)}
+                            >
+                                <CircleUser size={14} aria-hidden className="shrink-0" />
+                                <Span className="min-w-0 flex-1 truncate text-left text-sm text-ink">
+                                    {account.label}
+                                </Span>
+                            </Button>
 
-                                <Row>
-                                    <Span className="text-xs text-ink-secondary">
-                                        {isShared({ account })
-                                            ? accountReach({
-                                                  account,
-                                                  targets,
-                                                  bots,
-                                              })
-                                            : "Only your runs"}
-                                    </Span>
-                                    {account.status != "connected" ? (
-                                        <Span className="text-xs text-hue-red">
-                                            <CircleAlert
-                                                size={12}
-                                                aria-hidden
-                                                className="mr-1 inline"
-                                            />
-                                            {statusOf(account.status)}
-                                        </Span>
-                                    ) : null}
-                                </Row>
+                            <Row className="shrink-0 items-center gap-1!">
+                                <Span
+                                    className={twMerge(
+                                        "text-xs",
+                                        statusClass(account.status),
+                                    )}
+                                >
+                                    {statusOf(account.status)}
+                                </Span>
+                                <Button
+                                    title={
+                                        account.status == "connected"
+                                            ? `Check ${account.label} again`
+                                            : `Reconnect ${account.label}`
+                                    }
+                                    type="button"
+                                    variant="ghost"
+                                    color="gray"
+                                    size="small"
+                                    className="px-1!"
+                                    loading={
+                                        busy?.account_id == account.id &&
+                                        busy?.kind == "refresh"
+                                    }
+                                    onClick={() => refresh({ account })}
+                                >
+                                    <RefreshCw size={14} aria-hidden />
+                                </Button>
+                                <Button
+                                    title={`Disconnect ${account.label}`}
+                                    type="button"
+                                    variant="ghost"
+                                    color="gray"
+                                    size="small"
+                                    className="px-1!"
+                                    loading={
+                                        busy?.account_id == account.id &&
+                                        busy?.kind == "disconnect"
+                                    }
+                                    onClick={() => disconnect({ account })}
+                                >
+                                    <CircleSlash size={14} aria-hidden />
+                                </Button>
                             </Row>
-                        </Button>
+                        </Row>
                     ))}
-                </Row>
+                </Stack>
             ) : (
                 <Span className="text-xs text-ink-secondary">
                     No account yet: add one, and your runs can use{" "}

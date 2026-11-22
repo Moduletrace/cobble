@@ -18,6 +18,10 @@ type Params = {
     session_id?: number | null;
     connector: ConnectorRecord;
     label?: string;
+    /**
+     * The account being reconnected, 0 or absent for a new one.
+     */
+    account_id?: number;
 };
 
 export type ConnectorRequest = {
@@ -38,13 +42,14 @@ export default async function createConnectorRequest({
     session_id,
     connector,
     label,
+    account_id,
 }: Params): Promise<ConnectorRequest> {
     const now = Date.now();
     const name = label || connector.name;
     const open = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_REQUESTS>({
-            sql: `SELECT * FROM connector_requests WHERE connector_id = ? AND user_id = ? AND label = ? AND status = 'pending' AND expires_at > ? ORDER BY id DESC LIMIT 1`,
-            values: [connector.id, user_id, name, now],
+            sql: `SELECT * FROM connector_requests WHERE connector_id = ? AND user_id = ? AND label = ? AND account_id = ? AND status = 'pending' AND expires_at > ? ORDER BY id DESC LIMIT 1`,
+            values: [connector.id, user_id, name, Number(account_id || 0), now],
         })
     ).payload?.[0];
 
@@ -86,6 +91,7 @@ export default async function createConnectorRequest({
                 bot_id: bot_id ?? undefined,
                 bot_session_id: session_id ?? undefined,
                 label: name,
+                account_id: Number(account_id || 0),
                 url: started.url,
                 provider_account_id: started.provider_account_id || undefined,
                 status: "pending",
