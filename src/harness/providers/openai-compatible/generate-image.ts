@@ -2,6 +2,7 @@ import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
 import type { HarnessAdapter, HarnessCandidate, HarnessImageOutput } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
+import { isDashScopeHost, isTokenPlanHost } from "./dashscope-hosts";
 import downloadProviderFile from "./download-provider-file";
 import generateImageNative from "./dashscope-native-image";
 import imageRequestFields from "./image-request-fields";
@@ -217,37 +218,5 @@ async function editForm({ model, prompt, n, size, references, signal }: EditForm
  * Alibaba's DashScope and Model Studio (`maas`) hosts serve the OpenAI
  * images protocol with their own quirks: references go in the `image`
  * extension field on `/images/generations` (no multipart `/images/edits`),
- * and the response is always URLs. The shared `dashscope` hosts and the
- * workspace `maas` hosts both count; a custom provider pointed elsewhere
- * keeps the standard behaviour.
+ * and the response is always URLs.
  */
-/**
- * Alibaba's Token Plan host. Its image models are served only by the native
- * call; the compatible `/images/generations` path 404s, and trying it first
- * benches the model before the picture is made.
- */
-export function isTokenPlanHost({ base_url }: { base_url?: string | null }) {
-    if (!base_url) return false;
-
-    try {
-        return new URL(base_url).hostname.startsWith("token-plan.");
-    } catch {
-        return false;
-    }
-}
-
-function isDashScopeHost({ base_url }: { base_url?: string | null }) {
-    if (!base_url) return false;
-
-    try {
-        const host = new URL(base_url).hostname;
-
-        return (
-            host == "dashscope.aliyuncs.com" ||
-            host == "dashscope-intl.aliyuncs.com" ||
-            host.endsWith(".maas.aliyuncs.com")
-        );
-    } catch {
-        return false;
-    }
-}

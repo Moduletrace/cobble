@@ -27,7 +27,8 @@ type Params = {
 
 /**
  * Turns speech into text with the transcription harness: its
- * speech-to-text model gets the file at `/audio/transcriptions`.
+ * speech-to-text model gets the file, at `/audio/transcriptions` or, on
+ * Alibaba's hosts, at their native multimodal route.
  */
 export default async function transcribeAudio({
     audio,

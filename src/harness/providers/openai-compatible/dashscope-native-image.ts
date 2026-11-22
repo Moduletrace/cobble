@@ -1,6 +1,7 @@
 import { AppData } from "@/src/data/app-data";
 import HarnessError from "../../harness-error";
 import type { HarnessCandidate, HarnessImageOutput } from "../../types";
+import { dashScopeOrigin, NativeGenerationPath } from "./dashscope-hosts";
 import downloadProviderFile from "./download-provider-file";
 import providerRequest from "./provider-request";
 
@@ -24,8 +25,6 @@ type Params = {
  * how the native API takes image editing too. The answer carries image URLs,
  * downloaded here under the same guards as every other provider URL.
  */
-export const NativeImagePath = "/api/v1/services/aigc/multimodal-generation/generation";
-
 export default async function generateImageNative({
     candidate,
     prompt,
@@ -40,8 +39,8 @@ export default async function generateImageNative({
 
     const res = await providerRequest({
         provider,
-        base_url: nativeOrigin({ base_url: provider.base_url }),
-        path: NativeImagePath,
+        base_url: dashScopeOrigin({ base_url: provider.base_url }),
+        path: NativeGenerationPath,
         json: {
             model: model.slug,
             input: {
@@ -90,7 +89,7 @@ export default async function generateImageNative({
 
     if (!urls.length) {
         throw new HarnessError({
-            message: `${name}: no image came back from ${NativeImagePath}.`,
+            message: `${name}: no image came back from ${NativeGenerationPath}.`,
             retryable: true,
             candidate_key: candidate.key,
         });
@@ -110,21 +109,6 @@ export default async function generateImageNative({
     }
 
     return { images };
-}
-
-/**
- * The host root: the native routes live beside `<base>/compatible-mode/v1`,
- * never under it.
- */
-function nativeOrigin({ base_url }: { base_url: string }) {
-    try {
-        return new URL(base_url).origin;
-    } catch {
-        throw new HarnessError({
-            message: `The provider's base URL can't be read as an address: ${base_url}`,
-            retryable: false,
-        });
-    }
 }
 
 /**

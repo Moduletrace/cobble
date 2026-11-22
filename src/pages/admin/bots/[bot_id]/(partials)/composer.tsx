@@ -8,7 +8,6 @@ import {
 } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
-import P from "@moduletrace/twui/layout/P";
 import type {
     BotExtensionsPayload,
     BotMessageAttachment,
@@ -34,10 +33,12 @@ import ComposerAttachments from "./composer-attachments";
 import ComposerClearButton from "./composer-clear-button";
 import ComposerEditor from "./composer-editor";
 import ComposerMentionList from "./composer-mention-list";
+import ComposerNotice from "./composer-notice";
 import ComposerReplyPreview from "./composer-reply-preview";
 import ComposerSendButton from "./composer-send-button";
 import ComposerTools from "./composer-tools";
 import ComposerVoiceButton from "./composer-voice-button";
+import { twMerge } from "tailwind-merge";
 
 /**
  * What the conversation can do to the composer from outside it.
@@ -477,13 +478,23 @@ export default function Composer({
                     />
                 </Row>
                 {notice ? (
-                    <P
-                        role="alert"
-                        className="w-full max-w-container mx-auto px-3 md:px-6 -mt-5 pb-3 text-xs text-ink-secondary"
+                    <Stack
+                        className={twMerge(
+                            "w-full px-3 pb-3 md:px-6 gap-0! items-stretch max-w-container m-auto",
+                            "mb-4",
+                        )}
                     >
-                        {notice}
-                    </P>
+                        <ComposerNotice
+                            message={notice}
+                            tone={error ? "error" : "warning"}
+                            onClose={() => {
+                                setError(undefined);
+                                recorder.setError(undefined);
+                            }}
+                        />
+                    </Stack>
                 ) : null}
+
                 <ComposerTools
                     bot={bot}
                     workspace_id={workspace_id}

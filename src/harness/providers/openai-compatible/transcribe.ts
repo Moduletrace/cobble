@@ -1,10 +1,25 @@
 import HarnessError from "../../harness-error";
 import type { HarnessAdapter } from "../../types";
+import { isDashScopeHost } from "./dashscope-hosts";
+import transcribeNative from "./dashscope-native-transcribe";
 import providerRequest from "./provider-request";
 
 /**
+ * The native Qwen-ASR models: the only synchronous speech models Alibaba's
+ * DashScope/Model Studio hosts serve, at their own route rather than
+ * `/audio/transcriptions`.
+ */
+const NativeAsrModel = /asr|paraformer/i;
+/**
+ * File transcription is a job at the provider (submit, then poll), which
+ * this adapter doesn't run: it would queue a task and wait for nothing.
+ */
+const AsyncOnlyAsrModel = /filetrans|paraformer/i;
+
+/**
  * `POST /audio/transcriptions` as an OpenAI-style file upload, which
- * OpenRouter, OpenAI, Groq and local servers all take.
+ * OpenRouter, OpenAI, Groq and local servers all take. Alibaba's hosts have
+ * no such route, so their ASR models go to the native call instead.
  */
 const transcribe: HarnessAdapter["transcribe"] = async ({
     candidate,
@@ -12,6 +27,18 @@ const transcribe: HarnessAdapter["transcribe"] = async ({
     language,
     signal,
 }) => {
+    if (isDashScopeHost({ base_url: candidate.provider.base_url }) && NativeAsrModel.test(candidate.model.slug)) {
+        if (AsyncOnlyAsrModel.test(candidate.model.slug)) {
+            throw new HarnessError({
+                message: `${candidate.provider.name || "Alibaba Cloud"}: ${candidate.model.slug} only transcribes as an asynchronous job, which this harness doesn't run. Pick a synchronous ASR model such as qwen-audio-3.0-asr-flash.`,
+                retryable: false,
+                candidate_key: candidate.key,
+            });
+        }
+
+        return await transcribeNative({ candidate, audio, language, signal });
+    }
+
     const form = new FormData();
 
     form.append("model", candidate.model.slug);
