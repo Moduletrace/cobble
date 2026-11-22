@@ -12,6 +12,12 @@ type Params = {
      * its own sign-in (claimed).
      */
     free_slot: boolean;
+    /**
+     * The provider lists none of the accounts the app knows: they were
+     * replaced there, so no stranger takes their place (the cards offer
+     * Reconnect instead).
+     */
+    wiped?: boolean;
 };
 
 /**
@@ -21,8 +27,15 @@ type Params = {
  * provider can't pile up as four rows of the same mailbox; a second account
  * appears by signing in again, which claims its own row.
  */
-export default function shouldAdoptConnectorAccount({ status, reconnect, claimed, free_slot }: Params) {
+export default function shouldAdoptConnectorAccount({
+    status,
+    reconnect,
+    claimed,
+    free_slot,
+    wiped = false,
+}: Params) {
     if (reconnect || claimed) return true;
+    if (wiped) return false;
 
     return status == "connected" && free_slot;
 }

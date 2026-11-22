@@ -156,6 +156,7 @@ describe("composioConnectorProvider", () => {
         const session = calls.find((call) => call.url.pathname.endsWith("/tool_router/session"))!;
 
         expect(session.body.multi_account).toEqual({ enable: true, max_accounts_per_toolkit: 5 });
+        expect(session.body.auth_configs).toEqual({ gmail: "ac_1" });
 
         const link = calls.find((call) => call.url.pathname.endsWith("/tool_router/session/trs_1/link"))!;
 
@@ -190,8 +191,69 @@ describe("composioConnectorProvider", () => {
         expect(made.body.use_composio_managed_auth).toBe(true);
     });
 
+    test("makes a custom sign-in setup for a toolkit Composio manages no credentials for", async () => {
+        const { fetchImpl, calls } = stub({
+            answer: ({ url, method }) => {
+                if (url.pathname.endsWith("/toolkits/gitea")) {
+                    return { body: { composio_managed_auth_schemes: [], auth_config_details: [{ mode: "API_KEY" }] } };
+                }
+                if (url.pathname.endsWith("/tool_router/session")) return { status: 201, body: { session_id: "trs_1" } };
+                if (url.pathname.endsWith("/link")) {
+                    return { status: 201, body: { redirect_url: "https://connect/gitea" } };
+                }
+                if (!url.pathname.endsWith("/auth_configs")) return { body: {} };
+
+                return method == "POST" ? { status: 201, body: { auth_config: { id: "ac_gitea" } } } : { body: { items: [] } };
+            },
+        });
+
+        const started = await composioConnectorProvider({ key: "k", fetchImpl }).startConnect({
+            app: "gitea",
+            user_id: 4,
+            label: "Self-hosted",
+        });
+
+        expect(started.auth_config_id).toBe("ac_gitea");
+
+        const made = calls.find((call) => call.url.pathname.endsWith("/auth_configs") && call.method == "POST")!;
+
+        expect(made.body).toEqual({
+            toolkit: { slug: "gitea" },
+            auth_config: { type: "use_custom_auth", authScheme: "API_KEY" },
+        });
+
+        const session = calls.find((call) => call.url.pathname.endsWith("/tool_router/session"))!;
+
+        expect(session.body.auth_configs).toEqual({ gitea: "ac_gitea" });
+    });
+
+    test("reuses a sign-in setup the toolkit can use, whatever its scheme", async () => {
+        const { fetchImpl, calls } = stub({
+            answer: ({ url }) => {
+                if (url.pathname.endsWith("/toolkits/gitea")) {
+                    return { body: { composio_managed_auth_schemes: [], auth_config_details: [{ mode: "API_KEY" }] } };
+                }
+                if (url.pathname.endsWith("/tool_router/session")) return { status: 201, body: { session_id: "trs_1" } };
+                if (url.pathname.endsWith("/link")) {
+                    return { status: 201, body: { redirect_url: "https://connect/gitea" } };
+                }
+
+                return { body: { items: [{ id: "ac_dash", auth_scheme: "API_KEY" }] } };
+            },
+        });
+
+        const started = await composioConnectorProvider({ key: "k", fetchImpl }).startConnect({
+            app: "gitea",
+            user_id: 4,
+            label: "Work",
+        });
+
+        expect(started.auth_config_id).toBe("ac_dash");
+        expect(calls.some((call) => call.url.pathname.endsWith("/auth_configs") && call.method == "POST")).toBe(false);
+    });
+
     test("maps account statuses and keeps the provider's id", async () => {
-        const { fetchImpl } = stub({
+        const { fetchImpl, calls } = stub({
             answer: () => ({
                 body: {
                     items: [
@@ -208,6 +270,7 @@ describe("composioConnectorProvider", () => {
             { provider_account_id: "ca_1", status: "connected", label: "work@x" },
             { provider_account_id: "ca_2", status: "expired", label: undefined },
         ]);
+        expect(calls[0]!.url.searchParams.get("toolkit_slugs")).toBe("gmail");
     });
 
     test("executes one tool with the account named in the call", async () => {

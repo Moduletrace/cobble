@@ -129,28 +129,75 @@ export default function composioConnectorProvider({ key, base_url, fetchImpl }: 
     }
 
     /**
+     * How a toolkit can be signed in: the schemes Composio manages itself and
+     * every scheme it accepts. Empty when the toolkit can't be read, which
+     * leaves the managed OAuth setup that every OAuth app has.
+     */
+    async function toolkitAuthMethods({ app }: { app: string }): Promise<{ managed: string[]; schemes: string[] }> {
+        try {
+            const toolkit = await request<any>({
+                path: `/toolkits/${encodeURIComponent(app)}`,
+                what: `the ${app} sign-in methods`,
+            });
+
+            return {
+                managed: (toolkit.composio_managed_auth_schemes || []).map((scheme: string) =>
+                    String(scheme).toUpperCase(),
+                ),
+                schemes: (toolkit.auth_config_details || [])
+                    .map((detail: any) => String(detail.mode || "").toUpperCase())
+                    .filter(Boolean),
+            };
+        } catch {
+            return { managed: [], schemes: [] };
+        }
+    }
+
+    /**
      * The sign-in setup a link belongs to. Composio wants an auth config on
      * every link, and makes a managed one for a toolkit that has none yet,
      * so a fresh install can connect an app without visiting its dashboard.
+     * A toolkit Composio manages no credentials for (Gitea, whose key and
+     * instance URL are the user's own) gets a custom setup of its own scheme
+     * instead, which the hosted sign-in page fills in.
      */
     async function authConfigFor({ app, auth_config_id }: { app: string; auth_config_id?: string | null }) {
         if (auth_config_id) return auth_config_id;
 
-        const existing = await listAllPages<any>({
-            path: "/auth_configs",
-            query: { toolkit_slug: app },
-            what: `the ${app} sign-in setups`,
-        });
-        const usable = existing.find((item) => item.auth_scheme == "OAUTH2") || existing[0];
+        const [existing, methods] = await Promise.all([
+            listAllPages<any>({
+                path: "/auth_configs",
+                query: { toolkit_slug: app },
+                what: `the ${app} sign-in setups`,
+            }),
+            toolkitAuthMethods({ app }),
+        ]);
+        const usable = (item: any) =>
+            !methods.schemes.length || methods.schemes.includes(String(item.auth_scheme || "").toUpperCase());
+        const reusable =
+            existing.find((item) => usable(item) && String(item.auth_scheme).toUpperCase() == "OAUTH2") ||
+            existing.find(usable);
 
-        if (usable?.id) return String(usable.id);
+        if (reusable?.id) return String(reusable.id);
+
+        // Nothing known about the toolkit means an OAuth app that Composio
+        // manages, as before.
+        const managed = !methods.schemes.length || methods.managed.length > 0;
 
         try {
             const created = await request<any>({
                 path: "/auth_configs",
                 method: "POST",
                 what: `a sign-in setup for ${app}`,
-                body: { toolkit: { slug: app }, auth_scheme: "OAUTH2", use_composio_managed_auth: true },
+                body: managed
+                    ? {
+                          toolkit: { slug: app },
+                          auth_scheme: methods.managed.includes("OAUTH2")
+                              ? "OAUTH2"
+                              : methods.managed[0] || "OAUTH2",
+                          use_composio_managed_auth: true,
+                      }
+                    : { toolkit: { slug: app }, auth_config: { type: "use_custom_auth", authScheme: methods.schemes[0] } },
             });
             const id = created.auth_config?.id || created.id;
 
@@ -246,6 +293,9 @@ export default function composioConnectorProvider({ key, base_url, fetchImpl }: 
                 body: {
                     user_id: `cobble-user-${user_id}`,
                     toolkits: { enable: [app] },
+                    // The link names no auth config, so the session is what
+                    // pins the setup a toolkit with several of them uses.
+                    auth_configs: { [app]: config },
                     multi_account: { enable: true, max_accounts_per_toolkit: MaxAccountsPerToolkit },
                 },
             });
@@ -280,7 +330,9 @@ export default function composioConnectorProvider({ key, base_url, fetchImpl }: 
         async accounts({ app, user_id }) {
             const items = await listAllPages<any>({
                 path: "/connected_accounts",
-                query: { user_id: `cobble-user-${user_id}`, toolkit_slug: app },
+                // The listing filters on the plural name only: `toolkit_slug`
+                // is ignored and answers with the whole project's accounts.
+                query: { user_id: `cobble-user-${user_id}`, toolkit_slugs: app },
                 what: `the ${app} accounts`,
             });
 

@@ -68,6 +68,12 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
     const seen = new Set(accounts.map((account) => account.provider_account_id));
     const now = Date.now();
     /**
+     * The provider lists none of the accounts the app knows: they were
+     * replaced there (a sign-in made outside the app), so its leftover takes
+     * no card and the known ones offer Reconnect.
+     */
+    const wiped = local.length > 0 && !local.some((row) => seen.has(String(row.provider_account_id || "")));
+    /**
      * The app's one free card: a live row still listed by the provider holds
      * it. An account arriving without a sign-in here (an older attempt at
      * the provider) may fill it once, never pile up beside it.
@@ -102,6 +108,7 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
                 reconnect: Boolean(reconnect_id) || (account.status == "connected" && Boolean(reconnect_row)),
                 claimed: claimed.has(provider_account_id),
                 free_slot,
+                wiped,
             })
         )
             continue;

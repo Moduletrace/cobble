@@ -40,4 +40,25 @@ describe("shouldAdoptConnectorAccount", () => {
             false,
         );
     });
+
+    test("skips a stranger once the provider lists none of the app's accounts", () => {
+        expect(
+            shouldAdoptConnectorAccount({
+                status: "connected",
+                reconnect: false,
+                claimed: false,
+                free_slot: true,
+                wiped: true,
+            }),
+        ).toBe(false);
+        expect(
+            shouldAdoptConnectorAccount({
+                status: "connected",
+                reconnect: false,
+                claimed: true,
+                free_slot: true,
+                wiped: true,
+            }),
+        ).toBe(true);
+    });
 });
