@@ -22,10 +22,10 @@ export default function BotSuggestionChip({ step }: Props) {
             color="gray"
             size="smaller"
             title={`Put this in your input: ${step}`}
-            className="inline-flex h-auto max-w-full gap-1! flex-nowrap align-middle px-2! py-1! text-left text-[13px] font-normal whitespace-normal [&_.twui-button-content-wrapper]:min-w-0"
+            className="inline-flex h-auto max-w-full min-w-0 gap-1! flex-nowrap align-middle px-2! py-1! text-left text-[13px] font-normal whitespace-normal [&_.twui-button-content-wrapper]:min-w-0 [&_.twui-button-content-wrapper]:whitespace-normal"
             onClick={() => onUseSuggestion({ text: step })}
         >
-            <Span className="min-w-0">{step}</Span>
+            <Span className="min-w-0 break-words">{step}</Span>
             <ArrowUpRight size={14} aria-hidden className="shrink-0" />
         </Button>
     );
