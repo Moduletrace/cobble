@@ -145,6 +145,7 @@ export default function BotQuestionField({
                             onChange={(e) =>
                                 onChange({ ...draft, other: e.target.value })
                             }
+                            autoFocus
                         />
                     ) : null}
                 </Stack>
