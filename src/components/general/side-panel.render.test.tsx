@@ -54,6 +54,17 @@ describe("SidePanel", () => {
         expect(html.match(/data-no-swipe/g)?.length).toBe(2);
     });
 
+    test("the rail's drawer and the bot panel open to the same phone width", () => {
+        const html = renderToString(
+            <SidePanel side="left" open onClose={onClose} label="Bots">
+                <p>crew</p>
+            </SidePanel>,
+        );
+
+        expect(html).toContain("w-[420px]");
+        expect(html).toContain("max-w-[92vw]");
+    });
+
     test("a panel that is also part of the page is never inert", () => {
         const html = renderToString(
             <SidePanel

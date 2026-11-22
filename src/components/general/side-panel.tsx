@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode, type RefObject } from "react";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { twMerge } from "tailwind-merge";
+import useSwipeToClose from "@/src/hooks/use-swipe-to-close";
+import sidePanelCloseSwipe from "@/src/utils/side-panel-close-swipe";
 
 type Props = {
     /** Which edge it slides in from. */
@@ -34,7 +36,10 @@ const Edges = {
  * to wait on a timer for an exit to play.
  *
  * The panel carries `data-no-swipe`, so a phone's sideways swipes never
- * start on it or on its backdrop: what is open stays the one on top.
+ * start on it or on its backdrop: what is open stays the one on top. An
+ * open panel closes on the one swipe it does answer, a drag back towards the
+ * edge it slid in from (`useSwipeToClose`), which is the way back out of the
+ * swipe that opened it.
  */
 export default function SidePanel({
     side,
@@ -48,6 +53,14 @@ export default function SidePanel({
 }: Props) {
     const edge = Edges[side];
     const hidden = !open && inertWhenClosed;
+    const panel_ref = useRef<HTMLDivElement>(null);
+
+    useSwipeToClose({
+        panel_ref,
+        enabled: open,
+        direction: sidePanelCloseSwipe({ side }),
+        on_close: onClose,
+    });
 
     return (
         <>
@@ -64,8 +77,9 @@ export default function SidePanel({
                 aria-hidden={hidden || undefined}
                 inert={hidden}
                 data-no-swipe
+                componentRef={panel_ref as RefObject<HTMLDivElement>}
                 className={twMerge(
-                    "fixed inset-y-0 z-40 w-[280px] max-w-[85vw] shrink-0 h-full gap-0! items-stretch bg-paper border-0 border-solid border-hairline shadow-popover transition-transform duration-[var(--m-base)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
+                    "fixed inset-y-0 z-40 w-[420px] max-w-[92vw] shrink-0 h-full gap-0! items-stretch bg-paper border-0 border-solid border-hairline shadow-popover transition-transform duration-[var(--m-base)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
                     edge.place,
                     open ? "translate-x-0" : edge.closed,
                     className,

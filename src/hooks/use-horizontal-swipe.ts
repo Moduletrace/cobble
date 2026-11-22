@@ -6,6 +6,7 @@ import swipeGesture, {
     IdleSwipeGesture,
     type SwipeGesture,
 } from "@/src/utils/swipe-gesture";
+import touchInField from "@/src/utils/touch-in-field";
 
 /**
  * Below this width the rail is a slide-over (Tailwind's `md`), so the
@@ -15,11 +16,10 @@ import swipeGesture, {
 const PhoneMaxWidth = 768;
 
 /**
- * What a touch on belongs to instead of the page: a field being typed in,
- * a code editor, or a panel the app slid in itself.
+ * What a touch on belongs to instead of the page: a panel the app slid in
+ * itself. A field is `touchInField`.
  */
-const OwnedTargets =
-    "input, textarea, select, [contenteditable='true'], .cm-editor, [data-no-swipe]";
+const OwnedTargets = "[data-no-swipe]";
 
 type Params = {
     /**
@@ -38,6 +38,7 @@ type Params = {
  */
 function ownsTouch({ target }: { target: EventTarget | null }): boolean {
     if (!(target instanceof Element)) return true;
+    if (touchInField({ target })) return true;
     if (target.closest(OwnedTargets)) return true;
 
     for (let node: Element | null = target; node; node = node.parentElement) {

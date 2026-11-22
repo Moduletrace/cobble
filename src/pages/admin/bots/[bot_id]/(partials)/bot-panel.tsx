@@ -76,7 +76,6 @@ export default function BotPanel({ bot, open, on_open, on_close }: Props) {
                 open={open}
                 onClose={on_close}
                 label={`Edit ${name}`}
-                className="w-[420px] max-w-[92vw]"
             >
                 <Row className="shrink-0 gap-3! flex-nowrap items-center px-4 py-3 border-0 border-b border-solid border-hairline">
                     <Stack className="shrink-0">
