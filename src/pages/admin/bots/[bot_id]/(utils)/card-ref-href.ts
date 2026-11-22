@@ -1,4 +1,4 @@
-import { HookProposalRefHrefPrefix, ProposalRefHrefPrefix, SecretRequestRefHrefPrefix } from "@/src/utils/link-computer-refs";
+import { ConnectRefHrefPrefix, HookProposalRefHrefPrefix, ProposalRefHrefPrefix, SecretRequestRefHrefPrefix } from "@/src/utils/link-computer-refs";
 import { botPlanRefId } from "@/src/utils/bot-plan-ref";
 import { botQuestionRefId } from "@/src/utils/bot-question-ref";
 
@@ -17,6 +17,7 @@ export function isCardRefHref({ href }: { href?: string }): boolean {
             botQuestionRefId({ href }) ||
             href.startsWith(ProposalRefHrefPrefix) ||
             href.startsWith(HookProposalRefHrefPrefix) ||
-            href.startsWith(SecretRequestRefHrefPrefix),
+            href.startsWith(SecretRequestRefHrefPrefix) ||
+            href.startsWith(ConnectRefHrefPrefix),
     );
 }

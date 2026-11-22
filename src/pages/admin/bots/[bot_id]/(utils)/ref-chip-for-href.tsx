@@ -12,6 +12,7 @@ import {
     WorkspaceRefHrefPrefix,
 } from "@/src/utils/link-computer-refs";
 import { parseFolderRefHref } from "@/src/utils/folder-ref";
+import { connectRequestIdFromHref } from "@/src/utils/connect-ref";
 import { botPlanRefId } from "@/src/utils/bot-plan-ref";
 import { botQuestionRefId } from "@/src/utils/bot-question-ref";
 import { botSuggestionRefId } from "@/src/utils/bot-suggestion-ref";
@@ -23,6 +24,7 @@ import BotPlanCard from "../(partials)/bot-plan-card";
 import BotQuestionRefCard from "../(partials)/bot-question-ref-card";
 import BotSuggestionsRef from "../(partials)/bot-suggestions-ref";
 import BotRefChip from "../(partials)/bot-ref-chip";
+import ConnectRefCard from "../(partials)/connect-ref-card";
 import ComputerRefChip from "../(partials)/computer-ref-chip";
 import FileRefChip from "../(partials)/file-ref-chip";
 import FolderRefChip from "../(partials)/folder-ref-chip";
@@ -110,6 +112,9 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
 
         if (request_id) return <SecretRequestRefCard request_id={request_id} />;
     }
+
+    const connect_id = connectRequestIdFromHref({ href });
+    if (connect_id) return <ConnectRefCard request_id={connect_id} />;
 
     const question_id = botQuestionRefId({ href });
     if (question_id) return <BotQuestionRefCard question_id={question_id} />;

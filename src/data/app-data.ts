@@ -845,6 +845,44 @@ export const AppData = {
      */
     McpToolTimeoutMs: 5 * 60 * 1000,
     /**
+     * One connector tool call gives up after this long. A provider bills per
+     * action, so this sits beside the per-run cap rather than in place of it.
+     */
+    ConnectorToolTimeoutMs: 5 * 60 * 1000,
+    /**
+     * How many connector actions one run may take, to any provider, before
+     * its calls are refused: a search loop in Gmail is billed per call and
+     * would otherwise run to the step limit.
+     */
+    ConnectorActionsPerRun: 50,
+    /**
+     * The most an install may raise that to: a provider bills per action, so
+     * the ceiling is what one run can cost.
+     */
+    ConnectorActionsPerRunMax: 500,
+    /**
+     * How long a connect link stays good. The card in its message says it
+     * expired after this, and a new call makes another.
+     */
+    ConnectorRequestTtlMs: 15 * 60 * 1000,
+    /**
+     * How long a provider session (one MCP endpoint per account) is kept
+     * before it is made again. Providers expire them on their own schedule;
+     * this only keeps the cache from outliving the truth.
+     */
+    ConnectorSessionTtlMs: 25 * 60 * 1000,
+    /**
+     * When a provider can't pin one account to a session, its tools run
+     * through REST instead. This is how long that is remembered before a
+     * session is tried again.
+     */
+    ConnectorRestRetryMs: 60 * 60 * 1000,
+    /**
+     * How many of a connection's apps one page lists. One connection can
+     * hold thousands, so the page never reads them all at once.
+     */
+    ConnectorAppsPageSize: 24,
+    /**
      * Listing an MCP server's tools pages at most this many times and keeps
      * at most this many tools (M11): a server that keeps handing back a
      * cursor, or the same one again, would otherwise page forever.

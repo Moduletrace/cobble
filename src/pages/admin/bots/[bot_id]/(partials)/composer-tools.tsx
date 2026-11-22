@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import useExtensions from "@/src/hooks/use-extensions";
@@ -63,7 +63,17 @@ export default function ComposerTools({
         addable: extensions.addable.filter(is_knowledge),
     };
 
-    const has_tools = Boolean(tools.attached.length || (extensions.can_manage && tools.addable.length));
+    const [connector_count, set_connector_count] = useState(
+        Number(initial?.connector_count || 0),
+    );
+
+    useEffect(() => {
+        set_connector_count(Number(initial?.connector_count || 0));
+    }, [initial?.connector_count]);
+
+    const has_tools = Boolean(
+        tools.attached.length || connector_count || (extensions.can_manage && tools.addable.length),
+    );
     const has_knowledge = Boolean(knowledge.attached.length || (extensions.can_manage && knowledge.addable.length));
 
     return (
@@ -82,6 +92,9 @@ export default function ComposerTools({
                     busy={extensions.busy}
                     onAdd={extensions.add}
                     onRemove={extensions.remove}
+                    connectors={{ bot_id: bot.id || 0, workspace_id }}
+                    connector_count={connector_count}
+                    onConnectorCount={set_connector_count}
                 />
             ) : null}
 

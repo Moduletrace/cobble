@@ -9,6 +9,7 @@ import {
     passedOnRequestNote,
     SecretsNote,
     SettingsNote,
+    ConnectorsNote,
     GraphicsNote,
     botFilesNote,
     chatReplyNote,
@@ -48,6 +49,9 @@ import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
 import openBotBrowsers from "@/src/harness/tools/browsers/open-bot-browsers";
+import openBotConnectors from "@/src/harness/tools/connectors/open-bot-connectors";
+import createConnectorRequest from "@/src/functions/backend/db/connectors/create-connector-request";
+import connectRef from "@/src/utils/connect-ref";
 import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extensions";
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
@@ -430,12 +434,40 @@ export default async function runBotReply({
     });
 
     /**
+     * The user's connected apps: one tool set per account, and, in a reply
+     * the user follows, the card that asks them to connect one they haven't.
+     */
+    const connectors = await openBotConnectors({
+        user_id,
+        bot_id: bot.id,
+        workspace_id,
+        attended,
+        taken: [...tools, ...extensions.tools, ...browsers.tools].map((tool) => tool.name),
+        onMissingAccount: attended
+            ? async ({ connector }) => {
+                  const request = await createConnectorRequest({
+                      user_id,
+                      bot_id: bot.id,
+                      session_id: Number(session_id),
+                      connector,
+                  });
+                  const ref = connectRef({ id: request.id });
+
+                  proposals.push(ref);
+
+                  return `No account is connected to ${connector.name} yet, so this didn't run. The Connect card ${ref} is under your reply: tell the user in one sentence to connect it there, and ask them to say when they have.`;
+              }
+            : undefined,
+        signal,
+    });
+
+    /**
      * The run's skills: one `load_skill` tool and the lines that name them.
      */
     const skills = openBotSkills({
         skills: extensions.skills,
         shown_chars: await grabSkillBodyShownChars(),
-        taken: [...tools, ...extensions.tools, ...browsers.tools].map((tool) => tool.name),
+        taken: [...tools, ...extensions.tools, ...browsers.tools, ...connectors.tools].map((tool) => tool.name),
     });
 
     /**
@@ -445,7 +477,7 @@ export default async function runBotReply({
      */
     const knowledge = openBotKnowledgebases({
         knowledgebases: extensions.knowledgebases,
-        taken: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools].map((tool) => tool.name),
+        taken: [...tools, ...extensions.tools, ...browsers.tools, ...connectors.tools, ...skills.tools].map((tool) => tool.name),
     });
     const knowledge_context = await grabKnowledgebaseContext({
         knowledgebases: extensions.knowledgebases,
@@ -591,6 +623,7 @@ export default async function runBotReply({
         }),
         ...extensions.tools,
         ...browsers.tools,
+        ...connectors.tools,
         ...skills.tools,
         ...knowledge.tools,
     ];
@@ -660,6 +693,7 @@ export default async function runBotReply({
                 skills.note,
                 knowledge.note,
                 extensions.note,
+                connectors.lines.length ? ConnectorsNote({ lines: connectors.lines }) : "",
                 knowledge_context,
                 `Now: ${new Date().toUTCString()}.`,
             ]
@@ -771,6 +805,7 @@ export default async function runBotReply({
     } finally {
         await extensions.close();
         await browsers.close();
+        await connectors.close();
     }
 }
 

@@ -6,7 +6,12 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { CircleAlert, type LucideIcon } from "lucide-react";
 import ExtensionAddSelect from "@/src/components/general/extension-add-select";
-import type { BotExtension, BotExtensionKind, BotExtensionsPayload } from "@/src/types";
+import type {
+    BotExtension,
+    BotExtensionKind,
+    BotExtensionsPayload,
+} from "@/src/types";
+import ComposerConnectorsSection from "./composer-connectors-section";
 import ComposerToolRow from "./composer-tool-row";
 
 /**
@@ -49,7 +54,26 @@ type Props = {
      */
     busy?: string;
     onAdd: (params: { kind: BotExtensionKind; id: number }) => Promise<boolean>;
-    onRemove: (params: { kind: BotExtensionKind; id: number; name: string }) => Promise<boolean>;
+    onRemove: (params: {
+        kind: BotExtensionKind;
+        id: number;
+        name: string;
+    }) => Promise<boolean>;
+    /**
+     * Where to read the bot's connectors from, for the tools modal only: the
+     * apps it can use here as the person chatting.
+     */
+    connectors?: { bot_id: number; workspace_id?: number | null };
+    /**
+     * How many apps connector accounts reach here, counted with the tools
+     * (a connector is a tool too).
+     */
+    connector_count?: number;
+    /**
+     * Told the live count once the connectors are read, so the button's
+     * number follows an add or a remove without a reload.
+     */
+    onConnectorCount?: (count: number) => void;
 };
 
 /**
@@ -67,14 +91,20 @@ export default function ComposerToolsModal({
     busy,
     onAdd,
     onRemove,
+    connectors,
+    connector_count = 0,
+    onConnectorCount,
 }: Props) {
     const [open, setOpen] = useState(false);
     const count = attached.length;
+    const total = count + (connectors ? Number(connector_count || 0) : 0);
     const has_problem = attached.some(
         (item) => !item.enabled || item.state == "error",
     );
     const TriggerIcon = has_problem ? CircleAlert : copy.Icon;
-    const label = count ? `${count} ${count == 1 ? copy.one : copy.many}` : copy.empty_label;
+    const label = total
+        ? `${total} ${total == 1 ? copy.one : copy.many}`
+        : copy.empty_label;
 
     return (
         <Modal
@@ -101,7 +131,7 @@ export default function ComposerToolsModal({
                     {copy.title}
                 </H2>
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    {count ? copy.some : copy.none}
+                    {total ? copy.some : copy.none}
                 </Span>
             </Stack>
 
@@ -143,6 +173,15 @@ export default function ComposerToolsModal({
                         onAdd={onAdd}
                     />
                 </Stack>
+            ) : null}
+
+            {connectors ? (
+                <ComposerConnectorsSection
+                    bot_id={connectors.bot_id}
+                    workspace_id={connectors.workspace_id}
+                    open={open}
+                    onCount={onConnectorCount}
+                />
             ) : null}
         </Modal>
     );

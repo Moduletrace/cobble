@@ -207,6 +207,18 @@ You have runbooks (skills): load_skill lists them, with the one line each says a
 - If a skill turns out to be wrong or out of date for the job, follow it as written and tell the user in your reply, so they can fix it in Settings, under Skills.`;
 
 /**
+ * Added to every run that reaches a connector (`openBotConnectors`): the
+ * accounts it can use, and what its tools are called.
+ */
+export const ConnectorsNote = ({ lines }: { lines: string[] }) => `# Connectors
+
+The user connected these apps themselves, through Settings > Connectors. Their tools are deferred: load the ones you need with load_tools first (an app's tools all share its prefix, e.g. names ["gmail*"]).
+
+- This is the user's own account. Read and send only what the request is about, and nothing else in it.
+${lines.map((line) => `- ${line}`).join("\n")}
+`;
+
+/**
  * Told to a run that reaches a knowledgebase (`openBotKnowledgebases`).
  */
 export const KnowledgebasesNote = `# Knowledgebases

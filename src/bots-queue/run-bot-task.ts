@@ -12,6 +12,7 @@ import {
     SettingsNote,
     GraphicsNote,
     botFilesNote,
+    ConnectorsNote,
     ComputerFilesNote,
     ScheduledRunNote,
     ScheduledPlanNote,
@@ -43,6 +44,7 @@ import redactTrace from "@/src/harness/trace/redact-trace";
 import { isUnlimitedLimit, smallerRunLimit } from "@/src/utils/run-limit";
 import openComputerTools from "@/src/harness/tools/computer/open-computer-tools";
 import openBotBrowsers, { type OpenBotBrowsers } from "@/src/harness/tools/browsers/open-bot-browsers";
+import openBotConnectors, { type OpenBotConnectors } from "@/src/harness/tools/connectors/open-bot-connectors";
 import { BrowserRunKinds, type BrowserRunKind } from "@/src/dict/browser-dict";
 import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/extensions/open-bot-extensions";
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
@@ -178,6 +180,7 @@ export default async function runBotTask({
     let extensions: OpenBotExtensions | undefined;
     let browsers: OpenBotBrowsers | undefined;
     let skills: OpenBotSkills | undefined;
+    let connectors: OpenBotConnectors | undefined;
 
     try {
         const prompt = await grabBotPrompt({ bot_id: bot.id, user_id, workspace_id });
@@ -488,15 +491,31 @@ export default async function runBotTask({
             signal,
         });
 
+        /**
+         * A task works with the accounts that already work: nobody is
+         * waiting on this run to be asked to connect one, so a connector
+         * without an account gets no tools (it is named in the note).
+         */
+        connectors = await openBotConnectors({
+            user_id,
+            bot_id: bot.id,
+            workspace_id,
+            attended: false,
+            taken: [...tools, ...extensions.tools, ...browsers.tools].map((tool) => tool.name),
+            signal,
+        });
+
         skills = openBotSkills({
             skills: extensions.skills,
             shown_chars: await grabSkillBodyShownChars(),
-            taken: [...tools, ...extensions.tools, ...browsers.tools].map((tool) => tool.name),
+            taken: [...tools, ...extensions.tools, ...browsers.tools, ...connectors.tools].map((tool) => tool.name),
         });
 
         const knowledge = openBotKnowledgebases({
             knowledgebases: extensions.knowledgebases,
-            taken: [...tools, ...extensions.tools, ...browsers.tools, ...skills.tools].map((tool) => tool.name),
+            taken: [...tools, ...extensions.tools, ...browsers.tools, ...connectors.tools, ...skills.tools].map(
+                (tool) => tool.name,
+            ),
         });
 
         /**
@@ -632,6 +651,7 @@ export default async function runBotTask({
             skills.note,
             knowledge.note,
             extensions.note,
+            connectors.lines.length ? ConnectorsNote({ lines: connectors.lines }) : "",
         ]
             .filter(Boolean)
             .join("\n\n");
@@ -694,6 +714,7 @@ export default async function runBotTask({
                 }),
                 ...extensions.tools,
                 ...browsers.tools,
+                ...connectors.tools,
                 ...skills.tools,
                 ...knowledge.tools,
             ],
@@ -821,6 +842,7 @@ export default async function runBotTask({
     } finally {
         await extensions?.close();
         await browsers?.close();
+        await connectors?.close();
         await computer?.close();
     }
 }

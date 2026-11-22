@@ -1,6 +1,7 @@
 import {
     BookOpen,
     Bot,
+    Cable,
     Compass,
     CpuAi,
     Database,
@@ -69,6 +70,7 @@ export const SettingsPages: SettingsPage[] = [
     },
     { title: "Secrets", url: "/admin/settings/secrets", Icon: LockKeyhole },
     { title: "Browsers", url: "/admin/settings/browsers", Icon: Compass },
+    { title: "Connectors", url: "/admin/settings/connectors", Icon: Cable },
     { title: "Bots", url: "/admin/settings/bots", Icon: Bot, can_view: canManageCrew },
     { title: "Workspaces", url: "/admin/settings/workspaces", Icon: Layers, can_view: canManageCrew },
     {

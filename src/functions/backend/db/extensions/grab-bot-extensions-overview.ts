@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BotExtensionsPayload } from "@/src/types";
 import grabCrewRole from "../access/grab-crew-role";
+import countBotConnectors from "../connectors/count-bot-connectors";
 import grabExtensionsOverview from "./grab-extensions-overview";
 
 type Params = {
@@ -31,9 +32,14 @@ export default async function grabBotExtensionsOverview({
         BunSQLite.sql<{ kind: string }>({ sql: `SELECT kind FROM bots WHERE id = ?`, values: [bot_id] }),
     ]);
 
-    return grabExtensionsOverview({
-        can_manage: role == "super_admin" || (role == "admin" && bot.payload?.[0]?.kind != "coordinator"),
-        bot_id,
-        workspace_id,
-    });
+    const [overview, connector_count] = await Promise.all([
+        grabExtensionsOverview({
+            can_manage: role == "super_admin" || (role == "admin" && bot.payload?.[0]?.kind != "coordinator"),
+            bot_id,
+            workspace_id,
+        }),
+        countBotConnectors({ user_id, bot_id, workspace_id }),
+    ]);
+
+    return { ...overview, connector_count };
 }

@@ -67,10 +67,16 @@ export const SecretRefHrefPrefix = "#secret-ref-";
 export const SecretRequestRefHrefPrefix = "#secret-request-";
 
 /**
+ * The link target a connect ref (`connectRef`) becomes, e.g. `#connect-7`.
+ * The chat renders it as the card that opens the provider's sign-in.
+ */
+export const ConnectRefHrefPrefix = "#connect-";
+
+/**
  * The kinds of ref a message can carry, as written before the colon.
  */
 const RefKinds =
-    "computer|take-over|bot|workspace|proposal|hook-proposal|secret|secret-request|question|suggestion|plan|graphic|room|task|setting|file|folder";
+    "computer|take-over|bot|workspace|proposal|hook-proposal|secret|secret-request|question|suggestion|plan|graphic|room|task|setting|file|folder|connect";
 
 /**
  * A code span holding nothing but one ref (`` `[file:12]` ``): bots often

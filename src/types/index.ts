@@ -49,6 +49,13 @@ import type { BotTraceKind } from "../dict/bot-trace-dict";
 import type { HarnessCallSettings, TokenUsageSummary } from "../harness/usage/types";
 import type { RunLimit } from "../utils/run-limit";
 import type { McpAuthScheme, McpServerStatus, McpTransport } from "../dict/mcp-dict";
+import type {
+    ConnectorAccountStatus,
+    ConnectorAppFilter,
+    ConnectorProviderId,
+    ConnectorRequestStatus,
+    ConnectorStatus,
+} from "../dict/connector-dict";
 import type { ExtensionProposalKind, ExtensionProposalStatus } from "../dict/extension-proposal-dict";
 import type { HookProposalAction } from "../dict/bot-hook-dict";
 import type { PwaInstallIcon } from "../data/pwa-data";
@@ -1216,6 +1223,230 @@ export type BrowserAccessPayload = {
     default_browser: number | string;
 };
 
+/**
+ * A `connectors` row as the app reads it: one external app on this install
+ * (Composio's Gmail, ...), and the tools a bot gets when it reaches it.
+ */
+export type ConnectorRecord = {
+    id: number;
+    provider: ConnectorProviderId;
+    /**
+     * The provider connection the app was read from, so its key and its
+     * provider's catalog are the ones it belongs to.
+     */
+    connection_id: number;
+    app: string;
+    name: string;
+    slug: string;
+    description: string;
+    logo: string;
+    auth_config_id: string | null;
+    scopes: string[];
+    excluded_tools: string[];
+    tools: McpToolInfo[];
+    all_bots: boolean;
+    enabled: boolean;
+    status: ConnectorStatus;
+    last_error: string;
+    last_synced_at: number | null;
+    user_id: number;
+};
+
+/**
+ * One user's sign-in to a connector. The account itself lives at the
+ * provider; this row is which of their accounts it is and what to call it.
+ */
+export type ConnectorAccountRecord = {
+    id: number;
+    connector_id: number;
+    user_id: number;
+    label: string;
+    slug: string;
+    provider_account_id: string;
+    status: ConnectorAccountStatus;
+    is_default: boolean;
+    /**
+     * Every run may use it, whoever it belongs to. Off by default: an
+     * account is its owner's alone until it is given out.
+     */
+    all_bots: boolean;
+    /**
+     * The workspaces and bots it is given to, whose runs may use it too.
+     */
+    workspace_ids: number[];
+    bot_ids: number[];
+    /**
+     * Who connected it, for tool descriptions when a run is using someone
+     * else's account.
+     */
+    owner_name: string;
+    connected_at: number | null;
+    last_error: string;
+};
+
+/**
+ * Where a connector is attached: every bot (super admin only), these
+ * workspaces (super admin only), and these bots for the one user who
+ * attached them there.
+ */
+export type ConnectorAccess = {
+    connector_id: number;
+    bot_ids: number[];
+    workspace_ids: number[];
+};
+
+/**
+ * A provider this install is connected to. Its apps are the connectors;
+ * connecting it lists them, and each app is then given to bots or
+ * workspaces.
+ */
+export type ConnectorConnectionRecord = {
+    id: number;
+    provider: ConnectorProviderId;
+    /**
+     * Shown, e.g. Composio Work: what tells two connections of the same
+     * provider apart.
+     */
+    name: string;
+    status: ConnectorStatus;
+    last_error: string;
+    last_synced_at: number | null;
+    /**
+     * Whether this connection has its own key. The key itself is never
+     * returned to a page.
+     */
+    has_key: boolean;
+    /**
+     * How many apps this connection has synced.
+     */
+    app_count: number;
+    /**
+     * How many of those apps are given to anyone at all, so 1,842 of them
+     * never read as 1,842 in use.
+     */
+    apps_given: number;
+};
+
+/**
+ * The connectors page: its connections and nothing else. The apps are far
+ * too many to send with it (one connection listed 1,842), so each lives on
+ * its own page, a page at a time.
+ */
+export type ConnectorConnectionsPayload = {
+    connections: ConnectorConnectionRecord[];
+};
+
+/**
+ * One app the bot in a conversation reaches, and where it comes from.
+ */
+/**
+ * An app this user could give to a bot from the composer's tools modal,
+ * with the connection it came from and whether it is already there.
+ */
+export type AttachableConnector = {
+    id: number;
+    name: string;
+    app: string;
+    logo: string;
+    connection_name: string;
+    attached: boolean;
+};
+
+export type BotConnectorEntry = {
+    connector: ConnectorRecord;
+    /**
+     * The provider connection it came from, e.g. "Composio Work".
+     */
+    connection_name: string;
+    /**
+     * The install's (`all_bots`), this workspace's, this user's own
+     * attachment to the bot, or an account given to the bot or workspace.
+     */
+    via: "global" | "workspace" | "bot" | "account";
+    /**
+     * The accounts that reach here: this user's own, whatever their status,
+     * and any connected account given to this bot, workspace or every bot.
+     */
+    accounts: ConnectorAccountRecord[];
+    /**
+     * Whether this user can take it off this bot: their own attachment, or
+     * their own account given to this bot alone. A workspace's, the
+     * install's or an account given to every bot stays.
+     */
+    removable: boolean;
+};
+
+/**
+ * One page of a connection's apps, with the viewer's accounts for those
+ * apps and where each is attached for them.
+ */
+export type ConnectorAppsPayload = {
+    items: ConnectorRecord[];
+    total: number;
+    page: number;
+    page_size: number;
+    /**
+     * What the page searched for, so the field can show it again.
+     */
+    query: string;
+    /**
+     * Which apps were asked for: all, or only the connected or unconnected
+     * ones.
+     */
+    filter: ConnectorAppFilter;
+    /**
+     * How many apps each tab holds, so the tabs don't need their own read.
+     */
+    counts: {
+        all: number;
+        connected: number;
+        unconnected: number;
+    };
+    accounts: ConnectorAccountRecord[];
+    access: ConnectorAccess[];
+};
+
+/**
+ * The connectors page's server props: its connections and who may attach
+ * one to a workspace or to every bot (a super admin).
+ */
+export type ConnectorsPagePayload = {
+    connections: ConnectorConnectionRecord[];
+    targets: ExtensionTargets;
+};
+
+/**
+ * One connection's apps page: the connection, and who may attach one of its
+ * apps where. The apps themselves are read a page at a time.
+ */
+export type ConnectorAppsPagePayload = {
+    connection: ConnectorConnectionRecord;
+    targets: ExtensionTargets;
+    /**
+     * The bots the viewer reaches, for giving an app to their own runs
+     * there.
+     */
+    my_bots: { id: number; name: string }[];
+};
+
+/**
+ * A connect request as its card shows it, and as the card reads it while it
+ * waits.
+ */
+export type ConnectorRequestPayload = {
+    id: number;
+    connector_id: number;
+    connector_name: string;
+    label: string;
+    status: ConnectorRequestStatus;
+    url: string;
+    expires_at: number;
+    /**
+     * The user's account for it, once one is connected.
+     */
+    account: ConnectorAccountRecord | null;
+};
+
 export type McpToolInfo = {
     name: string;
     description: string;
@@ -1520,6 +1751,11 @@ export type BotExtensionsPayload = {
     attached: BotExtension[];
     addable: { kind: BotExtensionKind; id: number; name: string }[];
     can_manage: boolean;
+    /**
+     * The apps this person's runs reach on the bot through connectors, so the
+     * composer's tools count includes them without reading them all.
+     */
+    connector_count?: number;
 };
 
 export type McpServersOverviewPayload = ExtensionTargets & {
@@ -2732,6 +2968,12 @@ export type PagePropsType = {
     personal_secrets?: PersonalSecret[] | null;
     browsers?: BrowserRecord[] | null;
     /**
+     * Settings > Connectors: every connector, the viewer's own accounts and
+     * where each is attached for them.
+     */
+    connectors_page?: ConnectorsPagePayload | null;
+    connector_apps_page?: ConnectorAppsPagePayload | null;
+    /**
      * What bots keep on disk: the per-folder quota and its usage (the
      * General settings page).
      */
@@ -3364,6 +3606,10 @@ export type PageQueryObject = {
     section?: string;
     workspace_id?: string;
     computer_id?: string;
+    /**
+     * One connection's apps page (`/admin/settings/connectors/<connector_id>`).
+     */
+    connector_id?: string;
     event_id?: string;
     user_type?: UserType;
 };

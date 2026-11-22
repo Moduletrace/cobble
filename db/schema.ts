@@ -30,6 +30,12 @@ import {
 } from "@/src/dict/bot-hook-dict";
 import { ExtensionProposalStatuses } from "@/src/dict/extension-proposal-dict";
 import { InstallRequestStatuses } from "@/src/dict/install-request-dict";
+import {
+    ConnectorAccountStatuses,
+    ConnectorProviders,
+    ConnectorRequestStatuses,
+    ConnectorStatuses,
+} from "@/src/dict/connector-dict";
 import { HostDirectoryAccesses } from "@/src/dict/host-directory-dict";
 import {
     BotFilePurposes,
@@ -3720,6 +3726,532 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     indexName: "idx_browser_access_user_id",
                     indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "connector_connections",
+            tableDescription: `One provider account this install is connected with (Settings, under Connectors), several per provider: Composio Personal and Composio Work each have their own key, and each lists the apps that key's account holds. A connection is made by a super admin, never by the cron`,
+            fields: [
+                {
+                    fieldName: "name",
+                    fieldDescription: `Shown, e.g. Composio Work. Names the connection's apps and distinguishes two of the same provider`,
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "provider",
+                    fieldDescription: `Which provider (Composio, ...). Several connections may use the same one`,
+                    dataType: "TEXT",
+                    options: ConnectorProviders.map((provider) => provider.value),
+                },
+                {
+                    fieldName: "api_key",
+                    fieldDescription: `The provider's key for this connection, encrypted: a provider project or org key, so two connections are two separate accounts (Composio Personal, Composio Work). Never read out of the database except to build a provider adapter`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    fieldDescription: `untested before the first sync, ready when the provider listed its apps, error when it refused`,
+                    dataType: "TEXT",
+                    options: ConnectorStatuses.map((status) => status.value),
+                    defaultValue: "untested",
+                },
+                {
+                    fieldName: "last_error",
+                    fieldDescription: `Why the last sync failed, secrets blanked out`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "last_synced_at",
+                    fieldDescription: `Unix ms of the last app listing`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The super admin who connected it, and the person to tell when the provider refuses its key`,
+                    dataType: "INTEGER",
+                },
+            ],
+        },
+        {
+            tableName: "connectors",
+            tableDescription: `One external app this install offers its bots (Settings, under Connectors): a provider's app (Composio's Gmail, Slack, ...) whose tools bots call through an account the run's user connected. Global (all_bots), per workspace (workspace_connectors) or per bot and user (bot_connectors)`,
+            fields: [
+                {
+                    fieldName: "provider",
+                    fieldDescription: `Who hosts the app and its sign-in. Its adapter lives under src/harness/connectors/providers/`,
+                    dataType: "TEXT",
+                    options: ConnectorProviders.map((provider) => provider.value),
+                },
+                {
+                    fieldName: "connection_id",
+                    fieldDescription: `Which connector_connections row this app was read from. A connection's apps are its own, so two Composio connections each have their own Gmail`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "app",
+                    fieldDescription: `The provider's own app id, e.g. gmail. One row per connection and app`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "name",
+                    fieldDescription: `Shown, e.g. Gmail`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `Prefixes its tools' names (<slug>__<tool>). Unique on the install`,
+                    dataType: "TEXT",
+                    unique: true,
+                },
+                {
+                    fieldName: "description",
+                    fieldDescription: `What the app is for, so a user knows whether to attach it`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "logo",
+                    fieldDescription: `The app's logo URL as the provider lists it, for the app list`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "auth_config_id",
+                    fieldDescription: `The provider's sign-in config to start a connect with, when it keeps more than one per app`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "scopes",
+                    fieldDescription: `What signing in asks for, as the provider lists it`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "tools_cache",
+                    fieldDescription: `The app's tools as last listed ([{name, description, input_schema}]). Runs build their tools from it and call the provider on demand`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "excluded_tools",
+                    fieldDescription: `Tool names (the provider's own) bots don't get`,
+                    dataType: "TEXT",
+                    json: true,
+                },
+                {
+                    fieldName: "all_bots",
+                    fieldDescription: `1 makes it global: every run of every user reaches it. Super admins only. Unlike an extension's all_bots, which only seeds new bots, this is live reach`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "enabled",
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 1,
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: ConnectorStatuses.map((status) => status.value),
+                    defaultValue: "untested",
+                },
+                {
+                    fieldName: "last_error",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "last_synced_at",
+                    fieldDescription: `Unix ms of the last tool listing`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Who added it, and the person to tell when the provider refuses its key. Never reach: a connector reaches a run through the three tiers`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_connector_per_app",
+                    constraintName: "An install adds a provider's app once",
+                    constraintTableFields: [{ value: "provider" }, { value: "app" }],
+                },
+            ],
+        },
+        {
+            tableName: "bot_connectors",
+            tableDescription: `One user's own attachment of a connector to a bot: it reaches that user's runs on that bot and nobody else's. Shared reach is a workspace or global connector, never a bot row. A foreign key on the bot: removing it takes the row`,
+            fields: [
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_connectors_bots_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `Whose attachment it is, and the only user whose runs get it. Not a foreign key: deleting a user deletes these explicitly`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "connector_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connectors",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "bot_connectors_connectors_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_connector_attachment_per_bot_user",
+                    constraintName: "A user attaches a connector to a bot once",
+                    constraintTableFields: [
+                        { value: "bot_id" },
+                        { value: "user_id" },
+                        { value: "connector_id" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_bot_connectors_connector_id",
+                    indexTableFields: ["connector_id"],
+                },
+            ],
+        },
+        {
+            tableName: "workspace_connectors",
+            tableDescription: `Every run in the workspace reaches the connector, whoever runs it and whatever bot it is. Super admins only`,
+            fields: [
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_connectors_workspaces_fk",
+                    },
+                },
+                {
+                    fieldName: "connector_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connectors",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "workspace_connectors_connectors_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_connector_per_workspace",
+                    constraintName: "A workspace gets a connector once",
+                    constraintTableFields: [{ value: "workspace_id" }, { value: "connector_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_workspace_connectors_connector_id",
+                    indexTableFields: ["connector_id"],
+                },
+            ],
+        },
+        {
+            tableName: "connector_accounts",
+            tableDescription: `One user's sign-in to a connector, as the provider keeps it: their work Gmail and their personal one are two rows. A run only ever acts through its own user's accounts, and the value never reaches the model`,
+            fields: [
+                {
+                    fieldName: "connector_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connectors",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_accounts_connectors_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    fieldDescription: `The owner. Not a foreign key: deleting a user deletes these explicitly`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "label",
+                    fieldDescription: `What the user calls it, e.g. Work Gmail. Shown to the bot, which is how it knows which account to use`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "slug",
+                    fieldDescription: `The account's part of its tools' names when the user has more than one for the app (gmail-work__...). Unique per connector and user`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "provider_account_id",
+                    fieldDescription: `The provider's own id for it (Composio's connected_account_id)`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: ConnectorAccountStatuses.map((status) => status.value),
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "is_default",
+                    fieldDescription: `0 or 1, at most one per connector and user: the account a connect card offers first`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "all_bots",
+                    fieldDescription: `0 or 1: every run may use this account, whoever it belongs to. Off by default, so an account is its owner's alone until it is given out`,
+                    dataType: "INTEGER",
+                    options: [0, 1],
+                    defaultValue: 0,
+                },
+                {
+                    fieldName: "connected_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_checked_at",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "last_error",
+                    dataType: "TEXT",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_account_slug_per_connector_user",
+                    constraintName: "A user's accounts for an app have different slugs",
+                    constraintTableFields: [
+                        { value: "connector_id" },
+                        { value: "user_id" },
+                        { value: "slug" },
+                    ],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_connector_accounts_user_id",
+                    indexTableFields: ["user_id"],
+                },
+            ],
+        },
+        {
+            tableName: "connector_account_workspaces",
+            tableDescription: `A sign-in given to a workspace: every run there may use that account, not only its owner's. Owner or super admin sets it`,
+            fields: [
+                {
+                    fieldName: "account_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connector_accounts",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_account_workspaces_accounts_fk",
+                    },
+                },
+                {
+                    fieldName: "workspace_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "workspaces",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_account_workspaces_workspaces_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_workspace_link_per_account",
+                    constraintName: "An account is given to a workspace once",
+                    constraintTableFields: [{ value: "account_id" }, { value: "workspace_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_connector_account_workspaces_workspace_id",
+                    indexTableFields: ["workspace_id"],
+                },
+            ],
+        },
+        {
+            tableName: "connector_account_bots",
+            tableDescription: `A sign-in given to a bot: every run on that bot may use it, not only its owner's. Owner or super admin sets it`,
+            fields: [
+                {
+                    fieldName: "account_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connector_accounts",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_account_bots_accounts_fk",
+                    },
+                },
+                {
+                    fieldName: "bot_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "bots",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_account_bots_bots_fk",
+                    },
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_bot_link_per_account",
+                    constraintName: "An account is given to a bot once",
+                    constraintTableFields: [{ value: "account_id" }, { value: "bot_id" }],
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_connector_account_bots_bot_id",
+                    indexTableFields: ["bot_id"],
+                },
+            ],
+        },
+        {
+            tableName: "connector_sessions",
+            tableDescription: `The provider endpoint one account's tools live at, for one user, cached because creating it costs a provider call and it expires. Never shown: its headers hold the provider's key`,
+            fields: [
+                {
+                    fieldName: "connector_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connectors",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_sessions_connectors_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "provider_account_id",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "session_id",
+                    fieldDescription: `The provider's session id, when it gives one`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "mcp_url",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "headers",
+                    fieldDescription: `Encrypted JSON of the headers that endpoint wants (a provider key). Never a value a run or a page may read`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "expires_at",
+                    fieldDescription: `Unix ms. Past it the row is replaced, never reused`,
+                    dataType: "INTEGER",
+                },
+            ],
+            uniqueConstraints: [
+                {
+                    alias: "one_session_per_account",
+                    constraintName: "One cached endpoint per connector, user and account",
+                    constraintTableFields: [
+                        { value: "connector_id" },
+                        { value: "user_id" },
+                        { value: "provider_account_id" },
+                    ],
+                },
+            ],
+        },
+        {
+            tableName: "connector_requests",
+            tableDescription: `A connect link the user hasn't finished yet, so the card in its message reads whether it is still waiting. Created by the app when a call finds no account, never by a bot`,
+            fields: [
+                {
+                    fieldName: "connector_id",
+                    dataType: "INTEGER",
+                    foreignKey: {
+                        cascadeDelete: true,
+                        destinationTableName: "connectors",
+                        destinationTableColumnName: "id",
+                        destinationTableColumnType: "INTEGER",
+                        foreignKeyName: "connector_requests_connectors_fk",
+                    },
+                },
+                {
+                    fieldName: "user_id",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_id",
+                    fieldDescription: `The bot whose conversation raised it, for the message that wakes it when the link is done. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "bot_session_id",
+                    fieldDescription: `The conversation the card sits in, which the wake message goes to. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "label",
+                    fieldDescription: `The account label the user typed, or the one the card suggested`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "url",
+                    fieldDescription: `The provider's connect link. A flow link for this user only, never put in a message's text`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "provider_account_id",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "status",
+                    dataType: "TEXT",
+                    options: ConnectorRequestStatuses.map((status) => status.value),
+                    defaultValue: "pending",
+                },
+                {
+                    fieldName: "expires_at",
+                    dataType: "INTEGER",
+                },
+            ],
+            indexes: [
+                {
+                    indexName: "idx_connector_requests_connector_user",
+                    indexTableFields: ["connector_id", "user_id"],
                 },
             ],
         },

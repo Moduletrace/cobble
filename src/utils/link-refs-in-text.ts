@@ -8,6 +8,7 @@ import { TaskRefHrefPrefix } from "./task-ref";
 import {
     BotRefHrefPrefix,
     ComputerRefHrefPrefix,
+    ConnectRefHrefPrefix,
     FileRefHrefPrefix,
     FolderRefHrefPrefix,
     HookProposalRefHrefPrefix,
@@ -77,6 +78,7 @@ export default function linkRefsInText({ text }: { text: string }) {
         .replace(/\[graphic:(\d+)\](?!\()/g, (_, id: string) => `[graphic ${id}](${GraphicRefHrefPrefix}${id})`)
         .replace(/\[task:(\d+)\](?!\()/g, (_, id: string) => `[task ${id}](${TaskRefHrefPrefix}${id})`)
         .replace(/\[ask:(\d+)\](?!\()/g, (_, id: string) => `[ask ${id}](${AskRefHrefPrefix}${id})`)
+        .replace(/\[connect:(\d+)\](?!\()/g, (_, id: string) => `[connect ${id}](${ConnectRefHrefPrefix}${id})`)
         .replace(/\[setting:([a-z0-9-]+)(?::([a-z0-9_-]+))?\](?!\()/g, (_, section: string, field?: string) =>
             `[setting ${section}](${GeneralSettingsRefHrefPrefix}${section}${field ? `:${field}` : ""})`,
         )

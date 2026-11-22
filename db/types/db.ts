@@ -56,6 +56,15 @@ export const BunSQLiteTables = [
     "mcp_servers",
     "browsers",
     "browser_access",
+    "connector_connections",
+    "connectors",
+    "bot_connectors",
+    "workspace_connectors",
+    "connector_accounts",
+    "connector_account_workspaces",
+    "connector_account_bots",
+    "connector_sessions",
+    "connector_requests",
     "custom_tools",
     "skills",
     "extension_proposals",
@@ -2326,6 +2335,306 @@ export type BUN_SQLITE_COBBLE_BROWSER_ACCESS = {
     is_default?: 0 | 1 | "";
 }
 
+export type BUN_SQLITE_COBBLE_CONNECTOR_CONNECTIONS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Shown, e.g. Composio Work. Names the connection's apps and distinguishes two of the same provider
+     */
+    name?: string;
+    /** 
+     * Which provider (Composio, ...). Several connections may use the same one
+     */
+    provider?: "composio" | "";
+    /** 
+     * The provider's key for this connection, encrypted: a provider project or org key, so two connections are two separate accounts (Composio Personal, Composio Work). Never read out of the database except to build a provider adapter
+     */
+    api_key?: string;
+    /** 
+     * untested before the first sync, ready when the provider listed its apps, error when it refused
+     */
+    status?: "untested" | "ready" | "error" | "";
+    /** 
+     * Why the last sync failed, secrets blanked out
+     */
+    last_error?: string;
+    /** 
+     * Unix ms of the last app listing
+     */
+    last_synced_at?: number | "";
+    /** 
+     * The super admin who connected it, and the person to tell when the provider refuses its key
+     */
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CONNECTORS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    /** 
+     * Who hosts the app and its sign-in. Its adapter lives under src/harness/connectors/providers/
+     */
+    provider?: "composio" | "";
+    /** 
+     * Which connector_connections row this app was read from. A connection's apps are its own, so two Composio connections each have their own Gmail
+     */
+    connection_id?: number | "";
+    /** 
+     * The provider's own app id, e.g. gmail. One row per connection and app
+     */
+    app?: string;
+    /** 
+     * Shown, e.g. Gmail
+     */
+    name?: string;
+    /** 
+     * Prefixes its tools' names (<slug>__<tool>). Unique on the install
+     */
+    slug?: string;
+    /** 
+     * What the app is for, so a user knows whether to attach it
+     */
+    description?: string;
+    /** 
+     * The app's logo URL as the provider lists it, for the app list
+     */
+    logo?: string;
+    /** 
+     * The provider's sign-in config to start a connect with, when it keeps more than one per app
+     */
+    auth_config_id?: string;
+    /** 
+     * What signing in asks for, as the provider lists it
+     */
+    scopes?: string;
+    /** 
+     * The app's tools as last listed ([{name, description, input_schema}]). Runs build their tools from it and call the provider on demand
+     */
+    tools_cache?: string;
+    /** 
+     * Tool names (the provider's own) bots don't get
+     */
+    excluded_tools?: string;
+    /** 
+     * 1 makes it global: every run of every user reaches it. Super admins only. Unlike an extension's all_bots, which only seeds new bots, this is live reach
+     */
+    all_bots?: 0 | 1 | "";
+    enabled?: 0 | 1 | "";
+    status?: "untested" | "ready" | "error" | "";
+    last_error?: string;
+    /** 
+     * Unix ms of the last tool listing
+     */
+    last_synced_at?: number | "";
+    /** 
+     * Who added it, and the person to tell when the provider refuses its key. Never reach: a connector reaches a run through the three tiers
+     */
+    user_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_BOT_CONNECTORS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    bot_id?: number | "";
+    /** 
+     * Whose attachment it is, and the only user whose runs get it. Not a foreign key: deleting a user deletes these explicitly
+     */
+    user_id?: number | "";
+    connector_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_WORKSPACE_CONNECTORS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    workspace_id?: number | "";
+    connector_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    connector_id?: number | "";
+    /** 
+     * The owner. Not a foreign key: deleting a user deletes these explicitly
+     */
+    user_id?: number | "";
+    /** 
+     * What the user calls it, e.g. Work Gmail. Shown to the bot, which is how it knows which account to use
+     */
+    label?: string;
+    /** 
+     * The account's part of its tools' names when the user has more than one for the app (gmail-work__...). Unique per connector and user
+     */
+    slug?: string;
+    /** 
+     * The provider's own id for it (Composio's connected_account_id)
+     */
+    provider_account_id?: string;
+    status?: "pending" | "connected" | "expired" | "revoked" | "";
+    /** 
+     * 0 or 1, at most one per connector and user: the account a connect card offers first
+     */
+    is_default?: 0 | 1 | "";
+    /** 
+     * 0 or 1: every run may use this account, whoever it belongs to. Off by default, so an account is its owner's alone until it is given out
+     */
+    all_bots?: 0 | 1 | "";
+    connected_at?: number | "";
+    last_checked_at?: number | "";
+    last_error?: string;
+}
+
+export type BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNT_WORKSPACES = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    account_id?: number | "";
+    workspace_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNT_BOTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    account_id?: number | "";
+    bot_id?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CONNECTOR_SESSIONS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    connector_id?: number | "";
+    user_id?: number | "";
+    provider_account_id?: string;
+    /** 
+     * The provider's session id, when it gives one
+     */
+    session_id?: string;
+    mcp_url?: string;
+    /** 
+     * Encrypted JSON of the headers that endpoint wants (a provider key). Never a value a run or a page may read
+     */
+    headers?: string;
+    /** 
+     * Unix ms. Past it the row is replaced, never reused
+     */
+    expires_at?: number | "";
+}
+
+export type BUN_SQLITE_COBBLE_CONNECTOR_REQUESTS = {
+    /** 
+     * The unique identifier of the record.
+     */
+    id?: number | "";
+    /** 
+     * The time when the record was created. (Unix Timestamp)
+     */
+    created_at?: number | "";
+    /** 
+     * The time when the record was updated. (Unix Timestamp)
+     */
+    updated_at?: number | "";
+    connector_id?: number | "";
+    user_id?: number | "";
+    /** 
+     * The bot whose conversation raised it, for the message that wakes it when the link is done. Not a foreign key
+     */
+    bot_id?: number | "";
+    /** 
+     * The conversation the card sits in, which the wake message goes to. Not a foreign key
+     */
+    bot_session_id?: number | "";
+    /** 
+     * The account label the user typed, or the one the card suggested
+     */
+    label?: string;
+    /** 
+     * The provider's connect link. A flow link for this user only, never put in a message's text
+     */
+    url?: string;
+    provider_account_id?: string;
+    status?: "pending" | "connected" | "expired" | "cancelled" | "";
+    expires_at?: number | "";
+}
+
 export type BUN_SQLITE_COBBLE_CUSTOM_TOOLS = {
     /** 
      * The unique identifier of the record.
@@ -3186,4 +3495,4 @@ export type BUN_SQLITE_COBBLE_APP_SETTINGS = {
     value?: string;
 }
 
-export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_ASKS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_BOT_JOB_TRACES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_INSTALL_REQUESTS & BUN_SQLITE_COBBLE_BOT_QUESTIONS & BUN_SQLITE_COBBLE_BOT_SUGGESTIONS & BUN_SQLITE_COBBLE_BOT_PLANS & BUN_SQLITE_COBBLE_BOT_GRAPHICS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_ROLES & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HOST_DIRECTORIES & BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS & BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES & BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS & BUN_SQLITE_COBBLE_HOST_DIRECTORY_GRANTS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_BROWSERS & BUN_SQLITE_COBBLE_BROWSER_ACCESS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_HARNESS_CALL_FAILURES & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS
+export type BUN_SQLITE_COBBLE_ALL_TYPEDEFS = BUN_SQLITE_COBBLE_USERS & BUN_SQLITE_COBBLE_USER_TYPES & BUN_SQLITE_COBBLE_SSO_LOGIN_CODES & BUN_SQLITE_COBBLE_USER_PASSWORDS & BUN_SQLITE_COBBLE_MEDIA & BUN_SQLITE_COBBLE_MEDIA_PARADIGMS & BUN_SQLITE_COBBLE_BOTS & BUN_SQLITE_COBBLE_BOT_ASKS & BUN_SQLITE_COBBLE_BOT_SESSIONS & BUN_SQLITE_COBBLE_BOT_MESSAGES & BUN_SQLITE_COBBLE_BOT_MESSAGE_REACTIONS & BUN_SQLITE_COBBLE_BOT_TASKS & BUN_SQLITE_COBBLE_BOT_TASK_STEPS & BUN_SQLITE_COBBLE_TASKS & BUN_SQLITE_COBBLE_TASK_MEDIA & BUN_SQLITE_COBBLE_TASK_NOTES & BUN_SQLITE_COBBLE_BOTS_QUEUE & BUN_SQLITE_COBBLE_BOTS_QUEUE_UPDATES & BUN_SQLITE_COBBLE_BOT_JOB_TRACES & BUN_SQLITE_COBBLE_CRON_JOBS & BUN_SQLITE_COBBLE_BOT_HOOKS & BUN_SQLITE_COBBLE_BOT_HOOK_EVENTS & BUN_SQLITE_COBBLE_HOOK_PROPOSALS & BUN_SQLITE_COBBLE_SECRET_REQUESTS & BUN_SQLITE_COBBLE_INSTALL_REQUESTS & BUN_SQLITE_COBBLE_BOT_QUESTIONS & BUN_SQLITE_COBBLE_BOT_SUGGESTIONS & BUN_SQLITE_COBBLE_BOT_PLANS & BUN_SQLITE_COBBLE_BOT_GRAPHICS & BUN_SQLITE_COBBLE_WORKSPACES & BUN_SQLITE_COBBLE_WORKSPACE_BOTS & BUN_SQLITE_COBBLE_BOT_TYPES & BUN_SQLITE_COBBLE_WORKSPACE_USERS & BUN_SQLITE_COBBLE_BOT_USERS & BUN_SQLITE_COBBLE_BOT_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_VISITS & BUN_SQLITE_COBBLE_WORKSPACE_USER_ROLES & BUN_SQLITE_COBBLE_BOT_USER_MEMORIES & BUN_SQLITE_COBBLE_BOT_USER_FACES & BUN_SQLITE_COBBLE_BOT_MESSAGE_MEDIA & BUN_SQLITE_COBBLE_CONTAINERS & BUN_SQLITE_COBBLE_COMPUTERS & BUN_SQLITE_COBBLE_BOT_COMPUTERS & BUN_SQLITE_COBBLE_WORKSPACE_COMPUTERS & BUN_SQLITE_COBBLE_HOST_DIRECTORIES & BUN_SQLITE_COBBLE_HOST_DIRECTORY_COMPUTERS & BUN_SQLITE_COBBLE_HOST_DIRECTORY_WORKSPACES & BUN_SQLITE_COBBLE_HOST_DIRECTORY_CHECKS & BUN_SQLITE_COBBLE_HOST_DIRECTORY_GRANTS & BUN_SQLITE_COBBLE_HARNESS_PROVIDERS & BUN_SQLITE_COBBLE_HARNESS_MODELS & BUN_SQLITE_COBBLE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_BOT_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_WORKSPACE_HARNESS_SETTINGS & BUN_SQLITE_COBBLE_MCP_SERVERS & BUN_SQLITE_COBBLE_BROWSERS & BUN_SQLITE_COBBLE_BROWSER_ACCESS & BUN_SQLITE_COBBLE_CONNECTOR_CONNECTIONS & BUN_SQLITE_COBBLE_CONNECTORS & BUN_SQLITE_COBBLE_BOT_CONNECTORS & BUN_SQLITE_COBBLE_WORKSPACE_CONNECTORS & BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS & BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNT_WORKSPACES & BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNT_BOTS & BUN_SQLITE_COBBLE_CONNECTOR_SESSIONS & BUN_SQLITE_COBBLE_CONNECTOR_REQUESTS & BUN_SQLITE_COBBLE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_SKILLS & BUN_SQLITE_COBBLE_EXTENSION_PROPOSALS & BUN_SQLITE_COBBLE_BOT_MCP_SERVERS & BUN_SQLITE_COBBLE_WORKSPACE_MCP_SERVERS & BUN_SQLITE_COBBLE_BOT_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_WORKSPACE_CUSTOM_TOOLS & BUN_SQLITE_COBBLE_BOT_SKILLS & BUN_SQLITE_COBBLE_WORKSPACE_SKILLS & BUN_SQLITE_COBBLE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_DOCUMENTS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_CHUNKS & BUN_SQLITE_COBBLE_KNOWLEDGEBASE_VECTORS & BUN_SQLITE_COBBLE_BOT_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_WORKSPACE_KNOWLEDGEBASES & BUN_SQLITE_COBBLE_LOGS & BUN_SQLITE_COBBLE_USER_PRESENCE & BUN_SQLITE_COBBLE_PUSH_SUBSCRIPTIONS & BUN_SQLITE_COBBLE_ENVS & BUN_SQLITE_COBBLE_BOT_FILES & BUN_SQLITE_COBBLE_TOKEN_USAGES & BUN_SQLITE_COBBLE_HARNESS_CALL_FAILURES & BUN_SQLITE_COBBLE_FILE_INGEST_QUEUE & BUN_SQLITE_COBBLE_APP_SETTINGS

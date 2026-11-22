@@ -15,6 +15,8 @@ import cronSyncHarnessModels from "./sync-harness-models";
 import syncComputers from "./sync-computers";
 import cronSyncAppNetworks from "./sync-app-networks";
 import syncMcpServers from "./sync-mcp-servers";
+import syncConnectors from "./sync-connectors";
+import pruneConnectorRequests from "./prune-connector-requests";
 import runCronJobs from "./run-cron-jobs";
 import ingestPendingFiles from "./ingest-pending-files";
 import registerCronJob from "./register-cron-job";
@@ -56,6 +58,19 @@ export default function cron() {
         title: "prune-bot-traces",
         schedule: "@daily",
         task: pruneBotTraces,
+    });
+
+    registerCronJob({
+        title: "sync-connectors",
+        schedule: "*/15 * * * *",
+        task: syncConnectors,
+        quiet: true,
+    });
+
+    registerCronJob({
+        title: "prune-connector-requests",
+        schedule: "@daily",
+        task: pruneConnectorRequests,
     });
 
     registerCronJob({
