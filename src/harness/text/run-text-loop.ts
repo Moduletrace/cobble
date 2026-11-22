@@ -16,6 +16,7 @@ import {
     replyClosingRequiredNote,
     replyDraftNote,
     replyNoTextNote,
+    staticPromptOverBudgetNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
@@ -26,9 +27,9 @@ import { logError } from "@/src/functions/backend/logger";
 import type { ReplyStatus } from "@/src/dict/reply-status-dict";
 import { ReplyStatuses } from "@/src/dict/reply-status-dict";
 import HarnessError from "../harness-error";
-import isClosingTool, { SendReplyToolName } from "../tools/closing-tool-names";
+import isClosingTool, { ClosingToolNames, SendReplyToolName } from "../tools/closing-tool-names";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
-import loadToolsTool from "../tools/load-tools-tool";
+import loadToolsTool, { LoadToolsToolName } from "../tools/load-tools-tool";
 import repeatToolCallKey, { toolCallKey } from "../tools/repeat-tool-call-key";
 import isRepeatableTool from "../tools/repeatable-tool-names";
 import runToolCall from "../tools/run-tool-call";
@@ -53,6 +54,7 @@ import generateText from "./generate-text";
 import pushUserTurn from "./push-user-turn";
 import supersedeToolOutputs from "./supersede-tool-outputs";
 import toolImagesTurn from "./tool-images-turn";
+import workingContextTokens from "./working-context";
 
 export type TextLoopStep = {
     index: number;
@@ -72,8 +74,12 @@ type Params = {
     messages: HarnessMessage[];
     /**
      * The run's tools. Deferred ones (`HarnessTool.deferred`) are listed
-     * by name and loaded with `load_tools`, when together they're large
-     * enough to be worth it (`AppData.HarnessDeferToolsMinChars`).
+     * by name and loaded with `load_tools` when they are large enough to
+     * be worth keeping out of every turn: an extension's definitions
+     * together past `AppData.HarnessDeferToolsMinChars`, or the bot's own
+     * (`HarnessTool.group`) past `AppData.HarnessDeferBuiltinToolsMinChars`
+     * and `AppData.HarnessDeferBuiltinToolsShare` of the working context.
+     * The tools that save or send the answer are never deferred.
      */
     tools?: HarnessTool[];
     max_steps?: RunLimit;
@@ -84,9 +90,10 @@ type Params = {
      */
     max_prompt_tokens?: RunLimit;
     /**
-     * The working context (`grabContextBudgetTokens`): the most each turn
-     * sends before old tool output is trimmed, whatever the model's
-     * window. Unlimited or left out, the window decides.
+     * A tighter cap on the working context (`grabContextBudgetTokens`),
+     * when the install set one: the most each turn sends before old tool
+     * output is trimmed. Unlimited or left out, the model's window decides
+     * (`workingContextTokens`).
      */
     context_budget?: RunLimit;
     signal?: AbortSignal;
@@ -231,6 +238,19 @@ export const WrapUpAnswerToolNames = [SendReplyToolName];
  * in its own order.
  */
 export const WrapUpToolNames = [...WrapUpSaveToolNames, ...WrapUpHandOffToolNames, ...WrapUpAnswerToolNames];
+
+/**
+ * Tools a run keeps loaded whatever their size: the ones a wrap up saves
+ * or answers with, the closing tools that end the run, and `load_tools`
+ * itself. Deferring any of them leaves a run that can no longer act.
+ */
+const KeepLoadedToolNames: readonly string[] = [...WrapUpToolNames, ...ClosingToolNames, LoadToolsToolName];
+
+/**
+ * Rough characters per token for the tool definitions: the same estimate
+ * the transcript is sized with, so the two are compared on one scale.
+ */
+const DefinitionCharsPerToken = 3;
 
 /**
  * Saving turns a wrap up may take: the first, and one more when it reached
@@ -415,13 +435,47 @@ export default async function runTextLoop({
 }: Params): Promise<TextLoopResult> {
     const candidates = await resolveCandidates();
     /**
-     * Deferred tools wait to be loaded only when their definitions
-     * together are worth keeping out of every turn.
+     * The model the run is on, or will start on: its window sizes every
+     * turn (`workingContextTokens`) and decides whether the bot's own
+     * tools are worth keeping out of it.
      */
-    const deferrable = tools.filter((tool) => tool.deferred);
-    const defer =
-        deferrable.reduce((sum, tool) => sum + JSON.stringify(toolDefinition({ tool })).length, 0) >=
-        AppData.HarnessDeferToolsMinChars;
+    const start_model = (candidates.find((candidate) => candidate.key == planned_key) || candidates[0])?.model;
+    const start_context = workingContextTokens({
+        context_length: start_model?.context_length,
+        max_output_tokens: start_model?.max_output_tokens,
+        context_budget,
+    });
+    const definitionChars = ({ list }: { list: HarnessTool[] }) =>
+        list.reduce((sum, tool) => sum + JSON.stringify(toolDefinition({ tool })).length, 0);
+    /**
+     * What may wait to be loaded at all: the tools a wrap up saves or
+     * answers with, the closing tools and `load_tools` itself never do,
+     * since a run out of steps with its saving tools deferred would have
+     * nothing left to save with.
+     */
+    const can_defer = ({ tool }: { tool: HarnessTool }) => Boolean(tool.deferred) && !KeepLoadedToolNames.includes(tool.name);
+    const builtin_deferrable = tools.filter((tool) => can_defer({ tool }) && tool.group);
+    const extension_deferrable = tools.filter((tool) => can_defer({ tool }) && !tool.group);
+    const builtin_chars = definitionChars({ list: builtin_deferrable });
+    const extension_chars = definitionChars({ list: extension_deferrable });
+    /**
+     * Extensions are deferred once they are heavy in absolute terms: an MCP
+     * server can be a hundred thousand characters on its own. The bot's own
+     * tools are deferred only when they are heavy *for this model*: at
+     * about 33k tokens of definitions they left a 131k-window model less
+     * than half its window for the conversation, while a 1M-window model
+     * holds them comfortably and pays a turn to load them for nothing.
+     */
+    const defer_builtin =
+        builtin_chars >= AppData.HarnessDeferBuiltinToolsMinChars &&
+        builtin_chars / DefinitionCharsPerToken > start_context.tokens * AppData.HarnessDeferBuiltinToolsShare;
+    const defer_extensions = extension_chars >= AppData.HarnessDeferToolsMinChars;
+    const deferrable: HarnessTool[] = [
+        ...(defer_builtin ? builtin_deferrable : []),
+        ...(defer_extensions ? extension_deferrable : []),
+    ];
+    const defer = deferrable.length > 0;
+    const deferred_names = new Set(deferrable.map((tool) => tool.name));
     /**
      * Loaded deferred tools, in the order they were loaded: their
      * definitions go after the others, so the start of the list (and of
@@ -440,7 +494,7 @@ export default async function runTextLoop({
         : tools;
     const all_definitions = new Map(run_tools.map((tool) => [tool.name, toolDefinition({ tool })]));
     const definitionsNow = () => [
-        ...run_tools.filter((tool) => !defer || !tool.deferred).map((tool) => all_definitions.get(tool.name)!),
+        ...run_tools.filter((tool) => !deferred_names.has(tool.name)).map((tool) => all_definitions.get(tool.name)!),
         ...loaded.map((name) => all_definitions.get(name)!),
     ];
     const run_system = defer ? `${system}\n\n${deferredToolsNote({ tools: deferrable })}` : system;
@@ -492,7 +546,20 @@ export default async function runTextLoop({
     const call_limits = {
         steps: max_steps,
         run_tokens: max_prompt_tokens ?? UnlimitedLimit,
-        context_tokens: context_budget ?? UnlimitedLimit,
+        /**
+         * The working context actually used, in tokens, not the setting:
+         * a bot asked to explain a cost has to be able to name the window
+         * it was held to, and "unlimited" told the user nothing when the
+         * real ceiling was 70% of a guessed window.
+         */
+        context_tokens: start_context.tokens,
+        /**
+         * What the app itself spends of it before the conversation starts:
+         * the system prompt and the tool definitions, which are resent on
+         * every turn and which nothing may trim.
+         */
+        system_tokens: Math.ceil(run_system.length / DefinitionCharsPerToken),
+        tools_tokens: Math.ceil(JSON.stringify(definitionsNow()).length / DefinitionCharsPerToken),
     };
     /**
      * A step count to count against, for the loop itself: an unlimited run
@@ -754,18 +821,47 @@ export default async function runTextLoop({
             : definitionsNow();
 
         /**
-         * Sized for the model the run is on (or will start on). A fallback
-         * with a smaller window gets a 400 and the next model is tried.
+         * Sized for the model the run is on (or will start on): its own
+         * window, less the room its answer needs (`workingContextTokens`),
+         * never a fixed share of a guessed one. A provider that says the
+         * prompt was too long stops the run with its own message
+         * (`isContextOverflowError`), naming the real limit.
          */
         const model = (candidates.find((c) => c.key == prefer_key) || candidates[0])?.model;
+
+        const working = workingContextTokens({
+            context_length: model?.context_length,
+            max_output_tokens: model?.max_output_tokens,
+            context_budget,
+        });
 
         const fit = fitTranscriptToContext({
             system: run_system,
             transcript,
-            context_length: model?.context_length || AppData.HarnessUnknownContextWindow,
-            budget_tokens: typeof context_budget == "number" ? context_budget : undefined,
+            working_tokens: working.tokens,
             tools_chars: JSON.stringify(definitions).length,
         });
+
+        /**
+         * The app's own instructions and tool definitions are already past
+         * the working context on their own, so nothing trimmable can make
+         * room. A run that went on trimmed every tool result of every turn
+         * and answered from nothing: stop here and say what the arithmetic
+         * is, instead of blinding it (`staticPromptOverBudgetNote`).
+         */
+        if (fit.over_budget == "static") {
+            const note = staticPromptOverBudgetNote({
+                working: working.tokens,
+                window: working.window,
+                assumed: working.assumed,
+                base: fit.base,
+                system: fit.system_tokens,
+                tools: fit.tools_tokens,
+            });
+
+            await traced({ kind: "event", index, name: "over_budget", text: note });
+            throw new HarnessError({ message: note, fatal: true });
+        }
 
         /**
          * Everything trimmable was trimmed and it still doesn't fit: what is
@@ -773,10 +869,14 @@ export default async function runTextLoop({
          * works in pieces and says what it could not reach instead of
          * inventing the rest (`oversizedRequestNote`).
          */
-        if (fit.over_budget && !told_over_budget) {
+        if (fit.over_budget == "request" && !told_over_budget) {
             told_over_budget = true;
 
-            const note = oversizedRequestNote({ budget: fit.budget });
+            const note = oversizedRequestNote({
+                budget: fit.budget,
+                base: fit.base,
+                conversation: fit.estimated_tokens - fit.base,
+            });
 
             pushUserTurn({ transcript, content: note });
             await traced({ kind: "event", index, name: "over_budget", text: note });

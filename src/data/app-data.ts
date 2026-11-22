@@ -545,15 +545,15 @@ export const AppData = {
     HarnessAutoMinContext: 32_000,
     /**
      * The window a run assumes for a model whose catalog never said
-     * (`run-text-loop.ts`): a custom provider lists ids and nothing else,
-     * and at 32000 the base prompt alone (system and tool definitions,
-     * ~25000 tokens here) was already past the 70% working window, so every
-     * turn trimmed the output the run was reading. 70% of this is the
-     * widest such a model is ever given, whatever
-     * `harness_context_budget_tokens` asks for, so it must stay at or above
-     * that budget.
+     * (`run-text-loop.ts`): a custom provider lists ids and nothing else.
+     * It is a guess, and the provider has the last word: a model that is
+     * smaller refuses a prompt past its real window, and that refusal
+     * stops the run with the provider's own message, which names the
+     * limit to set on the model (`Settings > Models`). Never learn a
+     * smaller window into this: a run that quietly assumed 131072 here
+     * gave a model a 91,750-token working context and went blind.
      */
-    HarnessUnknownContextWindow: 131_072,
+    HarnessUnknownContextWindow: 1_000_000,
     /**
      * A provider's declared window (`harness_providers.context_length`),
      * handed to the models it lists without one of their own: the least and
@@ -694,15 +694,17 @@ export const AppData = {
      */
     HarnessReplyDraftsMax: 2,
     /**
-     * The working context: how many tokens (estimated) of system prompt,
-     * tool definitions and transcript a run sends per turn before old tool
-     * output is trimmed, whatever the model's window. Every turn resends
-     * all of it, so a run that only trims at a 1M window pays for its whole
-     * history on every step. The install may save its own
-     * (`harness_context_budget_tokens`), read through
-     * `grabContextBudgetTokens`.
+     * An optional tighter cap on the working context: how many tokens
+     * (estimated) of system prompt, tool definitions and transcript a run
+     * sends per turn before old tool output is trimmed. Unlimited by
+     * default, so the model's own window decides (minus the reserve it
+     * needs for its answer, `workingContextTokens`): an install that
+     * saved `harness_context_budget_tokens` asks for less, for a model
+     * whose window it pays for by the token. Every turn resends all of
+     * it, so a run that only trims at a 1M window pays for its whole
+     * history on every step; that is what this setting is for.
      */
-    HarnessContextBudgetTokens: 200_000,
+    HarnessContextBudgetTokens: UnlimitedLimit,
     /**
      * The least a saved working context may be: below it a run would trim
      * the output it is reading right now (one full tool result is ~20000
@@ -733,6 +735,21 @@ export const AppData = {
      * pass this many characters; below it they're simply all given.
      */
     HarnessDeferToolsMinChars: 6000,
+    /**
+     * The bot's own tools (tasks, schedules, hooks, files, plans, crew,
+     * knowledgebases, graphics) are deferred the same way, but only when
+     * they are both this large and past `HarnessDeferBuiltinToolsShare` of
+     * the working context: at 25 tools they were ~33k tokens of every
+     * turn, which on a 131k-window model left the conversation about 50k
+     * to work in. Deferring costs a turn to load them, so a model with a
+     * window that holds them comfortably keeps them inline.
+     */
+    HarnessDeferBuiltinToolsMinChars: 20_000,
+    /**
+     * Share of the working context the bot's own tool definitions must
+     * pass before they are deferred rather than sent every turn.
+     */
+    HarnessDeferBuiltinToolsShare: 0.1,
     /**
      * How much of a deferred tool's description its line in the list
      * shows.

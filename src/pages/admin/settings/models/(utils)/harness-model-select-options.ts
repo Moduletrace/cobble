@@ -57,8 +57,19 @@ export default function harnessModelSelectOptions({
         },
         ...models.map((model) => ({
             value: String(model.id),
-            title: `${model.name}${provider_name ? "" : ` · ${model.provider_name}`}${model.free && !/free/i.test(model.name) ? " · free" : ""}`,
+            title: `${model.name}${provider_name ? "" : ` · ${model.provider_name}`}${model.free && !/free/i.test(model.name) ? " · free" : ""}${windowText({ model })}`,
             default: model.id == model_id,
         })),
     ];
+}
+
+/**
+ * What the model's window is, on its picker line: a model with none
+ * declared is the one whose runs are sized for a guess, and the user is
+ * picking it right here.
+ */
+function windowText({ model }: { model: HarnessModelOption }) {
+    if (model.context_length) return ` · ${model.context_length.toLocaleString("en-US")} tokens`;
+
+    return " · no context window declared";
 }

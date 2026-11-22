@@ -159,4 +159,32 @@ describe("toHarnessError", () => {
 
         expect(error.message.match(/images\/generations/g)?.length).toBe(1);
     });
+
+    test("a prompt past the model's window is fatal, keeps the provider's limit and says what to set", () => {
+        const error = toHarnessError({
+            status: 400,
+            body: JSON.stringify({
+                error: { message: "This model's maximum context length is 65536 tokens. However, your messages resulted in 99812 tokens." },
+            }),
+            provider_name: "Nvidia Cloud",
+        });
+
+        expect(error.fatal).toBe(true);
+        expect(error.retryable).toBe(false);
+        expect(error.provider_wide).toBe(false);
+        expect(error.message).toContain("maximum context length is 65536 tokens");
+        expect(error.message).toContain("Set this model's context window under Settings > Models");
+        expect(error.message).toContain("assumed to have 1,000,000");
+    });
+
+    test("any other 400 is only about the model, never fatal", () => {
+        const error = toHarnessError({
+            status: 400,
+            body: JSON.stringify({ error: { message: "temperature is not supported" } }),
+            provider_name: "Example",
+        });
+
+        expect(error.fatal).toBe(false);
+        expect(error.message).not.toContain("Settings > Models");
+    });
 });

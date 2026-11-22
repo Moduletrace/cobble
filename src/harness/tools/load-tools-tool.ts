@@ -22,12 +22,13 @@ export const LoadToolsToolName = "load_tools";
  * Brings deferred tools into the run (`runTextLoop`): the model sees them
  * listed by name in its prompt and loads the ones it needs, rather than
  * every turn carrying every extension's definitions. A name ending in `*`
- * loads every deferred tool it starts.
+ * loads every deferred tool it starts; a family's name (`tasks`, `plans`)
+ * loads every tool in it.
  */
 export default function loadToolsTool({ deferred, isLoaded, onLoad }: Params): HarnessTool<{ names: string[] }> {
     return {
         name: LoadToolsToolName,
-        description: `Loads tools from the "Tools you can load" list in your instructions, so you can call them from your next step. Give their exact names; "<prefix>*" loads every listed tool starting with the prefix (e.g. one server's). Load only what you're about to use.`,
+        description: `Loads tools from the "Tools you can load" list in your instructions, so you can call them from your next step. Give their exact names, a family's name to load all of it ("tasks"), or "<prefix>*" to load every listed tool starting with the prefix (e.g. one server's). Load only what you're about to use.`,
         schema: z.object({
             names: z.array(z.string().trim().min(1).max(200)).min(1).max(40),
         }),
@@ -38,7 +39,7 @@ export default function loadToolsTool({ deferred, isLoaded, onLoad }: Params): H
             for (const name of args.names) {
                 const matches = name.endsWith("*")
                     ? deferred.filter((tool) => tool.name.startsWith(name.slice(0, -1)))
-                    : deferred.filter((tool) => tool.name == name);
+                    : deferred.filter((tool) => tool.name == name || tool.group == name);
 
                 if (!matches.length) missing.push(name);
 
@@ -53,7 +54,9 @@ export default function loadToolsTool({ deferred, isLoaded, onLoad }: Params): H
             return [
                 fresh.length ? `Loaded: ${fresh.join(", ")}. Call them from your next step.` : "",
                 already.length ? `Already loaded: ${already.join(", ")}.` : "",
-                missing.length ? `Not in the list: ${missing.join(", ")}. Use the exact names under "Tools you can load".` : "",
+                missing.length
+                    ? `Not in the list: ${missing.join(", ")}. Use the exact names or family names under "Tools you can load".`
+                    : "",
             ]
                 .filter(Boolean)
                 .join("\n");

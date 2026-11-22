@@ -45,6 +45,7 @@ import runTextLoop from "@/src/harness/text/run-text-loop";
 import type { HarnessTool } from "@/src/harness/types";
 import grabBotChatTools from "@/src/harness/tools/bot/grab-bot-chat-tools";
 import gatePlanModeTools from "@/src/harness/tools/bot/plan-mode-tools";
+import groupTools from "@/src/harness/tools/group-tools";
 import grabBotFileTools from "@/src/harness/tools/storage/grab-bot-file-tools";
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import grabRunScopes from "@/src/functions/backend/db/bot-files/grab-run-scopes";
@@ -714,7 +715,9 @@ export default async function runBotReply({
                 .filter(Boolean)
                 .join("\n\n"),
             messages: await messagesToTurns({ messages: history, user_id }),
-            tools: plan_mode ? gatePlanModeTools({ tools: reply_tools }) : reply_tools,
+            tools: plan_mode
+                ? gatePlanModeTools({ tools: groupTools({ tools: reply_tools }) })
+                : groupTools({ tools: reply_tools }),
             max_steps: reply_max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
             context_budget: await grabContextBudgetTokens(),

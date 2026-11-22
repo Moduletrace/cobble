@@ -70,8 +70,9 @@ export async function grabRunMaxPromptTokens() {
 /**
  * The working context a run keeps per turn, in estimated tokens: the
  * install's own (`harness_context_budget_tokens`), else
- * `AppData.HarnessContextBudgetTokens`. Unlimited keeps the model's whole
- * window.
+ * `AppData.HarnessContextBudgetTokens`. Unlimited (the default) keeps the
+ * model's own window, less the reserve its answer needs
+ * (`workingContextTokens`), so this is only a way to hold runs below that.
  */
 export async function grabContextBudgetTokens() {
     return readRunLimit({

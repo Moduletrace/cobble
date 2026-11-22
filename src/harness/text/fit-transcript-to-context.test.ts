@@ -23,7 +23,7 @@ function transcript(): HarnessMessage[] {
     ];
 }
 
-const params = { system: "s", context_length: 200, keep_last: 4 };
+const params = { system: "s", working_tokens: 140, keep_last: 4 };
 
 describe("fitTranscriptToContext keeps a head+tail trim across passes (M4)", () => {
     test("a long result is cut to its start and end, not replaced whole", () => {
@@ -52,5 +52,91 @@ describe("fitTranscriptToContext keeps a head+tail trim across passes (M4)", () 
         expect(messages[0]!.content).toBe(after_first);
         expect(messages[0]!.content as string).toContain("START_MARKER_");
         expect(messages[0]!.content as string).toContain("_END_MARKER");
+    });
+});
+
+describe("fitTranscriptToContext never leaves a run reading a note instead of an answer", () => {
+    test("a result short enough to keep whole is kept whole", () => {
+        const messages: HarnessMessage[] = [
+            { role: "tool", tool_call_id: "c1", content: "/usr/bin/pdftoppm" },
+        ];
+
+        // Far below the result, so every pass that could cut it runs.
+        const result = fitTranscriptToContext({ system: "s", transcript: messages, working_tokens: 10 });
+
+        expect(result.trimmed).toBe(0);
+        expect(messages[0]!.content).toBe("/usr/bin/pdftoppm");
+    });
+
+    test("the newest turn's results are cut last, only once the older ones are gone", () => {
+        const old = `OLD_START_${"x".repeat(30_000)}_OLD_END`;
+        const fresh = `FRESH_START_${"y".repeat(6000)}_FRESH_END`;
+
+        const messages: HarnessMessage[] = [
+            { role: "tool", tool_call_id: "old", content: old },
+            { role: "user", content: "u1" },
+            {
+                role: "assistant",
+                content: "a1",
+                tool_calls: [{ id: "new", name: "computer_bash", arguments: "{}" }],
+            },
+            { role: "tool", tool_call_id: "new", content: fresh },
+        ];
+
+        // Enough room once the older result is cut, so the newest one stays.
+        const result = fitTranscriptToContext({
+            system: "s",
+            transcript: messages,
+            working_tokens: 5_000,
+            keep_last: 0,
+        });
+
+        expect(result.trimmed).toBe(1);
+        expect(messages[0]!.content as string).toContain("OLD_START_");
+        expect(messages[3]!.content).toBe(fresh);
+    });
+});
+
+describe("fitTranscriptToContext names what is over the working context", () => {
+    test("its own instructions alone past the context is static", () => {
+        const result = fitTranscriptToContext({
+            system: "x".repeat(3_000),
+            transcript: [],
+            working_tokens: 500,
+        });
+
+        expect(result.over_budget).toBe("static");
+        expect(result.base).toBe(result.system_tokens);
+    });
+
+    test("tool definitions count toward the static part", () => {
+        const result = fitTranscriptToContext({
+            system: "s",
+            transcript: [],
+            working_tokens: 500,
+            tools_chars: 3_000,
+        });
+
+        expect(result.over_budget).toBe("static");
+        expect(result.tools_tokens).toBe(1_000);
+    });
+
+    test("a conversation the user made too long is the request", () => {
+        const result = fitTranscriptToContext({
+            system: "s",
+            transcript: [{ role: "user", content: "y".repeat(3_000) }],
+            working_tokens: 500,
+            keep_last: 0,
+        });
+
+        expect(result.over_budget).toBe("request");
+        // The user's own text is never cut.
+        expect(result.trimmed).toBe(0);
+    });
+
+    test("a prompt that fits says nothing is over", () => {
+        const result = fitTranscriptToContext({ system: "s", transcript: [], working_tokens: 500 });
+
+        expect(result.over_budget).toBe(false);
     });
 });

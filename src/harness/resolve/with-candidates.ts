@@ -69,7 +69,8 @@ type Params<T> = {
  * install's model rest (`coolDown`) and is logged.
  *
  * Throws a `HarnessError`: `unavailable` when there is nothing to try,
- * otherwise the last failure, `retryable` if any failure was.
+ * otherwise the last failure, `retryable` if any failure was. A `fatal`
+ * failure is rethrown at once: no cooldown, no next candidate.
  */
 export default async function withCandidates<T>({
     harness,
@@ -166,6 +167,27 @@ export default async function withCandidates<T>({
         } catch (error: unknown) {
             if (!(error instanceof HarnessError)) throw error;
             if (error.code == "aborted") throw error;
+            /**
+             * A fatal failure is the run's own: another model fails the same
+             * way, and the message (the provider's own limit, or the app's
+             * arithmetic on a window) is what the user needs to read. It
+             * rests nothing and falls back to nothing. It is still written
+             * down as a failed call, so the notice the message carries can
+             * say which model refused it and why.
+             */
+            if (error.fatal) {
+                error.model_name ||= candidate.model.slug;
+
+                if (log_failures) {
+                    await recordHarnessFailure({
+                        harness: harness_of?.get(candidate.key) || harness,
+                        candidate,
+                        error,
+                    });
+                }
+
+                throw error;
+            }
 
             /**
              * The model's own name goes on the failure: a tool tells the bot

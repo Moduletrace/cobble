@@ -819,6 +819,12 @@ export type HarnessModelOption = {
      * The generation settings the model takes; undefined: all of them.
      */
     supported_parameters?: string[];
+    /**
+     * Its context window, when the catalog or its provider declares one. A
+     * model with none is given `AppData.HarnessUnknownContextWindow` by
+     * every run, which the picker says out loud.
+     */
+    context_length?: number;
 };
 
 /**

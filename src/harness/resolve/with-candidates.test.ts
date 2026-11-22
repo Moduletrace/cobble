@@ -70,6 +70,36 @@ describe("withCandidates", () => {
         expect(tried).toEqual(["b"]);
     });
 
+    test("a fatal failure is thrown at once, with no fallback and nothing rested", async () => {
+        const cooldowns = createCooldowns();
+        const tried: string[] = [];
+        const a = candidate("a");
+        const b = candidate("b");
+        const fatal = new HarnessError({
+            message: "prompt is too long for this model",
+            status: 400,
+            fatal: true,
+            candidate_key: a.key,
+        });
+
+        const call = withCandidates({
+            harness: "text",
+            candidates: [a, b],
+            cooldowns,
+            run: async (c) => {
+                tried.push(c.model.slug);
+                throw fatal;
+            },
+        });
+
+        await expect(call).rejects.toBe(fatal);
+
+        // A smaller window is not a fault of the model: no other model can
+        // answer the same prompt, so none is tried and none is rested.
+        expect(tried).toEqual(["a"]);
+        expect(cooldowns.get({ key: a.key })).toBeUndefined();
+    });
+
     test("tries the preferred model first", async () => {
         const tried: string[] = [];
 

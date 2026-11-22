@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, oversizedRequestNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -14,6 +14,7 @@ import runTextLoop, {
     stepsLowWarningLeft,
     wrapUpPrompt,
 } from "./run-text-loop";
+import { WorkingContextReserveMax } from "./working-context";
 
 /**
  * A reviewer that threw is logged (`logError`), and the log goes to the
@@ -280,7 +281,7 @@ describe("runTextLoop", () => {
         });
     });
 
-    test("a run with no step limit keeps going, and records that its limits were off", async () => {
+    test("a run with no step limit keeps going, and records the window it works to", async () => {
         memory.length = 0;
         const loop_call = {
             tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
@@ -304,7 +305,11 @@ describe("runTextLoop", () => {
         expect(seen[0]!.limits).toEqual({
             steps: UnlimitedLimit,
             run_tokens: UnlimitedLimit,
-            context_tokens: UnlimitedLimit,
+            // The working context is a number even with no cap: the model's
+            // window less the room its answer needs.
+            context_tokens: AppData.HarnessUnknownContextWindow - WorkingContextReserveMax,
+            system_tokens: 1,
+            tools_tokens: expect.any(Number),
         });
     });
 
@@ -1038,6 +1043,99 @@ describe("runTextLoop", () => {
 
         expect(seen[0]!.tools!.map((tool) => tool.name)).toEqual(["remember", "srv__small"]);
         expect(String(seen[0]!.messages[0]!.content)).not.toContain("Tools you can load");
+    });
+
+    /**
+     * A model with a small window, which is where a bot's own tool
+     * definitions are a real share of the prompt (the default candidate
+     * declares none, so its working context is ~936,000 tokens).
+     */
+    const narrow = async () => [{ ...candidate, model: { ...candidate.model, context_length: 20_000 } }];
+
+    const bulk = (name: string, group?: string): HarnessTool => ({
+        name,
+        description: "Works on the tracker. ".repeat(220),
+        parameters: { type: "object", properties: {} },
+        group,
+        deferred: true,
+        run: async () => "done",
+    });
+
+    const family = ["list_tasks", "create_task", "update_task", "delete_task", "defer_task"].map((name) =>
+        bulk(name, "tasks"),
+    );
+
+    test("defers a family of the bot's own tools once it is worth a load turn", async () => {
+        const { generate, seen } = scripted([{ text: "Hi." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember, ...family],
+            generate,
+            resolveCandidates: narrow,
+        });
+
+        expect(seen[0]!.tools!.map((tool) => tool.name)).toEqual(["remember", "load_tools"]);
+        expect(String(seen[0]!.messages[0]!.content)).toContain("Tools you can load");
+        expect(String(seen[0]!.messages[0]!.content)).toContain(
+            "- tasks: list_tasks, create_task, update_task, delete_task, defer_task (load the family by its name)",
+        );
+    });
+
+    test("keeps the tools that end a run loaded, however big they are", async () => {
+        const { generate, seen } = scripted([{ text: "Hi." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember, ...family, bulk("send_reply", "sessions"), bulk("write_file", "files")],
+            generate,
+            resolveCandidates: narrow,
+        });
+
+        const names = seen[0]!.tools!.map((tool) => tool.name);
+
+        expect(names).toContain("send_reply");
+        expect(names).toContain("write_file");
+        expect(names).toContain("load_tools");
+        expect(names).not.toContain("list_tasks");
+    });
+
+    test("defers its own tools only once together they take a share of the context", async () => {
+        // The same family on a model with room to spare: the turn a load
+        // costs is not worth saving 7,000 tokens out of 936,000.
+        const { generate, seen } = scripted([{ text: "Hi." }]);
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember, ...family],
+            generate,
+            resolveCandidates,
+        });
+
+        expect(seen[0]!.tools!.map((tool) => tool.name)).toEqual(["remember", ...family.map((tool) => tool.name)]);
+    });
+
+    test("stops at once when its own instructions alone are past the working context", async () => {
+        const { generate, seen } = scripted([{ text: "never" }]);
+
+        const call = runTextLoop({
+            system: "x".repeat(3_000),
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+            context_budget: 100,
+        });
+
+        await expect(call).rejects.toBeInstanceOf(HarnessError);
+        await expect(call).rejects.toThrow("stopped before its first answer");
+
+        // Nothing was sent, and no turn was spent trimming its way to an
+        // answer it could not write.
+        expect(seen).toHaveLength(0);
     });
 });
 
@@ -2338,7 +2436,11 @@ describe("runTextLoop answer not sent", () => {
 describe("runTextLoop over budget", () => {
     test("tells a run whose own request is over the working context, once", async () => {
         const brief = "x".repeat(30_000);
-        const note = oversizedRequestNote({ budget: 4_000 });
+        /**
+         * A phrase from `oversizedRequestNote`: the note's numbers are the
+         * loop's own arithmetic, so only its fixed words are matched here.
+         */
+        const note = "larger than the working context this model may be sent";
 
         const { generate, seen } = scripted([
             { text: "One piece.", tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"a"}` }] },
@@ -2364,7 +2466,7 @@ describe("runTextLoop over budget", () => {
     });
 
     test("says nothing when the transcript fits, or when trimming was enough", async () => {
-        const note = oversizedRequestNote({ budget: 20_000 });
+        const note = "larger than the working context this model may be sent";
 
         const { generate, seen } = scripted([
             { text: "One.", tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"a"}` }] },

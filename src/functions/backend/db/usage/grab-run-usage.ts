@@ -14,6 +14,13 @@ export type RunUsageLimits = {
     steps: RunLimit | null;
     run_tokens: RunLimit | null;
     context_tokens: RunLimit | null;
+    /**
+     * How much of the working context the app's own prompt and tool
+     * definitions took before the conversation did, when the run recorded
+     * them: the usual answer to "why was there room for so little".
+     */
+    system_tokens?: number;
+    tools_tokens?: number;
 };
 
 /**
@@ -137,6 +144,8 @@ const limitsOf = ({ calls }: { calls: RunUsageCall[] }): RunUsageLimits | null =
         steps: kept(limits.steps),
         run_tokens: kept(limits.run_tokens),
         context_tokens: kept(limits.context_tokens),
+        ...(typeof limits.system_tokens == "number" ? { system_tokens: limits.system_tokens } : {}),
+        ...(typeof limits.tools_tokens == "number" ? { tools_tokens: limits.tools_tokens } : {}),
     };
 };
 

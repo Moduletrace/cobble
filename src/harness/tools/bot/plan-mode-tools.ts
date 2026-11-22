@@ -73,13 +73,23 @@ function planModeRefusal({ name }: { name: string }) {
  * `run` is replaced, and it throws so the call is reported as failed.
  * `load_tools` is here too, so a deferred MCP or browser tool can never
  * be pulled into a planning run.
+ *
+ * The bot's own tools (`groupTools` has named their family by now) are
+ * listed inline rather than deferred: the reads it is allowed (`list_tasks`,
+ * `read_file`) have to be callable without a loading step, and the writes it
+ * is refused have to be visible to be refused by name. Extensions stay as
+ * deferred as they were: `load_tools` is refused here, so listing their
+ * definitions inline would spend the run's context on tools it cannot call.
  */
 export default function gatePlanModeTools({ tools }: { tools: HarnessTool[] }): HarnessTool[] {
+    const listed = ({ tool }: { tool: HarnessTool }) => (tool.group ? false : tool.deferred);
+
     return tools.map((tool) =>
         allowed.has(tool.name)
-            ? tool
+            ? { ...tool, deferred: listed({ tool }) }
             : {
                   ...tool,
+                  deferred: listed({ tool }),
                   run: async () => {
                       throw new Error(planModeRefusal({ name: tool.name }));
                   },

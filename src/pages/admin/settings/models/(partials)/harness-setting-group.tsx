@@ -11,6 +11,7 @@ import HarnessParamsButton from "./harness-params-button";
 import HarnessProviderSelect from "./harness-provider-select";
 import HarnessTextFallbacks from "./harness-text-fallbacks";
 import HarnessVoiceControls from "./harness-voice-controls";
+import HarnessWindowNote from "./harness-window-note";
 
 type Props = {
     harness: HarnessOverview;
@@ -70,6 +71,9 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
             <HarnessCurrentModel
                 harness={value.inherit && harness.default ? { ...harness, ...harness.default } : harness}
             />
+            {harness.harness == "text" ? (
+                <HarnessWindowNote model={value.inherit ? harness.default?.current : picked || harness.current} />
+            ) : null}
             <HarnessOptionsCheckboxes
                 harness={harness}
                 value={value}

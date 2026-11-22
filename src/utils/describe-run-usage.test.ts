@@ -65,6 +65,23 @@ describe("describeRunUsage", () => {
         expect(text).toContain("Today's settings: unlimited steps per task, 20 per reply, unlimited per routine or hook call");
     });
 
+    test("an unlimited working-context setting names the model's own window", () => {
+        const text = describeRunUsage({
+            usage: {
+                ...usage,
+                current_limits: {
+                    task_steps: 60,
+                    reply_steps: 20,
+                    unattended_steps: 12,
+                    run_tokens: 250_000,
+                    context_tokens: "unlimited",
+                },
+            },
+        });
+
+        expect(text).toContain("the model's own window, less the room its answer needs of working context per turn.");
+    });
+
     test("a call recorded before runs kept their limits says so", () => {
         expect(describeRunUsage({ usage: { ...usage, limits: null } })).toContain("recorded no limits");
     });

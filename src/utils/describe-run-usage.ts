@@ -20,11 +20,18 @@ const when = (value: number | null) => (value ? new Date(value).toISOString().re
 const limitsLine = ({ limits }: { limits: RunUsage["limits"] }) => {
     if (!limits) return "Their calls recorded no limits (made before runs kept them).";
 
-    return [
-        `The run was allowed ${limitText({ value: limits.steps, none: "an unrecorded number of" })} steps,`,
-        `${limitText({ value: limits.run_tokens, none: "an unrecorded number of" })} prompt tokens in all,`,
-        `and ${limits.context_tokens === null ? "an unrecorded working context" : `${limitText({ value: limits.context_tokens, none: "an unrecorded working context" })} tokens of working context`} per turn.`,
-    ].join(" ");
+    const staticSplit =
+        limits.system_tokens || limits.tools_tokens
+            ? ` Of that, its own instructions took ${count(limits.system_tokens || 0)} and its tool definitions ${count(limits.tools_tokens || 0)}, before any of the conversation.`
+            : "";
+
+    return (
+        [
+            `The run was allowed ${limitText({ value: limits.steps, none: "an unrecorded number of" })} steps,`,
+            `${limitText({ value: limits.run_tokens, none: "an unrecorded number of" })} prompt tokens in all,`,
+            `and ${limits.context_tokens === null ? "an unrecorded working context" : `${limitText({ value: limits.context_tokens, none: "an unrecorded working context" })} tokens of working context`} per turn.`,
+        ].join(" ") + staticSplit
+    );
 };
 
 const changeLimitsLine = [
@@ -37,8 +44,21 @@ const changeLimitsLine = [
 
 const costDriversLine = `More steps is the usual reason a run costs more than the work looks: every turn resends the prompt, the tool list and the whole transcript, so a long run grows with the square of its turns. A long session makes every reply cost more too (${generalSettingsRef({ section: "sessions", field: "max_messages" })} starts a new one sooner).`;
 
+/**
+ * The working-context setting as a run reads it today: unlimited means the
+ * model's own window, less the room its answer needs, never "no ceiling",
+ * since a bot reporting "unlimited of context per turn" tells the user
+ * nothing about what actually bounded the run.
+ */
+const contextToday = (value: RunLimit | null) => {
+    if (value === null) return "an unrecorded amount";
+    if (isUnlimitedLimit(value)) return "the model's own window, less the room its answer needs";
+
+    return `${count(value)} tokens`;
+};
+
 const todayLine = ({ current }: { current: CurrentRunLimits }) =>
-    `Today's settings: ${limitText({ value: current.task_steps, none: "an unrecorded number of" })} steps per task, ${limitText({ value: current.reply_steps, none: "an unrecorded number of" })} per reply, ${limitText({ value: current.unattended_steps, none: "an unrecorded number of" })} per routine or hook call, ${limitText({ value: current.run_tokens, none: "an unrecorded number of" })} prompt tokens per run, ${limitText({ value: current.context_tokens, none: "an unrecorded working context" })} tokens of working context per turn.`;
+    `Today's settings: ${limitText({ value: current.task_steps, none: "an unrecorded number of" })} steps per task, ${limitText({ value: current.reply_steps, none: "an unrecorded number of" })} per reply, ${limitText({ value: current.unattended_steps, none: "an unrecorded number of" })} per routine or hook call, ${limitText({ value: current.run_tokens, none: "an unrecorded number of" })} prompt tokens per run, ${contextToday(current.context_tokens)} of working context per turn.`;
 
 /**
  * What one run spent, in the shape a bot reports it: what it cost, the

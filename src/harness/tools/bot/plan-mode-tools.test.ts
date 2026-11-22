@@ -60,22 +60,40 @@ describe("Plan mode's tool gate", () => {
         }
     });
 
-    test("keeps a blocked tool's description, schema and deferral, so the model still sees what it is", async () => {
+    test("keeps a blocked tool's description and schema, and lists the bot's own tools now, so the model still sees what it is", async () => {
         const deferred: HarnessTool = {
-            ...tool("browser_navigate"),
-            description: "Open a page in the browser",
+            ...tool("create_task"),
+            description: "Add a task to the tracker",
             parameters: { type: "object" },
             deferred: true,
+            group: "tasks",
             timeout_ms: 5_000,
         };
 
         const planned = gatePlanModeTools({ tools: [deferred] })[0]!;
 
-        expect(planned.description).toBe("Open a page in the browser");
+        expect(planned.description).toBe("Add a task to the tracker");
         expect(planned.parameters).toEqual({ type: "object" });
-        expect(planned.deferred).toBe(true);
+        /**
+         * A family tool is listed inline in a planning run: a write has to
+         * be visible to be refused by name, and a read has to be callable
+         * without a load step (`load_tools` is refused here too).
+         */
+        expect(planned.deferred).toBe(false);
         expect(planned.timeout_ms).toBe(5_000);
         expect(planned.run).not.toBe(deferred.run);
+    });
+
+    test("leaves an extension tool deferred, since load_tools is refused here", () => {
+        const off: HarnessTool = { ...tool("exa__search"), deferred: true };
+
+        expect(gatePlanModeTools({ tools: [off] })[0]!.deferred).toBe(true);
+    });
+
+    test("lists an allowed tool it was holding off, so a read needs no load step", () => {
+        const off: HarnessTool = { ...tool("list_tasks"), deferred: true, group: "tasks" };
+
+        expect(gatePlanModeTools({ tools: [off] })[0]!.deferred).toBe(false);
     });
 
     test("holds a tool nobody named yet off, so the list stays an allowlist", async () => {

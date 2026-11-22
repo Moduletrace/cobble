@@ -51,6 +51,7 @@ import openBotExtensions, { type OpenBotExtensions } from "@/src/harness/tools/e
 import openBotSkills, { type OpenBotSkills } from "@/src/harness/tools/skills/open-bot-skills";
 import openBotKnowledgebases from "@/src/harness/tools/knowledgebases/open-bot-knowledgebases";
 import grabBotTools from "@/src/harness/tools/bot/grab-bot-tools";
+import groupTools from "@/src/harness/tools/group-tools";
 import grabCoordinatorKnowledgebaseTools from "@/src/harness/tools/bot/knowledgebases/grab-coordinator-knowledgebase-tools";
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
@@ -696,7 +697,8 @@ export default async function runBotTask({
         const result = await runTextLoop({
             system,
             messages: opening,
-            tools: [
+            tools: groupTools({
+                tools: [
                 ...tools,
                 /**
                  * A task report ends with `send_reply`, the same protocol a
@@ -727,7 +729,8 @@ export default async function runBotTask({
                 ...connectors.tools,
                 ...skills.tools,
                 ...knowledge.tools,
-            ],
+                ],
+            }),
             max_steps,
             max_prompt_tokens: await grabRunMaxPromptTokens(),
             context_budget: await grabContextBudgetTokens(),

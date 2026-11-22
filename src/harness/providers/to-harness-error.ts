@@ -1,4 +1,5 @@
 import HarnessError from "../harness-error";
+import isContextOverflowError from "./is-context-overflow-error";
 import parseRetryAt from "./parse-retry-at";
 import redactProviderError from "./redact-provider-error";
 
@@ -26,6 +27,8 @@ type Params = {
  *   the same way, so it is `provider_wide`
  * - 408, 409, 425, 429, 5xx: `retryable`, with `retry_at` when the
  *   provider says
+ * - a 400 saying the prompt did not fit the model's window: `fatal`, and
+ *   the run stops with the provider's own limit (`isContextOverflowError`)
  * - anything else (400, 403, 404, 422): only another model can help. A
  *   403 is about the model (OpenRouter refuses some free models to most
  *   apps), not the key
@@ -54,12 +57,26 @@ export default function toHarnessError({
         address = addressText({ detail, method, url }),
         hint = missing_endpoint ? " - no endpoint at that address; check the provider's base URL" : "";
 
+    /**
+     * A prompt that did not fit the model's window is the one 400 no
+     * fallback model or retry fixes: the run was sized for a window this
+     * model does not have, and the provider has just said what it is. The
+     * run stops with this message, so the user reads the real limit rather
+     * than a bot that trimmed every result and answered from nothing.
+     */
+    const overflow = isContextOverflowError({ status, detail: provider_detail });
+
+    const advice = overflow
+        ? "\nSet this model's context window under Settings > Models: a model with none declared is assumed to have 1,000,000."
+        : "";
+
     const retryable = [408, 409, 425, 429].includes(status) || status >= 500;
 
     return new HarnessError({
-        message: redactProviderError({ text: `${provider_name}: ${detail}${address}${hint}` }).slice(0, 400),
+        message: `${redactProviderError({ text: `${provider_name}: ${detail}${address}${hint}` }).slice(0, overflow ? 320 : 400)}${advice}`,
         status,
         retryable,
+        fatal: overflow,
         retry_at: retryable && headers ? parseRetryAt({ headers }) : undefined,
         provider_wide: status == 401 || status == 402,
         candidate_key,

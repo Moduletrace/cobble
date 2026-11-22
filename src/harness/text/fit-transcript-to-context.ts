@@ -8,30 +8,35 @@ type Params = {
      */
     transcript: HarnessMessage[];
     /**
-     * The model's context window, in tokens.
+     * The working context (`workingContextTokens`): the most a turn may
+     * send, the model's window less the room its answer needs, or the
+     * install's own tighter cap.
      */
-    context_length: number;
-    /**
-     * The working context (`grabContextBudgetTokens`): the most the prompt
-     * may be per turn, whatever the window. Left out, only the window
-     * limits it.
-     */
-    budget_tokens?: number;
+    working_tokens: number;
     /**
      * Characters of the tool definitions sent with every turn: they count
      * against the budget like the prompt.
      */
     tools_chars?: number;
     /**
-     * The newest messages, never trimmed: the model needs them to go on.
+     * The newest messages: the passes that cut everything else leave them
+     * alone, so the turn the run is working from keeps its answer. Only the
+     * last resort (still over budget with nothing older left to cut) cuts
+     * their tool results, and what the user wrote is never cut at all.
      */
     keep_last?: number;
 };
 
 /**
- * Share of the window the prompt may fill; the rest is for the answer.
+ * Why the prompt still doesn't fit:
+ * - `static`: the system prompt and tool definitions alone are past the
+ *   working context, so no amount of trimming can help and the run must
+ *   stop and say so
+ * - `request`: what is over is the conversation itself, most often what
+ *   the user wrote, which is never cut
  */
-const PromptShare = 0.7;
+export type OverBudgetCause = "static" | "request";
+
 /**
  * Once over budget, trimming goes on down to this share of it. Cutting in
  * one block, rather than one message each turn, keeps the start of the
@@ -55,6 +60,14 @@ const MediaTokens = 1500;
  */
 const TrimmedKeepChars = 500;
 /**
+ * A result no longer than this is kept whole. Cutting it saved nothing
+ * worth a note, and a short result used to be replaced by the note alone:
+ * a 14-character answer from a shell reached the model as "Trimmed: 14
+ * characters", so the run was reading nothing at all and went on doing it
+ * for the rest of its steps.
+ */
+const ResultKeepWholeChars = TrimmedKeepChars * 4;
+/**
  * Tool call arguments longer than this (a file written whole) are cut on
  * the second pass, after the tool results.
  */
@@ -62,35 +75,51 @@ const ArgumentsKeepChars = 1500;
 
 /**
  * Keeps a long tool run inside its working context: once the estimated
- * prompt (system, tool definitions, transcript) passes the budget (the
- * working context, or 70% of the window when that is smaller), the
- * oldest tool results, then long tool call arguments, then the oldest
- * assistant texts are replaced with a note of what was cut, down to 60%
- * of the budget. Returns how many messages were trimmed, and whether the
- * prompt still doesn't fit (nothing trimmable was left: the conversation
- * is the user's own text, which is never cut).
+ * prompt (system, tool definitions, transcript) passes it, the oldest tool
+ * results, then long tool call arguments, then the oldest assistant texts
+ * are replaced with a note of what was cut, down to 60% of it. The newest
+ * turn's results are cut last, and only once everything older is gone.
+ * Reports how many messages were trimmed, and, when the prompt still
+ * doesn't fit, whether the static part is the cause.
  */
 export default function fitTranscriptToContext({
     system,
     transcript,
-    context_length,
-    budget_tokens,
+    working_tokens,
     tools_chars = 0,
     keep_last = 4,
 }: Params) {
-    const window_budget = Math.floor(context_length * PromptShare);
-    const budget = budget_tokens && budget_tokens > 0 ? Math.min(window_budget, budget_tokens) : window_budget;
-    let total =
-        estimateTokens({ text: system }) +
-        Math.ceil(tools_chars / CharsPerToken) +
-        transcript.reduce((sum, m) => sum + messageTokens({ message: m }), 0);
+    const budget = working_tokens;
+    const system_tokens = estimateTokens({ text: system });
+    const tools_tokens = Math.ceil(tools_chars / CharsPerToken);
+    const base = system_tokens + tools_tokens;
+    let total = base + transcript.reduce((sum, m) => sum + messageTokens({ message: m }), 0);
     let trimmed = 0;
 
-    if (total <= budget) return { trimmed, estimated_tokens: total, budget, over_budget: false };
+    if (total <= budget) {
+        return {
+            trimmed,
+            estimated_tokens: total,
+            budget,
+            base,
+            system_tokens,
+            tools_tokens,
+            over_budget: false as false | OverBudgetCause,
+        };
+    }
 
     const target = Math.floor(budget * TrimToShare);
     const trimmable = transcript.length - keep_last;
     const names = toolNames({ transcript });
+    /**
+     * Everything after the newest user turn is what the run is working
+     * from right now. Cutting it is the last resort, not the first: it is
+     * why a run over budget kept its command and lost its answer.
+     */
+    const newest_turn = Math.max(
+        0,
+        Math.min(trimmable, transcript.reduce((last, message, index) => (message.role == "user" ? index : last), trimmable)),
+    );
 
     const replace = ({ index, message }: { index: number; message: HarnessMessage }) => {
         const before = messageTokens({ message: transcript[index]! });
@@ -104,24 +133,22 @@ export default function fitTranscriptToContext({
      * A tool result cut down to its two ends and a note: the run works from
      * what it kept, rather than paying for the call again.
      */
-    const trimResult = ({ index, content, name }: { index: number; content: string; name: string | undefined }) => {
-        const kept = content.length > TrimmedKeepChars * 4;
-        const head = kept ? content.slice(0, TrimmedKeepChars) : "";
-        const tail = kept ? content.slice(-TrimmedKeepChars) : "";
+    const trimResult = ({ content, name }: { content: string; name: string | undefined }) => {
+        const head = content.slice(0, TrimmedKeepChars);
+        const tail = content.slice(-TrimmedKeepChars);
         const cut = content.length - head.length - tail.length;
         const label = name ? `${name} output` : "tool output";
-
-        if (!kept) return `[Trimmed: ${cut} characters of this ${label} to fit the working context.]`;
 
         const note = `[Trimmed: ${cut} characters of the middle of this ${label} to fit the working context. Its start and end are kept here: work from them, and narrow the call (a smaller range, a filter, one row) rather than repeating it.]`;
 
         return `${head}\n\n${note}\n\n${tail}`;
     };
 
-    for (let index = 0; index < trimmable && total > target; index++) {
+    const trimToolResult = ({ index }: { index: number }) => {
         const message = transcript[index]!;
 
-        if (message.role != "tool" || isTrimmed({ text: message.content })) continue;
+        if (message.role != "tool" || isTrimmed({ text: message.content })) return;
+        if (message.content.length <= ResultKeepWholeChars) return;
 
         const name = names.get(message.tool_call_id);
 
@@ -129,12 +156,14 @@ export default function fitTranscriptToContext({
             index,
             message: {
                 ...message,
-                content: trimResult({ index, content: message.content, name }),
+                content: trimResult({ content: message.content, name }),
             },
         });
-    }
+    };
 
-    for (let index = 0; index < trimmable && total > target; index++) {
+    for (let index = 0; index < newest_turn && total > target; index++) trimToolResult({ index });
+
+    for (let index = 0; index < newest_turn && total > target; index++) {
         const message = transcript[index]!;
 
         if (message.role != "assistant" || !message.tool_calls?.some((call) => call.arguments.length > ArgumentsKeepChars)) {
@@ -159,7 +188,7 @@ export default function fitTranscriptToContext({
         });
     }
 
-    for (let index = 0; index < trimmable && total > target; index++) {
+    for (let index = 0; index < newest_turn && total > target; index++) {
         const message = transcript[index]!;
 
         if (message.role != "assistant" || typeof message.content != "string" || isTrimmed({ text: message.content })) {
@@ -183,23 +212,17 @@ export default function fitTranscriptToContext({
      * they are cut last, and only once everything older is gone. A user's
      * own text is never touched.
      */
-    for (let index = Math.max(trimmable, 0); index < transcript.length && total > target; index++) {
-        const message = transcript[index]!;
+    for (let index = newest_turn; index < transcript.length && total > target; index++) trimToolResult({ index });
 
-        if (message.role != "tool" || isTrimmed({ text: message.content })) continue;
-
-        const name = names.get(message.tool_call_id);
-
-        replace({
-            index,
-            message: {
-                ...message,
-                content: trimResult({ index, content: message.content, name }),
-            },
-        });
-    }
-
-    return { trimmed, estimated_tokens: total, budget, over_budget: total > budget };
+    return {
+        trimmed,
+        estimated_tokens: total,
+        budget,
+        base,
+        system_tokens,
+        tools_tokens,
+        over_budget: total > budget ? (base >= budget ? ("static" as const) : ("request" as const)) : (false as const),
+    };
 }
 
 /**

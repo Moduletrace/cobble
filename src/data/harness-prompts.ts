@@ -577,19 +577,49 @@ export const repairedAnswerNote = `_Part of this answer was left out: it describ
 
 /**
  * Told once, when the prompt no longer fits the working context even after
- * everything trimmable was trimmed: what is left is what the user wrote,
- * which the app never cuts. A run that keeps reading whole files into the
- * conversation only makes the next turn larger, and its answer is paid for
- * out of whatever room is left. Told rather than trimming the request: the
- * model has to know it may not be seeing all of a pasted brief, so it says
- * what it could not reach instead of inventing the rest.
+ * everything trimmable was trimmed. What is left is the conversation, most
+ * of it what the user wrote, which the app never cuts, and the app's own
+ * instructions and tool definitions, which it cannot cut either. A run that
+ * keeps reading whole files into the conversation only makes the next turn
+ * larger, and its answer is paid for out of whatever room is left. Told
+ * rather than trimming the request: the model has to know it may not be
+ * seeing all of a pasted brief, so it says what it could not reach instead
+ * of inventing the rest.
  */
-export const oversizedRequestNote = ({ budget }: { budget: number }) =>
-    `This conversation is already larger than the working context this model may be sent (about ${budget.toLocaleString("en-US")} tokens), and none of what is over is yours to trim: the app cuts tool output, never what the user wrote. Every turn resends all of it, so reading more makes the next one worse.
+export const oversizedRequestNote = ({ budget, base, conversation }: { budget: number; base: number; conversation: number }) =>
+    `This conversation is already larger than the working context this model may be sent (about ${budget.toLocaleString("en-US")} tokens), and everything the app is allowed to cut has been cut. Of what is left, about ${base.toLocaleString("en-US")} tokens are the app's own instructions and tool definitions, and about ${conversation.toLocaleString("en-US")} are the conversation itself. Every turn resends all of it, so reading more makes the next one worse.
 
 From here: stop pulling whole files, whole pages or entire command outputs into the conversation. Work from what you already have, read only the piece you need (a line range, a filter, grep), write what must be kept to a file rather than into a message, and answer on this turn.
 
 If what you need sits in a part of the request you cannot reach in one piece, say plainly what you could and could not read, and ask the user to attach it as a file, put it in a knowledgebase, or point you at a path. A guess presented as a reading of it is worse than saying it was too long.`;
+
+/**
+ * The failure a run stops on when its instructions and tool definitions
+ * alone are past the working context (`fitTranscriptToContext`'s
+ * `over_budget: "static"`). Nothing can be trimmed into that room, so a
+ * run that went on trimmed every tool result of every turn and answered
+ * from nothing: one read a 14-character shell answer as "Trimmed: 14
+ * characters" for thirty steps. The user is told the arithmetic and where
+ * to fix it, instead of watching a bot go blind.
+ */
+export const staticPromptOverBudgetNote = ({
+    working,
+    window,
+    assumed,
+    base,
+    system,
+    tools,
+}: {
+    working: number;
+    window: number;
+    assumed: boolean;
+    base: number;
+    system: number;
+    tools: number;
+}) =>
+    `This run stopped before its first answer: the model's working context is about ${working.toLocaleString("en-US")} tokens${assumed ? " (the model declares no context window, so the app assumed one)" : ` (a ${window.toLocaleString("en-US")} token window)`}, and this run's own instructions and tool definitions already take about ${base.toLocaleString("en-US")} of them (system prompt about ${system.toLocaleString("en-US")}, tools about ${tools.toLocaleString("en-US")}), which leaves no room for the conversation. Nothing was trimmed, because trimming could not have helped.
+
+If the model's real window is bigger than that, set it on its provider in Settings > Models. If it is not, choose a model with a larger window for this bot, or give it fewer extensions (MCP servers, browsers and connectors add tool definitions to every turn).`;
 
 /**
  * Told when the app has had to trim earlier tool output from the transcript

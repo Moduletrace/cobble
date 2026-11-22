@@ -108,6 +108,13 @@ export type HarnessTool<Args = any> = {
      */
     deferred?: boolean;
     /**
+     * The bot's own tools are named by group (`tasks`, `plans`, `files`,
+     * ...) so a run short of window can keep a whole family out of every
+     * turn and load it by name, while a model with room keeps them all
+     * inline (`groupTools`). Extensions have none: they are deferred whole.
+     */
+    group?: string;
+    /**
      * This call's deadline, overriding `AppData.HarnessToolTimeoutMs`: a
      * bigger one for a tool with its own slow work, `null` for none at all
      * (`computer_bash`, whose command may run for hours).

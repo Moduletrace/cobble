@@ -170,7 +170,7 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 rawNumber
                 defaultValue={context_length}
                 suffix="tokens"
-                info={`The window every model this provider lists without one of its own is given. Leave empty if its list carries them (OpenRouter's does); a run assumes ${AppData.HarnessUnknownContextWindow.toLocaleString("en-US")} when nothing says.`}
+                info={`The window every model this provider lists without one of its own is given. Leave empty if its list carries them (OpenRouter's does). A run sizes itself to the model's window less the room its answer needs, so with nothing declared it assumes ${AppData.HarnessUnknownContextWindow.toLocaleString("en-US")} tokens, and a smaller model refuses such a prompt and stops the run with its own limit.`}
                 onChange={(e) => setContextLength(e.target.value)}
                 placeholder="Eg. 1,000,000"
             />

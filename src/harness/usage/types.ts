@@ -80,6 +80,14 @@ export type HarnessCallLimits = {
     steps: RunLimit | null;
     run_tokens: RunLimit | null;
     context_tokens: RunLimit | null;
+    /**
+     * How much of the working context the app's own prompt spends before
+     * the conversation: the system prompt and the tool definitions, resent
+     * on every turn. A bot asked to explain why a run had room for so
+     * little needs both halves, not just the total.
+     */
+    system_tokens?: number;
+    tools_tokens?: number;
 };
 
 export type HarnessUsageCall = {

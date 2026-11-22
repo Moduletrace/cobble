@@ -56,6 +56,7 @@ export default async function grabHarnessModelEntries({
                 voices: model.voices,
                 input_modalities: model.input_modalities,
                 supported_parameters: model.supported_parameters,
+                context_length: model.context_length,
             },
         };
     });

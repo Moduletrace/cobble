@@ -26,6 +26,12 @@ type Params = {
      * instead of leaving the bot to guess one.
      */
     model_name?: string;
+    /**
+     * No fallback and no retry can help: another model fails the same way
+     * (or the caller's own prompt is the problem), so the run stops with
+     * this message rather than spending the next candidate on it.
+     */
+    fatal?: boolean;
 };
 
 /**
@@ -57,6 +63,11 @@ export default class HarnessError extends Error {
     method?: string;
     url?: string;
     model_name?: string;
+    /**
+     * Nothing else can be tried: `withCandidates` rethrows it at once,
+     * without resting the candidate or falling back to another model.
+     */
+    fatal: boolean;
 
     constructor({
         message,
@@ -70,6 +81,7 @@ export default class HarnessError extends Error {
         method,
         url,
         model_name,
+        fatal = false,
     }: Params) {
         super(message);
         this.name = "HarnessError";
@@ -83,5 +95,6 @@ export default class HarnessError extends Error {
         this.method = method;
         this.url = url;
         this.model_name = model_name;
+        this.fatal = fatal;
     }
 }

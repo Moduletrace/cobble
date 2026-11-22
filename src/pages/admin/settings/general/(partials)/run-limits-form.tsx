@@ -53,7 +53,14 @@ const valuesOf = (limits?: RunLimitsOverview | null): Values => {
  * per task, ...".
  */
 const savedMessage = (limits: RunLimitsOverview) =>
-    `Saved: ${described(limits.task_steps)} steps per task, ${described(limits.reply_steps)} per chat reply, ${described(limits.unattended_steps)} per routine or hook call, ${described(limits.run_tokens)} prompt tokens per run, ${described(limits.context_tokens)} tokens of working context, and ${described(limits.model_rest_seconds)} seconds of model rest.`;
+    `Saved: ${described(limits.task_steps)} steps per task, ${described(limits.reply_steps)} per chat reply, ${described(limits.unattended_steps)} per routine or hook call, ${described(limits.run_tokens)} prompt tokens per run, ${workingContextText(limits.context_tokens)}, and ${described(limits.model_rest_seconds)} seconds of model rest.`;
+
+/**
+ * A working context that is unlimited is the model's own window, not a
+ * number: "unlimited tokens" read as if a run could send anything.
+ */
+const workingContextText = (limit: RunLimit) =>
+    isUnlimitedLimit(limit) ? "the model's own window as working context" : `${count(limit)} tokens of working context`;
 
 /**
  * How long a bot may work on one run: the model turns a task, a chat
@@ -282,7 +289,7 @@ export default function RunLimitsForm({ limits }: Props) {
                     suffix="tokens"
                     onChange={change("context_tokens")}
                     onUnlimitedChange={changeUnlimited("context_tokens")}
-                    info={`How much a run sends per turn (its prompt, its tools and what it has done so far) before the oldest tool output is cut, whatever the model's window. Smaller costs less per turn; larger lets a bot keep more of what it read. Between ${count(overview?.context_tokens_min)} and ${count(overview?.context_tokens_max)}; 0 uses the default (${described(overview?.context_tokens_default ?? 0)}). With No limit on, the model's own window decides.`}
+                    info={`How much of the model's window a run may use per turn, once the room its answer needs is kept back (a tenth of the window, between 8,000 and 64,000 tokens, unless the model declares its own output size). What the app's instructions and tool definitions take comes out of it first, and only what is left holds the conversation. Unset, the model's own window decides; a number holds every run below it (smaller costs less per turn, larger lets a bot keep more of what it read). Between ${count(overview?.context_tokens_min)} and ${count(overview?.context_tokens_max)}; 0 puts the default back.`}
                 />
                 <RunLimitInput
                     id="model_rest_seconds"
