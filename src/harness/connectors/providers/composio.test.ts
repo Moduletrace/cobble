@@ -132,16 +132,14 @@ describe("composioConnectorProvider", () => {
 
     test("starts a sign-in with the app's sign-in setup and keeps what the provider returns", async () => {
         const { fetchImpl, calls } = stub({
-            answer: ({ url, method }) =>
-                url.pathname.endsWith("/auth_configs") && method == "GET"
-                    ? { body: { items: [{ id: "ac_1", auth_scheme: "OAUTH2" }] } }
-                    : {
-                          body: {
-                              redirect_url: "https://connect/x",
-                              connected_account_id: "ca_9",
-                              expires_at: "2027-01-01T00:00:00Z",
-                          },
-                      },
+            answer: ({ url, method }) => {
+                if (url.pathname.endsWith("/tool_router/session")) return { status: 201, body: { session_id: "trs_1" } };
+                if (url.pathname.endsWith("/tool_router/session/trs_1/link")) {
+                    return { status: 201, body: { redirect_url: "https://connect/x", connected_account_id: "ca_9", expires_at: "2027-01-01T00:00:00Z" } };
+                }
+
+                return method == "GET" ? { body: { items: [{ id: "ac_1", auth_scheme: "OAUTH2" }] } } : { body: {} };
+            },
         });
 
         const started = await composioConnectorProvider({ key: "k", fetchImpl }).startConnect({
@@ -155,20 +153,24 @@ describe("composioConnectorProvider", () => {
         expect(started.provider_account_id).toBe("ca_9");
         expect(started.expires_at).toBe(Date.parse("2027-01-01T00:00:00Z"));
 
-        const link = calls.find((call) => call.url.pathname.endsWith("/connected_accounts/link"))!;
+        const session = calls.find((call) => call.url.pathname.endsWith("/tool_router/session"))!;
 
-        expect(link.body.toolkit_slug).toBe("gmail");
+        expect(session.body.multi_account).toEqual({ enable: true, max_accounts_per_toolkit: 5 });
+
+        const link = calls.find((call) => call.url.pathname.endsWith("/tool_router/session/trs_1/link"))!;
+
+        expect(link.body.toolkit).toBe("gmail");
         expect(link.body.auth_config_id).toBe("ac_1");
-        expect(link.body.account_label).toBe("Work");
         expect(link.body.callback_url).toBeUndefined();
+        expect(calls.some((call) => call.url.pathname.endsWith("/connected_accounts/link"))).toBe(false);
     });
 
     test("makes a managed sign-in setup when the app has none", async () => {
         const { fetchImpl, calls } = stub({
             answer: ({ url, method }) => {
-                if (!url.pathname.endsWith("/auth_configs")) {
-                    return { body: { redirect_url: "https://connect/y" } };
-                }
+                if (url.pathname.endsWith("/tool_router/session")) return { status: 201, body: { session_id: "trs_1" } };
+                if (url.pathname.endsWith("/link")) return { status: 201, body: { redirect_url: "https://connect/y" } };
+                if (!url.pathname.endsWith("/auth_configs")) return { body: {} };
 
                 return method == "POST" ? { status: 201, body: { auth_config: { id: "ac_new" } } } : { body: { items: [] } };
             },

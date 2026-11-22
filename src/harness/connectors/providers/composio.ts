@@ -23,6 +23,8 @@ type Params = {
 
 const DefaultBaseUrl = "https://backend.composio.dev/api/v3.1";
 const PageLimit = 100;
+/** Composio keeps one account per app unless a session allows more; 5 is its own ceiling in the docs. */
+const MaxAccountsPerToolkit = 5;
 const MaxPages = 20;
 
 const Statuses: Record<string, ProviderAccountStatus> = {
@@ -230,19 +232,36 @@ export default function composioConnectorProvider({ key, base_url, fetchImpl }: 
             } satisfies ConnectorEndpoint;
         },
 
-        async startConnect({ app, user_id, label, auth_config_id, callback_url }: StartConnectParams) {
+        async startConnect({ app, user_id, auth_config_id, callback_url }: StartConnectParams) {
             const config = await authConfigFor({ app, auth_config_id });
 
+            // A plain connected-accounts link replaces the app's account for
+            // that user, so a second sign-in would take the first one away.
+            // A multi-account session keeps both, which is what a connection
+            // named "Work" beside one named "Personal" needs.
+            const session = await request<any>({
+                path: "/tool_router/session",
+                method: "POST",
+                what: `a sign-in session for ${app}`,
+                body: {
+                    user_id: `cobble-user-${user_id}`,
+                    toolkits: { enable: [app] },
+                    multi_account: { enable: true, max_accounts_per_toolkit: MaxAccountsPerToolkit },
+                },
+            });
+
+            const session_id = session.session_id || session.id;
+
+            if (!session_id) throw new AppError(`Composio didn't open a sign-in session for ${app}.`);
+
             const answer = await request<any>({
-                path: "/connected_accounts/link",
+                path: `/tool_router/session/${session_id}/link`,
                 method: "POST",
                 what: `a sign-in link for ${app}`,
                 body: {
-                    toolkit_slug: app,
-                    user_id: `cobble-user-${user_id}`,
+                    toolkit: app,
                     auth_config_id: config,
-                    callback_url,
-                    ...(label ? { account_label: label } : {}),
+                    ...(callback_url ? { callback_url } : {}),
                 },
             });
 

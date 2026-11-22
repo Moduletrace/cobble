@@ -72,8 +72,17 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
         await BunSQLite.sql({ sql: `UPDATE connector_accounts SET is_default = 1 WHERE id = ?`, values: [firstConnected] });
     }
 
-    if (accounts.some((account) => account.status == "connected")) {
-        await settleRequests({ connector_id: connector.id, user_id: Number(user_id) });
+    const connected_ids = accounts
+        .filter((account) => account.status == "connected")
+        .map((account) => account.provider_account_id)
+        .filter(Boolean);
+
+    if (connected_ids.length) {
+        await settleRequests({
+            connector_id: connector.id,
+            user_id: Number(user_id),
+            provider_account_ids: connected_ids,
+        });
     }
 
     return grabUserAccounts({ connector_id: connector.id, user_id: Number(user_id) });
@@ -151,20 +160,35 @@ async function upsertAccount({ connector_id, user_id, account, fallback_label }:
 type SettleParams = {
     connector_id: number;
     user_id: number;
+    provider_account_ids: string[];
 };
 
 /**
- * A connect request is done the moment an account is connected: the card
- * under the reply says so instead of offering the link again.
+ * A connect request is done only when the account it made is connected: a
+ * second sign-in must not be closed by the first account that was already
+ * there (`provider_account_id` is what the provider returned for this link).
+ * A request the provider gave no id for falls back to an account created
+ * after the request.
  */
-async function settleRequests({ connector_id, user_id }: SettleParams) {
+async function settleRequests({ connector_id, user_id, provider_account_ids }: SettleParams) {
     const now = Date.now();
+    const placeholders = provider_account_ids.map(() => "?").join(", ");
 
     await BunSQLite.sql({
         sql: `UPDATE connector_requests SET status = 'connected', updated_at = ?
             WHERE connector_id = ? AND user_id = ? AND status = 'pending'
-            AND expires_at > ?`,
-        values: [now, connector_id, user_id, now],
+            AND expires_at > ?
+            AND (
+                (provider_account_id != '' AND provider_account_id IN (${placeholders}))
+                OR (provider_account_id == '' AND EXISTS (
+                    SELECT 1 FROM connector_accounts a
+                    WHERE a.connector_id = connector_requests.connector_id
+                    AND a.user_id = connector_requests.user_id
+                    AND a.status = 'connected'
+                    AND a.created_at >= connector_requests.created_at
+                ))
+            )`,
+        values: [now, connector_id, user_id, now, ...provider_account_ids],
     });
 }
 

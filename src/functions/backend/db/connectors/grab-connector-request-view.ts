@@ -40,15 +40,23 @@ export default async function grabConnectorRequestView({ request_id, user_id }: 
         });
     }
 
+    const request_account = String(row.provider_account_id || "");
+
+    // Only the account this request made counts: any connected one would
+    // close a second sign-in with the first account's label, which is how a
+    // second Gmail account looked already connected.
     const accountRows = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS>({
-            sql: `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status = 'connected' ORDER BY id ASC`,
-            values: [connector.id, Number(user_id)],
+            sql: request_account
+                ? `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status = 'connected' AND provider_account_id = ? LIMIT 1`
+                : `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status = 'connected' AND created_at >= ? ORDER BY id ASC LIMIT 1`,
+            values: request_account
+                ? [connector.id, Number(user_id), request_account]
+                : [connector.id, Number(user_id), Number(row.created_at || 0)],
         })
     ).payload || [];
 
-    const matching =
-        accountRows.find((account) => account.provider_account_id == row.provider_account_id) || accountRows[0] || null;
+    const matching = accountRows[0] || null;
 
     if (status == "pending" && matching) {
         status = "connected";

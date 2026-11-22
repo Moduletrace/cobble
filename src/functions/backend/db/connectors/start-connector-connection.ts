@@ -18,18 +18,18 @@ type Params = {
 
 type Result = {
     /**
-     * Null when the user already has a connected account: there is nothing
-     * to sign in to.
+     * The sign-in link. Always made: a person can keep several accounts on
+     * one app (a work Gmail beside a personal one), so an account already
+     * connected never stands in for the new one.
      */
     request: ConnectorRequestPayload | null;
     accounts: ConnectorAccountRecord[];
 };
 
 /**
- * Starts (or finds) a sign-in for one connector, after reading what the
- * provider already has: a user who connected it before gets no second link.
- * The request outlives the page that made it, so the card under a reply and
- * Settings > Connectors both read it the same way.
+ * Starts a sign-in for one connector. The request outlives the page that
+ * made it, so the card under a reply and Settings > Connectors both read it
+ * the same way.
  */
 export default async function startConnectorConnection({
     user_id,
@@ -43,9 +43,6 @@ export default async function startConnectorConnection({
     if (!connector.enabled) throw new AppError(`${connector.name} is turned off, so it can't be connected right now.`);
 
     const accounts = await syncConnectorAccounts({ user_id, connector_id: connector.id, label });
-    const connected = accounts.filter((account) => account.status == "connected");
-
-    if (connected.length) return { request: null, accounts };
 
     const request = await createConnectorRequest({
         user_id: Number(user_id),

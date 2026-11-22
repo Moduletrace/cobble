@@ -39,7 +39,21 @@ export default function ConnectorConnectModal({ connector, onConnected, onCancel
             title={`New ${connector.name} connection`}
             description="The sign-in happens at the provider, and it keeps the credentials. Your bots only ever reach the account it makes."
         >
-            <Form className="w-full flex-col gap-4! items-stretch" submitHandler={() => { setError(""); connect.start({ connector_id: connector.id, label }); }}>
+            <Form
+                className="w-full flex-col gap-4! items-stretch"
+                submitHandler={() => {
+                    const name = label.trim();
+
+                    if (!name) {
+                        setError("Name this connection, so you can tell it apart from another account of the same app.");
+
+                        return;
+                    }
+
+                    setError("");
+                    connect.start({ connector_id: connector.id, label: name });
+                }}
+            >
                 <Input
                     id={`connector-${connector.id}-new-label`}
                     title="Account name"

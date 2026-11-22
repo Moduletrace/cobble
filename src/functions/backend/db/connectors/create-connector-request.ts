@@ -40,10 +40,11 @@ export default async function createConnectorRequest({
     label,
 }: Params): Promise<ConnectorRequest> {
     const now = Date.now();
+    const name = label || connector.name;
     const open = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_REQUESTS>({
-            sql: `SELECT * FROM connector_requests WHERE connector_id = ? AND user_id = ? AND status = 'pending' AND expires_at > ? ORDER BY id DESC LIMIT 1`,
-            values: [connector.id, user_id, now],
+            sql: `SELECT * FROM connector_requests WHERE connector_id = ? AND user_id = ? AND label = ? AND status = 'pending' AND expires_at > ? ORDER BY id DESC LIMIT 1`,
+            values: [connector.id, user_id, name, now],
         })
     ).payload?.[0];
 
@@ -53,7 +54,7 @@ export default async function createConnectorRequest({
     const started = await provider.startConnect({
         app: connector.app,
         user_id,
-        label: label || connector.name,
+        label: name,
         auth_config_id: connector.auth_config_id,
     });
 
@@ -84,7 +85,7 @@ export default async function createConnectorRequest({
                 user_id,
                 bot_id: bot_id ?? undefined,
                 bot_session_id: session_id ?? undefined,
-                label: label || connector.name,
+                label: name,
                 url: started.url,
                 provider_account_id: started.provider_account_id || undefined,
                 status: "pending",
