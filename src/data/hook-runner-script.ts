@@ -182,7 +182,15 @@ def start(runner, env, log_max):
             "version": runner.get("version") or "",
         },
     )
+    # A login shell can still be reading its profiles when the first look
+    # happens, so give a process that exits soon a moment to be seen doing
+    # it: another 1.2s costs nothing here and keeps a dead runner from
+    # being reported as running.
+    deadline = time.time() + 1.2
     code = child.poll()
+    while code is None and time.time() < deadline:
+        time.sleep(0.1)
+        code = child.poll()
     if code is not None:
         tail = log_tail(runner_id, 400)
         try:
