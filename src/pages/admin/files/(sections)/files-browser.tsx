@@ -5,6 +5,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { StorageFolderPayload, StorageSpecOption } from "@/src/types";
 import type { StorageSpec } from "@/src/utils/storage-volumes";
+import { storageBreadcrumbs } from "@/src/utils/storage-volumes";
 import { emptyFolderText, folderSummary } from "@/src/utils/folder-text";
 import imagePreviewGallery from "@/src/utils/image-preview-gallery";
 import FilesBreadcrumbRow from "@/src/components/general/files-breadcrumb-row";
@@ -48,6 +49,7 @@ export default function FilesBrowser({
         () => imagePreviewGallery({ items: (folder?.entries || []).map((entry) => ({ ...entry, url: entry.url || "" })) }),
         [folder],
     );
+    const crumbs = spec ? storageBreadcrumbs({ spec, path }) : folder?.breadcrumbs || [];
 
     return (
         <Row className="w-full mt-6 gap-6! flex-wrap items-start lg:flex-nowrap">
@@ -82,16 +84,14 @@ export default function FilesBrowser({
                 <Stack className="grow min-w-0 w-full items-stretch">
                     <Stack className="gap-1! items-stretch">
                         <H2 className="text-[18px]! leading-6 font-bold tracking-normal text-ink">
-                            {folder?.breadcrumbs.at(-1)?.name ||
-                                folder?.label ||
-                                "Files"}
+                            {crumbs.at(-1)?.name || folder?.label || "Files"}
                         </H2>
                         <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                            {folderSummary({ folder })}
+                            {folderSummary({ folder, loading })}
                         </Span>
                     </Stack>
                     <FilesBreadcrumbRow
-                        crumbs={folder?.breadcrumbs || []}
+                        crumbs={crumbs}
                         onOpenFolder={onOpenFolder}
                     />
                     <FilesSearchInput value={search} onChange={onSearch} />

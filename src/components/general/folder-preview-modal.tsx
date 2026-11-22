@@ -11,7 +11,12 @@ import useStorageFolder from "@/src/hooks/use-storage-folder";
 import useTopModalEscape from "@/src/hooks/use-top-modal-escape";
 import { emptyFolderText, folderSummary } from "@/src/utils/folder-text";
 import imagePreviewGallery from "@/src/utils/image-preview-gallery";
-import { storagePathName, storageSpecHref, type StorageSpec } from "@/src/utils/storage-volumes";
+import {
+    storageBreadcrumbs,
+    storagePathName,
+    storageSpecHref,
+    type StorageSpec,
+} from "@/src/utils/storage-volumes";
 import FilesBreadcrumbRow from "./files-breadcrumb-row";
 import FilesSearchInput from "./files-search-input";
 import StorageEntryRow from "./storage-entry-row";
@@ -38,8 +43,14 @@ export default function FolderPreviewModal({ spec, path: start_path, onClose }: 
     const [search, set_search] = useState("");
     const query = useDebouncedValue({ value: search.trim() });
     const { folder, loading, error } = useStorageFolder({ spec, path, search: query });
-    const name = folder?.breadcrumbs.at(-1)?.name || folder?.label || storagePathName({ volume: spec.volume, path });
-
+    const crumbs = useMemo(
+        () => storageBreadcrumbs({ spec, path }),
+        [spec.volume, spec.owner_id, path],
+    );
+    const name =
+        crumbs.at(-1)?.name ||
+        folder?.label ||
+        storagePathName({ volume: spec.volume, path });
     const gallery = useMemo(
         () => imagePreviewGallery({ items: (folder?.entries || []).map((entry) => ({ ...entry, url: entry.url || "" })) }),
         [folder],
@@ -69,7 +80,7 @@ export default function FolderPreviewModal({ spec, path: start_path, onClose }: 
                         {name}
                     </H2>
                     <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                        {folderSummary({ folder })}
+                        {folderSummary({ folder, loading })}
                     </Span>
                 </Stack>
                 <Link
@@ -82,10 +93,13 @@ export default function FolderPreviewModal({ spec, path: start_path, onClose }: 
                 </Link>
             </Row>
             <Stack className="w-full gap-0! items-stretch px-5">
-                <FilesBreadcrumbRow crumbs={folder?.breadcrumbs || []} onOpenFolder={openFolder} />
+                <FilesBreadcrumbRow crumbs={crumbs} onOpenFolder={openFolder} />
                 <FilesSearchInput value={search} onChange={set_search} />
             </Stack>
-            <Stack className="grow min-h-0 w-full mt-2 gap-0! items-stretch overflow-y-auto px-5 pb-4">
+            <Stack
+                key={`${path}|${query}`}
+                className="grow min-h-0 w-full mt-2 gap-0! items-stretch overflow-y-auto px-5 pb-4"
+            >
                 {folder?.entries.length ? (
                     folder.entries.map((entry) => (
                         <StorageEntryRow
@@ -98,7 +112,7 @@ export default function FolderPreviewModal({ spec, path: start_path, onClose }: 
                     ))
                 ) : (
                     <Span className="py-8 text-[13px] leading-[18px] text-ink-secondary">
-                        {emptyFolderText({ folder, search, loading, error })}
+                        {emptyFolderText({ folder, search: query, loading, error })}
                     </Span>
                 )}
             </Stack>

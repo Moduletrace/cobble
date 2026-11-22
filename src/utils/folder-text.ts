@@ -5,7 +5,14 @@ import type { StorageFolderPayload } from "@/src/types";
  * that isn't on disk, that it isn't there. A stale folder link must never
  * read as an empty folder.
  */
-export function folderSummary({ folder }: { folder: StorageFolderPayload | null }) {
+export function folderSummary({
+    folder,
+    loading,
+}: {
+    folder: StorageFolderPayload | null;
+    loading?: boolean;
+}) {
+    if (loading) return "Loading...";
     if (!folder) return "Pick a folder to look inside.";
 
     if (folder.missing) {

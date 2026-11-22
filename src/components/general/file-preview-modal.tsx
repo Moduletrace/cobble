@@ -84,44 +84,44 @@ export default function FilePreviewModal({
             }}
             className="max-w-[95vw]! w-[95vw] h-[90vh] p-0 bg-paper flex flex-col overflow-hidden"
         >
-            <Row className="w-full gap-3! flex-nowrap items-center pl-5 pr-14 py-3 border-0 border-b border-solid border-hairline">
-                <Stack className="min-w-0 grow gap-0! items-start">
+            <Stack className="w-full min-w-0 gap-1! items-stretch pl-5 pr-14 py-3 border-0 border-b border-solid border-hairline">
+                <Row className="w-full gap-3! flex-wrap sm:flex-nowrap items-center">
                     <H2
                         title={name}
-                        className="text-base! leading-6! tracking-normal! font-bold text-ink truncate w-full"
+                        className="text-base! leading-6! tracking-normal! font-bold text-ink truncate min-w-0 w-full sm:w-auto sm:grow"
                     >
                         {base_name}
                     </H2>
-                    <FilePreviewDetails size={size} full_path={full_path} />
-                </Stack>
-                {stepping ? (
-                    <FilePreviewStepper
-                        index={index}
-                        count={count}
-                        onPrevious={() => step({ by: -1 })}
-                        onNext={() => step({ by: 1 })}
-                    />
-                ) : null}
-                <Link
-                    href={url}
-                    download={base_name}
-                    title={`Download ${base_name}`}
-                    className={ActionClassName}
-                >
-                    <Download size={16} aria-hidden />
-                    <Span className="hidden sm:inline">Download</Span>
-                </Link>
-                <Link
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open in a new tab"
-                    aria-label="Open in a new tab"
-                    className={ActionClassName}
-                >
-                    <SquareArrowOutUpRight size={16} aria-hidden />
-                </Link>
-            </Row>
+                    {stepping ? (
+                        <FilePreviewStepper
+                            index={index}
+                            count={count}
+                            onPrevious={() => step({ by: -1 })}
+                            onNext={() => step({ by: 1 })}
+                        />
+                    ) : null}
+                    <Link
+                        href={url}
+                        download={base_name}
+                        title={`Download ${base_name}`}
+                        className={ActionClassName}
+                    >
+                        <Download size={16} aria-hidden />
+                        <Span className="hidden sm:inline">Download</Span>
+                    </Link>
+                    <Link
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in a new tab"
+                        aria-label="Open in a new tab"
+                        className={ActionClassName}
+                    >
+                        <SquareArrowOutUpRight size={16} aria-hidden />
+                    </Link>
+                </Row>
+                <FilePreviewDetails size={size} full_path={full_path} />
+            </Stack>
             <Stack className="relative grow min-h-0 gap-0! items-stretch w-full">
                 <FilePreviewBody
                     key={url}

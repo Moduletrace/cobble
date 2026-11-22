@@ -1,9 +1,9 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import listStorageEntries, { storageBreadcrumbs } from "@/src/functions/backend/storage/list-storage-entries";
+import listStorageEntries from "@/src/functions/backend/storage/list-storage-entries";
 import resolveStoragePath from "@/src/functions/backend/storage/resolve-storage-path";
 import resolveStorageSpec, { grabStorageSpecs } from "@/src/functions/backend/storage/resolve-storage-spec";
 import type { PagePropsType, StorageFolderPayload } from "@/src/types";
-import { parseStorageSpec, type StorageSpec } from "@/src/utils/storage-volumes";
+import { parseStorageSpec, storageBreadcrumbs, type StorageSpec } from "@/src/utils/storage-volumes";
 import type { BunextPageServerFn } from "@moduletrace/bunext/types";
 
 /**

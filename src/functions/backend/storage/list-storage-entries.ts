@@ -202,27 +202,3 @@ export function canSeePath({ resolved, path }: { resolved: ResolvedStorageSpec; 
 function joinPath({ relative, name }: { relative: string; name: string }) {
     return relative ? `${relative}/${name}` : name;
 }
-
-/**
- * The breadcrumb trail of a folder, from the volume's top: one crumb per
- * segment, each with the address that opens it.
- */
-export function storageBreadcrumbs({
-    spec,
-    path: relative,
-}: {
-    spec: StorageSpec;
-    path?: string | null;
-}) {
-    const segments = (relative || "").split("/").filter(Boolean);
-    const crumbs = [{ name: "", href: storageSpecHref({ spec }) }];
-
-    for (let i = 1; i <= segments.length; i++) {
-        crumbs.push({
-            name: segments[i - 1] || "",
-            href: storageSpecHref({ spec, path: segments.slice(0, i).join("/") }),
-        });
-    }
-
-    return crumbs;
-}

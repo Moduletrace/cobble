@@ -1,12 +1,12 @@
 import userAuth from "@/src/functions/backend/auth/user-auth";
-import listStorageEntries, { storageBreadcrumbs } from "@/src/functions/backend/storage/list-storage-entries";
+import listStorageEntries from "@/src/functions/backend/storage/list-storage-entries";
 import resolveStoragePath from "@/src/functions/backend/storage/resolve-storage-path";
 import resolveStorageSpec from "@/src/functions/backend/storage/resolve-storage-spec";
 import type { StorageFolderPayload } from "@/src/types";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import { StorageListRequestSchema } from "@/src/schemas/storage-schema";
-import { parseStorageSpec } from "@/src/utils/storage-volumes";
+import { parseStorageSpec, storageBreadcrumbs } from "@/src/utils/storage-volumes";
 import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bunext/types";
 
 /**

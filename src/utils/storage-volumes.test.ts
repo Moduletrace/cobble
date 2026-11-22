@@ -4,6 +4,7 @@ import {
     isSameStorageSpec,
     isStorageVolume,
     parseStorageSpec,
+    storageBreadcrumbs,
     storagePathName,
     storageSpecHref,
     storageVolumeFromRef,
@@ -74,6 +75,28 @@ describe("volume names", () => {
         expect(storageVolumeLabel({ volume: "mcp" })).toBe("MCP servers");
         expect(storagePathName({ volume: "computers", path: "seo/coderank/raw" })).toBe("raw");
         expect(storagePathName({ volume: "computers", path: "" })).toBe("Computers");
+    });
+});
+
+describe("storageBreadcrumbs", () => {
+    const spec = { volume: "computers", owner_id: 1 } as const;
+
+    test("at the top of a volume there is only the way back to it", () => {
+        expect(storageBreadcrumbs({ spec })).toEqual([
+            { name: "", href: `${StorageBrowserPath}?volume=computers&owner=1` },
+        ]);
+        expect(storageBreadcrumbs({ spec, path: "/" })).toHaveLength(1);
+    });
+
+    test("walks down one crumb per segment", () => {
+        expect(storageBreadcrumbs({ spec, path: "seo/raw mes" })).toEqual([
+            { name: "", href: `${StorageBrowserPath}?volume=computers&owner=1` },
+            { name: "seo", href: `${StorageBrowserPath}?volume=computers&owner=1&path=seo` },
+            {
+                name: "raw mes",
+                href: `${StorageBrowserPath}?volume=computers&owner=1&path=seo%2Fraw+mes`,
+            },
+        ]);
     });
 });
 

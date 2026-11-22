@@ -23,6 +23,11 @@ type Params = {
  * One folder of the files browser. The page's own copy is used when it is
  * the folder asked for and nothing is searched; anything else loads from
  * the API, so a page never carries the whole volume.
+ *
+ * A loaded folder is only ever handed back for the volume and path it
+ * belongs to: opening another folder shows its own name and a loading
+ * line, never the previous folder's entries (which would still be
+ * clickable, and open the folder the user just left).
  */
 export default function useStorageFolder({ spec, path, search, page_folder }: Params) {
     const from_page = Boolean(
@@ -33,21 +38,22 @@ export default function useStorageFolder({ spec, path, search, page_folder }: Pa
             page_folder.path == path &&
             !search,
     );
-    const [folder, set_folder] = useState<StorageFolderPayload | null>(
-        from_page ? page_folder || null : null,
+    const request_key = folderKey({ spec, path });
+    const [loaded, set_loaded] = useState<{ key: string; folder: StorageFolderPayload | null } | null>(
+        from_page && page_folder ? { key: request_key, folder: page_folder } : null,
     );
     const [loading, set_loading] = useState(!from_page && Boolean(spec));
     const [error, set_error] = useState<string>();
 
     useEffect(() => {
         if (!spec) {
-            set_folder(null);
+            set_loaded(null);
             set_loading(false);
             return;
         }
 
         if (from_page) {
-            set_folder(page_folder || null);
+            set_loaded({ key: request_key, folder: page_folder || null });
             set_loading(false);
             set_error(undefined);
             return;
@@ -77,12 +83,12 @@ export default function useStorageFolder({ spec, path, search, page_folder }: Pa
             set_loading(false);
 
             if (!res?.success || !res.singleRes) {
-                set_folder(null);
+                set_loaded({ key: request_key, folder: null });
                 set_error(res?.msg || `Couldn't open that folder.`);
                 return;
             }
 
-            set_folder(res.singleRes);
+            set_loaded({ key: request_key, folder: res.singleRes });
         };
 
         load().catch(() => {});
@@ -90,5 +96,16 @@ export default function useStorageFolder({ spec, path, search, page_folder }: Pa
         return () => controller.abort();
     }, [spec?.volume, spec?.owner_id, path, search, from_page, page_folder]);
 
-    return { folder, loading, error };
+    const folder = loaded?.key == request_key ? loaded.folder : null;
+    const pending = Boolean(spec) && loaded?.key != request_key;
+
+    return { folder, loading: loading || pending, error };
+}
+
+/**
+ * What a loaded folder belongs to: its volume, its owner and its path. A
+ * search is left out, since filtered entries are still that folder's.
+ */
+function folderKey({ spec, path }: { spec: Params["spec"]; path: string }) {
+    return `${spec?.volume || ""}:${spec?.owner_id ?? ""}:${path}`;
 }

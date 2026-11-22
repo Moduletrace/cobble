@@ -30,6 +30,11 @@ describe("folderSummary", () => {
     test("asks for a folder when there is none", () => {
         expect(folderSummary({ folder: null })).toBe("Pick a folder to look inside.");
     });
+
+    test("a folder still loading is never counted as none", () => {
+        expect(folderSummary({ folder: null, loading: true })).toBe("Loading...");
+        expect(folderSummary({ folder: folder({ total: 4 }), loading: true })).toBe("Loading...");
+    });
 });
 
 describe("emptyFolderText", () => {
