@@ -80,7 +80,7 @@ export default function ConnectorConnectionModal({ connection, onSaved, onCancel
             description={
                 connection
                     ? "Renaming keeps its apps. A new key lists them again."
-                    : "Each connection is one provider account with its own key, so a work account and a personal one live side by side. Once saved, every app that key holds is listed here: give one to every bot, a workspace or your own runs, and each person signs in to their own account for it."
+                    : "Each connection is one provider account with its own key, so a work account and a personal one live side by side. Once saved, every app that key holds is listed here: give one to every bot, a workspace or your own runs, and a workspace's apps use every account connected for them, whoever connected them."
             }
         >
             <Form className="w-full gap-4! items-stretch pt-4" onSubmit={submit}>

@@ -271,6 +271,8 @@ describe("composioConnectorProvider", () => {
             { provider_account_id: "ca_2", status: "expired", label: undefined },
         ]);
         expect(calls[0]!.url.searchParams.get("toolkit_slugs")).toBe("gmail");
+        expect(calls[0]!.url.searchParams.get("user_ids")).toBe("cobble-user-4");
+        expect(calls[0]!.url.searchParams.get("user_id")).toBeNull();
     });
 
     test("executes one tool with the account named in the call", async () => {

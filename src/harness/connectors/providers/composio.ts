@@ -330,9 +330,11 @@ export default function composioConnectorProvider({ key, base_url, fetchImpl }: 
         async accounts({ app, user_id }) {
             const items = await listAllPages<any>({
                 path: "/connected_accounts",
-                // The listing filters on the plural name only: `toolkit_slug`
-                // is ignored and answers with the whole project's accounts.
-                query: { user_id: `cobble-user-${user_id}`, toolkit_slugs: app },
+                // The listing filters on the plural names only: `toolkit_slug`
+                // and `user_id` are ignored and answer with the whole
+                // project's accounts, which is how one user's sync took over
+                // another's account.
+                query: { user_ids: `cobble-user-${user_id}`, toolkit_slugs: app },
                 what: `the ${app} accounts`,
             });
 

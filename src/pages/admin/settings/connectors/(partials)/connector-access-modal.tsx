@@ -107,7 +107,7 @@ export default function ConnectorAccessModal({
             setOpen={(next) => !next && onCancel()}
             title={`Who gets ${connector.name}`}
             description={
-                "A bot picked here is yours: it reaches the connector only in your runs there. A workspace reaches everyone working in it; every bot reaches the whole install."
+                "A bot picked here is yours: it reaches the connector only in your runs there, with your own accounts. A workspace reaches everyone working in it, with every account connected for this connector. Every bot reaches the whole install, each user with their own accounts."
             }
         >
             <Form

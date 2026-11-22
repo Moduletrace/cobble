@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS, BUN_SQLITE_COBBLE_CONNECTORS } from "@/db/types/db";
 import type { BotConnectorEntry, ConnectorAccountRecord, ConnectorRecord } from "@/src/types";
 import botConnectorsSql from "@/src/utils/bot-connectors-sql";
+import connectorAccountReachSql from "@/src/utils/connector-account-reach-sql";
 import attachConnectorAccountScopes from "./attach-connector-account-scopes";
 import parseConnectorAccountRow from "./parse-connector-account-row";
 import parseConnectorRow from "./parse-connector-row";
@@ -18,10 +19,11 @@ type ConnectorRow = BUN_SQLITE_COBBLE_CONNECTORS & { connection_name?: string };
 /**
  * The connectors a conversation's bot can use for this user, with the
  * accounts that reach there: this user's own (whatever their status, so a
- * pending sign-in still shows), and any connected account given to this
- * bot, this workspace or every bot, named with its owner. Each app says
- * where it comes from: the install, this workspace, this user's own
- * attachment, or an account given here.
+ * pending sign-in still shows), every connected account of a connector given
+ * to this workspace, and any connected account given to this bot, this
+ * workspace or every bot, named with its owner. Each app says where it comes
+ * from: the install, this workspace, this user's own attachment, or an
+ * account given here.
  */
 export default async function grabBotConnectors({
     user_id,
@@ -44,6 +46,7 @@ export default async function grabBotConnectors({
     const connection_names = new Map(found.map((row) => [Number(row.id), row.connection_name || ""]));
     const ids = connectors.map((connector) => connector.id);
     const placeholders = ids.map(() => "?").join(", ");
+    const workspace_reach = connectorAccountReachSql({ workspace_id });
 
     const [account_res, workspace_res, bot_res] = await Promise.all([
         BunSQLite.sql<AccountRow>({
@@ -57,13 +60,18 @@ export default async function grabBotConnectors({
                             a.all_bots = 1
                             OR EXISTS (SELECT 1 FROM connector_account_bots ab WHERE ab.account_id = a.id AND ab.bot_id = ?)
                             ${workspace_id ? `OR EXISTS (SELECT 1 FROM connector_account_workspaces aw WHERE aw.account_id = a.id AND aw.workspace_id = ?)` : ""}
+                            ${workspace_reach.sql}
                         )
                     )
                 )
                 ORDER BY a.id ASC`,
-            values: workspace_id
-                ? [...ids, Number(user_id), Number(bot_id), Number(workspace_id)]
-                : [...ids, Number(user_id), Number(bot_id)],
+            values: [
+                ...ids,
+                Number(user_id),
+                Number(bot_id),
+                ...(workspace_id ? [Number(workspace_id)] : []),
+                ...workspace_reach.values,
+            ],
         }),
         BunSQLite.sql<{ connector_id: number }>({
             sql: `SELECT connector_id FROM workspace_connectors WHERE connector_id IN (${placeholders})`,

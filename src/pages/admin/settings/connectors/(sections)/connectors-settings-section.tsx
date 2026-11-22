@@ -46,7 +46,7 @@ export default function ConnectorsSettingsSection() {
     return (
         <SettingsGroup
             title="Connectors"
-            description="Connect a paradigm once and every app it offers is listed under it. Open a connection to search its apps and give one to every bot, to a workspace, or to your own runs on a bot; each person then signs in to their own account for it."
+            description="Connect a paradigm once and every app it offers is listed under it. Open a connection to search its apps and give one to every bot, to a workspace, or to your own runs on a bot; a workspace uses every account connected for that app, whoever connected it."
         >
             <SettingsList is_empty={!connections.length} empty="No connectors yet">
                 {connections.map((connection) => (

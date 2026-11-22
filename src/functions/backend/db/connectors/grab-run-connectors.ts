@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS, BUN_SQLITE_COBBLE_CONNECTORS } from "@/db/types/db";
 import type { ConnectorAccountRecord, ConnectorRecord } from "@/src/types";
 import botConnectorsSql from "@/src/utils/bot-connectors-sql";
+import connectorAccountReachSql from "@/src/utils/connector-account-reach-sql";
 import attachConnectorAccountScopes from "./attach-connector-account-scopes";
 import parseConnectorAccountRow from "./parse-connector-account-row";
 import parseConnectorRow from "./parse-connector-row";
@@ -19,9 +20,10 @@ type Params = {
 export type RunConnector = {
     connector: ConnectorRecord;
     /**
-     * The accounts the run may use for it: the user's own, and every one
-     * given to this bot, this workspace or every bot. Empty means nothing
-     * to call with: the card asks them to connect one.
+     * The accounts the run may use for it: the user's own, every connected
+     * account of a connector given to this workspace, and every one given to
+     * this bot, this workspace or every bot. Empty means nothing to call
+     * with: the card asks them to connect one.
      */
     accounts: ConnectorAccountRecord[];
 };
@@ -31,9 +33,9 @@ type AccountRow = BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS & { owner_name?: string }
 /**
  * The connectors one run reaches (`botConnectorsSql`) with the accounts it
  * may act through: its own user's, never another person's unless that
- * account was given to this bot, this workspace or every bot. A connector
- * reaches a run without any account; it only becomes callable once there is
- * one.
+ * account was given to this bot, this workspace or every bot, or its app was
+ * given to this workspace. A connector reaches a run without any account; it
+ * only becomes callable once there is one.
  */
 export default async function grabRunConnectors({ user_id, bot_id, workspace_id }: Params): Promise<RunConnector[]> {
     const found =
@@ -47,6 +49,7 @@ export default async function grabRunConnectors({ user_id, bot_id, workspace_id 
 
     const connectors = found.map((row) => parseConnectorRow({ row }));
     const ids = connectors.map((connector) => connector.id);
+    const workspace_reach = connectorAccountReachSql({ workspace_id });
     const rows =
         (
             await BunSQLite.sql<AccountRow>({
@@ -60,9 +63,10 @@ export default async function grabRunConnectors({ user_id, bot_id, workspace_id 
                         OR a.all_bots = 1
                         OR EXISTS (SELECT 1 FROM connector_account_bots b WHERE b.account_id = a.id AND b.bot_id = ?)
                         OR EXISTS (SELECT 1 FROM connector_account_workspaces w WHERE w.account_id = a.id AND w.workspace_id = ?)
+                        ${workspace_reach.sql}
                     )
                     ORDER BY a.id ASC`,
-                values: [...ids, Number(user_id), Number(bot_id), Number(workspace_id || 0)],
+                values: [...ids, Number(user_id), Number(bot_id), Number(workspace_id || 0), ...workspace_reach.values],
             })
         ).payload || [];
 

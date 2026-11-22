@@ -75,7 +75,7 @@ export default function ConnectorAppsSection() {
     return (
         <SettingsShell
             title={connection.name}
-            description={`The apps ${connection.name} offers. Give one to every bot, to a workspace, or to your own runs on a bot; each person then signs in to their own account for it.`}
+            description={`The apps ${connection.name} offers. Give one to every bot, to a workspace, or to your own runs on a bot; a workspace uses every account connected for that app, whoever connected it.`}
         >
             <Row className="w-full items-center gap-2!">
                 <Link href="/admin/settings/connectors" className="text-sm">
