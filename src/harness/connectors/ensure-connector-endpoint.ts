@@ -9,6 +9,14 @@ import connectorAccountGoneMessage from "./connector-account-gone";
 import type { ConnectorProvider } from "./connector-provider";
 
 /**
+ * When each account was last checked against the provider, per process: the
+ * check is a listing of every account the user has, and a cached session is
+ * used many times a minute.
+ */
+const accountChecks = new Map<string, number>();
+const AccountCheckEveryMs = 5 * 60 * 1000;
+
+/**
  * The endpoint one account's tools live at, cached in `connector_sessions`
  * because asking the provider costs a call and the session expires.
  *
@@ -54,8 +62,20 @@ async function readCachedHeaders({ headers }: { headers: string | null }): Promi
  * is not refused: the provider answers from whichever account it does have,
  * so a bot read a mailbox the user never chose. The row is marked revoked
  * (its card then offers Reconnect) and the call stops instead.
+ *
+ * The check lists every account the user has, so it is remembered per account
+ * for `AccountCheckEveryMs`: a cached session is checked too, at that pace
+ * rather than on every tool call.
  */
 async function assertAccountStillThere({ connector, provider, user_id, account, now }: Params & { now: number }) {
+    const key = `${connector.id}:${account.provider_account_id}`;
+
+    if (now - (accountChecks.get(key) || 0) < AccountCheckEveryMs) return;
+
+    if (accountChecks.size > 1000) accountChecks.clear();
+
+    accountChecks.set(key, now);
+
     let accounts: Awaited<ReturnType<ConnectorProvider["accounts"]>>;
 
     try {
@@ -92,6 +112,9 @@ export default async function ensureConnectorEndpoint({
     account,
 }: Params): Promise<ConnectorEndpointResult> {
     const now = Date.now();
+
+    await assertAccountStillThere({ connector, provider, user_id, account, now });
+
     const cached = (
         await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_SESSIONS>({
             sql: `SELECT * FROM connector_sessions WHERE connector_id = ? AND user_id = ? AND provider_account_id = ? LIMIT 1`,
@@ -112,8 +135,6 @@ export default async function ensureConnectorEndpoint({
             }
         }
     }
-
-    await assertAccountStillThere({ connector, provider, user_id, account, now });
 
     const tools = connector.tools
         .map((tool) => tool.name)

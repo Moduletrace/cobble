@@ -44,13 +44,18 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
 
     const requests = (
         await BunSQLite.sql<{ account_id: number; provider_account_id: string }>({
-            sql: `SELECT account_id, provider_account_id FROM connector_requests WHERE connector_id = ? AND user_id = ? AND status = 'pending' AND provider_account_id != ''`,
+            sql: `SELECT account_id, provider_account_id FROM connector_requests WHERE connector_id = ? AND user_id = ? AND status = 'pending'`,
             values: [connector.id, Number(user_id)],
         })
     ).payload || [];
     const reconnect_for = new Map(
-        requests.filter((row) => Number(row.account_id) != 0).map((row) => [String(row.provider_account_id), Number(row.account_id)]),
+        requests
+            .filter((row) => Number(row.account_id) != 0 && row.provider_account_id)
+            .map((row) => [String(row.provider_account_id), Number(row.account_id)]),
     );
+    let reconnect_row = pendingReconnectRow(requests);
+    // A row disconnected since is no target: that sign-in arrives as a new one.
+    if (reconnect_row && !local.some((row) => Number(row.id) == reconnect_row)) reconnect_row = null;
     /**
      * A sign-in only becomes a row once it is connected, or while the request
      * that started it is still open. A pending account nothing here asked for
@@ -58,7 +63,7 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
      * `INITIALIZING` per abandoned link), and adopting it would put a second,
      * never connected account beside the one a reconnect replaced.
      */
-    const claimed = new Set(requests.map((row) => String(row.provider_account_id)));
+    const claimed = new Set(requests.map((row) => String(row.provider_account_id || "")).filter(Boolean));
 
     const seen = new Set(accounts.map((account) => account.provider_account_id));
     const now = Date.now();
@@ -69,13 +74,20 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
      */
     let free_slot = !local.some((row) => row.status == "connected" && seen.has(String(row.provider_account_id || "")));
 
-    for (const row of local) {
-        if (seen.has(String(row.provider_account_id || ""))) continue;
+    /**
+     * A listing that names no account is the provider unable to answer, not
+     * every account deleted there: revoking them all would put Reconnect on
+     * cards that are fine.
+     */
+    if (accounts.length) {
+        for (const row of local) {
+            if (seen.has(String(row.provider_account_id || ""))) continue;
 
-        await BunSQLite.sql({
-            sql: `UPDATE connector_accounts SET status = 'revoked', last_checked_at = ?, updated_at = ? WHERE id = ?`,
-            values: [now, now, Number(row.id)],
-        });
+            await BunSQLite.sql({
+                sql: `UPDATE connector_accounts SET status = 'revoked', last_checked_at = ?, updated_at = ? WHERE id = ?`,
+                values: [now, now, Number(row.id)],
+            });
+        }
     }
 
     let firstConnected: number | null = free_slot ? 0 : null;
@@ -87,7 +99,7 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
         if (
             !shouldAdoptConnectorAccount({
                 status: account.status,
-                reconnect: Boolean(reconnect_id),
+                reconnect: Boolean(reconnect_id) || (account.status == "connected" && Boolean(reconnect_row)),
                 claimed: claimed.has(provider_account_id),
                 free_slot,
             })
@@ -100,7 +112,10 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
             account,
             fallback_label: label,
             reconnect_id,
+            reconnect_row: account.status == "connected" ? reconnect_row : null,
         });
+
+        if (account.status == "connected" && reconnect_row) reconnect_row = null;
 
         if (account.status != "connected") continue;
 
@@ -138,6 +153,12 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
     return grabUserAccounts({ connector_id: connector.id, user_id: Number(user_id) });
 }
 
+export function pendingReconnectRow(requests: Array<{ account_id: number; provider_account_id: string }>) {
+    const named = requests.find((row) => Number(row.account_id) != 0 && !row.provider_account_id);
+
+    return Number(named?.account_id || 0) || null;
+}
+
 type UpsertParams = {
     connector_id: number;
     user_id: number;
@@ -148,9 +169,15 @@ type UpsertParams = {
      * sign-in takes its place instead of arriving as a second account.
      */
     reconnect_id?: number;
+    /**
+     * That row when the provider gave the sign-in no id at all: the request
+     * names it, so it's never guessed from a name or a sole dead row, which
+     * would hand a new mailbox the dead one's label and namespace.
+     */
+    reconnect_row?: number | null;
 };
 
-async function upsertAccount({ connector_id, user_id, account, fallback_label, reconnect_id }: UpsertParams) {
+async function upsertAccount({ connector_id, user_id, account, fallback_label, reconnect_id, reconnect_row }: UpsertParams) {
     const now = Date.now();
 
     if (reconnect_id) {
@@ -200,42 +227,25 @@ async function upsertAccount({ connector_id, user_id, account, fallback_label, r
     }
 
     /**
-     * A reconnect the provider gave no id for still lands on the row it
-     * replaces: one dead row with this account's name is that row, and a
-     * second one with the same name would be the duplicate this prevents.
-     * When the provider's name differs from the label the user chose, the one
-     * dead row for this app is still the row a new sign-in takes over.
+     * An id-less reconnect lands on the row it replaces, named by its request.
+     * A row that is merely dead is not it: a new mailbox that arrives while
+     * one dead row exists would otherwise take that row's name and namespace.
+     * Only a connected account takes it, since an abandoned link at the
+     * provider stays pending, and only once.
      */
-    const name = account.label || fallback_label || "";
-    const named_dead = name
-        ? ((
-              await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS>({
-                  sql: `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status IN ('revoked', 'expired') AND lower(label) = lower(?) ORDER BY id ASC`,
-                  values: [connector_id, user_id, name],
-              })
-          ).payload || [])
-        : [];
-    const dead = named_dead.length
-        ? named_dead
-        : ((
-              await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS>({
-                  sql: `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status IN ('revoked', 'expired') ORDER BY id ASC`,
-                  values: [connector_id, user_id],
-              })
-          ).payload || []);
-
-    if (dead.length == 1) {
-        const row = dead[0]!;
-
+    if (reconnect_row) {
         await BunSQLite.sql({
-            sql: `UPDATE connector_accounts SET provider_account_id = ?, status = ?, connected_at = ?, last_checked_at = ?, last_error = '', updated_at = ? WHERE id = ?`,
+            sql: `UPDATE connector_accounts SET provider_account_id = ?, status = ?, connected_at = ?, last_checked_at = ?, last_error = '', updated_at = ?
+                WHERE id = ? AND connector_id = ? AND user_id = ?`,
             values: [
                 account.provider_account_id,
                 account.status,
                 account.status == "connected" ? now : null,
                 now,
                 now,
-                Number(row.id),
+                reconnect_row,
+                connector_id,
+                user_id,
             ],
         });
 
@@ -249,7 +259,7 @@ async function upsertAccount({ connector_id, user_id, account, fallback_label, r
         })
     ).payload?.map((row) => row.slug) || [];
 
-    const display_name = name || "Account";
+    const display_name = account.label || fallback_label || "Account";
     let slug = connectorSlug({ name: display_name, max: 12, fallback: "account" });
 
     for (let index = 2; taken.includes(slug); index++) {
@@ -303,7 +313,7 @@ async function settleRequests({ connector_id, user_id, provider_account_ids }: S
                     WHERE a.connector_id = connector_requests.connector_id
                     AND a.user_id = connector_requests.user_id
                     AND a.status = 'connected'
-                    AND a.created_at >= connector_requests.created_at
+                    AND (a.created_at >= connector_requests.created_at OR a.id = connector_requests.account_id)
                 ))
             )`,
         values: [now, connector_id, user_id, now, ...provider_account_ids],
