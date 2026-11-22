@@ -1756,6 +1756,22 @@ export type BotExtensionsPayload = {
      * composer's tools count includes them without reading them all.
      */
     connector_count?: number;
+    /**
+     * The last few apps a connector account reaches here, for the composer's
+     * tools button: their logo beside the spanner, so a glance says which
+     * apps a message can use. Never repeats an app.
+     */
+    connector_apps?: ConnectorAppIcon[];
+};
+
+/**
+ * One app a connector account reaches, as the composer's tools button shows
+ * it.
+ */
+export type ConnectorAppIcon = {
+    id: number;
+    name: string;
+    logo: string;
 };
 
 export type McpServersOverviewPayload = ExtensionTargets & {

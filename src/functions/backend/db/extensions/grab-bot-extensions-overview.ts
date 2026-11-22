@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BotExtensionsPayload } from "@/src/types";
 import grabCrewRole from "../access/grab-crew-role";
 import countBotConnectors from "../connectors/count-bot-connectors";
+import grabBotConnectors from "../connectors/grab-bot-connectors";
 import grabExtensionsOverview from "./grab-extensions-overview";
 
 type Params = {
@@ -32,14 +33,27 @@ export default async function grabBotExtensionsOverview({
         BunSQLite.sql<{ kind: string }>({ sql: `SELECT kind FROM bots WHERE id = ?`, values: [bot_id] }),
     ]);
 
-    const [overview, connector_count] = await Promise.all([
+    const [overview, connector_count, connector_entries] = await Promise.all([
         grabExtensionsOverview({
             can_manage: role == "super_admin" || (role == "admin" && bot.payload?.[0]?.kind != "coordinator"),
             bot_id,
             workspace_id,
         }),
         countBotConnectors({ user_id, bot_id, workspace_id }),
+        grabBotConnectors({ user_id, bot_id, workspace_id }),
     ]);
 
-    return { ...overview, connector_count };
+    /**
+     * One icon per app, for the ones a connected account actually reaches
+     * here: a pending sign-in has nothing to use yet.
+     */
+    const connector_apps = connector_entries
+        .filter((entry) => entry.accounts.some((account) => account.status == "connected"))
+        .map((entry) => ({
+            id: Number(entry.connector.id),
+            name: entry.connector.name,
+            logo: entry.connector.logo,
+        }));
+
+    return { ...overview, connector_count, connector_apps };
 }

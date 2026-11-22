@@ -2,7 +2,11 @@ import { useContext, useEffect, useState } from "react";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import useExtensions from "@/src/hooks/use-extensions";
-import type { BotExtensionsPayload, BotWithLastMessage } from "@/src/types";
+import type {
+    BotExtensionsPayload,
+    BotWithLastMessage,
+    ConnectorAppIcon,
+} from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import { composerKnowledgebasesCopy, composerToolsCopy } from "../(data)/composer-extensions-copy";
 import ComposerBrowserButton from "./composer-browser-button";
@@ -66,10 +70,17 @@ export default function ComposerTools({
     const [connector_count, set_connector_count] = useState(
         Number(initial?.connector_count || 0),
     );
+    const [connector_apps, set_connector_apps] = useState<ConnectorAppIcon[]>(
+        initial?.connector_apps || [],
+    );
 
     useEffect(() => {
         set_connector_count(Number(initial?.connector_count || 0));
     }, [initial?.connector_count]);
+
+    useEffect(() => {
+        set_connector_apps(initial?.connector_apps || []);
+    }, [initial?.connector_apps]);
 
     const has_tools = Boolean(
         tools.attached.length || connector_count || (extensions.can_manage && tools.addable.length),
@@ -95,6 +106,8 @@ export default function ComposerTools({
                     connectors={{ bot_id: bot.id || 0, workspace_id }}
                     connector_count={connector_count}
                     onConnectorCount={set_connector_count}
+                    connector_apps={connector_apps}
+                    onConnectorApps={set_connector_apps}
                 />
             ) : null}
 

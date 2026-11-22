@@ -7,7 +7,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import fetchApi from "@moduletrace/twui/utils/fetch/fetchApi";
 import { Plus } from "lucide-react";
 import type { APIResponseObject } from "@moduletrace/bunext/types";
-import type { BotConnectorEntry } from "@/src/types";
+import type { BotConnectorEntry, ConnectorAppIcon } from "@/src/types";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import ComposerConnectorPicker from "./composer-connector-picker";
 import ComposerConnectorRow from "./composer-connector-row";
@@ -25,6 +25,11 @@ type Props = {
      * count follows an add or a remove without a reload.
      */
     onCount?: (count: number) => void;
+    /**
+     * The apps a connected account reaches here, told to the composer for the
+     * icons on its tools button.
+     */
+    onApps?: (apps: ConnectorAppIcon[]) => void;
 };
 
 /**
@@ -38,6 +43,7 @@ export default function ComposerConnectorsSection({
     workspace_id,
     open,
     onCount,
+    onApps,
 }: Props) {
     const [items, setItems] = useState<BotConnectorEntry[]>();
     const [error, setError] = useState<string>();
@@ -93,12 +99,23 @@ export default function ComposerConnectorsSection({
 
             setItems(entries);
             onCount?.(entries.length);
+            onApps?.(
+                entries
+                    .filter((entry) =>
+                        entry.accounts.some((account) => account.status == "connected"),
+                    )
+                    .map((entry) => ({
+                        id: Number(entry.connector.id),
+                        name: entry.connector.name,
+                        logo: entry.connector.logo,
+                    })),
+            );
         })();
 
         return () => {
             live = false;
         };
-    }, [open, bot_id, workspace_id, tick, onCount]);
+    }, [open, bot_id, workspace_id, tick, onCount, onApps]);
 
     return (
         <Stack className="w-full mt-4 pt-4 items-stretch border-0 border-t border-solid border-hairline">

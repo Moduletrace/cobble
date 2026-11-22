@@ -2,6 +2,8 @@ import { useState } from "react";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
+import Img from "@moduletrace/twui/layout/Img";
+import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { CircleAlert, type LucideIcon } from "lucide-react";
@@ -10,6 +12,7 @@ import type {
     BotExtension,
     BotExtensionKind,
     BotExtensionsPayload,
+    ConnectorAppIcon,
 } from "@/src/types";
 import ComposerConnectorsSection from "./composer-connectors-section";
 import ComposerToolRow from "./composer-tool-row";
@@ -74,6 +77,13 @@ type Props = {
      * number follows an add or a remove without a reload.
      */
     onConnectorCount?: (count: number) => void;
+    /**
+     * The apps a connector account reaches here, drawn as small circles
+     * before the spanner (5 at most). Read with the count, so adding or
+     * removing one shows without a reload.
+     */
+    connector_apps?: ConnectorAppIcon[];
+    onConnectorApps?: (apps: ConnectorAppIcon[]) => void;
 };
 
 /**
@@ -94,6 +104,8 @@ export default function ComposerToolsModal({
     connectors,
     connector_count = 0,
     onConnectorCount,
+    connector_apps = [],
+    onConnectorApps,
 }: Props) {
     const [open, setOpen] = useState(false);
     const count = attached.length;
@@ -102,6 +114,7 @@ export default function ComposerToolsModal({
         (item) => !item.enabled || item.state == "error",
     );
     const TriggerIcon = has_problem ? CircleAlert : copy.Icon;
+    const app_icons = connector_apps.filter((app) => app.logo).slice(0, 5);
     const label = total
         ? `${total} ${total == 1 ? copy.one : copy.many}`
         : copy.empty_label;
@@ -115,7 +128,22 @@ export default function ComposerToolsModal({
                     variant="ghost"
                     color="gray"
                     size="small"
-                    beforeIcon={<TriggerIcon size={12} aria-hidden />}
+                    beforeIcon={
+                        <Row className="items-center gap-1! flex-nowrap">
+                            {app_icons.map((app) => (
+                                <Img
+                                    key={app.id}
+                                    src={app.logo}
+                                    alt={app.name}
+                                    title={app.name}
+                                    size={16}
+                                    circle
+                                    className="shrink-0 border border-hairline bg-white object-contain"
+                                />
+                            ))}
+                            <TriggerIcon size={12} aria-hidden />
+                        </Row>
+                    }
                     className="shrink-0 gap-1! px-2! py-0.5! text-[12px] leading-4 text-ink-secondary"
                 >
                     {label}
@@ -181,6 +209,7 @@ export default function ComposerToolsModal({
                     workspace_id={connectors.workspace_id}
                     open={open}
                     onCount={onConnectorCount}
+                    onApps={onConnectorApps}
                 />
             ) : null}
         </Modal>
