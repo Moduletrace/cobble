@@ -1,8 +1,11 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONNECTOR_SESSIONS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
+import { ConnectorProviders } from "@/src/dict/connector-dict";
+import AppError from "@/src/utils/app-error";
 import { decrypt, encrypt } from "@/src/utils/crypt";
 import type { ConnectorAccountRecord, ConnectorRecord } from "@/src/types";
+import connectorAccountGoneMessage from "./connector-account-gone";
 import type { ConnectorProvider } from "./connector-provider";
 
 /**
@@ -45,6 +48,43 @@ async function readCachedHeaders({ headers }: { headers: string | null }): Promi
     }
 }
 
+/**
+ * A row can name an account the provider no longer has (a second sign-in
+ * replaced it, a connection was cleared there). A session pinned to that id
+ * is not refused: the provider answers from whichever account it does have,
+ * so a bot read a mailbox the user never chose. The row is marked revoked
+ * (its card then offers Reconnect) and the call stops instead.
+ */
+async function assertAccountStillThere({ connector, provider, user_id, account, now }: Params & { now: number }) {
+    let accounts: Awaited<ReturnType<ConnectorProvider["accounts"]>>;
+
+    try {
+        accounts = await provider.accounts({ app: connector.app, user_id });
+    } catch {
+        // The provider is the one to say why the session failed; a list that
+        // can't be read is not proof the account is gone.
+        return;
+    }
+
+    if (accounts.some((entry) => entry.provider_account_id == account.provider_account_id)) return;
+
+    await BunSQLite.sql({
+        sql: `UPDATE connector_accounts SET status = 'revoked', last_checked_at = ?, updated_at = ? WHERE id = ?`,
+        values: [now, now, Number(account.id)],
+    });
+
+    const provider_title =
+        ConnectorProviders.find((entry) => entry.value == connector.provider)?.title || connector.provider;
+
+    throw new AppError(
+        connectorAccountGoneMessage({
+            connector_name: connector.name,
+            label: account.label,
+            provider_title,
+        }),
+    );
+}
+
 export default async function ensureConnectorEndpoint({
     connector,
     provider,
@@ -72,6 +112,8 @@ export default async function ensureConnectorEndpoint({
             }
         }
     }
+
+    await assertAccountStillThere({ connector, provider, user_id, account, now });
 
     const tools = connector.tools
         .map((tool) => tool.name)

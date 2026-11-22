@@ -6,7 +6,10 @@ import syncConnectorConnection from "@/src/functions/backend/db/connectors/sync-
 /**
  * Keeps every connection's app list current, reads the tools of the apps
  * someone actually gave to a bot or workspace (never all of them: a
- * provider lists hundreds), and checks the accounts a sign-in left waiting.
+ * provider lists hundreds), and keeps accounts in line with the provider:
+ * the ones a sign-in left waiting, and connected ones an hour later, so an
+ * account deleted at the provider shows as revoked (and offers Reconnect)
+ * without waiting for a run to fail.
  * Each connection is synced with its own key, so a refused one only affects
  * the apps it read.
  */
@@ -37,13 +40,18 @@ export default async function syncConnectors() {
         await syncConnector({ connector_id: connector.id });
     }
 
+    const now = Date.now();
+    const stale_after = now - 60 * 60 * 1000;
     const waiting =
         (
             await BunSQLite.sql<{ connector_id: number; user_id: number }>({
                 sql: `SELECT connector_id, user_id FROM connector_requests WHERE status = 'pending' AND expires_at > ?
                     UNION
-                    SELECT connector_id, user_id FROM connector_accounts WHERE status != 'connected'`,
-                values: [Date.now()],
+                    SELECT connector_id, user_id FROM connector_accounts WHERE status != 'connected'
+                    UNION
+                    SELECT connector_id, user_id FROM connector_accounts
+                        WHERE status = 'connected' AND (last_checked_at IS NULL OR last_checked_at < ?)`,
+                values: [now, stale_after],
             })
         ).payload || [];
 

@@ -37,7 +37,7 @@ export default function ConnectorConnectModal({ connector, onConnected, onCancel
             }}
             icon={<ConnectorLogo logo={connector.logo} name={connector.name} />}
             title={`New ${connector.name} connection`}
-            description="The sign-in happens at the provider, and it keeps the credentials. Your bots only ever reach the account it makes."
+            description="The sign-in happens at the provider, and it keeps the credentials. Sign in with the account you want your bots to act as: the name here is only a label for it."
         >
             <Form
                 className="w-full flex-col gap-4! items-stretch"
@@ -63,7 +63,7 @@ export default function ConnectorConnectModal({ connector, onConnected, onCancel
                     value={label}
                     autoComplete="off"
                     onChange={(e) => setLabel(e.target.value)}
-                    info="What you'll call it, so you can tell two accounts of the same app apart."
+                    info="What you'll call it, so you can tell two accounts of the same app apart. It doesn't choose the account: the one you sign in with at the provider is the one your bots use."
                 />
 
                 {connect.sign_in ? (

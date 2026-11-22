@@ -23,7 +23,12 @@ type Params = {
  * local rows in line: new sign-ins are added (the first connected one is the
  * default), ones the provider reports expired say so, and ones it no longer
  * lists are marked revoked without losing their label. Pending connect
- * requests are closed as soon as an account is connected.
+ * requests are closed as soon as the account they made is connected.
+ *
+ * One card per app unless the user signed in again: an account the provider
+ * holds but no request here made fills the app's free card once and is left
+ * at the provider after that, so a pile of earlier sign-ins cannot arrive as
+ * four rows of the same mailbox.
  */
 export default async function syncConnectorAccounts({ user_id, connector_id, label }: Params) {
     const connector = await grabConnector({ connector_id });
@@ -57,7 +62,12 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
 
     const seen = new Set(accounts.map((account) => account.provider_account_id));
     const now = Date.now();
-    const hasConnected = local.some((row) => row.status == "connected");
+    /**
+     * The app's one free card: a live row still listed by the provider holds
+     * it. An account arriving without a sign-in here (an older attempt at
+     * the provider) may fill it once, never pile up beside it.
+     */
+    let free_slot = !local.some((row) => row.status == "connected" && seen.has(String(row.provider_account_id || "")));
 
     for (const row of local) {
         if (seen.has(String(row.provider_account_id || ""))) continue;
@@ -68,7 +78,7 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
         });
     }
 
-    let firstConnected: number | null = hasConnected ? null : 0;
+    let firstConnected: number | null = free_slot ? 0 : null;
 
     for (const account of accounts) {
         const provider_account_id = String(account.provider_account_id);
@@ -79,6 +89,7 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
                 status: account.status,
                 reconnect: Boolean(reconnect_id),
                 claimed: claimed.has(provider_account_id),
+                free_slot,
             })
         )
             continue;
@@ -92,6 +103,8 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
         });
 
         if (account.status != "connected") continue;
+
+        if (free_slot) free_slot = false;
 
         if (firstConnected === 0) {
             const created = (
@@ -190,9 +203,11 @@ async function upsertAccount({ connector_id, user_id, account, fallback_label, r
      * A reconnect the provider gave no id for still lands on the row it
      * replaces: one dead row with this account's name is that row, and a
      * second one with the same name would be the duplicate this prevents.
+     * When the provider's name differs from the label the user chose, the one
+     * dead row for this app is still the row a new sign-in takes over.
      */
     const name = account.label || fallback_label || "";
-    const dead = name
+    const named_dead = name
         ? ((
               await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS>({
                   sql: `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status IN ('revoked', 'expired') AND lower(label) = lower(?) ORDER BY id ASC`,
@@ -200,6 +215,14 @@ async function upsertAccount({ connector_id, user_id, account, fallback_label, r
               })
           ).payload || [])
         : [];
+    const dead = named_dead.length
+        ? named_dead
+        : ((
+              await BunSQLite.sql<BUN_SQLITE_COBBLE_CONNECTOR_ACCOUNTS>({
+                  sql: `SELECT * FROM connector_accounts WHERE connector_id = ? AND user_id = ? AND status IN ('revoked', 'expired') ORDER BY id ASC`,
+                  values: [connector_id, user_id],
+              })
+          ).payload || []);
 
     if (dead.length == 1) {
         const row = dead[0]!;

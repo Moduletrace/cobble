@@ -6,15 +6,23 @@ type Params = {
     reconnect: boolean;
     /** A pending request here started this sign-in. */
     claimed: boolean;
+    /**
+     * Whether the app has no live account here yet: one card per app is
+     * filled by the provider's account, and any other account arrives through
+     * its own sign-in (claimed).
+     */
+    free_slot: boolean;
 };
 
 /**
- * Whether a provider account becomes a local row. A connected one always does.
- * A pending one does only when a request here started it or reconnects it: an
- * abandoned sign-in at the provider must not arrive as a second account, which
- * is how a reconnect once left a never connected duplicate beside the account
- * it replaced.
+ * Whether a provider account becomes a local row. One a request here started
+ * (or is reconnecting) always does. A connected one the app doesn't know
+ * gets the app's one free card, so leftovers from earlier sign-ins at the
+ * provider can't pile up as four rows of the same mailbox; a second account
+ * appears by signing in again, which claims its own row.
  */
-export default function shouldAdoptConnectorAccount({ status, reconnect, claimed }: Params) {
-    return reconnect || status == "connected" || claimed;
+export default function shouldAdoptConnectorAccount({ status, reconnect, claimed, free_slot }: Params) {
+    if (reconnect || claimed) return true;
+
+    return status == "connected" && free_slot;
 }
