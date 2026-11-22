@@ -16,6 +16,7 @@ import type {
 } from "@/src/types";
 import ComposerConnectorsSection from "./composer-connectors-section";
 import ComposerToolRow from "./composer-tool-row";
+import { twMerge } from "tailwind-merge";
 
 /**
  * What one of the composer's buttons is about, in copy: its tools, or its
@@ -130,7 +131,7 @@ export default function ComposerToolsModal({
                     size="small"
                     beforeIcon={
                         <Row className="items-center gap-1! flex-nowrap">
-                            {app_icons.map((app) => (
+                            {app_icons.map((app, index) => (
                                 <Img
                                     key={app.id}
                                     src={app.logo}
@@ -138,7 +139,11 @@ export default function ComposerToolsModal({
                                     title={app.name}
                                     size={16}
                                     circle
-                                    className="shrink-0 border border-hairline bg-white object-contain"
+                                    className={twMerge(
+                                        "shrink-0 border border-hairline bg-white object-contain relative",
+                                        index > 0 ? "-ml-1.5" : "",
+                                    )}
+                                    style={{ zIndex: index + 1 }}
                                 />
                             ))}
                             <TriggerIcon size={12} aria-hidden />
