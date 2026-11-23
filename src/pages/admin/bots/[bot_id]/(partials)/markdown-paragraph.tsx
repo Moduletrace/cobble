@@ -7,9 +7,9 @@ const TextClassName = "w-full text-sm leading-5 text-ink";
 
 /**
  * A paragraph of a bot message. A card ref (a plan, questions, a proposal,
- * a hook proposal, a secret request) is a block, which React refuses
- * inside a `p`, so the paragraph is split around it: the text stays in
- * paragraphs and each card gets a line of its own, still in the message's
+ * a hook proposal, a secret request, a take-over) is a block, which React
+ * refuses inside a `p`, so the paragraph is split around it: the text stays
+ * in paragraphs and each card gets a line of its own, still in the message's
  * reading order.
  */
 export default function MarkdownParagraph({ children }: { children?: ReactNode }) {

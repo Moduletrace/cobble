@@ -7,6 +7,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type { ComputerViewMode } from "@/src/dict/computer-dict";
 import ComputerRestartButton from "./computer-restart-button";
 import ComputerView from "./computer-view";
+import { twMerge } from "tailwind-merge";
 
 type Props = {
     open: boolean;
@@ -56,7 +57,12 @@ export default function ComputerViewerModal({
             }}
             className="max-w-[95vw]! h-[90vh] p-0 bg-paper flex flex-col overflow-hidden"
         >
-            <Row className="w-full gap-3! flex-nowrap items-center pl-5 pr-14 py-3 border-0 border-b border-solid border-hairline">
+            <Row
+                className={twMerge(
+                    "w-full gap-3! xl:flex-nowrap pl-5 pr-5 xl:pr-14 py-3 border-0 border-b border-solid border-hairline",
+                    "items-start xl:items-center flex-col xl:flex-row",
+                )}
+            >
                 <Stack className="min-w-0 gap-0! items-start">
                     <H2 className="text-base! leading-6! tracking-normal! font-bold text-ink truncate w-full">
                         {name}

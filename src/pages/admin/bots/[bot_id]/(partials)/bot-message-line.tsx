@@ -6,6 +6,7 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageWithAttachments } from "@/src/types";
 import linkComputerRefs from "@/src/utils/link-computer-refs";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
+import { MessageIdContext } from "../(data)/message-answer-context";
 import { MessageMarkdownComponents } from "../(data)/message-markdown-components";
 import { QuotableAttribute } from "../(hooks)/use-message-selection";
 import CarriedOverChip from "./carried-over-chip";
@@ -79,12 +80,14 @@ function BotMessageLine({ message, bot_name, at, rerun }: Props) {
                 {...{ [QuotableAttribute]: "" }}
                 className="w-full gap-2.5! items-start wrap-anywhere [&>*]:max-w-full"
             >
-                <Markdown
-                    remarkPlugins={RemarkPlugins}
-                    components={MessageMarkdownComponents}
-                >
-                    {linkComputerRefs({ text: message.text || "" })}
-                </Markdown>
+                <MessageIdContext.Provider value={Number(message.id) || null}>
+                    <Markdown
+                        remarkPlugins={RemarkPlugins}
+                        components={MessageMarkdownComponents}
+                    >
+                        {linkComputerRefs({ text: message.text || "" })}
+                    </Markdown>
+                </MessageIdContext.Provider>
             </Stack>
             <MessageImages message={message} />
             {message.plan_mode ? (

@@ -7,7 +7,7 @@ type Params = {
 
 /**
  * How a bot asks the user to take over one of its computers in a message:
- * `[take-over:3:browser]`. The chat shows it as a button that opens the
+ * `[take-over:3:browser]`. The chat shows it as a card that opens the
  * computer in that mode.
  */
 export default function takeOverRef({ id, mode }: Params) {

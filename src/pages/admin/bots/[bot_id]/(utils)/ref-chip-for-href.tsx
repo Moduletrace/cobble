@@ -34,14 +34,14 @@ import ProposalRefCard from "../(partials)/proposal-ref-card";
 import SecretRefChip from "../(partials)/secret-ref-chip";
 import SecretRequestRefCard from "../(partials)/secret-request-ref-card";
 import SettingRefChip from "../(partials)/setting-ref-chip";
-import TakeOverChip from "../(partials)/take-over-chip";
+import TakeOverCard from "../(partials)/take-over-card";
 import TaskRefChip from "../(partials)/task-ref-chip";
 import AskRefChip from "../(partials)/ask-ref-chip";
 import WorkspaceRefChip from "../(partials)/workspace-ref-chip";
 
 /**
  * The chip a ref link in a bot message stands for (`linkComputerRefs`): a
- * computer its switch button, a take-over request a button that opens the
+ * computer its switch button, a take-over request the card that opens the
  * computer, a bot or workspace a link to it, a file a chip that previews
  * it, a folder a chip that opens it in the files browser, a proposal a chip
  * that opens the confirm card, a secret a masked chip, a secret request or
@@ -63,7 +63,7 @@ export default function refChipForHref({ href }: { href?: string }): ReactNode |
 
         if (computer_id) {
             return (
-                <TakeOverChip
+                <TakeOverCard
                     computer_id={computer_id}
                     mode={(known ? mode : ComputerViewModes[0].value) as ComputerViewMode}
                 />

@@ -12,6 +12,7 @@ import usePullToRefresh from "../(hooks)/use-pull-to-refresh";
 import useSessionGallery from "../(hooks)/use-session-gallery";
 import useThreadScroll from "../(hooks)/use-thread-scroll";
 import { SessionGalleryContext } from "../(data)/session-gallery-context";
+import { LastUserMessageContext } from "../(data)/message-answer-context";
 import groupMessages from "../(utils)/group-messages";
 import threadMessages from "../(utils)/thread-messages";
 import BotThinkingRow from "./bot-thinking-row";
@@ -161,6 +162,20 @@ export default function MessageThread({
     }, [shown]);
     const session_gallery = useSessionGallery({ messages: shown });
     /**
+     * The user's newest message answers every ask above it: a take-over
+     * card stops waiting for them once they've written, which is how they
+     * hand the computer back.
+     */
+    const last_user_id = useMemo(() => {
+        for (let index = shown.length - 1; index >= 0; index--) {
+            const message = shown[index];
+
+            if (message?.author == "user") return Number(message.id) || null;
+        }
+
+        return null;
+    }, [shown]);
+    /**
      * The user's own message the thread ends on, with nothing on its way: a
      * stopped run, or one that ended without a word, leaves it waiting
      * forever. The row under it says so and offers to answer it again.
@@ -210,14 +225,16 @@ export default function MessageThread({
                         />
                     ) : null}
                     <SessionGalleryContext.Provider value={session_gallery}>
-                        {groups.map((group) => (
-                            <MessageGroupBlock
-                                key={group.key}
-                                bot={bot}
-                                group={group}
-                                last_bot_id={last_bot_id}
-                            />
-                        ))}
+                        <LastUserMessageContext.Provider value={last_user_id}>
+                            {groups.map((group) => (
+                                <MessageGroupBlock
+                                    key={group.key}
+                                    bot={bot}
+                                    group={group}
+                                    last_bot_id={last_bot_id}
+                                />
+                            ))}
+                        </LastUserMessageContext.Provider>
                     </SessionGalleryContext.Provider>
                     {notice}
                     <BotThinkingRow
