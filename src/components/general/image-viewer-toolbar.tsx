@@ -81,7 +81,7 @@ export default function ImageViewerToolbar({ mode, scale, natural, onZoom, onCho
             {natural ? (
                 <Span className="ml-auto pl-2 text-[12px] leading-4 tabular-nums text-ink-secondary">
                     {`${natural.width} x ${natural.height} px`}
-                    <Span className="hidden md:inline">{" · Ctrl + scroll to zoom, drag to move"}</Span>
+                    <Span className="hidden md:inline">{" · Ctrl + scroll to zoom, drag to move, Tab cycles fits"}</Span>
                 </Span>
             ) : null}
         </Row>

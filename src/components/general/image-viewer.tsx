@@ -15,11 +15,11 @@ type Props = {
 /**
  * An image in the file preview, to inspect rather than glance at: zoom
  * (buttons, keys, Ctrl/Cmd + wheel or a pinch at the pointer), fit whole,
- * fit the width (a full-page screenshot opens that way and scrolls down),
- * actual size, double click to zoom into a spot, drag to move around.
- * The picture is sized with its `width` attribute, so no style is set,
- * and centred with auto margins, which (unlike flex centring) never push
- * the top of a picture taller than the frame out of reach.
+ * fit the width, actual size, double click to zoom into a spot, drag to
+ * move around, Tab to step through the fits. The picture is sized with its
+ * `width` attribute, so no style is set, and centred with auto margins,
+ * which (unlike flex centring) never push the top of a picture taller than
+ * the frame out of reach.
  */
 export default function ImageViewer({ url, name }: Props) {
     const viewer = useImageViewer();

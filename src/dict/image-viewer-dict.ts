@@ -9,6 +9,13 @@ export const ImageViewerModes = ["fit", "width", "actual", "custom"] as const;
 export type ImageViewerMode = (typeof ImageViewerModes)[number];
 
 /**
+ * The presets Tab steps through in the image preview, in order.
+ */
+export const ImageViewerPresets = ["fit", "width", "actual"] as const satisfies readonly ImageViewerMode[];
+
+export type ImageViewerPreset = (typeof ImageViewerPresets)[number];
+
+/**
  * The stops the zoom buttons (and `+`/`-`) step through, from
  * `ImageViewerMinScale` to `ImageViewerMaxScale`.
  */
@@ -19,10 +26,3 @@ export const ImageViewerZoomSteps = [
 export const ImageViewerMinScale = 0.05;
 
 export const ImageViewerMaxScale = 16;
-
-/**
- * A picture this much taller (relative to its width) than the frame opens
- * at the frame's width rather than whole: shrunk to fit, a page screenshot
- * is a thin unreadable strip.
- */
-export const ImageViewerTallRatio = 2;

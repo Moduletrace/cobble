@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageViewerMode } from "@/src/dict/image-viewer-dict";
 import imageViewerClampScale from "@/src/utils/image-viewer-clamp-scale";
-import imageViewerDefaultMode from "@/src/utils/image-viewer-default-mode";
 import imageViewerFitScale from "@/src/utils/image-viewer-fit-scale";
 import imageViewerZoomStep from "@/src/utils/image-viewer-zoom-step";
 
@@ -42,7 +41,7 @@ export default function useImageViewer() {
     const anchor_ref = useRef<Anchor | null>(null);
     const [natural, set_natural] = useState<Size | null>(null);
     const [frame, set_frame] = useState<Size>({ width: 0, height: 0 });
-    const [mode, set_mode] = useState<ImageViewerMode | null>(null);
+    const [mode, set_mode] = useState<ImageViewerMode>("fit");
     const [custom_scale, set_custom_scale] = useState(1);
     const [tick, set_tick] = useState(0);
 
@@ -66,18 +65,11 @@ export default function useImageViewer() {
         return () => observer.disconnect();
     }, []);
 
-    useEffect(() => {
-        if (mode || !natural || !frame.width) return;
-
-        set_mode(imageViewerDefaultMode({ natural, frame }));
-    }, [mode, natural, frame]);
-
-    const shown_mode: ImageViewerMode = mode || "fit";
     const scale = !natural
         ? 1
-        : shown_mode == "custom"
+        : mode == "custom"
           ? custom_scale
-          : imageViewerFitScale({ mode: shown_mode, natural, frame });
+          : imageViewerFitScale({ mode, natural, frame });
     const scale_ref = useRef(scale);
 
     scale_ref.current = scale;
@@ -156,17 +148,15 @@ export default function useImageViewer() {
 
     /**
      * A double click: into actual size at that point from anything
-     * smaller, else back to the picture's own fit.
+     * smaller, else back to whole.
      */
     const toggle = useCallback(
         ({ point }: { point: ImageViewerPoint }) => {
             if (scale_ref.current < 1) return choose({ mode: "actual", point });
 
-            if (!natural) return;
-
-            choose({ mode: imageViewerDefaultMode({ natural, frame }) });
+            choose({ mode: "fit" });
         },
-        [choose, natural, frame],
+        [choose],
     );
 
     const onImageLoad = useCallback(() => {
@@ -185,7 +175,7 @@ export default function useImageViewer() {
         container_ref,
         image_ref,
         natural,
-        mode: shown_mode,
+        mode,
         scale,
         scale_ref,
         zoom,

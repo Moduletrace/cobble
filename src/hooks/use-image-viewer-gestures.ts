@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import type { ImageViewerMode } from "@/src/dict/image-viewer-dict";
 import type { ImageViewerPoint } from "./use-image-viewer";
+import imageViewerPresetStep from "@/src/utils/image-viewer-preset-step";
 import typingInField from "@/src/utils/typing-in-field";
 
 type Params = {
     container_ref: RefObject<HTMLDivElement | null>;
     scale_ref: RefObject<number>;
+    mode: ImageViewerMode;
     zoom: (params: { direction: "in" | "out"; point?: ImageViewerPoint }) => void;
     zoomTo: (params: { scale: number; point?: ImageViewerPoint }) => void;
     choose: (params: { mode: Exclude<ImageViewerMode, "custom">; point?: ImageViewerPoint }) => void;
@@ -20,10 +22,10 @@ const WheelZoomRate = 0.0025;
 /**
  * The image preview's hands: Ctrl/Cmd + wheel (and a trackpad pinch) zooms
  * at the pointer, a plain wheel scrolls, dragging with the mouse moves a
- * picture bigger than the frame, and the keys `+` `-` zoom, `0` fits, `w`
- * fits the width and `1` shows actual size.
+ * picture bigger than the frame, the keys `+` `-` zoom, `0` fits, `w` fits
+ * the width and `1` shows actual size, and Tab steps through those presets.
  */
-export default function useImageViewerGestures({ container_ref, scale_ref, zoom, zoomTo, choose }: Params) {
+export default function useImageViewerGestures({ container_ref, scale_ref, mode, zoom, zoomTo, choose }: Params) {
     const drag_ref = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
     const [dragging, set_dragging] = useState(false);
 
@@ -59,6 +61,7 @@ export default function useImageViewerGestures({ container_ref, scale_ref, zoom,
             else if (event.key == "0") choose({ mode: "fit" });
             else if (event.key == "w" || event.key == "W") choose({ mode: "width" });
             else if (event.key == "1") choose({ mode: "actual" });
+            else if (event.key == "Tab" && !event.shiftKey) choose({ mode: imageViewerPresetStep({ mode }) });
             else return;
 
             event.preventDefault();
@@ -67,7 +70,7 @@ export default function useImageViewerGestures({ container_ref, scale_ref, zoom,
         window.addEventListener("keydown", onKey);
 
         return () => window.removeEventListener("keydown", onKey);
-    }, [zoom, choose]);
+    }, [zoom, choose, mode]);
 
     const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
         const container = container_ref.current;
