@@ -19,6 +19,7 @@ export default function HarnessTextFallbacks({ id, harness, value, onChange }: P
     return (
         <HarnessFallbackModels
             id={id}
+            providers={harness.providers}
             models={harness.models}
             model_id={value.model_id}
             fallback_model_ids={value.fallback_model_ids || []}
