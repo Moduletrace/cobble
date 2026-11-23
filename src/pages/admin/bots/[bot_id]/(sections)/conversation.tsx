@@ -336,7 +336,19 @@ export default function Conversation() {
         on_open_jobs: () => setOpenReplyJobs(1),
     });
 
-    useSessionPlan({ session_id, on_change: setSessionPlan });
+    /**
+     * An active plan has a step reply on its way, queued by the app with no
+     * user message before it: mark it due here so the thinking row stands at
+     * once instead of waiting for the run's first step push.
+     */
+    useSessionPlan({
+        session_id,
+        on_change: (plan) => {
+            setSessionPlan(plan);
+
+            if (plan?.status == "active") setOpenReplyJobs(1);
+        },
+    });
 
     /**
      * The thread's pull-to-reload: the page's crew read again (the layout
