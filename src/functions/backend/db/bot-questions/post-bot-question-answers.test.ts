@@ -11,9 +11,17 @@ import type { BotQuestionView } from "@/src/types";
  * The side-effect helpers are mocked; the branch under test is the one that
  * carries the mode from the card onto the message and the job.
  */
-let question: { bot_id: number; session_id: number; workspace_id: number | null; plan_mode: number };
+let question: {
+    bot_id: number;
+    session_id: number;
+    workspace_id: number | null;
+    plan_mode: number;
+    plan_id?: number | null;
+};
 let inserted: Array<Record<string, unknown>> = [];
 let enqueued: Array<Record<string, unknown>> = [];
+let step_jobs: number[] = [];
+let paused: Array<Record<string, unknown>> = [];
 let pushed: number[] = [];
 
 mock.module("@/src/functions/backend/db/bot-questions/grab-bot-question", () => ({
@@ -47,6 +55,21 @@ mock.module("@/src/bots-queue/push-bot-notice", () => ({
         pushed.push(message.id);
     },
 }));
+mock.module("@/src/functions/backend/db/bot-plans/enqueue-plan-step", () => ({
+    default: async ({ plan_id }: { plan_id: number }) => {
+        step_jobs.push(plan_id);
+        return 900;
+    },
+}));
+mock.module("@/src/functions/backend/db/bot-plans/set-bot-plan-status", () => ({
+    default: async (params: Record<string, unknown>) => {
+        paused.push(params);
+        return { row: { id: params.plan_id }, started: false };
+    },
+}));
+mock.module("@/src/bots-queue/push-bot-plan", () => ({
+    default: async () => {},
+}));
 mock.module("@/src/bots-queue/wake-bots-queue", () => ({
     default: () => {},
 }));
@@ -68,9 +91,11 @@ const view = {
 } as unknown as BotQuestionView;
 
 beforeEach(() => {
-    question = { bot_id: 1, session_id: 135, workspace_id: null, plan_mode: 0 };
+    question = { bot_id: 1, session_id: 135, workspace_id: null, plan_mode: 0, plan_id: null };
     inserted = [];
     enqueued = [];
+    step_jobs = [];
+    paused = [];
     pushed = [];
 });
 
@@ -92,5 +117,41 @@ describe("postBotQuestionAnswers", () => {
 
         expect(inserted[0]!.plan_mode).toBe(false);
         expect(enqueued[0]!.params).toBeUndefined();
+    });
+
+    test("a plan's card answered Continue starts the next step, with no other reply", async () => {
+        question.plan_id = 3;
+
+        await postBotQuestionAnswers({ view, user_id: 1 });
+
+        expect(step_jobs).toEqual([3]);
+        expect(enqueued).toHaveLength(0);
+        expect(paused).toHaveLength(0);
+    });
+
+    test("any other answer to a plan's card pauses the plan and still answers", async () => {
+        question.plan_id = 3;
+
+        await postBotQuestionAnswers({
+            view: { ...view, answers: [{ choices: [1], other: "" }] } as unknown as BotQuestionView,
+            user_id: 1,
+        });
+
+        expect(paused).toHaveLength(1);
+        expect(paused[0]!.status).toBe("paused");
+        expect(step_jobs).toEqual([]);
+        expect(enqueued).toHaveLength(1);
+    });
+
+    test("a skipped plan card holds the plan rather than moving it on", async () => {
+        question.plan_id = 3;
+
+        await postBotQuestionAnswers({
+            view: { ...view, status: "skipped" } as unknown as BotQuestionView,
+            user_id: 1,
+        });
+
+        expect(step_jobs).toEqual([]);
+        expect(paused).toHaveLength(1);
     });
 });

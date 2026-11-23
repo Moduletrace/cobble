@@ -14,9 +14,9 @@ import type { APIResponseObject, BunextAPIRouteHandler } from "@moduletrace/bune
 
 /**
  * The user moved a plan from its card: approved it (or picked it back up),
- * paused it, or ended it. Approving and resuming wake the bot for the step
- * it stands on, so the plan carries on by itself; pausing and cancelling
- * only stop it, since the run between two steps is what queues the next.
+ * paused it, or ended it. Approving, resuming and Continue wake the bot for
+ * the step it stands on, so the plan carries on by itself; pausing and
+ * cancelling only stop it.
  */
 export const handler: BunextAPIRouteHandler<APIResponseObject<BotPlanView>> = async ({ req, body }) => {
     try {

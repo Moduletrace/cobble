@@ -3,6 +3,7 @@ import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-u
 import grabUserBotSession from "@/src/functions/backend/db/bot-sessions/grab-user-bot-session";
 import reopenBotSession from "@/src/functions/backend/db/bot-sessions/reopen-bot-session";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
+import conversationLock from "@/src/functions/backend/db/bot-sessions/conversation-lock";
 import insertUserMessage from "@/src/functions/backend/db/bots/insert-user-message";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import grabMessageIdByClientId from "@/src/functions/backend/db/bots/grab-message-id-by-client-id";
@@ -122,83 +123,101 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
         const media = await grabAttachableMedia({ user_id: Number(user.id), media_ids });
 
         /**
-         * The thread on screen is where the message goes: a routine's or a
-         * hook's session is chatted in by reopening it first (which closes
-         * the conversation's active one), never by posting into whichever
-         * session happened to be active. A session of another conversation
-         * is ignored, as the page does.
+         * The send is one write against the conversation: a second one in
+         * flight beside it would read the same active session and, when it
+         * is full, roll it over a second time - writing into the session
+         * the first call just closed, where the user never sees the message
+         * or its reply.
          */
-        const shown = session_id
-            ? await grabUserBotSession({ session_id, user_id: user.id })
-            : null;
+        const message = await conversationLock.run({
+            key: `${user.id}:${bot.id}:${conversation.workspace_id || 0}`,
+            task: async () => {
+                /**
+                 * The thread on screen is where the message goes: a routine's
+                 * or a hook's session is chatted in by reopening it first
+                 * (which closes the conversation's active one), never by
+                 * posting into whichever session happened to be active. A
+                 * session of another conversation is ignored, as the page
+                 * does.
+                 */
+                const shown = session_id
+                    ? await grabUserBotSession({ session_id, user_id: user.id })
+                    : null;
 
-        if (
-            shown?.id &&
-            !shown.ask_id &&
-            Number(shown.bot_id) == Number(bot.id) &&
-            (Number(shown.workspace_id) || null) == (Number(conversation.workspace_id) || null) &&
-            shown.status != "active"
-        ) {
-            await reopenBotSession({ session_id: shown.id!, user_id: user.id });
-        }
+                if (
+                    shown?.id &&
+                    !shown.ask_id &&
+                    Number(shown.bot_id) == Number(bot.id) &&
+                    (Number(shown.workspace_id) || null) ==
+                        (Number(conversation.workspace_id) || null) &&
+                    shown.status != "active"
+                ) {
+                    await reopenBotSession({ session_id: shown.id!, user_id: user.id });
+                }
 
-        const session = await ensureBotSession({
-            user_id: user.id,
-            bot_id: bot.id,
-            workspace_id: conversation.workspace_id,
-            rollover: true,
+                const session = await ensureBotSession({
+                    user_id: user.id,
+                    bot_id: bot.id,
+                    workspace_id: conversation.workspace_id,
+                    rollover: true,
+                });
+
+                /**
+                 * The quoted message only has to be in this conversation, not
+                 * in the session the message lands in: sending can roll over
+                 * to a new one, or the thread may have moved on.
+                 */
+                const reply_to = reply_to_message_id
+                    ? await grabUserBotMessage({
+                          user_id: user.id,
+                          message_id: reply_to_message_id,
+                      }).catch(() => null)
+                    : null;
+
+                if (
+                    reply_to_message_id &&
+                    (!reply_to ||
+                        reply_to.bot_id != bot.id ||
+                        (reply_to.workspace_id || null) != (conversation.workspace_id || null))
+                ) {
+                    throw new AppError(`That message is no longer in this conversation.`);
+                }
+
+                const stored = await insertUserMessage({
+                    bot_id: bot.id,
+                    session_id: Number(session.id),
+                    workspace_id: conversation.workspace_id,
+                    text,
+                    reply_to,
+                    media,
+                    client_id,
+                    plan_mode,
+                });
+
+                try {
+                    await enqueueBotReply({
+                        user_id: user.id,
+                        bot_id: bot.id,
+                        session_id: Number(session.id),
+                        message_id: stored.id || 0,
+                        params: plan_mode ? { plan_mode: true } : undefined,
+                    });
+                } catch (error: unknown) {
+                    /**
+                     * A message with no reply queued would sit in the thread
+                     * with nothing ever answering it, while the composer has
+                     * already taken its pending bubble down: it is taken back
+                     * out, so the send fails where the user can see it and
+                     * send it again.
+                     */
+                    await deleteBotMessage({ message_id: Number(stored.id) }).catch(() => null);
+
+                    throw error;
+                }
+
+                return stored;
+            },
         });
-
-        /**
-         * The quoted message only has to be in this conversation, not in
-         * the session the message lands in: sending can roll over to a new
-         * one, or the thread may have moved on.
-         */
-        const reply_to = reply_to_message_id
-            ? await grabUserBotMessage({ user_id: user.id, message_id: reply_to_message_id }).catch(
-                  () => null,
-              )
-            : null;
-
-        if (
-            reply_to_message_id &&
-            (!reply_to ||
-                reply_to.bot_id != bot.id ||
-                (reply_to.workspace_id || null) != (conversation.workspace_id || null))
-        ) {
-            throw new AppError(`That message is no longer in this conversation.`);
-        }
-
-        const message = await insertUserMessage({
-            bot_id: bot.id,
-            session_id: Number(session.id),
-            workspace_id: conversation.workspace_id,
-            text,
-            reply_to,
-            media,
-            client_id,
-            plan_mode,
-        });
-
-        try {
-            await enqueueBotReply({
-                user_id: user.id,
-                bot_id: bot.id,
-                session_id: Number(session.id),
-                message_id: message.id || 0,
-                params: plan_mode ? { plan_mode: true } : undefined,
-            });
-        } catch (error: unknown) {
-            /**
-             * A message with no reply queued would sit in the thread with
-             * nothing ever answering it, while the composer has already
-             * taken its pending bubble down: it is taken back out, so the
-             * send fails where the user can see it and send it again.
-             */
-            await deleteBotMessage({ message_id: Number(message.id) }).catch(() => null);
-
-            throw error;
-        }
 
         /**
          * The files join the conversation's folder, so a later run can

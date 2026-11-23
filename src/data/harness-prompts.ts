@@ -1034,6 +1034,8 @@ Plan #${plan.id} "${plan.title}" is on its card in this conversation, waiting fo
 export const PlanStepNote = ({ plan }: { plan: PlanPrompt }) => {
     const index = plan.current_step ?? 0;
     const step = plan.steps[index];
+    const next = index + 2;
+    const next_label = next > plan.steps.length ? "Finish the plan" : `Continue to step ${next}`;
 
     return `# Your plan, step ${index + 1} of ${plan.steps.length}
 
@@ -1041,13 +1043,14 @@ Plan #${plan.id} "${plan.title}".${plan.goal ? ` Goal: ${plan.goal}` : ""}
 
 ${planStepLines({ plan })}
 
-This reply works step ${index + 1} only: ${step?.text || ""}
+This run works step ${index + 1} only: ${step?.text || ""}
 
-- One step per reply. The app wakes you for the next one when this finishes, so don't start it now and don't do two.
+- One step per run. The next step starts when the user answers this report's card, so don't start it now and don't do two.
 - Finish it with complete_plan_step: one or two lines on what it produced (the number, the path, the link). Then write your report to the user.
 - Your report is two or three sentences: what this step did and what it produced. No heading, no recap of the plan, and never "next, I'll...". The card above the report shows the plan and the step after this one, so repeating it only makes the reply longer than it needs to be.
-- If the step can't be done from here (it needs the user, a login or a decision they alone can make), don't finish it: ask one question with ask_user and say the plan is holding at this step.
-- If what you found means the rest of the plan is wrong, change it with update_plan, in the same reply, and say what changed.`;
+- **Every finished step ends on a card.** Call ask_user in the same turn as the report (beside the send_reply that sends it): one question, "Continue with the plan?", whose first option is "${next_label}", whose second is "Pause the plan", after those any choice this step really needs. The user answers in one click and the app starts the next step, so nothing waits on them typing "move on": a report without the card is sent back.
+- If the step can't be done from here (it needs the user, a login or a decision they alone can make), don't finish it: ask that question on the card, and say the plan is holding at this step.
+- If what you found means the rest of the plan is wrong, change it with update_plan, in the same run, and say what changed.`;
 };
 
 /**
@@ -1063,7 +1066,7 @@ Plan #${plan.id} "${plan.title}" is approved and in progress${index == null ? ""
 
 ${planStepLines({ plan })}
 
-- If the user's message is about this plan's work, work that step and only that step, then complete_plan_step with what it produced, then a short report.
+- Its steps are worked one per reply, each ending on a card the user answers to start the next one. This reply isn't working a step, so don't work one here: if they ask you to carry on, say the next step is step ${(index ?? 0) + 1} and they start it from the plan's card (Continue on the plan, under the report above), then answer whatever else they asked.
 - If they asked something else, answer that and leave the plan where it is: it carries on from there.
 - The steps are theirs to change on the card. If the work moved on from one of them, update_plan and say what changed.`;
 };

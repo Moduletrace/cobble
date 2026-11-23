@@ -19,6 +19,11 @@ type Params = {
      */
     plan_mode?: boolean;
     /**
+     * The plan whose step this run works, when the card ends that step: its
+     * first option continues the plan, anything else pauses it.
+     */
+    plan_id?: number | null;
+    /**
      * Whether the run is a task, which stops and reports rather than waits.
      */
     in_task?: boolean;
@@ -53,6 +58,7 @@ export default function askUserTool({
     session_id,
     workspace_id,
     plan_mode,
+    plan_id,
     in_task,
     onAsk,
     redact = (text) => text,
@@ -90,6 +96,7 @@ export default function askUserTool({
                 session_id,
                 workspace_id,
                 plan_mode: Boolean(plan_mode),
+                plan_id,
                 title: args.title?.trim() ? redact(args.title.trim()) : "",
                 questions: args.questions.map((item) => ({
                     question: redact(item.question),

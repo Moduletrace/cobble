@@ -4,6 +4,7 @@ import { WrapUpHandOffToolNames, WrapUpSaveToolNames } from "@/src/harness/text/
 import { WritingToolNames } from "./writing-tool-names";
 import { AppCardRefToolNames, WorkStartingTools } from "@/src/utils/reply-claim-problems";
 import { AppStateTools } from "@/src/utils/reply-app-state-claims";
+import PlanWorkStartingTools from "@/src/utils/plan-work-starting-tools";
 import { PlanModeToolNames } from "./bot/plan-mode-tools";
 
 /**
@@ -44,6 +45,7 @@ async function declaredToolNames() {
 
 const Lists: Record<string, readonly string[]> = {
     WorkStartingTools,
+    PlanWorkStartingTools,
     AppCardRefToolNames,
     AppStateTools,
     WritingToolNames,

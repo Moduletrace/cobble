@@ -1305,6 +1305,10 @@ export type BUN_SQLITE_COBBLE_BOT_QUESTIONS = {
      * Asked in a Plan mode reply: their answer and skip are run in Plan mode too, since answering is not a way out of the mode
      */
     plan_mode?: number | "";
+    /** 
+     * The plan whose step ended on this card: its first option continues the plan, anything else pauses it. Empty for an ordinary question. Not a foreign key
+     */
+    plan_id?: number | "";
 }
 
 export type BUN_SQLITE_COBBLE_BOT_SUGGESTIONS = {

@@ -21,8 +21,8 @@ type Params = {
 /**
  * A reply step pushed for the open session (`server:bot-job-update` with no
  * task) means a reply is due here, even when the bot has the last word: the
- * app queues a plan's next step itself, so nothing in the thread's last
- * message says it is coming.
+ * app queues a plan's step itself on approval and on the card under the last
+ * one, so nothing in the thread's last message says it is coming.
  */
 export default function useOpenReplyJobs({ bot_id, session_id, on_open_jobs }: Params) {
     useServerEvent({

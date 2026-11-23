@@ -25,6 +25,11 @@ type Params = {
      * hidden session's reply queues never reaches the user's real browsers.
      */
     run_kind?: BrowserRunKind;
+    /**
+     * The plan whose step this work is (a task run that hands its step on):
+     * the child run's report ends on the card that moves the plan on.
+     */
+    plan_id?: number | null;
 };
 
 type Args = {
@@ -59,6 +64,7 @@ export default function startTaskTool({
     computers,
     message_id,
     run_kind,
+    plan_id,
 }: Params): HarnessTool<Args> {
     const listed = computers
         .map((computer) => `${computer.id} (${computer.name || computer.kind})`)
@@ -97,6 +103,7 @@ export default function startTaskTool({
                 computers,
                 message_id,
                 run_kind,
+                plan_id,
                 tool_name: "start_task",
                 work: {
                     title: args.title,

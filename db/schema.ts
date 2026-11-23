@@ -2012,6 +2012,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                     defaultValue: 0,
                 },
+                {
+                    fieldName: "plan_id",
+                    fieldDescription: `The plan whose step ended on this card: its first option continues the plan, anything else pauses it. Empty for an ordinary question. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
             ],
             indexes: [
                 {

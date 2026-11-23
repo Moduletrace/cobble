@@ -113,6 +113,12 @@ type Params = {
      * refuses work, and `run-bot-reply` gates the tools to the allowlist.
      */
     plan_mode?: boolean;
+    /**
+     * The plan whose step this reply works: the work its `send_reply` queues
+     * carries the plan, so that run's report ends on the card that moves the
+     * plan on.
+     */
+    plan_id?: number | null;
 };
 
 /**
@@ -164,6 +170,7 @@ export default async function grabBotChatTools({
     onTask,
     onAttach,
     plan_mode,
+    plan_id,
 }: Params): Promise<HarnessTool[]> {
     const bot_id = bot.id || 0;
     const dirs = computerRunDirs({ bot_id, bot_kind: bot.kind, user_id, workspace_id });
@@ -191,6 +198,7 @@ export default async function grabBotChatTools({
             run_kind,
             onQueue,
             plan_mode,
+            plan_id,
         }),
         ...(computers.length
             ? [

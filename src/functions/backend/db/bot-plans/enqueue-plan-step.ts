@@ -1,3 +1,4 @@
+import BunSQLite from "@moduletrace/bun-sqlite";
 import { BotReplyJobTitle } from "@/src/dict/bot-queue-dict";
 import currentPlanStepIndex from "@/src/utils/current-plan-step-index";
 import parseBotPlanSteps from "@/src/utils/parse-bot-plan-steps";
@@ -26,6 +27,17 @@ export default async function enqueuePlanStep({ plan_id }: Params) {
     const steps = parseBotPlanSteps({ text: row.steps });
 
     if (currentPlanStepIndex({ steps }) == null) return null;
+
+    /**
+     * A step is already queued or running for this plan: Continue twice, or
+     * Continue while the step works, must not start a second run on it.
+     */
+    const open = await BunSQLite.sql<{ id: number }>({
+        sql: `SELECT id FROM bots_queue WHERE session_id = ? AND status IN ('pending', 'processing') AND json_extract(params, '$.plan_id') = ? LIMIT 1`,
+        values: [Number(row.session_id), Number(row.id)],
+    });
+
+    if ((open.payload || []).length > 0) return null;
 
     const user_id = Number(row.user_id);
 

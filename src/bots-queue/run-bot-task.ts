@@ -29,6 +29,7 @@ import {
     TaskWrapUpIncomingNote,
     taskPlanNote,
     wrapUpWorktreeNote,
+    PlanStepNote,
 } from "@/src/data/harness-prompts";
 import {
     grabContextBudgetTokens,
@@ -38,6 +39,8 @@ import {
 } from "@/src/functions/backend/db/app-settings/grab-run-limits";
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
+import grabBotPlan from "@/src/functions/backend/db/bot-plans/grab-bot-plan";
+import toBotPlanView from "@/src/functions/backend/db/bot-plans/to-bot-plan-view";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import redactTrace from "@/src/harness/trace/redact-trace";
@@ -86,6 +89,7 @@ import stripAppRecords from "@/src/utils/strip-app-records";
 import ScheduledRunFailedError from "./scheduled-run-failed-error";
 import BotJobFatalError from "./bot-job-fatal-error";
 import reviewRunAnswer from "./review-run-answer";
+import planStepReviewNote from "./plan-step-review";
 import deleteBotQuestion from "@/src/functions/backend/db/bot-questions/delete-bot-question";
 import type { BotJobContext, BotJobOutcome } from "./types";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
@@ -257,6 +261,22 @@ export default async function runBotTask({
          */
         const can_ask = Boolean(session_id) && !scheduled && !hooked && !hidden;
         /**
+         * The plan whose step queued this run (`send_reply`'s work or
+         * `start_task`, both carrying `params.plan_id`): a long step is
+         * exactly where a bot forgets the plan, so the run works that step
+         * and its report ends on the card that moves the plan on.
+         */
+        const plan_row = Number(params.plan_id)
+            ? await grabBotPlan({ plan_id: Number(params.plan_id) }).catch(() => null)
+            : null;
+        const plan = plan_row ? toBotPlanView({ row: plan_row }) : null;
+        /**
+         * Only a run the user follows can end on the plan's card, so only
+         * one of those is held to it: a routine's or a hook's run has no
+         * card to put up and reports as usual.
+         */
+        const on_plan_step = can_ask && Boolean(plan && plan.status == "active" && plan.current_step != null);
+        /**
          * The coordinator weighing a worker's install request
          * (`request_install`): it answers it with answer_install_request.
          */
@@ -301,6 +321,21 @@ export default async function runBotTask({
                 onTask: ({ task_id }) => task_ids.push(task_id),
             })),
             ...admin_tools,
+            /**
+             * The plan's own step: it finishes the step, or says the plan
+             * is wrong. Writing or cancelling a plan is a reply's job, never
+             * a run's, so those stay out.
+             */
+            ...(on_plan_step
+                ? grabBotPlanTools({
+                      user_id,
+                      bot_id: bot.id,
+                      session_id: session_id!,
+                      workspace_id,
+                      on_step: true,
+                      onPlan: ({ ref }) => shown.push(ref),
+                  })
+                : []),
             /**
              * Part of a crew request (`start_task`/`delegate_task` in an
              * answer session): the bot can send the asker an interim word
@@ -387,6 +422,7 @@ export default async function runBotTask({
                           session_id,
                           workspace_id,
                           in_task: true,
+                          plan_id: on_plan_step ? plan?.id : null,
                           onAsk: ({ ref }) => take_overs.push(ref),
                           redact: redact_text,
                       }),
@@ -622,6 +658,12 @@ export default async function runBotTask({
             ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
             named_files_note,
             TasksNote,
+            /**
+             * The plan's step this run works: it finishes that step, or asks
+             * the user on the card, and the report says which. This is the
+             * note a long step would otherwise lose the plan without.
+             */
+            on_plan_step && plan ? PlanStepNote({ plan }) : "",
             ActionCheckNote,
             RequestScopeNote({ can_ask }),
             can_ask ? QuestionsNote : "",
@@ -714,6 +756,7 @@ export default async function runBotTask({
                     message_id: job.message_id || undefined,
                     job_id: job.id,
                     run_kind: browser_run_kind,
+                    plan_id: on_plan_step ? plan?.id : null,
                     onQueue: ({ job_id }) => queued_jobs.push(job_id),
                 }),
                 startTaskTool({
@@ -723,6 +766,7 @@ export default async function runBotTask({
                     computers,
                     message_id: job.message_id || undefined,
                     run_kind: browser_run_kind,
+                    plan_id: on_plan_step ? plan?.id : null,
                 }),
                 ...extensions.tools,
                 ...browsers.tools,
@@ -775,8 +819,21 @@ export default async function runBotTask({
              * is where a report names a file or task that isn't there, or
              * says work is under way when none is. A note sends it back;
              * one the review keeps faulting is never posted.
+             *
+             * A report of a plan's step is also held to the step's ending:
+             * the plan moves on from its card, so a report without one
+             * leaves the plan waiting on the user to say "move on".
              */
-            review: reviewRunAnswer({ bot_id: bot.id, user_id, session_id, scopes, job_id: job.id }),
+            review: ({ text, tool_uses, status }) =>
+                reviewRunAnswer({ bot_id: bot.id, user_id, session_id, scopes, job_id: job.id })({
+                    text,
+                    tool_uses,
+                    status,
+                }).then((note) => {
+                    if (note) return note;
+
+                    return planStepReviewNote({ plan, on_step: on_plan_step, tool_uses, status });
+                }),
             /**
              * A report goes out only through `send_reply`, so it can't say
              * work is under way with the run's own open job behind it.
@@ -846,6 +903,7 @@ export default async function runBotTask({
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,
+            plan_message_id: on_plan_step ? plan?.id : undefined,
             /**
              * The wrap up was announced (`steps` counts its turns), so the
              * run never got to the end of the work it was given.

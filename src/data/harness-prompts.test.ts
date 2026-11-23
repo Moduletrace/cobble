@@ -323,13 +323,20 @@ describe("plan notes", () => {
         expect(PlansNote).toContain("nothing of it starts until the user approves it");
     });
 
-    test("tells the run to work its step only, then report in two or three sentences", () => {
+    test("tells the run to work its step only, report briefly, then put the card up", () => {
         const note = PlanStepNote({ plan });
 
-        expect(note).toContain("This reply works step 2 only: Score them");
-        expect(note).toContain("One step per reply");
+        expect(note).toContain("This run works step 2 only: Score them");
+        expect(note).toContain("One step per run");
         expect(note).toContain("two or three sentences");
         expect(note).toContain("complete_plan_step");
+        expect(note).toContain("Every finished step ends on a card");
+        expect(note).toContain('"Continue to step 3"');
+        expect(note).toContain('"Pause the plan"');
+    });
+
+    test("the last step's card offers to finish the plan", () => {
+        expect(PlanStepNote({ plan: { ...plan, current_step: 2 } })).toContain('"Finish the plan"');
     });
 
     test("lists the steps with where each one stands and what it produced", () => {

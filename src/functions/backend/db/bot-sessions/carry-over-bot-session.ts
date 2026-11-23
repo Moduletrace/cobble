@@ -163,5 +163,16 @@ export default async function carryOverBotSession({
         values: [next.id!, active.id],
     });
 
+    /**
+     * The plan comes with the conversation. A step and its card are read
+     * from the session the plan is filed under, so one left on the closed
+     * session leaves the thread the user is in with no plan, no bar and no
+     * card to answer, and the bot forgets the work it was in the middle of.
+     */
+    await BunSQLite.sql({
+        sql: `UPDATE bot_plans SET session_id = ?, updated_at = ? WHERE session_id = ? AND status IN ('planned', 'active', 'paused')`,
+        values: [next.id!, now, active.id],
+    });
+
     return message;
 }

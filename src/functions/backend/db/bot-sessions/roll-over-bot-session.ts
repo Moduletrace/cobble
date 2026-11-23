@@ -49,7 +49,16 @@ export default async function rollOverBotSession({
         }).catch(() => null);
     });
 
-    if (!message) return active;
+    if (!message) {
+        /**
+         * The conversation may have moved on under this call (a send that
+         * rolled it over first): the message goes into the session that is
+         * current now, never the closed one it was about to be written in.
+         */
+        const current = await grabActiveBotSession({ user_id, bot_id, workspace_id });
+
+        return current?.id ? current : active;
+    }
 
     await pushBotNotice({ bot_id, message, quiet_push: true });
 

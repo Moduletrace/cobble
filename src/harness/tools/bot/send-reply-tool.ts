@@ -30,6 +30,11 @@ type Params = {
      * can't queue the work it was only meant to plan.
      */
     plan_mode?: boolean;
+    /**
+     * The plan whose step this reply works: the work it queues carries the
+     * plan, so its report ends on the card that moves the plan on.
+     */
+    plan_id?: number | null;
 };
 
 type Args = {
@@ -60,6 +65,7 @@ export default function sendReplyTool({
     run_kind,
     onQueue,
     plan_mode,
+    plan_id,
 }: Params): HarnessTool<Args> {
     let queued: { job_id: number; ahead: number; ask_id?: number } | null = null;
 
@@ -149,6 +155,7 @@ export default function sendReplyTool({
                             computers,
                             message_id,
                             run_kind,
+                            plan_id,
                             tool_name: "send_reply",
                             work: args.work,
                         });

@@ -23,6 +23,11 @@ type Params = {
     computers: BUN_SQLITE_COBBLE_COMPUTERS[];
     message_id?: number | string;
     run_kind?: BrowserRunKind;
+    /**
+     * The plan whose step this work is: the run works that step and its
+     * report ends on the card that moves the plan on.
+     */
+    plan_id?: number | null;
     work: BotTaskWork;
     /**
      * The tool that asked, so a refusal tells the model to call that tool
@@ -47,6 +52,7 @@ export default async function queueBotTask({
     computers,
     message_id,
     run_kind,
+    plan_id,
     work,
     tool_name,
 }: Params): Promise<{ job_id: number; ahead: number; ask_id?: number }> {
@@ -94,6 +100,7 @@ export default async function queueBotTask({
         params: {
             ...(work.max_steps ? { max_steps: work.max_steps } : {}),
             ...(run_kind ? { run_kind } : {}),
+            ...(plan_id ? { plan_id: Number(plan_id) } : {}),
             ...(ask?.id ? { ask_id: Number(ask.id) } : {}),
         },
     });

@@ -75,24 +75,12 @@ export type BotJobOutcome = {
      */
     exhausted?: boolean;
     /**
-     * The plan this run worked a step of (`params.plan_id`): the app queues
-     * its next step once the reply is out (`continueBotPlan`), unless the
-     * run asked for the user or started work that runs on its own.
-     */
-    plan_id?: number;
-    /**
      * The plan the reply's message belongs to: the step it worked, or the
-     * one it wrote. Kept on the message as a chip (`bot_messages.plan_id`),
-     * separately from `plan_id`, since a plan that is only written is not
-     * worked on.
+     * one it wrote. Kept on the message as a chip (`bot_messages.plan_id`).
+     * A plan never queues its own next step: that starts from the card under
+     * the step's report, answered by the user.
      */
     plan_message_id?: number;
-    /**
-     * The closing `send_reply` queued a run (`status: "working"`): its report
-     * is still to come, so the plan waits for it instead of queueing its
-     * next step (`continueBotPlan`).
-     */
-    started_work?: boolean;
 };
 
 export type BotJobRunner = (context: BotJobContext) => Promise<BotJobOutcome>;

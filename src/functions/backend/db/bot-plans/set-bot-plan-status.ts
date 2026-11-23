@@ -18,20 +18,25 @@ type Params = {
  * changes nothing and a finished plan never comes back.
  *
  * Returns the row as it now stands and whether it just started, which is
- * when the bot is woken for its first step.
+ * when the bot is woken for the step it stands on.
  */
 export default async function setBotPlanStatus({ plan_id, user_id, status }: Params) {
     const row = await grabBotPlan({ plan_id, user_id });
     const current = row.status as BotPlanState;
 
-    if (current == status) return { row, started: false };
+    const steps = parseBotPlanSteps({ text: row.steps });
+    const caught_up = currentPlanStepIndex({ steps }) == null;
+
+    /**
+     * Already where it's being sent: nothing changes, but "active" is also
+     * how the user starts a step that isn't running (Continue on the card),
+     * so it wakes the bot when a step is still left.
+     */
+    if (current == status) return { row, started: status == "active" && !caught_up };
 
     if (current == "done" || current == "cancelled") {
         throw new AppError(`This plan is ${current}: it can't be picked up again.`);
     }
-
-    const steps = parseBotPlanSteps({ text: row.steps });
-    const caught_up = currentPlanStepIndex({ steps }) == null;
 
     if (status == "active") {
         if (current != "planned" && current != "paused") {

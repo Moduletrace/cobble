@@ -35,6 +35,10 @@ type Params = {
  * A run that is itself working a plan gets neither `create_plan` (the
  * conversation already has one open) nor `cancel_plan` (whether the plan
  * stands is the user's call), so the only thing it can do is work it.
+ *
+ * Only a step's own run can finish a step: a reply that isn't one would
+ * finish it with no card under its report, and the plan would sit active
+ * with nothing to start the next one.
  */
 export default function grabBotPlanTools({ user_id, bot_id, session_id, workspace_id, on_step, approve, onPlan }: Params) {
     const tools: HarnessTool[] = [];
@@ -48,7 +52,8 @@ export default function grabBotPlanTools({ user_id, bot_id, session_id, workspac
     }
 
     tools.push(updatePlanTool({ user_id, bot_id, session_id, onPlan }));
-    tools.push(completePlanStepTool({ bot_id, session_id, in_run: approve }));
+
+    if (on_step || approve) tools.push(completePlanStepTool({ bot_id, session_id, in_run: approve }));
 
     return tools;
 }

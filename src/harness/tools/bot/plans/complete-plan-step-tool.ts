@@ -22,8 +22,9 @@ type Args = {
 
 /**
  * The plan's current step is finished: the card checks it off with what it
- * produced, and the app wakes the bot for the next one after this reply.
- * A step is only ever finished by a run that did the work, one at a time.
+ * produced. The next step starts when the user answers the card the report
+ * ends on, so a step is only ever finished by a run that did the work, one
+ * at a time.
  */
 export default function completePlanStepTool({ bot_id, session_id, in_run }: Params): HarnessTool<Args> {
     let completed = false;
@@ -74,7 +75,7 @@ export default function completePlanStepTool({ bot_id, session_id, in_run }: Par
                 return `Step ${done.index + 1} is done: the card shows it. Carry on with step ${(done.next_step ?? 0) + 1}: ${next?.text || ""}. Save your report for the end, when every step is done.`;
             }
 
-            return `Step ${done.index + 1} is done: the card shows it. The next step starts on its own after this reply (step ${(done.next_step ?? 0) + 1}: ${next?.text || ""}), so don't start it now. Write your report: two or three sentences on what this step produced.`;
+            return `Step ${done.index + 1} is done: the card shows it. The next step (step ${(done.next_step ?? 0) + 1}: ${next?.text || ""}) starts when the user answers the card on your report, so don't start it now. Write your report: two or three sentences on what this step produced, and put the card up beside it.`;
         },
     };
 }

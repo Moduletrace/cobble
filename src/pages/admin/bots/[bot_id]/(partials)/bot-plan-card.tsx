@@ -123,6 +123,19 @@ export default function BotPlanCard({ plan_id }: Props) {
 
                         {view.status == "active" ? (
                             <Button
+                                title={`Start step ${(view.current_step ?? 0) + 1}`}
+                                type="button"
+                                size="smaller"
+                                loading={busy == "active"}
+                                disabled={Boolean(busy)}
+                                onClick={() => void move({ status: "active" })}
+                            >
+                                Continue
+                            </Button>
+                        ) : null}
+
+                        {view.status == "active" ? (
+                            <Button
                                 title="Pause the plan"
                                 type="button"
                                 variant="outlined"

@@ -756,6 +756,13 @@ export const AppData = {
      */
     HarnessDeferredToolLineChars: 140,
     /**
+     * Tools of one namespace (one connector's, one MCP server's) past which
+     * the list names them without their descriptions: one GitHub account's
+     * 905 tools came to 148,000 characters that way, sent with every turn
+     * of every run.
+     */
+    HarnessDeferredNamespaceMin: 40,
+    /**
      * Images one tool call may hand back (the rest are dropped), and how
      * many of the newest tool images stay in a run's transcript: every
      * step resends them, so older screenshots give way to their reading

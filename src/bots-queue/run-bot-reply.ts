@@ -416,6 +416,7 @@ export default async function runBotReply({
         onTask: ({ task_id }) => task_ids.push(task_id),
         onAttach: ({ media_id }) => attachments.push(media_id),
         plan_mode,
+        plan_id: on_plan_step ? plan?.id : null,
     });
 
     /**
@@ -591,6 +592,12 @@ export default async function runBotReply({
                        * when it was asked in it (`postBotQuestionAnswers`).
                        */
                       plan_mode,
+                      /**
+                       * The plan whose step this reply works, when it does:
+                       * the card it ends on is the plan's next move
+                       * (`postBotQuestionAnswers`).
+                       */
+                      plan_id: on_plan_step ? plan?.id : null,
                       onAsk: ({ ref }) => proposals.push(ref),
                       redact: redact_reply,
                   }),
@@ -806,11 +813,9 @@ export default async function runBotReply({
              * on while its reports said something else.
              */
             needs_you: answer_parts.needs_you || result.status == "blocked" || undefined,
-            started_work: result.status == "working" || undefined,
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,
-            plan_id: on_plan_step ? plan?.id : undefined,
             plan_message_id: message_plan_id ?? (on_plan_step ? plan?.id : undefined),
             /**
              * A reply handed a tracker task (`params.tracker_task_id`) that

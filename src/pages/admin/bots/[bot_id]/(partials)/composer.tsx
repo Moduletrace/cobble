@@ -162,7 +162,10 @@ export default function Composer({
      */
     const temp_id = useRef(0);
     const latest_text = useRef(text);
-    const send_lock = useRef(false);
+    /**
+     * A send still on its way: no second one starts until it answers.
+     */
+    const sending = useRef(false);
 
     latest_text.current = text;
 
@@ -303,99 +306,105 @@ export default function Composer({
      * response swaps the bubble for the saved message, or takes it back.
      */
     async function send() {
-        if (!can_send || !bot.id || send_lock.current) return;
-
-        /** Only for this tick: the cleared editor lands by the next one. */
-        send_lock.current = true;
-        setTimeout(() => {
-            send_lock.current = false;
-        }, 0);
-
-        setError(undefined);
+        if (!can_send || !bot.id || sending.current) return;
 
         /**
-         * A message over the limit stays in the input, untouched, with the
-         * reason under it, instead of flashing into the thread and back.
+         * Held until this send comes back: a second click while the first is
+         * still on its way (a double tap, Enter twice, a phone that fires
+         * both) queued a second message with its own id, and the two raced
+         * the conversation's rollover against each other.
          */
-        const limit = max_chars || AppData.BotMessageMaxChars;
-        const length = text.trim().length;
+        sending.current = true;
 
-        if (length > limit) {
-            setError(messageTooLongMessage({ length, max_chars: limit }));
-            return;
-        }
+        try {
+            setError(undefined);
 
-        temp_id.current -= 1;
+            /**
+             * A message over the limit stays in the input, untouched, with the
+             * reason under it, instead of flashing into the thread and back.
+             */
+            const limit = max_chars || AppData.BotMessageMaxChars;
+            const length = text.trim().length;
 
-        const client_id = temp_id.current;
-        /**
-         * The text goes as the server will store it, trimmed: a message
-         * with a trailing newline was saved without it, and the bubble
-         * waiting for it never matched the saved one.
-         */
-        const text_sent = text.trim();
-        /**
-         * The server's own handle for this send, so a send whose answer
-         * never arrived is recognised as the message already stored. Not
-         * the thread's temp id: that restarts after a reload and would
-         * match an older message of the same conversation.
-         */
-        const request_id = crypto.randomUUID();
-        const media_ids = files.media_ids;
-        const attachments = files.pending.flatMap((item) =>
-            item.status == "ready" && item.attachment ? [item.attachment] : [],
-        );
+            if (length > limit) {
+                setError(messageTooLongMessage({ length, max_chars: limit }));
+                return;
+            }
 
-        onSendStart({
-            message: {
-                id: client_id,
+            temp_id.current -= 1;
+
+            const client_id = temp_id.current;
+            /**
+             * The text goes as the server will store it, trimmed: a message
+             * with a trailing newline was saved without it, and the bubble
+             * waiting for it never matched the saved one.
+             */
+            const text_sent = text.trim();
+            /**
+             * The server's own handle for this send, so a send whose answer
+             * never arrived is recognised as the message already stored. Not
+             * the thread's temp id: that restarts after a reload and would
+             * match an older message of the same conversation.
+             */
+            const request_id = crypto.randomUUID();
+            const media_ids = files.media_ids;
+            const attachments = files.pending.flatMap((item) =>
+                item.status == "ready" && item.attachment ? [item.attachment] : [],
+            );
+
+            onSendStart({
+                message: {
+                    id: client_id,
+                    bot_id: bot.id,
+                    workspace_id: workspace_id || undefined,
+                    author: "user",
+                    text: text_sent,
+                    created_at: Date.now(),
+                    updated_at: Date.now(),
+                    attachments,
+                    reply_to: reply_to
+                        ? {
+                              id: Number(reply_to.id),
+                              author: reply_to.author == "bot" ? "bot" : "user",
+                              text: reply_to.text || "",
+                          }
+                        : null,
+                },
+            });
+
+            /**
+             * The message takes the quote with it, so a new one typed while it
+             * is on its way doesn't inherit it.
+             */
+            onCancelReply?.();
+
+            setText("");
+            history.reset();
+            input.clear();
+            files.clear();
+
+            const res = await sendBotMessage({
                 bot_id: bot.id,
-                workspace_id: workspace_id || undefined,
-                author: "user",
+                workspace_id,
                 text: text_sent,
-                created_at: Date.now(),
-                updated_at: Date.now(),
-                attachments,
-                reply_to: reply_to
-                    ? {
-                          id: Number(reply_to.id),
-                          author: reply_to.author == "bot" ? "bot" : "user",
-                          text: reply_to.text || "",
-                      }
-                    : null,
-            },
-        });
+                media_ids,
+                reply_to_message_id: reply_to?.id || null,
+                session_id: session_id || null,
+                client_id: request_id,
+                plan_mode,
+            });
 
-        /**
-         * The message takes the quote with it, so a new one typed while it
-         * is on its way doesn't inherit it.
-         */
-        onCancelReply?.();
+            if (!res.success || !res.singleRes) {
+                setError(res.msg || "Message not sent");
+                restore({ lost_text: text_sent, attachments });
+                onSendFailed({ temp_id: client_id });
+                return;
+            }
 
-        setText("");
-        history.reset();
-        input.clear();
-        files.clear();
-
-        const res = await sendBotMessage({
-            bot_id: bot.id,
-            workspace_id,
-            text: text_sent,
-            media_ids,
-            reply_to_message_id: reply_to?.id || null,
-            session_id: session_id || null,
-            client_id: request_id,
-            plan_mode,
-        });
-
-        if (!res.success || !res.singleRes) {
-            setError(res.msg || "Message not sent");
-            restore({ lost_text: text_sent, attachments });
-            onSendFailed({ temp_id: client_id });
-            return;
+            onSent({ message: res.singleRes });
+        } finally {
+            sending.current = false;
         }
-
-        onSent({ message: res.singleRes });
     }
 
     send_ref.current = send;
