@@ -4,11 +4,10 @@ import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { useContext, useState } from "react";
 import { RotateCw } from "lucide-react";
-import BotAvatar from "@/src/components/general/bot-avatar";
-import botStoneProps from "@/src/utils/bot-stone-props";
 import type { BotMessageWithAttachments, BotWithLastMessage } from "@/src/types";
 import { BotMessageActionsContext } from "../(data)/message-actions-context";
 import retryBotReply from "../(functions)/retry-bot-reply";
+import BotPanelTrigger from "./bot-panel-trigger";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -47,12 +46,7 @@ export default function UnansweredReplyRow({ bot, message }: Props) {
 
     return (
         <Row role="status" className="w-full gap-3! flex-nowrap items-center">
-            <BotAvatar
-                image_media_id={bot.image_media_id}
-                {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
-                face={bot.face}
-                size={28}
-            />
+            <BotPanelTrigger bot={bot} size={28} />
             <Stack className="min-w-0 grow gap-0! items-start">
                 <Span className="text-sm leading-5 text-ink-secondary">
                     {error || "No answer came."}

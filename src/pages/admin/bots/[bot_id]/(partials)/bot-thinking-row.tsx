@@ -5,12 +5,11 @@ import Stack from "@moduletrace/twui/layout/Stack";
 import { lazy, Suspense } from "react";
 import { twMerge } from "tailwind-merge";
 import { ArrowRight, Bug } from "lucide-react";
-import BotAvatar from "@/src/components/general/bot-avatar";
-import botStoneProps from "@/src/utils/bot-stone-props";
 import { BotGettingMessageStatusLine } from "@/src/dict/bot-queue-dict";
 import type { BotWithLastMessage, PagePropsType } from "@/src/types";
 import conversationHref from "@/src/utils/conversation-href";
 import botBusyState from "../(utils)/bot-busy-state";
+import BotPanelTrigger from "./bot-panel-trigger";
 import StopBotButton from "./stop-bot-button";
 
 /**
@@ -118,10 +117,8 @@ export default function BotThinkingRow({
     return (
         <Stack className="w-full gap-0! items-stretch">
             <Row role="status" className="w-full gap-3! flex-nowrap items-center">
-                <BotAvatar
-                    image_media_id={bot.image_media_id}
-                    {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
-                    face={waiting ? "asleep" : "working"}
+                <BotPanelTrigger
+                    bot={{ ...bot, face: waiting ? "asleep" : "working" }}
                     size={28}
                 />
                 <Stack className="min-w-0 grow gap-0! items-start">
