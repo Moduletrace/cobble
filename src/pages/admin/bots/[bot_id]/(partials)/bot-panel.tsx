@@ -3,6 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import H2 from "@moduletrace/twui/layout/H2";
+import Divider from "@moduletrace/twui/layout/Divider";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
@@ -41,16 +42,16 @@ type Props = {
     on_close: () => void;
 };
 
-type PanelTab = "settings" | "memory" | "tools";
+type PanelTab = "settings" | "tools";
 
 /**
- * The bot's profile (picture, name, job, colour, instructions), its memory
- * and what it works with (computer, tools, knowledgebases) to edit, sliding
- * in from the right over the conversation, for super admins and admins. The
- * avatar and the name beside it open it, and so does a swipe from the right
- * on a phone (`BotPanelOpenEvent`, sent by the layout, so a page without a
- * conversation has nobody listening). The tab's data loads when it opens,
- * and Escape, the backdrop or the X closes it.
+ * The bot's profile (picture, name, job, colour, instructions), what it keeps
+ * in mind and what it works with (computer, tools, knowledgebases) to edit,
+ * sliding in from the right over the conversation, for super admins and
+ * admins. The avatar and the name beside it open it, and so does a swipe from
+ * the right on a phone (`BotPanelOpenEvent`, sent by the layout, so a page
+ * without a conversation has nobody listening). The tab's data loads when it
+ * opens, and Escape, the backdrop or the X closes it.
  */
 export default function BotPanel({ bot, workspace, open, on_open, on_close }: Props) {
     const { pageProps } = useContext(AppContext);
@@ -65,7 +66,7 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
     const workspace_instructions = useWorkspaceBotInstructions({
         workspace_id,
         bot_id: Number(bot.id) || 0,
-        enabled: open && can_edit && Boolean(workspace_id) && tab == "memory",
+        enabled: open && can_edit && Boolean(workspace_id) && tab == "settings",
     });
     const memory_ready =
         system_prompt != undefined &&
@@ -132,7 +133,6 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                     className="shrink-0 gap-1! flex-nowrap items-center px-3 py-2 border-0 border-b border-solid border-hairline"
                 >
                     <TabButton title="Settings" active={tab == "settings"} onPick={() => setTab("settings")} />
-                    <TabButton title="Memory" active={tab == "memory"} onPick={() => setTab("memory")} />
                     <TabButton title="Tools" active={tab == "tools"} onPick={() => setTab("tools")} />
                 </Row>
                 <Stack className="grow min-h-0 overflow-y-auto gap-1! items-stretch px-4 pt-4 pb-6">
@@ -144,13 +144,38 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                                     : `${name}'s core instructions apply everywhere. What it does in one workspace is under Instructions here in the menu of its conversation there.`}
                             </Span>
                             {system_prompt != undefined ? (
-                                <BotForm
-                                    bot={{ ...bot, system_prompt }}
-                                    onCancel={on_close}
-                                />
-                            ) : loaded_error ? (
+                                <>
+                                    <BotForm
+                                        bot={{ ...bot, system_prompt }}
+                                        onCancel={on_close}
+                                    />
+                                    <Divider className="my-2 border-hairline dark:border-hairline" />
+                                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                                        {`What ${name} keeps in mind, and can add to itself as it works.`}
+                                    </Span>
+                                    {memory_ready ? (
+                                        <BotMemoryForm
+                                            bot_id={Number(bot.id) || 0}
+                                            bot_name={name}
+                                            memory={memory || ""}
+                                            workspace_id={workspace_id || undefined}
+                                            workspace_name={workspace?.name}
+                                            workspace_memory={workspace_instructions.instructions?.memory || ""}
+                                            onCancel={on_close}
+                                        />
+                                    ) : loaded_error ? (
+                                        <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
+                                            {loaded_error}
+                                        </Span>
+                                    ) : (
+                                        <Stack className="w-full py-10 items-center">
+                                            <Loading />
+                                        </Stack>
+                                    )}
+                                </>
+                            ) : error ? (
                                 <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
-                                    {loaded_error}
+                                    {error}
                                 </Span>
                             ) : (
                                 <Stack className="w-full py-10 items-center">
@@ -158,32 +183,6 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                                 </Stack>
                             )}
                         </>
-                    ) : null}
-                    {open && tab == "memory" ? (
-                        memory_ready ? (
-                            <>
-                                <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                                    {`What ${name} keeps in mind, and can add to itself as it works.`}
-                                </Span>
-                                <BotMemoryForm
-                                    bot_id={Number(bot.id) || 0}
-                                    bot_name={name}
-                                    memory={memory || ""}
-                                    workspace_id={workspace_id || undefined}
-                                    workspace_name={workspace?.name}
-                                    workspace_memory={workspace_instructions.instructions?.memory || ""}
-                                    onCancel={on_close}
-                                />
-                            </>
-                        ) : loaded_error ? (
-                            <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
-                                {loaded_error}
-                            </Span>
-                        ) : (
-                            <Stack className="w-full py-10 items-center">
-                                <Loading />
-                            </Stack>
-                        )
                     ) : null}
                     {open && tab == "tools" ? (
                         <BotToolsTab
