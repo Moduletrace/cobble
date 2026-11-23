@@ -5,69 +5,135 @@
 <img src="docs/readme/lockup-dark.svg#gh-dark-mode-only" alt="Cobble" height="56">
 </h1>
 
-A crew of small AI worker bots you host yourself (alpha).
+### A crew of small AI worker bots you host yourself
 
-![Cobble: a crew of small AI worker bots you host yourself](docs/readme/hero-light.png#gh-light-mode-only)
-![Cobble: a crew of small AI worker bots you host yourself](docs/readme/hero-dark.png#gh-dark-mode-only)
+Not a chat box with a system prompt. A coordinator, a team of workers, and real
+Docker computers with a browser and a shell that they actually operate.
 
 [![CI](https://github.com/Moduletrace/cobble/actions/workflows/ci.yml/badge.svg)](https://github.com/Moduletrace/cobble/actions/workflows/ci.yml)
+[![GitHub stars](https://img.shields.io/github/stars/Moduletrace/cobble?style=flat&color=0e1116)](https://github.com/Moduletrace/cobble/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-cobble.moduletrace.org-0e1116)](https://cobble.moduletrace.org)
-[![Bun](https://img.shields.io/badge/runs%20on-Bun-14151a?logo=bun&logoColor=white)](https://bun.sh)
+[![Runs on Bun](https://img.shields.io/badge/runs%20on-Bun-14151a?logo=bun&logoColor=white)](https://bun.sh)
 
-[Website](https://cobble.moduletrace.org) · [Install](#install) · [Features](#features) · [Development](#development) · [Architecture](AGENTS.md)
+```bash
+curl -fsSL https://url.moduletrace.com/cobble | sudo bash
+```
+
+One command. One SQLite file. Your machine. No account, no per-seat pricing.
+
+<br>
+
+<!-- ============================================================
+     DEMO GIF PLACEHOLDER
+     Drop the file at docs/readme/demo.gif and uncomment the line below.
+     Keep it under 8 MB (GitHub renders anything bigger badly, and
+     the whole point is that it plays instantly on the repo page).
+
+     SHOT LIST for the recording (target 12 to 18 seconds, 960px wide,
+     loop, no audio):
+
+     1. 0.0s  The rail. Coordinator at top, four workers below with
+              different faces. Mouse hovers one, its status line reads
+              "working".
+     2. 2.5s  Cut to the chat. You type: "Check whether the staging
+              site still returns 200 and open a PR if the footer link
+              is broken." Send.
+     3. 4.5s  The coordinator delegates. Two worker faces go to
+              "working" in the rail at the same time.
+     4. 6.5s  Cut to the live computer view. Chrome is open, the bot
+              is scrolling the staging site. The cursor moves on its
+              own. Terminal panel beside it shows curl output.
+     5. 10.0s The bot hits a login wall. Face flips to "needs you".
+              Card appears asking to take over. You click, type the
+              password, hand it back.
+     6. 12.5s The bot finishes. PR link appears in chat. Worker faces
+              go to "done".
+     7. 15.0s Pull back to the rail. Whole crew idle, everything
+              green, one line of summary text.
+
+     That sequence is the entire product in one loop: delegate,
+     parallel work, a real browser, a human handoff, a shipped
+     artifact. Do not replace it with a screenshot carousel.
+     ============================================================ -->
+
+<!-- ![Cobble in action: delegating to a crew, a bot driving a real browser, a handoff to the human, a finished pull request](docs/readme/demo.gif) -->
+
+![Cobble: a self-hosted crew of small AI worker bots](docs/readme/hero-light.png#gh-light-mode-only)
+![Cobble: a self-hosted crew of small AI worker bots](docs/readme/hero-dark.png#gh-dark-mode-only)
+
+[Website](https://cobble.moduletrace.org) · [Install](#install) · [Features](#features) · [Architecture](AGENTS.md)
 
 </div>
 
-> **Alpha.** Cobble is still in alpha: interfaces, database schema and
-> settings change between releases, and things break. Install it to try it
-> out and to tell us what is wrong, but keep your own backups (Settings >
-> Backups) and do not put it in front of work you cannot lose. Every release
-> is a real release: the installer updates an existing install in place and
-> keeps its data.
+---
 
-Cobble is a self-hosted crew of small AI worker bots. You get a coordinator
-and a set of workers, each with its own job, models, memory and workspace.
-They talk to you in one chat, share workspaces, run routines on a schedule,
-and drive their own computers: lean Docker sandboxes with a real Chrome and
-a shell, which a bot can use and hand back to you when it needs help.
+> **Alpha.** Cobble is still in alpha. Interfaces, database schema and settings
+> change between releases, and things break. Install it to try it out and to
+> tell us what is wrong, but keep your own backups (Settings > Backups) and do
+> not put it in front of work you cannot lose. Every release is a real release:
+> the installer updates an existing install in place and keeps its data.
 
-It is an install, not a SaaS. One SQLite database, one Docker container, and
-your data on your own machine.
+## The problem with one big assistant
 
-**Why small workers instead of one big assistant**
+You give an agent a task. It works for forty turns. Somewhere in the middle it
+loses the thread, forgets what it already tried, or quietly stops and says it is
+done. You cannot see what it is doing, you cannot stop it cleanly, and the whole
+thing lives in someone else's cloud with your files in it.
 
-- **A crew, not a chat.** Each worker has one job and only loads the context
-  for it. A five-bot crew does five things in parallel, and each one stays
-  cheap and focused.
+Cobble splits that agent into a crew and gives the crew a machine:
+
+- **A crew, not a chat.** Each worker has one job and only loads the context for
+  it. A five-bot crew does five things in parallel, and each one stays cheap
+  and focused. The coordinator plans and delegates; it never does the work
+  itself.
 - **Bots you can see through.** The face on each stone is the status: idle,
-  working, done, asleep, needs you. You read the whole crew at a glance
-  instead of asking each one what it is doing.
-- **Real computers.** Workers run on your own sandboxed machines, with
-  browser, terminal, files and desktop, not just a tool loop.
+  working, done, asleep, needs you. You read the whole crew at a glance instead
+  of asking each one what it is doing.
+- **Real computers.** Workers run on your own sandboxed Docker machines, with a
+  real headful Chrome on a virtual screen, a shell, files and a desktop. Not
+  just a tool loop that can call `curl`.
+- **A human in the loop that works.** When a bot hits a login wall or a captcha,
+  it hands the live browser back to you mid-task. You act, you hand it back, it
+  carries on. No restart, no lost state.
 - **Yours.** Self-hosted, MIT, one SQLite file to back up, no account and no
-  per-seat billing.
+  per-seat billing. Your keys stay on your machine.
+
+## Where Cobble fits
+
+| | One big chat assistant | A hosted agent platform | Cobble |
+|---|---|---|---|
+| Runs on your hardware | No | No | Yes, one container plus one per computer |
+| Parallel work | Manually, one thread | Often | Yes, one worker per job |
+| Real browser and shell | No | Sometimes, headless | Yes, headful Chrome plus a shell, visible live |
+| Human takes over mid-task | Copy and paste | Rarely | Yes, live, same session |
+| Your data leaves the box | Yes | Yes | Only to the model provider you pick |
+| Cost model | Per seat | Per seat plus usage | Your hardware, your API keys |
+| Licence | Proprietary | Proprietary | MIT |
+
+If you want a single assistant that writes emails, a chat app is cheaper. If you
+want a team that ships work on machines you control, that is this.
 
 ## Features
 
-| Area       | What you get                                                                                                                                               |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Crew       | One coordinator and as many workers as you need, each with a name, a role, a hue and its own core instructions                                             |
-| Rail       | The coordinator, your recent workers and their latest sessions, then your workspaces, each row carrying its status line                                    |
-| Chat       | Markdown with @-mentions for bots and #-mentions for workspaces, replies and quotes, reactions, attachments, older messages on scroll, drafts kept locally |
-| Stop       | Stop a bot from the thinking row or the header menu: its queued and running work stops at once, everywhere you chat with it, and it goes idle              |
-| Header     | The bot's model, provider and computer at a glance, one click from either, and its picture, instructions and settings on the avatar                        |
-| Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard                              |
-| Memory     | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works                                                            |
-| Routines   | Cron schedules per bot, written in chat, that queue a task on its own                                                                                      |
-| Computers  | Docker sandboxes with a real headful Chrome and a shell, shown live in the chat and handed back to you mid-task                                            |
-| Files      | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply                                                      |
-| Models     | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness                       |
-| Voice      | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice                                                |
-| Tools      | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces                                                  |
-| Skills     | Write runbooks your bots follow. Each bot sees what a skill is for and reads the whole thing only when it needs it                                         |
-| Knowledge  | Knowledgebases of documents and notes, given to bots or workspaces: every reply starts from the passages that fit, searched by one embedding model         |
-| App        | Installable PWA with Web Push, dark mode, and a rail built for a phone                                                                                     |
+| Area | What you get |
+| --- | --- |
+| Crew | One coordinator and as many workers as you need, each with a name, a role, a hue and its own core instructions |
+| Rail | The coordinator, your recent workers and their latest sessions, then your workspaces, each row carrying its status line |
+| Chat | Markdown with @-mentions for bots and #-mentions for workspaces, replies and quotes, reactions, attachments, older messages on scroll, drafts kept locally |
+| Stop | Stop a bot from the thinking row or the header menu: its queued and running work stops at once, everywhere you chat with it, and it goes idle |
+| Header | The bot's model, provider and computer at a glance, one click from either, and its picture, instructions and settings on the avatar |
+| Workspaces | A shared home for a group of bots: shared context, per-workspace instructions and memory, a default computer, and a dashboard |
+| Memory | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works |
+| Routines | Cron schedules per bot, written in chat, that queue a task on its own |
+| Computers | Docker sandboxes with a real headful Chrome and a shell, shown live in the chat and handed back to you mid-task |
+| Files | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply |
+| Models | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness |
+| Voice | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice |
+| Tools | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces |
+| Skills | Write runbooks your bots follow. Each bot sees what a skill is for and reads the whole thing only when it needs it |
+| Knowledge | Knowledgebases of documents and notes, given to bots or workspaces: every reply starts from the passages that fit, searched by one embedding model |
+| App | Installable PWA with Web Push, dark mode, and a rail built for a phone |
 
 ## Screenshots
 
@@ -77,44 +143,72 @@ their instructions there, and its computers.
 ![A workspace dashboard in Cobble](docs/readme/workspace-light.png#gh-light-mode-only)
 ![A workspace dashboard in Cobble, dark mode](docs/readme/workspace-dark.png#gh-dark-mode-only)
 
+## How it fits together
+
+```
+You ── chat ── Coordinator ── delegates ── Workers
+                     │                        │
+                     ├── Workspaces ──────────┤
+                     │   context, memory, bots │
+                     ├── Routines ────────────┤
+                     │   cron schedules        │
+                     └── Computers ───────────┘
+                         docker sandboxes:
+                         real Chrome, shell
+```
+
+- **Coordinator** is yours alone. It plans, delegates to workers, and keeps the
+  crew in order. It is the only bot that reaches every worker.
+- **Workers** are the crew. Each has a job, its own instructions and memory, and
+  its own models if you want to tune cost per bot.
+- **Workspaces** group bots around a subject. Models, instructions, memory and
+  the default computer resolve per workspace before per bot.
+- **Routines** are cron schedules that queue a task without you asking.
+- **Computers** are per-install Docker containers of Cobble's own image
+  (`computer/`: Debian 13, Google Chrome on a virtual screen, Playwright MCP and
+  a shell). Bots drive the browser and the shell, and you can watch the same
+  browser live in the chat and take over.
+
+Each conversation is split into sessions, so a long-running bot does not grow
+one endless thread: the bot names a session, summarizes it, and carries the
+summary into the next one.
+
 ## Install
 
-On a Linux machine with Docker (the installer adds Docker when it is
-missing):
+On a Linux machine with Docker (the installer adds Docker when it is missing):
 
 ```bash
 curl -fsSL https://url.moduletrace.com/cobble | sudo bash
 ```
 
 The app serves plain HTTP on the port it prints, usually
-`http://<your-ip>:7227`. Put a reverse proxy or tunnel in front of it for
-HTTPS (see [HTTPS](#https)), then open the proxy's address and create the
-super admin account. The first signup also creates the coordinator and the
-main computer, which pulls the computer image in the background. Give it a
-few minutes.
+`http://<your-ip>:7227`. Put a reverse proxy or tunnel in front of it for HTTPS
+(see [HTTPS](#https)), then open the proxy's address and create the super admin
+account. The first signup also creates the coordinator and the main computer,
+which pulls the computer image in the background. Give it a few minutes.
 
-Then open **Settings > Models**, add an OpenRouter key (or another provider)
-and wait for the model list to sync. This is what the bots think with.
+Then open **Settings > Models**, add an OpenRouter key (or another provider) and
+wait for the model list to sync. This is what the bots think with.
 
 ### Requirements
 
 - Linux amd64 or arm64, with Docker. The installer installs Docker from
   get.docker.com when it is missing.
-- 2 CPU cores, 4 GB RAM and 20 GB free disk for the app plus one computer.
-  Each computer is its own container with its own memory limit.
-- Docker Desktop on macOS works for development and small installs, but
-  Linux is the supported host.
+- 2 CPU cores, 4 GB RAM and 20 GB free disk for the app plus one computer. Each
+  computer is its own container with its own memory limit.
+- Docker Desktop on macOS works for development and small installs, but Linux is
+  the supported host.
 - Port 7227, or another port with `--port`.
-- A reverse proxy or tunnel in front for HTTPS. The app itself serves plain
-  HTTP and never handles certificates.
+- A reverse proxy or tunnel in front for HTTPS. The app itself serves plain HTTP
+  and never handles certificates.
 
-The installer binds to `0.0.0.0` so the app is reachable from your phone on
-the same network. Use `--bind 127.0.0.1` when a reverse proxy is the only
-thing that should reach it.
+The installer binds to `0.0.0.0` so the app is reachable from your phone on the
+same network. Use `--bind 127.0.0.1` when a reverse proxy is the only thing that
+should reach it.
 
-The app container itself is limited to 1 CPU and 2 GB of memory, since the
-heavy work happens in the computers' own containers. Change that with
-`--cpus` and `--memory`; each computer keeps its own limits.
+The app container itself is limited to 1 CPU and 2 GB of memory, since the heavy
+work happens in the computers' own containers. Change that with `--cpus` and
+`--memory`; each computer keeps its own limits.
 
 ## HTTPS
 
@@ -127,21 +221,21 @@ point that at `http://<this machine>:7227`:
   `proxy_set_header X-Forwarded-Proto $scheme;`.
 - Pass `/ws` through as well as ordinary requests, including the upgrade.
 - Keep the address the browser used in `Host` (or send it as
-  `X-Forwarded-Host`). Live updates and the computers' terminals only accept
-  a websocket from the app's own address; Caddy and Cloudflare Tunnel keep
-  it, and nginx needs `proxy_set_header Host $host;`.
-- Give the proxy a real certificate. Browsers treat plain HTTP as unsafe, so
-  the installable app, offline support, Web Push notifications and voice
-  recording stay off until the address is HTTPS.
+  `X-Forwarded-Host`). Live updates and the computers' terminals only accept a
+  websocket from the app's own address; Caddy and Cloudflare Tunnel keep it, and
+  nginx needs `proxy_set_header Host $host;`.
+- Give the proxy a real certificate. Browsers treat plain HTTP as unsafe, so the
+  installable app, offline support, Web Push notifications and voice recording
+  stay off until the address is HTTPS.
 
 Nothing on the machine needs a certificate installed: the browser only ever
 talks to the proxy. See the Help page in the app for the common proxy fixes.
 
 ## Update and uninstall
 
-The same script is the updater. It keeps the database, media, computers'
-home directories and generated secrets, backs up the database before
-replacing the container, and does nothing when the image has not changed.
+The same script is the updater. It keeps the database, media, computers' home
+directories and generated secrets, backs up the database before replacing the
+container, and does nothing when the image has not changed.
 
 ```bash
 curl -fsSL https://url.moduletrace.com/cobble | sudo bash
@@ -157,54 +251,24 @@ curl -fsSL https://url.moduletrace.com/cobble | sudo bash -s -- --uninstall --pu
 
 ### Options
 
-| Option                | Meaning                                                    |
-| --------------------- | ---------------------------------------------------------- |
-| `--home DIR`          | Install directory, default `/opt/cobble`                   |
-| `--data-dir DIR`      | Data directory mounted at `/data`, default `HOME/data`     |
-| `--port PORT`         | Host port, default `7227`                                  |
-| `--bind ADDRESS`      | Host address to publish on, default `0.0.0.0`              |
-| `--cpus N`            | CPU cores for the app container, default `1`               |
-| `--memory MB`         | Memory for the app container in MB, default `2048`         |
-| `--image IMAGE`       | Container image, default `ghcr.io/moduletrace/cobble`      |
-| `--version TAG`       | Image tag, default `latest`                                |
+| Option | Meaning |
+| --- | --- |
+| `--home DIR` | Install directory, default `/opt/cobble` |
+| `--data-dir DIR` | Data directory mounted at `/data`, default `HOME/data` |
+| `--port PORT` | Host port, default `7227` |
+| `--bind ADDRESS` | Host address to publish on, default `0.0.0.0` |
+| `--cpus N` | CPU cores for the app container, default `1` |
+| `--memory MB` | Memory for the app container in MB, default `2048` |
+| `--image IMAGE` | Container image, default `ghcr.io/moduletrace/cobble` |
+| `--version TAG` | Image tag, default `latest` |
 | `--extra-network NET` | Join another Docker network, for a tunnel or reverse proxy |
-| `--force`             | Recreate the container even when it is current             |
-| `--no-pull`           | Use an image that is already on the machine                |
-| `--skip-backup`       | Update without a database backup                           |
-| `--no-docker-install` | Fail instead of installing Docker                          |
-| `--yes`, `-y`         | Accept the defaults without asking                         |
-| `--uninstall`         | Stop and remove the app container                          |
-| `--purge`             | With `--uninstall`, also delete the data directory         |
-
-## How it fits together
-
-```
-You ── chat ── Coordinator ── delegates ── Workers
-                   │                          │
-                   ├── Workspaces ────────────┤
-                   │   context, memory, bots  │
-                   ├── Routines ──────────────┤
-                   │   cron schedules         │
-                   └── Computers ─────────────┘
-                       docker sandboxes:
-                       real Chrome, shell
-```
-
-- **Coordinator** is yours alone. It plans, delegates to workers, and keeps
-  the crew in order. It is the only bot that reaches every worker.
-- **Workers** are the crew. Each has a job, its own instructions and memory,
-  and its own models if you want to tune cost per bot.
-- **Workspaces** group bots around a subject. Models, instructions, memory
-  and the default computer resolve per workspace before per bot.
-- **Routines** are cron schedules that queue a task without you asking.
-- **Computers** are per-install Docker containers of Cobble's own image
-  (`computer/`: Debian 13, Google Chrome on a virtual screen, Playwright MCP
-  and a shell). Bots drive the browser and the shell, and you can watch the
-  same browser live in the chat and take over.
-
-Each conversation is split into sessions, so a long-running bot does not grow
-one endless thread: the bot names a session, summarizes it, and carries the
-summary into the next one.
+| `--force` | Recreate the container even when it is current |
+| `--no-pull` | Use an image that is already on the machine |
+| `--skip-backup` | Update without a database backup |
+| `--no-docker-install` | Fail instead of installing Docker |
+| `--yes`, `-y` | Accept the defaults without asking |
+| `--uninstall` | Stop and remove the app container |
+| `--purge` | With `--uninstall`, also delete the data directory |
 
 ## Data and settings
 
@@ -227,38 +291,37 @@ Everything that must survive an update lives under the install directory:
 
 `.env` holds the port and the encryption keys. The keys encrypt sessions and
 settings, so keep a copy and do not rotate them without re-entering provider
-keys and other secrets. Provider keys, MCP servers, tools and app settings
-are managed in the app, not in `.env`.
+keys and other secrets. Provider keys, MCP servers, tools and app settings are
+managed in the app, not in `.env`.
 
-Edit `.env` and run `docker restart cobble` to apply changes. The installer
-only appends missing values and keeps what is already there, apart from the
-port it manages.
+Edit `.env` and run `docker restart cobble` to apply changes. The installer only
+appends missing values and keeps what is already there, apart from the port it
+manages.
 
 Settings > Backups makes two kinds of copy. Database snapshots (bun-sqlite's
-`backup` command) stay in `data/db/.backups` and can be restored from the
-app. Whole-data archives are a `tar.gz` of the entire `data/` directory,
-written to `backups-archives/` (mounted at `/backups-archives`, the
-`BACKUP_ARCHIVE_DIR` setting); every entry sits under one folder named after
-the archive, so extracting one by hand drops a single folder. Each group
-can create a copy, restore from one (a listed row, or a file uploaded from
-the button beside Create), download it and delete it; the newest five
-archives are kept.
+`backup` command) stay in `data/db/.backups` and can be restored from the app.
+Whole-data archives are a `tar.gz` of the entire `data/` directory, written to
+`backups-archives/` (mounted at `/backups-archives`, the `BACKUP_ARCHIVE_DIR`
+setting); every entry sits under one folder named after the archive, so
+extracting one by hand drops a single folder. Each group can create a copy,
+restore from one (a listed row, or a file uploaded from the button beside
+Create), download it and delete it; the newest five archives are kept.
 
 The app container is started with the Docker socket mounted and
-`MAIN_SERVER=1`, so it can create computer containers and run cron, the
-queue and Web Push.
+`MAIN_SERVER=1`, so it can create computer containers and run cron, the queue
+and Web Push.
 
 ## Images
 
-Every release publishes a multi-arch image to
-`ghcr.io/moduletrace/cobble`, which is what the installer pulls. Tags are
-`latest`, the release version, `major.minor` and the commit sha.
+Every release publishes a multi-arch image to `ghcr.io/moduletrace/cobble`,
+which is what the installer pulls. Tags are `latest`, the release version,
+`major.minor` and the commit sha.
 
 The same image is copied into `git.tben.me/moduletrace/cobble` by
 `bun run mirror:gitea`, which runs after the build over the VPN (the Gitea
 registry is not on the public internet, so GitHub Actions cannot reach it).
-Install from Gitea with `--image git.tben.me/moduletrace/cobble`, or build
-from source with `docker build -t cobble:local .` and
+Install from Gitea with `--image git.tben.me/moduletrace/cobble`, or build from
+source with `docker build -t cobble:local .` and
 `--image cobble --version local --no-pull`.
 
 A release is published from a clean `main` with the two scripts, which tag the
@@ -291,32 +354,31 @@ Open `http://localhost:7227`. With no users, every page goes to
 SEED_SUPER_ADMIN_PASSWORD=... bun run seed
 ```
 
-The development server serves plain HTTP, the same as the container. To try
-the app from a phone, run a proxy or tunnel in front of it (see
-[HTTPS](#https)); the installed app, Web Push and voice need that secure
-context.
+The development server serves plain HTTP, the same as the container. To try the
+app from a phone, run a proxy or tunnel in front of it (see [HTTPS](#https)); the
+installed app, Web Push and voice need that secure context.
 
-| Command                | Purpose                             |
-| ---------------------- | ----------------------------------- |
-| `bun run dev`          | Development server                  |
-| `bun run start`        | Production server on the host       |
-| `bun run typecheck`    | Type-check                          |
-| `bun run test`         | Run the test suite                  |
-| `bun run check:bundle` | Bundle budget after a build         |
-| `bun run seed`         | Create the super admin from the CLI |
-| `bun run seed:bots`    | Add a sample crew                   |
-| `bun run db:schema`    | Sync the schema and types           |
-| `bun run gen:favicon`  | Regenerate favicons and PWA assets  |
+| Command | Purpose |
+| --- | --- |
+| `bun run dev` | Development server |
+| `bun run start` | Production server on the host |
+| `bun run typecheck` | Type-check |
+| `bun run test` | Run the test suite |
+| `bun run check:bundle` | Bundle budget after a build |
+| `bun run seed` | Create the super admin from the CLI |
+| `bun run seed:bots` | Add a sample crew |
+| `bun run db:schema` | Sync the schema and types |
+| `bun run gen:favicon` | Regenerate favicons and PWA assets |
 
 Plain Node does not work: the app runs on Bun. The stack is Bun,
-[`@moduletrace/bunext`](https://github.com/Moduletrace/bunext) for
-filesystem routing, SQLite via
-[`@moduletrace/bun-sqlite`](https://github.com/Moduletrace/bun-sqlite),
-Tailwind CSS and the `@moduletrace/twui` component library. The model layer is
-one adapter over OpenAI-compatible APIs, so any compatible provider works.
+[`@moduletrace/bunext`](https://github.com/Moduletrace/bunext) for filesystem
+routing, SQLite via
+[`@moduletrace/bun-sqlite`](https://github.com/Moduletrace/bun-sqlite), Tailwind
+CSS and the `@moduletrace/twui` component library. The model layer is one
+adapter over OpenAI-compatible APIs, so any compatible provider works.
 
-See [AGENTS.md](AGENTS.md) for the full architecture, routes, queue, harness
-and data model. CI runs type-check and tests on every push and pull request;
+See [AGENTS.md](AGENTS.md) for the full architecture, routes, queue, harness and
+data model. CI runs type-check and tests on every push and pull request;
 releases are built by GitHub Actions and pushed to both registries. See
 [RELEASING.md](RELEASING.md) for the release and launch checklist.
 
@@ -324,10 +386,25 @@ releases are built by GitHub Actions and pushed to both registries. See
 
 Issues and pull requests are welcome, in English, on either
 [GitHub](https://github.com/Moduletrace/cobble) or
-[Gitea](https://git.tben.me/Moduletrace/cobble). Run `bun run typecheck` and
-`bun run test` before opening a pull request, and read
-[AGENTS.md](AGENTS.md) first: it documents the conventions the code follows.
+[Gitea](https://git.tben.me/moduletrace/cobble). Run `bun run typecheck` and
+`bun run test` before opening a pull request, and read [AGENTS.md](AGENTS.md)
+first: it documents the conventions the code follows.
+
+Good first contributions right now: a worker role that ships as a one-click
+template, an MCP server integration that other people would install, a missing
+proxy recipe for the Help page, or a test around a bug you hit while installing.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+**If Cobble saves you from stitching three tools together, star the repo.**
+It is the fastest way to help other people find it.
+
+[![Star Cobble](https://img.shields.io/github/stars/Moduletrace/cobble?style=social)](https://github.com/Moduletrace/cobble/stargazers)
+
+</div>
