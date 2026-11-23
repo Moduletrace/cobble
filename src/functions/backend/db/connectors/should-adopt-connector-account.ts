@@ -6,36 +6,17 @@ type Params = {
     reconnect: boolean;
     /** A pending request here started this sign-in. */
     claimed: boolean;
-    /**
-     * Whether the app has no live account here yet: one card per app is
-     * filled by the provider's account, and any other account arrives through
-     * its own sign-in (claimed).
-     */
-    free_slot: boolean;
-    /**
-     * The provider lists none of the accounts the app knows: they were
-     * replaced there, so no stranger takes their place (the cards offer
-     * Reconnect instead).
-     */
-    wiped?: boolean;
 };
 
 /**
- * Whether a provider account becomes a local row. One a request here started
- * (or is reconnecting) always does. A connected one the app doesn't know
- * gets the app's one free card, so leftovers from earlier sign-ins at the
- * provider can't pile up as four rows of the same mailbox; a second account
- * appears by signing in again, which claims its own row.
+ * Whether a provider account becomes a local row: only one a request here
+ * started or is reconnecting, and only once it is connected. One card per
+ * sign-in, so an account the provider already held (a leftover from an earlier
+ * attempt, or a sign-in made at the provider itself) never arrives as a second
+ * card of the same mailbox. A sign-in that hasn't finished has no card either:
+ * a link that connects under another id would leave a dead row beside the real
+ * one.
  */
-export default function shouldAdoptConnectorAccount({
-    status,
-    reconnect,
-    claimed,
-    free_slot,
-    wiped = false,
-}: Params) {
-    if (reconnect || claimed) return true;
-    if (wiped) return false;
-
-    return status == "connected" && free_slot;
+export default function shouldAdoptConnectorAccount({ status, reconnect, claimed }: Params) {
+    return status == "connected" && (reconnect || claimed);
 }

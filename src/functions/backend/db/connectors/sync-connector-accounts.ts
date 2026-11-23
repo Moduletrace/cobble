@@ -7,6 +7,7 @@ import connectorSlug from "@/src/utils/connector-slug";
 import grabConnector from "./grab-connector";
 import parseConnectorAccountRow from "./parse-connector-account-row";
 import shouldAdoptConnectorAccount from "./should-adopt-connector-account";
+import insertConnectorAccountSql from "./insert-connector-account-sql";
 
 type Params = {
     user_id: number | string;
@@ -20,15 +21,15 @@ type Params = {
 
 /**
  * Reads the user's accounts for a connector at its provider and brings the
- * local rows in line: new sign-ins are added (the first connected one is the
- * default), ones the provider reports expired say so, and ones it no longer
- * lists are marked revoked without losing their label. Pending connect
- * requests are closed as soon as the account they made is connected.
+ * local rows in line: the account a sign-in here made is added (the first
+ * connected one is the default), ones the provider reports expired say so, and
+ * ones it no longer lists are marked revoked without losing their label.
+ * Pending connect requests are closed as soon as the account they made is
+ * connected.
  *
- * One card per app unless the user signed in again: an account the provider
- * holds but no request here made fills the app's free card once and is left
- * at the provider after that, so a pile of earlier sign-ins cannot arrive as
- * four rows of the same mailbox.
+ * One card per sign-in: an account no request here made is left at the
+ * provider, so a leftover from an earlier attempt there cannot arrive as a
+ * second card of the same mailbox beside the one its own sign-in made.
  */
 export default async function syncConnectorAccounts({ user_id, connector_id, label }: Params) {
     const connector = await grabConnector({ connector_id });
@@ -51,34 +52,29 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
     const reconnect_for = new Map(
         requests
             .filter((row) => Number(row.account_id) != 0 && row.provider_account_id)
+            // A row disconnected since is no target: that sign-in arrives as a new one.
+            .filter((request) => local.some((account) => Number(account.id) == Number(request.account_id)))
             .map((row) => [String(row.provider_account_id), Number(row.account_id)]),
     );
     let reconnect_row = pendingReconnectRow(requests);
     // A row disconnected since is no target: that sign-in arrives as a new one.
     if (reconnect_row && !local.some((row) => Number(row.id) == reconnect_row)) reconnect_row = null;
     /**
-     * A sign-in only becomes a row once it is connected, or while the request
-     * that started it is still open. A pending account nothing here asked for
-     * is an abandoned or replaced sign-in at the provider (Composio keeps one
+     * A sign-in only becomes a row once it is connected, and only the account
+     * its own request names. A pending account nothing here asked for is an
+     * abandoned or replaced sign-in at the provider (Composio keeps one
      * `INITIALIZING` per abandoned link), and adopting it would put a second,
      * never connected account beside the one a reconnect replaced.
      */
     const claimed = new Set(requests.map((row) => String(row.provider_account_id || "")).filter(Boolean));
+    /**
+     * A new sign-in the provider named no account for: the first connected
+     * account it didn't already have is that sign-in, once.
+     */
+    let unclaimed_sign_in = requests.some((row) => Number(row.account_id) == 0 && !row.provider_account_id);
 
     const seen = new Set(accounts.map((account) => account.provider_account_id));
     const now = Date.now();
-    /**
-     * The provider lists none of the accounts the app knows: they were
-     * replaced there (a sign-in made outside the app), so its leftover takes
-     * no card and the known ones offer Reconnect.
-     */
-    const wiped = local.length > 0 && !local.some((row) => seen.has(String(row.provider_account_id || "")));
-    /**
-     * The app's one free card: a live row still listed by the provider holds
-     * it. An account arriving without a sign-in here (an older attempt at
-     * the provider) may fill it once, never pile up beside it.
-     */
-    let free_slot = !local.some((row) => row.status == "connected" && seen.has(String(row.provider_account_id || "")));
 
     /**
      * A listing that names no account is the provider unable to answer, not
@@ -96,7 +92,7 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
         }
     }
 
-    let firstConnected: number | null = free_slot ? 0 : null;
+    let firstConnected: number | null = local.some((row) => row.status == "connected") ? null : 0;
 
     for (const account of accounts) {
         const provider_account_id = String(account.provider_account_id);
@@ -105,10 +101,11 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
         if (
             !shouldAdoptConnectorAccount({
                 status: account.status,
-                reconnect: Boolean(reconnect_id) || (account.status == "connected" && Boolean(reconnect_row)),
-                claimed: claimed.has(provider_account_id),
-                free_slot,
-                wiped,
+                reconnect: Boolean(reconnect_id) || Boolean(reconnect_row),
+                claimed:
+                    claimed.has(provider_account_id) ||
+                    (unclaimed_sign_in &&
+                        !local.some((row) => String(row.provider_account_id || "") == provider_account_id)),
             })
         )
             continue;
@@ -119,14 +116,11 @@ export default async function syncConnectorAccounts({ user_id, connector_id, lab
             account,
             fallback_label: label,
             reconnect_id,
-            reconnect_row: account.status == "connected" ? reconnect_row : null,
+            reconnect_row,
         });
 
-        if (account.status == "connected" && reconnect_row) reconnect_row = null;
-
-        if (account.status != "connected") continue;
-
-        if (free_slot) free_slot = false;
+        reconnect_row = null;
+        unclaimed_sign_in = false;
 
         if (firstConnected === 0) {
             const created = (
@@ -273,23 +267,17 @@ async function upsertAccount({ connector_id, user_id, account, fallback_label, r
         slug = `${connectorSlug({ name: display_name, max: 8, fallback: "account" })}-${index}`;
     }
 
-    await BunSQLite.sql({
-        sql: `INSERT INTO connector_accounts
-            (created_at, updated_at, connector_id, user_id, label, slug, provider_account_id, status, is_default, connected_at, last_checked_at, last_error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, '')`,
-        values: [
-            now,
-            now,
-            connector_id,
-            user_id,
-            display_name,
-            slug,
-            account.provider_account_id,
-            account.status,
-            account.status == "connected" ? now : null,
-            now,
-        ],
+    const { sql, values } = insertConnectorAccountSql({
+        now,
+        connector_id,
+        user_id,
+        label: display_name,
+        slug,
+        provider_account_id: account.provider_account_id,
+        status: account.status,
     });
+
+    await BunSQLite.sql({ sql, values });
 }
 
 type SettleParams = {
