@@ -1,6 +1,7 @@
 import isCrewMessage from "@/src/utils/is-crew-message";
 import { lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import awaitsReply from "../(utils)/awaits-reply";
+import planMarksReplyDue from "../(utils)/plan-marks-reply-due";
 import Stack from "@moduletrace/twui/layout/Stack";
 import type { BotMessageReactionEmoji } from "@/src/dict/bot-dict";
 import type {
@@ -346,7 +347,7 @@ export default function Conversation() {
         on_change: (plan) => {
             setSessionPlan(plan);
 
-            if (plan?.status == "active") setOpenReplyJobs(1);
+            if (planMarksReplyDue({ plan })) setOpenReplyJobs(1);
         },
     });
 
