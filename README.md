@@ -24,45 +24,14 @@ One command. One SQLite file. Your machine. No account, no per-seat pricing.
 
 <br>
 
-<!-- ============================================================
-     DEMO GIF PLACEHOLDER
-     Drop the file at docs/readme/demo.gif and uncomment the line below.
-     Keep it under 8 MB (GitHub renders anything bigger badly, and
-     the whole point is that it plays instantly on the repo page).
-
-     SHOT LIST for the recording (target 12 to 18 seconds, 960px wide,
-     loop, no audio):
-
-     1. 0.0s  The rail. Coordinator at top, four workers below with
-              different faces. Mouse hovers one, its status line reads
-              "working".
-     2. 2.5s  Cut to the chat. You type: "Check whether the staging
-              site still returns 200 and open a PR if the footer link
-              is broken." Send.
-     3. 4.5s  The coordinator delegates. Two worker faces go to
-              "working" in the rail at the same time.
-     4. 6.5s  Cut to the live computer view. Chrome is open, the bot
-              is scrolling the staging site. The cursor moves on its
-              own. Terminal panel beside it shows curl output.
-     5. 10.0s The bot hits a login wall. Face flips to "needs you".
-              Card appears asking to take over. You click, type the
-              password, hand it back.
-     6. 12.5s The bot finishes. PR link appears in chat. Worker faces
-              go to "done".
-     7. 15.0s Pull back to the rail. Whole crew idle, everything
-              green, one line of summary text.
-
-     That sequence is the entire product in one loop: delegate,
-     parallel work, a real browser, a human handoff, a shipped
-     artifact. Do not replace it with a screenshot carousel.
-     ============================================================ -->
+<!-- Demo GIF: shot list in docs/readme/DEMO.md. -->
 
 <!-- ![Cobble in action: delegating to a crew, a bot driving a real browser, a handoff to the human, a finished pull request](docs/readme/demo.gif) -->
 
 ![Cobble: a self-hosted crew of small AI worker bots](docs/readme/hero-light.png#gh-light-mode-only)
 ![Cobble: a self-hosted crew of small AI worker bots](docs/readme/hero-dark.png#gh-dark-mode-only)
 
-[Website](https://cobble.moduletrace.org) · [Install](#install) · [Features](#features) · [Architecture](AGENTS.md)
+[Website](https://cobble.moduletrace.org) · [Install](#install) · [Features](#features) · [Development](#development) · [Architecture](AGENTS.md)
 
 </div>
 
@@ -85,8 +54,7 @@ Cobble splits that agent into a crew and gives the crew a machine:
 
 - **A crew, not a chat.** Each worker has one job and only loads the context for
   it. A five-bot crew does five things in parallel, and each one stays cheap
-  and focused. The coordinator plans and delegates; it never does the work
-  itself.
+  and focused. The coordinator plans and delegates; the workers do the work.
 - **Bots you can see through.** The face on each stone is the status: idle,
   working, done, asleep, needs you. You read the whole crew at a glance instead
   of asking each one what it is doing.
@@ -94,8 +62,9 @@ Cobble splits that agent into a crew and gives the crew a machine:
   real headful Chrome on a virtual screen, a shell, files and a desktop. Not
   just a tool loop that can call `curl`.
 - **A human in the loop that works.** When a bot hits a login wall or a captcha,
-  it hands the live browser back to you mid-task. You act, you hand it back, it
-  carries on. No restart, no lost state.
+  it hands the live browser back to you mid-task. You act, you hand it back, and
+  it continues from the same browser and the same files. No restart, no lost
+  state.
 - **Yours.** Self-hosted, MIT, one SQLite file to back up, no account and no
   per-seat billing. Your keys stay on your machine.
 
@@ -107,7 +76,7 @@ Cobble splits that agent into a crew and gives the crew a machine:
 | Parallel work | Manually, one thread | Often | Yes, one worker per job |
 | Real browser and shell | No | Sometimes, headless | Yes, headful Chrome plus a shell, visible live |
 | Human takes over mid-task | Copy and paste | Rarely | Yes, live, same session |
-| Your data leaves the box | Yes | Yes | Only to the model provider you pick |
+| Your data leaves the box | Yes | Yes | Only where you point it: your provider, the tools you give a bot |
 | Cost model | Per seat | Per seat plus usage | Your hardware, your API keys |
 | Licence | Proprietary | Proprietary | MIT |
 
@@ -127,7 +96,7 @@ want a team that ships work on machines you control, that is this.
 | Memory | Each bot keeps core memory, memory about you, and workspace memory, and rewrites it as it works |
 | Routines | Cron schedules per bot, written in chat, that queue a task on its own |
 | Computers | Docker sandboxes with a real headful Chrome and a shell, shown live in the chat and handed back to you mid-task |
-| Files | Bots keep files on your data volume, search them by meaning, and attach the ones they make to a reply |
+| Files | Bots keep files on your data volume, find them by name or path, and attach the ones they make to a reply |
 | Models | OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Groq, Mistral, xAI, Ollama or any OpenAI-compatible server, per bot and per harness |
 | Voice | Dictate into the composer, play any bot reply, with speech-to-text and text-to-speech models of your choice |
 | Tools | Install your own MCP servers and custom HTTP, script or prompt tools, and give them to bots or workspaces |
@@ -386,7 +355,7 @@ releases are built by GitHub Actions and pushed to both registries. See
 
 Issues and pull requests are welcome, in English, on either
 [GitHub](https://github.com/Moduletrace/cobble) or
-[Gitea](https://git.tben.me/moduletrace/cobble). Run `bun run typecheck` and
+[Gitea](https://git.tben.me/Moduletrace/cobble). Run `bun run typecheck` and
 `bun run test` before opening a pull request, and read [AGENTS.md](AGENTS.md)
 first: it documents the conventions the code follows.
 
