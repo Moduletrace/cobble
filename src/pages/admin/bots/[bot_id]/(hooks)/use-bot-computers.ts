@@ -1,7 +1,6 @@
 import { useState } from "react";
 import useServerEvent from "@/src/hooks/use-server-event";
-import type { BotUpdatedData } from "@/src/types";
-import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
+import type { BotUpdatedData, ComputerWithStatus } from "@/src/types";
 import type { ComputerViewMode } from "@/src/dict/computer-dict";
 import setBotComputer from "../(functions)/set-bot-computer";
 
@@ -20,7 +19,7 @@ export type BotComputers = {
     /**
      * The bot's computers, the one it's on first.
      */
-    computers: BUN_SQLITE_COBBLE_COMPUTERS[];
+    computers: ComputerWithStatus[];
     /**
      * The computer being switched to, while the switch runs.
      */
@@ -38,7 +37,7 @@ type Params = {
      * In a workspace, switching changes the workspace's default computer.
      */
     workspace_id?: number | null;
-    computers: BUN_SQLITE_COBBLE_COMPUTERS[];
+    computers: ComputerWithStatus[];
 };
 
 /**

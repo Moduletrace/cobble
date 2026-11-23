@@ -9,6 +9,7 @@ import {
     composerToolsCopy,
 } from "../(data)/composer-extensions-copy";
 import BotComputerOption from "./bot-computer-option";
+import BotComputerPreview from "./bot-computer-preview";
 import BotPanelSection from "./bot-panel-section";
 import ComposerBrowserButton from "./composer-browser-button";
 import ComposerConnectorsSection from "./composer-connectors-section";
@@ -69,6 +70,9 @@ export default function BotToolsTab({
     };
     const tools_copy = composerToolsCopy({ bot_name });
     const knowledge_copy = composerKnowledgebasesCopy({ bot_name });
+    const current = computers[0];
+    /** Only a running computer has a screen to show. */
+    const preview_id = current?.status == "running" ? Number(current.id) || 0 : 0;
 
     return (
         <Stack className="w-full gap-4! items-stretch">
@@ -118,6 +122,13 @@ export default function BotToolsTab({
                     >
                         {computer_error}
                     </Span>
+                ) : null}
+                {preview_id ? (
+                    <BotComputerPreview
+                        computer_id={preview_id}
+                        name={current?.name || `Computer ${preview_id}`}
+                        onOpen={() => openComputer({ computer_id: preview_id })}
+                    />
                 ) : null}
             </BotPanelSection>
 

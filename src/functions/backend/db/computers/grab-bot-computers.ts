@@ -1,4 +1,4 @@
-import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
+import type { ComputerWithStatus } from "@/src/types";
 import BunSQLite from "@moduletrace/bun-sqlite";
 
 type Params = {
@@ -30,10 +30,11 @@ export default async function grabBotComputers({
     bot_id,
     workspace_id,
     include_workspace_computers = true,
-}: Params): Promise<BUN_SQLITE_COBBLE_COMPUTERS[]> {
+}: Params): Promise<ComputerWithStatus[]> {
     if (workspace_id) {
-        const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_COMPUTERS>({
-            sql: `SELECT c.* FROM computers c
+        const res = await BunSQLite.sql<ComputerWithStatus>({
+            sql: `SELECT c.*, co.status AS status FROM computers c
+                LEFT JOIN containers co ON co.id = c.container_id
                 JOIN workspace_computers wc ON wc.computer_id = c.id AND wc.workspace_id = ?
                 JOIN workspaces w ON w.id = wc.workspace_id AND w.archived = 0
                 WHERE (
@@ -55,8 +56,9 @@ export default async function grabBotComputers({
             )`
         : "";
 
-    const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_COMPUTERS>({
-        sql: `SELECT c.* FROM computers c
+    const res = await BunSQLite.sql<ComputerWithStatus>({
+        sql: `SELECT c.*, co.status AS status FROM computers c
+            LEFT JOIN containers co ON co.id = c.container_id
             WHERE (
                 (SELECT kind FROM bots WHERE id = ?) = 'coordinator'
                 OR c.id IN (SELECT computer_id FROM bot_computers WHERE bot_id = ?)
