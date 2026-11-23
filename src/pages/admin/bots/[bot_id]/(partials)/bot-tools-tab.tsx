@@ -2,10 +2,7 @@ import { useContext } from "react";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import useExtensions from "@/src/hooks/use-extensions";
-import type {
-    BotExtensionsPayload,
-    BotWithLastMessage,
-} from "@/src/types";
+import type { BotExtensionsPayload, BotWithLastMessage } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import {
     composerKnowledgebasesCopy,
@@ -39,17 +36,29 @@ type Props = {
  * connectors reach for you among them), its knowledgebases, and which of
  * your browsers it acts as you in.
  */
-export default function BotToolsTab({ bot, workspace_id, initial, has_browsers, open }: Props) {
+export default function BotToolsTab({
+    bot,
+    workspace_id,
+    initial,
+    has_browsers,
+    open,
+}: Props) {
     const bot_name = bot.name || "this bot";
     const extensions = useExtensions({
         owner: { bot_id: bot.id || 0, workspace_id },
         owner_name: bot_name,
         initial,
     });
-    const { computers, switching_id, error: computer_error, switchComputer, openComputer } =
-        useContext(BotComputersContext);
+    const {
+        computers,
+        switching_id,
+        error: computer_error,
+        switchComputer,
+        openComputer,
+    } = useContext(BotComputersContext);
 
-    const is_knowledge = (item: { kind: string }) => item.kind == "knowledgebase";
+    const is_knowledge = (item: { kind: string }) =>
+        item.kind == "knowledgebase";
     const tools = {
         attached: extensions.attached.filter((item) => !is_knowledge(item)),
         addable: extensions.addable.filter((item) => !is_knowledge(item)),
@@ -79,10 +88,14 @@ export default function BotToolsTab({ bot, workspace_id, initial, has_browsers, 
                                 computer={computer}
                                 current={index == 0}
                                 onPick={async () => {
-                                    await switchComputer({ computer_id: computer.id || 0 });
+                                    await switchComputer({
+                                        computer_id: computer.id || 0,
+                                    });
                                 }}
                                 onOpen={() => {
-                                    openComputer({ computer_id: computer.id || 0 });
+                                    openComputer({
+                                        computer_id: computer.id || 0,
+                                    });
                                 }}
                             />
                         ))}
@@ -94,11 +107,15 @@ export default function BotToolsTab({ bot, workspace_id, initial, has_browsers, 
                 )}
                 {switching_id ? (
                     <Span className="mt-2 text-[13px] leading-[18px] text-ink-secondary">
-                        Switching its computer. The tasks it has open finish where they are.
+                        Switching its computer. The tasks it has open finish
+                        where they are.
                     </Span>
                 ) : null}
                 {computer_error ? (
-                    <Span role="alert" className="mt-2 text-[13px] leading-[18px] text-ink-secondary">
+                    <Span
+                        role="alert"
+                        className="mt-2 text-[13px] leading-[18px] text-ink-secondary"
+                    >
                         {computer_error}
                     </Span>
                 ) : null}
@@ -137,7 +154,10 @@ export default function BotToolsTab({ bot, workspace_id, initial, has_browsers, 
                 ) : null}
             </BotPanelSection>
 
-            <BotPanelSection title="Knowledgebases" description={knowledge_copy.some}>
+            <BotPanelSection
+                title="Knowledgebases"
+                description={knowledge_copy.some}
+            >
                 <ComposerExtensionsList
                     id="panel-add-knowledgebase"
                     label={knowledge_copy.title}
@@ -154,7 +174,10 @@ export default function BotToolsTab({ bot, workspace_id, initial, has_browsers, 
             </BotPanelSection>
 
             {extensions.status?.error ? (
-                <Span role="alert" className="text-[13px] leading-[18px] text-ink-secondary">
+                <Span
+                    role="alert"
+                    className="text-[13px] leading-[18px] text-ink-secondary"
+                >
                     {extensions.status.msg}
                 </Span>
             ) : null}

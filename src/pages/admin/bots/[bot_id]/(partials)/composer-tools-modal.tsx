@@ -148,7 +148,9 @@ export default function ComposerToolsModal({
                             <TriggerIcon size={12} aria-hidden />
                         </Row>
                     }
-                    className="shrink-0 gap-1! px-2! py-0.5! text-[12px] leading-4 text-ink-secondary"
+                    className={twMerge(
+                        "shrink-0 gap-1! px-2! py-0.5! text-[12px] leading-4 text-ink-secondary",
+                    )}
                 >
                     {label}
                 </Button>

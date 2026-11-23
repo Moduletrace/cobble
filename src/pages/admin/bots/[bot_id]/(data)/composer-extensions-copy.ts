@@ -36,7 +36,7 @@ export function composerKnowledgebasesCopy({
         Icon: Library,
         one: "knowledgebase",
         many: "knowledgebases",
-        empty_label: "Add knowledge",
+        empty_label: "knowledge",
         title: `Knowledgebases ${bot_name} searches here`,
         some: "Before it answers, it searches these for passages that fit, and it can search them again while it works. Remove one to take it away, or add another below.",
         none: "It has none yet. Give it a knowledgebase below, or make one under Settings, under Knowledgebases.",

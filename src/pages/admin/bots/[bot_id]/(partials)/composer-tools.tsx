@@ -8,7 +8,10 @@ import type {
     ConnectorAppIcon,
 } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
-import { composerKnowledgebasesCopy, composerToolsCopy } from "../(data)/composer-extensions-copy";
+import {
+    composerKnowledgebasesCopy,
+    composerToolsCopy,
+} from "../(data)/composer-extensions-copy";
 import ComposerBrowserButton from "./composer-browser-button";
 import ComposerComputerButton from "./composer-computer-button";
 import ComposerPlanButton from "./composer-plan-button";
@@ -57,7 +60,8 @@ export default function ComposerTools({
 
     const { computers } = useContext(BotComputersContext);
 
-    const is_knowledge = (item: { kind: string }) => item.kind == "knowledgebase";
+    const is_knowledge = (item: { kind: string }) =>
+        item.kind == "knowledgebase";
     const tools = {
         attached: extensions.attached.filter((item) => !is_knowledge(item)),
         addable: extensions.addable.filter((item) => !is_knowledge(item)),
@@ -83,14 +87,22 @@ export default function ComposerTools({
     }, [initial?.connector_apps]);
 
     const has_tools = Boolean(
-        tools.attached.length || connector_count || (extensions.can_manage && tools.addable.length),
+        tools.attached.length ||
+        connector_count ||
+        (extensions.can_manage && tools.addable.length),
     );
-    const has_knowledge = Boolean(knowledge.attached.length || (extensions.can_manage && knowledge.addable.length));
+    const has_knowledge = Boolean(
+        knowledge.attached.length ||
+        (extensions.can_manage && knowledge.addable.length),
+    );
 
     return (
         <Row className="w-full max-w-container mx-auto gap-1.5! items-center px-3 md:px-6 pb-3 -mt-3">
             {on_toggle_plan_mode ? (
-                <ComposerPlanButton plan_mode={Boolean(plan_mode)} onToggle={on_toggle_plan_mode} />
+                <ComposerPlanButton
+                    plan_mode={Boolean(plan_mode)}
+                    onToggle={on_toggle_plan_mode}
+                />
             ) : null}
 
             {has_tools ? (
@@ -124,14 +136,12 @@ export default function ComposerTools({
                 />
             ) : null}
 
-            {(has_tools || has_knowledge) && (has_browsers || computers.length) ? (
-                <Span className="-mr-2 opacity-40">
-                    <Dot size={20} />
-                </Span>
-            ) : null}
-
             {has_browsers ? (
-                <ComposerBrowserButton bot_id={bot.id || 0} bot_name={bot_name} workspace_id={workspace_id} />
+                <ComposerBrowserButton
+                    bot_id={bot.id || 0}
+                    bot_name={bot_name}
+                    workspace_id={workspace_id}
+                />
             ) : null}
 
             <ComposerComputerButton />
