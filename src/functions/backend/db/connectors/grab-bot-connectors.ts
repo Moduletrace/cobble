@@ -73,10 +73,12 @@ export default async function grabBotConnectors({
                 ...workspace_reach.values,
             ],
         }),
-        BunSQLite.sql<{ connector_id: number }>({
-            sql: `SELECT connector_id FROM workspace_connectors WHERE connector_id IN (${placeholders})`,
-            values: [...ids],
-        }),
+        workspace_id
+            ? BunSQLite.sql<{ connector_id: number }>({
+                  sql: `SELECT connector_id FROM workspace_connectors WHERE connector_id IN (${placeholders}) AND workspace_id = ?`,
+                  values: [...ids, Number(workspace_id)],
+              })
+            : Promise.resolve({ payload: [] as { connector_id: number }[] }),
         BunSQLite.sql<{ connector_id: number }>({
             sql: `SELECT connector_id FROM bot_connectors WHERE connector_id IN (${placeholders}) AND bot_id = ? AND user_id = ?`,
             values: [...ids, Number(bot_id), Number(user_id)],

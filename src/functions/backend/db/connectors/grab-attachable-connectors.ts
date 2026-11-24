@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_CONNECTORS } from "@/db/types/db";
 import type { AttachableConnector } from "@/src/types";
+import botConnectorsSql from "@/src/utils/bot-connectors-sql";
 
 type Params = {
     user_id: number | string;
@@ -20,9 +21,11 @@ const Limit = 20;
 /**
  * Apps this user can still add to this bot themselves: enabled apps of every
  * connection (or of the one named) with a connected account of their own.
- * An app this user already attached to this bot is left out (the app itself
- * is already there); an account already given here is left out of the app's
- * accounts by `grabConnectorOwnAccounts`, not out of this list.
+ * An app already reaching this bot here is left out, whether through the
+ * install, this workspace, this user's own attachment or an account given
+ * here: adding it would attach it to the bot itself and carry it into every
+ * other conversation. `grabConnectorOwnAccounts` leaves an account already
+ * given here out of the app's accounts.
  */
 export default async function grabAttachableConnectors({
     user_id,
@@ -33,7 +36,7 @@ export default async function grabAttachableConnectors({
 }: Params): Promise<AttachableConnector[]> {
     const search = `%${query.trim()}%`;
     const connection = Number(connection_id) ? Number(connection_id) : 0;
-    const workspace = Number(workspace_id) ? Number(workspace_id) : 0;
+    const reach = botConnectorsSql({ bot_id, user_id, workspace_id });
     const rows =
         (
             await BunSQLite.sql<Row>({
@@ -42,10 +45,7 @@ export default async function grabAttachableConnectors({
                     JOIN connector_connections cc ON cc.id = c.connection_id
                     WHERE c.enabled = 1 AND (c.name LIKE ? OR c.app LIKE ?)
                         AND (? = 0 OR c.connection_id = ?)
-                        AND NOT EXISTS (
-                            SELECT 1 FROM bot_connectors bc
-                            WHERE bc.bot_id = ? AND bc.user_id = ? AND bc.connector_id = c.id
-                        )
+                        AND c.id NOT IN (${reach.sql})
                         AND EXISTS (
                             SELECT 1 FROM connector_accounts a
                             WHERE a.connector_id = c.id AND a.status = 'connected' AND a.user_id = ?
@@ -57,8 +57,7 @@ export default async function grabAttachableConnectors({
                     search,
                     connection,
                     connection,
-                    Number(bot_id),
-                    Number(user_id),
+                    ...reach.values,
                     Number(user_id),
                     Limit,
                 ],
