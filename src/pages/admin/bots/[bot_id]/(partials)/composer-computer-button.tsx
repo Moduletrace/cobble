@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import Button from "@moduletrace/twui/layout/Button";
-import { Monitor } from "lucide-react";
+import computerIcon from "@/src/utils/computer-icon";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import Span from "@moduletrace/twui/layout/Span";
 
@@ -16,6 +16,7 @@ export default function ComposerComputerButton() {
     if (!computer?.id) return null;
 
     const title = `Open ${computer.name || `computer ${computer.id}`}`;
+    const Icon = computerIcon({ connection: computer.connection });
 
     return (
         <Button
@@ -33,7 +34,7 @@ export default function ComposerComputerButton() {
             <Span className="text-[12px] leading-4 text-ink-secondary">
                 Computer
             </Span>
-            <Monitor size={14} aria-hidden />
+            <Icon size={14} aria-hidden />
         </Button>
     );
 }

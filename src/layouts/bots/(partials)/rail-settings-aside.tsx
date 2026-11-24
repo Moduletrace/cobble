@@ -133,7 +133,7 @@ export default function RailSettingsAside({ pathname }: Props) {
             computerStatusLabel({ computer }),
             computerResourcesLabel({ computer }),
         ].join(" · ");
-        avatar = <ComputerIconTile />;
+        avatar = <ComputerIconTile connection={computer.connection} />;
     }
 
     return (

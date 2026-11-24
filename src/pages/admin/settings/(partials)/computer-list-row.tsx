@@ -40,7 +40,7 @@ export default function ComputerListRow({
 
     return (
         <SettingsListRow
-            avatar={<ComputerIconTile />}
+            avatar={<ComputerIconTile connection={computer.connection} />}
             href={
                 linked ? `/admin/settings/computers/${computer.id}` : undefined
             }

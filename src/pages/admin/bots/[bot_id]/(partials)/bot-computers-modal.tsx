@@ -3,7 +3,7 @@ import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { Monitor } from "lucide-react";
+import computerIcon from "@/src/utils/computer-icon";
 import type { BotWithLastMessage } from "@/src/types";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 import BotComputerOption from "./bot-computer-option";
@@ -66,6 +66,7 @@ export default function BotComputersModal({
 
     const name = bot.name || "This bot";
     const can_switch = computers.length > 1;
+    const Icon = computerIcon({ connection: current.connection });
 
     const title = can_switch
         ? `Switch ${name}'s computer`
@@ -76,7 +77,7 @@ export default function BotComputersModal({
             target={
                 meta_text ? (
                     <HeaderMetaItem
-                        icon={Monitor}
+                        icon={Icon}
                         label="Computer"
                         text={meta_text}
                         title={title}
@@ -84,7 +85,7 @@ export default function BotComputersModal({
                     />
                 ) : menu ? (
                     <HeaderMenuItem
-                        icon={Monitor}
+                        icon={Icon}
                         title="Computer"
                         hint={
                             menu_hint ||
@@ -96,7 +97,7 @@ export default function BotComputersModal({
                     />
                 ) : (
                     <HeaderIconButton
-                        icon={Monitor}
+                        icon={Icon}
                         title={title}
                         loading={Boolean(switching_id)}
                     />

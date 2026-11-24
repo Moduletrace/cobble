@@ -17,12 +17,14 @@ type Params = {
 export default function useBotInstructions({ bot_id, enabled }: Params) {
     const [system_prompt, setSystemPrompt] = useState<string>();
     const [memory, setMemory] = useState<string>();
+    const [user_memory, setUserMemory] = useState<string>();
     const [error, setError] = useState<string>();
 
     useEffect(() => {
         /** Cleared on close, so the next open never shows an old copy. */
         setSystemPrompt(undefined);
         setMemory(undefined);
+        setUserMemory(undefined);
         setError(undefined);
 
         if (!enabled || !bot_id) return;
@@ -36,6 +38,7 @@ export default function useBotInstructions({ bot_id, enabled }: Params) {
                 if (res.success && res.singleRes) {
                     setSystemPrompt(res.singleRes.system_prompt);
                     setMemory(res.singleRes.memory);
+                    setUserMemory(res.singleRes.user_memory);
                 } else {
                     setError(res.msg || "Couldn't load the instructions.");
                 }
@@ -49,5 +52,5 @@ export default function useBotInstructions({ bot_id, enabled }: Params) {
         };
     }, [enabled, bot_id]);
 
-    return { system_prompt, memory, error };
+    return { system_prompt, memory, user_memory, error };
 }

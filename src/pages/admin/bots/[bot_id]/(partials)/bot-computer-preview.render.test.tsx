@@ -13,16 +13,15 @@ function render() {
 }
 
 describe("BotComputerPreview", () => {
-    test("it shows the computer's live browser, view only", () => {
+    /**
+     * The block is always there, at its usual size; only the live stream
+     * waits for Preview, since it is a stream nobody asked for.
+     */
+    test("it keeps the block and holds its screen until asked", () => {
         const html = render();
 
-        expect(html).toContain('src="/computers/7/desktop/"');
-        expect(html).toContain("pointer-events-none");
-    });
-
-    test("a click opens it in the viewer", () => {
-        const html = render();
-
-        expect(html).toContain('aria-label="Open Dev box in the viewer"');
+        expect(html).toContain("h-[250px]");
+        expect(html).toContain("Preview");
+        expect(html).not.toContain("/computers/7/");
     });
 });

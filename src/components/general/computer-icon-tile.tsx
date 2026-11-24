@@ -1,9 +1,16 @@
-import { Monitor } from "lucide-react";
+import computerIcon from "@/src/utils/computer-icon";
 import IconTile from "./icon-tile";
 
 /**
- * A computer's avatar in lists: the monitor icon on a small tile.
+ * A computer's avatar in lists: its icon (`computerIcon`) on a small tile.
  */
-export default function ComputerIconTile() {
-    return <IconTile Icon={Monitor} />;
+export default function ComputerIconTile({
+    connection,
+}: {
+    /**
+     * `ssh` wears a server instead of a monitor.
+     */
+    connection?: string | null;
+}) {
+    return <IconTile Icon={computerIcon({ connection })} />;
 }

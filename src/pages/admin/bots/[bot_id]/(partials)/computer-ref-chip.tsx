@@ -1,8 +1,9 @@
 import { useContext } from "react";
 import Button from "@moduletrace/twui/layout/Button";
 import Span from "@moduletrace/twui/layout/Span";
-import { Check, Monitor } from "lucide-react";
+import { Check } from "lucide-react";
 import { twMerge } from "tailwind-merge";
+import computerIcon from "@/src/utils/computer-icon";
 import { BotComputersContext } from "../(data)/bot-computers-context";
 
 type Props = {
@@ -26,6 +27,7 @@ export default function ComputerRefChip({ computer_id }: Props) {
     }
 
     const current = computers[0]?.id == computer.id;
+    const Icon = computerIcon({ connection: computer.connection });
 
     return (
         <Button
@@ -45,7 +47,7 @@ export default function ComputerRefChip({ computer_id }: Props) {
                     : "bg-transparent hover:bg-sunken",
             )}
         >
-            <Monitor size={14} aria-hidden className="shrink-0" />
+            <Icon size={14} aria-hidden className="shrink-0" />
             <Span className="min-w-0 truncate">{name}</Span>
             {current ? <Check size={14} aria-hidden className="shrink-0" /> : null}
         </Button>

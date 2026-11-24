@@ -31,7 +31,7 @@ export default function ComputerOverviewGroup({ computer }: Props) {
             }
         >
             <Row className="w-full gap-4! flex-nowrap items-center">
-                <ComputerIconTile />
+                <ComputerIconTile connection={computer.connection} />
                 <Stack className="grow min-w-0 gap-0!">
                     <Row className="gap-2! flex-nowrap items-center">
                         <Span className="text-sm font-bold leading-5 text-ink truncate">

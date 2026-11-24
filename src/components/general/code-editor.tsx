@@ -22,6 +22,11 @@ type Props = {
      * Its height, e.g. `h-24`.
      */
     className?: string;
+    /**
+     * Shows the text without letting it be edited; `onChange` is then never
+     * called.
+     */
+    readOnly?: boolean;
     onChange: (value: string) => void;
 };
 
@@ -30,7 +35,16 @@ type Props = {
  * under it. Loads the editor's scripts when it first shows
  * (`loadAceScripts`).
  */
-export default function CodeEditor({ title, content, mode, placeholder, info, className, onChange }: Props) {
+export default function CodeEditor({
+    title,
+    content,
+    mode,
+    placeholder,
+    info,
+    className,
+    readOnly,
+    onChange,
+}: Props) {
     /**
      * The editor keeps the handler it was created with; this keeps it
      * calling the latest one.
@@ -50,6 +64,7 @@ export default function CodeEditor({ title, content, mode, placeholder, info, cl
                 content={content}
                 mode={mode}
                 placeholder={placeholder}
+                readOnly={readOnly}
                 fontSize="13px"
                 delay={0}
                 wrapperProps={{ className: twMerge("h-40", className) }}

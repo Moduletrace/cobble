@@ -26,6 +26,7 @@ import useWorkspaceBotInstructions from "../(hooks)/use-workspace-bot-instructio
 import BotMemoryForm from "./bot-memory-form";
 import BotPanelTrigger from "./bot-panel-trigger";
 import BotToolsTab from "./bot-tools-tab";
+import BotUserMemory from "./bot-user-memory";
 
 type Props = {
     bot: BotWithLastMessage;
@@ -59,7 +60,7 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
     const can_edit = canManageCrew({ user_types: pageProps?.user_types });
     const [tab, setTab] = useState<PanelTab>("settings");
     const workspace_id = Number(workspace?.id) || 0;
-    const { system_prompt, memory, error } = useBotInstructions({
+    const { system_prompt, memory, user_memory, error } = useBotInstructions({
         bot_id: Number(bot.id) || 0,
         enabled: open && can_edit,
     });
@@ -71,6 +72,7 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
     const memory_ready =
         system_prompt != undefined &&
         memory != undefined &&
+        user_memory != undefined &&
         (!workspace_id || Boolean(workspace_instructions.instructions));
     const loaded_error = error || workspace_instructions.error;
 
@@ -135,7 +137,7 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                     <TabButton title="Settings" active={tab == "settings"} onPick={() => setTab("settings")} />
                     <TabButton title="Tools" active={tab == "tools"} onPick={() => setTab("tools")} />
                 </Row>
-                <Stack className="grow min-h-0 overflow-y-auto gap-1! items-stretch px-4 pt-4 pb-6">
+                <Stack className="grow min-h-0 overflow-y-auto gap-4! items-stretch px-4 pt-4 pb-6 [&>*]:shrink-0">
                     {open && tab == "settings" ? (
                         <>
                             <Span className="text-[13px] leading-[18px] text-ink-secondary">
@@ -154,15 +156,19 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                                         {`What ${name} keeps in mind, and can add to itself as it works.`}
                                     </Span>
                                     {memory_ready ? (
-                                        <BotMemoryForm
-                                            bot_id={Number(bot.id) || 0}
-                                            bot_name={name}
-                                            memory={memory || ""}
-                                            workspace_id={workspace_id || undefined}
-                                            workspace_name={workspace?.name}
-                                            workspace_memory={workspace_instructions.instructions?.memory || ""}
-                                            onCancel={on_close}
-                                        />
+                                        <>
+                                            <BotMemoryForm
+                                                bot_id={Number(bot.id) || 0}
+                                                bot_name={name}
+                                                memory={memory || ""}
+                                                workspace_id={workspace_id || undefined}
+                                                workspace_name={workspace?.name}
+                                                workspace_memory={workspace_instructions.instructions?.memory || ""}
+                                                onCancel={on_close}
+                                            />
+                                            <Divider className="my-2 border-hairline dark:border-hairline" />
+                                            <BotUserMemory bot_name={name} memory={user_memory || ""} />
+                                        </>
                                     ) : loaded_error ? (
                                         <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
                                             {loaded_error}
