@@ -69,8 +69,8 @@ export default function ProviderRow({ provider, onChanged, onError }: Props) {
 
     return (
         <Row className="w-full gap-3! flex-nowrap items-start justify-between py-3 border-0 border-b border-solid border-hairline last:border-b-0">
-            <Stack className="gap-0.5! min-w-0">
-                <Span className="text-sm font-bold leading-5 text-ink truncate">
+            <Stack className="grow min-w-0 gap-0.5!">
+                <Span className="block w-full text-sm font-bold leading-5 text-ink truncate">
                     {provider.name}
                     {provider.name != grabProviderPreset({ kind: provider.kind }).title ? (
                         <Span className="font-normal text-ink-secondary">
