@@ -20,6 +20,11 @@ import computerCacheEnv from "./computer-cache-env";
  */
 export default function computerDirsShell({ dirs }: { dirs: ComputerRunDirs }) {
     const cwd = shellQuote({ text: dirs.cwd });
+
+    if (dirs.roots.length === 0) {
+        return `cd ${cwd}; `;
+    }
+
     const cache = computerCacheEnv({ dirs });
     const cache_dir = shellQuote({ text: cache.cache_home });
 

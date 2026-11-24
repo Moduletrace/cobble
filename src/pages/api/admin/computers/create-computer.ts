@@ -42,7 +42,8 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<ComputerWithStatus
             throw new AppError(`Only a super admin can do that.`);
         }
 
-        const { name, description, cpus, memory_mb, workspace_id } = parseWithSchema({ schema: CreateComputerRequestSchema, data: body });
+        const { name, description, connection, ssh_host, ssh_port, ssh_user, cpus, memory_mb, workspace_id } =
+            parseWithSchema({ schema: CreateComputerRequestSchema, data: body });
 
         if (workspace_id && !(await grabUserWorkspace({ workspace_id, user_id: user.id }))?.id) {
             throw new AppError(`Workspace not found.`);
@@ -52,6 +53,8 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<ComputerWithStatus
             user_id: user.id,
             name,
             description,
+            connection,
+            ssh: ssh_host && ssh_user ? { host: ssh_host, port: ssh_port, user: ssh_user } : undefined,
             cpus,
             memory_mb,
         });
@@ -65,13 +68,16 @@ export const handler: BunextAPIRouteHandler<APIResponseObject<ComputerWithStatus
             category: "system",
             user_id: user.id,
             plain_text: `User #${user.id} created the computer ${name}.`,
-            metadata: { computer_id, workspace_id },
+            metadata: { computer_id, workspace_id, connection },
             ip_address: grabRequestIP(req),
         });
 
         return {
             success: true,
-            msg: `${name} is being set up. It can take a few minutes the first time.`,
+            msg:
+                connection == "ssh"
+                    ? `${name} is ready.`
+                    : `${name} is being set up. It can take a few minutes the first time.`,
             singleRes: (await grabUserComputers({ computer_id }))[0],
         };
     } catch (error: unknown) {

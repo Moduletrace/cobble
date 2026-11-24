@@ -6,6 +6,7 @@ import type {
     TWUIButtonVariantType,
 } from "@moduletrace/twui/layout/Button";
 import { AppWindow } from "lucide-react";
+import type { ComputerConnection } from "@/src/dict/computer-dict";
 import { twMerge } from "tailwind-merge";
 /**
  * The screen itself (noVNC, its websocket and transport) loads with the
@@ -15,6 +16,10 @@ const ComputerViewerModal = lazy(() => import("./computer-viewer-modal"));
 
 type Props = {
     computer_id: number;
+    /**
+     * An SSH server opens its terminal alone.
+     */
+    connection?: ComputerConnection | "";
     /**
      * The computer's name, for the modal and the button's title.
      */
@@ -41,6 +46,7 @@ const IconButtonClasses =
  */
 export default function ComputerOpenButton({
     computer_id,
+    connection,
     name,
     label,
     title,
@@ -74,6 +80,7 @@ export default function ComputerOpenButton({
                     open={open}
                     onClose={() => setOpen(false)}
                     computer_id={computer_id}
+                    connection={connection}
                     name={name}
                 />
             </Suspense>

@@ -11,6 +11,7 @@ import SettingsGroup from "../../(partials)/settings-group";
 import SettingsList from "../../(partials)/settings-list";
 import SettingsStatus from "../../(partials)/settings-status";
 import ComputerSettingsRow from "../(partials)/computer-settings-row";
+import SshKeyGroup from "./ssh-key-group";
 
 type Status = { error?: boolean; success?: boolean; msg?: string };
 
@@ -67,10 +68,12 @@ export default function ComputersSettingsSection() {
     };
 
     return (
-        <SettingsGroup
-            title="Your computers"
-            description="Each one is a sandbox container on this machine. Bots reach them through workspaces or direct access."
-        >
+        <>
+            {is_super_admin ? <SshKeyGroup /> : null}
+            <SettingsGroup
+                title="Your computers"
+                description="Each one is a sandbox container on this machine. Bots reach them through workspaces or direct access."
+            >
             <SettingsList is_empty={!computers.length} empty="No computers yet.">
                 {computers.map((computer) => (
                     <ComputerSettingsRow
@@ -116,5 +119,6 @@ export default function ComputersSettingsSection() {
             ) : null}
             <SettingsStatus status={status} />
         </SettingsGroup>
+        </>
     );
 }

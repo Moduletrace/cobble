@@ -17,6 +17,12 @@ export const ComputerKinds = [
 
 export type ComputerKind = (typeof ComputerKinds)[number]["value"];
 
+export const ComputerConnections = [
+    { title: "Docker computer", value: "docker" },
+    { title: "SSH server", value: "ssh" },
+] as const;
+export type ComputerConnection = (typeof ComputerConnections)[number]["value"];
+
 export const MainComputerName = "Main computer";
 
 /**
@@ -137,7 +143,16 @@ export const ComputerViewModes = [
     },
 ] as const;
 
-export type ComputerViewMode = (typeof ComputerViewModes)[number]["value"];
+/**
+ * An SSH computer has one mode: its shell, in the app
+ * (`SshTerminal`), since there is no browser or agent there.
+ */
+export const SshTerminalViewMode = {
+    title: "Terminal",
+    value: "ssh_terminal",
+} as const;
+
+export type ComputerViewMode = (typeof ComputerViewModes)[number]["value"] | typeof SshTerminalViewMode["value"];
 
 /**
  * Where the app serves a computer to its owner's browser:

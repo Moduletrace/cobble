@@ -1793,6 +1793,21 @@ export type BUN_SQLITE_COBBLE_COMPUTERS = {
      * JSON: its browser's timezone, languages, screen, sandbox and extra Chrome and Playwright MCP flags (ComputerBrowserSettingsSchema), passed to its container as env; empty uses the defaults
      */
     browser_settings?: string;
+    /** 
+     * Docker container or SSH server
+     */
+    connection?: "docker" | "ssh" | "";
+    ssh_host?: string;
+    ssh_port?: number | "";
+    ssh_user?: string;
+    /** 
+     * Learned on the first connect (printf %s "$HOME") and stored, so relative path resolution never needs a live connection
+     */
+    ssh_home?: string;
+    /** 
+     * SHA256 hex of the host key, trust on first use
+     */
+    ssh_fingerprint?: string;
 }
 
 export type BUN_SQLITE_COBBLE_BOT_COMPUTERS = {

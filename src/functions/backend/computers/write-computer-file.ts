@@ -1,6 +1,7 @@
 import type { ComputerRunAs } from "@/src/utils/computer-work-dirs";
 import computerJson from "./computer-json";
 import type { ComputerApi } from "./computer-fetch";
+import writeSshFile from "./ssh/write-ssh-file";
 
 type Params = {
     computer: ComputerApi;
@@ -28,6 +29,10 @@ type Params = {
  * half of it).
  */
 export default function writeComputerFile({ computer, path, content, mode, run_as, signal }: Params) {
+    if (computer.connection === "ssh") {
+        return writeSshFile({ computer, path, content, mode, signal });
+    }
+
     const bytes = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf8");
 
     return computerJson<{ ok: boolean; size: number }>({

@@ -18,7 +18,10 @@ type Params = {
     /**
      * Only the fields given are changed.
      */
-    data: Pick<BUN_SQLITE_COBBLE_COMPUTERS, "name" | "description" | "cpus" | "memory_mb"> & {
+    data: Pick<
+        BUN_SQLITE_COBBLE_COMPUTERS,
+        "name" | "description" | "cpus" | "memory_mb" | "ssh_host" | "ssh_port" | "ssh_user"
+    > & {
         /**
          * The whole of its browser's settings (already checked by
          * `ComputerBrowserSettingsSchema`), replacing what's stored.
@@ -42,13 +45,24 @@ export default async function updateComputer({ user_id, computer_id, data }: Par
         throw new AppError(`Computer not found.`);
     }
 
+    const is_ssh = computer.connection == "ssh";
+    /**
+     * A different server or account has a different home and host key.
+     */
+    const ssh_changed =
+        is_ssh &&
+        ((data.ssh_host !== undefined && data.ssh_host != computer.ssh_host) ||
+            (data.ssh_user !== undefined && data.ssh_user != computer.ssh_user) ||
+            (data.ssh_port !== undefined && Number(data.ssh_port) != Number(computer.ssh_port)));
+
     const browser_settings = data.browser_settings ? JSON.stringify(data.browser_settings) : undefined;
     const stored_browser_settings = JSON.stringify(parseComputerBrowserSettings({ text: computer.browser_settings }));
 
     const recreate =
-        (data.cpus !== undefined && Number(data.cpus) != Number(computer.cpus)) ||
+        !is_ssh &&
+        ((data.cpus !== undefined && Number(data.cpus) != Number(computer.cpus)) ||
         (data.memory_mb !== undefined && Number(data.memory_mb) != Number(computer.memory_mb)) ||
-        (browser_settings !== undefined && browser_settings != stored_browser_settings);
+        (browser_settings !== undefined && browser_settings != stored_browser_settings));
 
     if (recreate && (await grabUserComputers({ computer_id: computer.id }))[0]?.status == "creating") {
         throw new AppError(`${computer.name || "The computer"} is still being set up. Try again once it's ready.`);
@@ -71,6 +85,11 @@ export default async function updateComputer({ user_id, computer_id, data }: Par
                 cpus: data.cpus,
                 memory_mb: data.memory_mb,
                 browser_settings,
+                ssh_host: data.ssh_host,
+                ssh_port: data.ssh_port,
+                ssh_user: data.ssh_user,
+                ssh_home: ssh_changed ? null : undefined,
+                ssh_fingerprint: ssh_changed ? null : undefined,
             },
             _.isUndefined,
         ),

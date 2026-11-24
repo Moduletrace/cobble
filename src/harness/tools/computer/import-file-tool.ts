@@ -4,11 +4,12 @@ import path from "node:path";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import recordBotFile, { grabBotFileRow } from "@/src/functions/backend/db/bot-files/record-bot-file";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import {
     computerWorkspaceRelative,
     resolveComputerPath,
+    sshRunDirs,
     type ComputerRunDirs,
     type ComputerRunAs,
 } from "@/src/utils/computer-work-dirs";
@@ -18,6 +19,9 @@ import type { HarnessTool } from "../../types";
 import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
 import downloadComputerFile, { type ComputerDownload } from "@/src/functions/backend/computers/download-computer-file";
 import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
+import runSshCommandBytes from "@/src/functions/backend/computers/ssh/run-ssh-command-bytes";
+import statComputerFile from "@/src/functions/backend/computers/stat-computer-file";
+import ensureSshHome from "@/src/functions/backend/computers/ssh/ensure-ssh-home";
 import shellQuote from "@/src/utils/shell-quote";
 import walkRegularFiles from "@/src/utils/walk-regular-files";
 import pickImportComputer from "./import-computer";
@@ -120,23 +124,27 @@ export default function importFileTool({
                     : `You have no computer to import from.`;
             }
 
+            const computer_id = chosen.id || 0;
+            const target = await grabComputerTarget({ computer_id });
+
+            if (!target) return `Computer #${computer_id} has no container or server to copy from.`;
+
+            if (!target.ready) return computerNotReadyMessage(target);
+
+            const chosenDirs = target.connection === "ssh"
+                ? sshRunDirs({ home: await ensureSshHome({ computer: target, signal }), bot_id, user_id })
+                : dirs;
+
             /**
              * Workspace-relative from here on, which is what a folder ref
              * names.
              */
-            const shown = resolveComputerPath({ path: args.path, dirs });
-            const source = computerWorkspaceRelative({ absolute: shown });
+            const shown = resolveComputerPath({ path: args.path, dirs: chosenDirs });
+            const source = target.connection === "ssh" ? shown : computerWorkspaceRelative({ absolute: shown, dirs: chosenDirs });
 
             if (!source) return `Give a file or folder inside your folder, e.g. "seo/coderank/raw".`;
 
-            const computer_id = chosen.id || 0;
-            const target = await grabComputerMcpUrl({ computer_id });
-
-            if (!target) return `Computer #${computer_id} has no container to copy from.`;
-
-            if (!target.ready) return computerNotReadyMessage(target);
-
-            const kind = await sourceKind({ computer: target, source, run_as: dirs.run_as, signal });
+            const kind = await sourceKind({ computer: target, source, run_as: chosenDirs.run_as, signal });
 
             if (kind == "missing") {
                 return `Nothing at ${shown} on this computer. Check it with search_computers or the computer's own tools before importing.`;
@@ -210,9 +218,10 @@ async function importOneFile({
     onAttach?: Params["onAttach"];
     signal?: AbortSignal;
 }) {
+    const filePath = target.computer.connection === "ssh" ? target.source : onComputer({ source: target.source });
     const download = await downloadComputerFile({
         computer: target.computer,
-        path: onComputer({ source: target.source }),
+        path: filePath,
         max_bytes: AppData.BotFileImportMaxBytes,
         run_as: target.run_as,
         signal,
@@ -324,6 +333,12 @@ async function sourceKind({
     run_as: ComputerRunAs | null;
     signal?: AbortSignal;
 }): Promise<"file" | "folder" | "missing"> {
+    if (computer.connection === "ssh") {
+        const stat = await statComputerFile({ computer, path: source, signal });
+        if (!stat.exists) return "missing";
+        return stat.type === "directory" ? "folder" : stat.type === "file" ? "file" : "missing";
+    }
+
     const result = await runComputerCommand({
         computer,
         command: `d=${shellQuote({ text: onComputer({ source }) })}; if [ -d "$d" ]; then echo folder; elif [ -f "$d" ]; then echo file; else echo missing; fi`,
@@ -396,6 +411,22 @@ async function readFolderArchive({
     signal?: AbortSignal;
 }): Promise<ComputerDownload> {
     const limit = AppData.BotFileImportMaxBytes;
+
+    if (computer.connection === "ssh") {
+        const dir = path.posix.dirname(source);
+        const base = path.posix.basename(source);
+        const res = await runSshCommandBytes({
+            computer,
+            command: `tar -czf - -C ${shellQuote({ text: dir })} ${shellQuote({ text: base })}`,
+            max_bytes: limit,
+            signal,
+        });
+        if (res.exit_code !== 0) {
+            return { ok: false, reason: "missing", size: 0 };
+        }
+        return { ok: true, bytes: res.bytes, size: res.bytes.length };
+    }
+
     const result = await runComputerCommand({
         computer,
         command: [

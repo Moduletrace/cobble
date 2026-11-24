@@ -10,6 +10,7 @@ import type { WebSocketDataType } from "@/src/types";
 import { wsSendData } from "./(functions)/ws-send-data";
 import checkSessionAccess from "./(functions)/check-session-access";
 import { computerProxySocket } from "@/src/functions/server/computers/computer-proxy-socket";
+import { sshTerminalSocket } from "@/src/functions/server/computers/ssh-terminal-socket";
 import touchUserPresence from "@/src/functions/backend/db/push/touch-user-presence";
 
 /**
@@ -29,6 +30,7 @@ function parseMessage(message: string | Buffer): WebSocketDataType | undefined {
 export const websocket = {
     open(ws: ServerWebSocket<WebSocketSession>) {
         if (ws.data.proxy) return computerProxySocket.open(ws);
+        if (ws.data.ssh_terminal) return sshTerminalSocket.open(ws);
 
         const { user } = ws.data;
 
@@ -52,6 +54,7 @@ export const websocket = {
         message: string | Buffer,
     ) {
         if (ws.data.proxy) return computerProxySocket.message(ws, message);
+        if (ws.data.ssh_terminal) return sshTerminalSocket.message(ws, message);
 
         /**
          * Every keepalive counts, including twui's raw ping string, so
@@ -81,6 +84,7 @@ export const websocket = {
 
     close(ws: ServerWebSocket<WebSocketSession>) {
         if (ws.data.proxy) return computerProxySocket.close(ws);
+        if (ws.data.ssh_terminal) return sshTerminalSocket.close(ws);
 
         leaveAllRooms(ws);
     },

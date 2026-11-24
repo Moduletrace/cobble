@@ -1,11 +1,13 @@
+import type { SshTarget } from "../db/computers/grab-computer-target";
+
 /**
  * A computer's agent: its address and the token it asks for
  * (`computerToken`). `grabComputerMcpUrl`'s ready answer is one.
+ * Or an SSH target.
  */
-export type ComputerApi = {
-    base_url: string;
-    token: string;
-};
+export type ComputerApi =
+    | { connection?: "docker"; base_url: string; token: string }
+    | { connection: "ssh"; ssh: SshTarget; computer_id?: number };
 
 type Params = {
     computer: ComputerApi;
@@ -27,6 +29,10 @@ type Params = {
  * as it is; throws when the computer can't be reached in time.
  */
 export default function computerFetch({ computer, path, init = {}, timeout_ms, signal }: Params) {
+    if (computer.connection === "ssh") {
+        throw new Error("computerFetch cannot be used on an SSH computer (docker-only)");
+    }
+
     const headers = new Headers(init.headers);
     const signals = [
         ...(signal ? [signal] : []),

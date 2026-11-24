@@ -9,7 +9,7 @@ import type { NotifyWatchSync } from "@/src/types";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import { decrypt } from "@/src/utils/crypt";
 import notifyWatchEnsureCommand from "@/src/utils/notify-watch-ensure-command";
-import grabComputerMcpUrl from "../computers/grab-computer-mcp-url";
+import grabComputerTarget from "../computers/grab-computer-target";
 import isComputerBusy from "../computers/is-computer-busy";
 
 type Params = {
@@ -39,7 +39,7 @@ export default async function syncComputerNotifyWatch({ computer_id }: Params): 
                 })
             ).payload || [];
 
-        const address = await grabComputerMcpUrl({ computer_id });
+        const address = await grabComputerTarget({ computer_id });
 
         if (!address) {
             return { ok: false, watching: false, hooks: hooks.length, error: `The computer has no container.` };
@@ -47,6 +47,15 @@ export default async function syncComputerNotifyWatch({ computer_id }: Params): 
 
         if (!address.ready) {
             return { ok: false, watching: false, hooks: hooks.length, error: computerNotReadyMessage(address) };
+        }
+
+        if (address.connection === "ssh") {
+            return {
+                ok: false,
+                watching: false,
+                hooks: hooks.length,
+                error: "Notification watching is not supported on SSH computers.",
+            };
         }
 
         const computer = address;

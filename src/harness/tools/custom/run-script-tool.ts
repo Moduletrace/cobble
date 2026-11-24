@@ -1,10 +1,11 @@
 import { AppData } from "@/src/data/app-data";
 import { CustomToolScriptLanguages } from "@/src/dict/custom-tool-dict";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import type { CustomToolScriptConfig } from "@/src/types";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
-import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import { sshRunDirs, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import ensureSshHome from "@/src/functions/backend/computers/ssh/ensure-ssh-home";
 import redactSecrets from "@/src/utils/redact-secrets";
 import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
 import writeComputerEnv from "@/src/functions/backend/computers/write-computer-env";
@@ -53,18 +54,22 @@ export default async function runScriptTool({
     dirs,
     signal,
 }: Params) {
-    const target = await grabComputerMcpUrl({ computer_id });
+    const target = await grabComputerTarget({ computer_id });
 
-    if (!target) throw new Error(`Computer #${computer_id} has no container to run on.`);
+    if (!target) throw new Error(`Computer #${computer_id} has no container or server to run on.`);
     if (!target.ready) throw new Error(computerNotReadyMessage(target));
+
+    const effectiveDirs = target.connection === "ssh"
+        ? sshRunDirs({ home: await ensureSshHome({ computer: target, signal }), bot_id: bot_id || 0, user_id: user_id || 0 })
+        : dirs;
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
     /**
      * A bot's run works as its own account there (the coordinator's as
      * the computer's user); a try from the settings page has none.
      */
-    const run_as = dirs?.run_as || null;
-    const { shell_path } = await writeComputerEnv({ computer: target, envs, run_as, signal });
+    const run_as = target.connection === "ssh" ? null : effectiveDirs?.run_as || null;
+    const { shell_path } = await writeComputerEnv({ computer: target, envs, run_as, bot_id, signal });
     const language =
         CustomToolScriptLanguages.find((l) => l.value == config.language) || CustomToolScriptLanguages[0];
 
@@ -77,7 +82,7 @@ export default async function runScriptTool({
             `f=$(mktemp --suffix=.${language.extension})`,
             `echo ${code} | base64 -d > "$f"`,
             `[ -f ${shell_path} ] && . ${shell_path}`,
-            dirs ? computerDirsShell({ dirs }).replace(/; $/, "") : `cd ${AppData.ComputerWorkspaceDir}`,
+            effectiveDirs ? computerDirsShell({ dirs: effectiveDirs }).replace(/; $/, "") : `cd ${AppData.ComputerWorkspaceDir}`,
             `export COBBLE_ARGS="$(echo ${input} | base64 -d)"`,
             `printf '%s' "$COBBLE_ARGS" | ${language.interpreter} "$f" 2>&1`,
             `status=$?`,

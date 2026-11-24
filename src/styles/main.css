@@ -1,4 +1,5 @@
 @import "@moduletrace/twui/base.css";
+@import "@xterm/xterm/css/xterm.css";
 
 /* Doc, prompt and tool strings mention refs like `[file:12]`, which Tailwind
    reads as an arbitrary-property utility and emits as `file: 12` (esbuild then

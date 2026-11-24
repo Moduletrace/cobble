@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import grabBotFileBytesForUser from "@/src/functions/backend/db/bot-files/grab-bot-file-bytes-for-user";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import grabUserUploadBytes from "@/src/functions/backend/db/users/media/grab-user-upload-bytes";
 import grabKnowledgebase from "@/src/functions/backend/db/knowledgebases/grab-knowledgebase";
 import recordKnowledgebaseFile, {
@@ -9,7 +9,8 @@ import recordKnowledgebaseFile, {
 } from "@/src/functions/backend/db/knowledgebases/record-knowledgebase-file";
 import saveKnowledgebaseText from "@/src/functions/backend/db/knowledgebases/save-knowledgebase-text";
 import downloadComputerFile from "@/src/functions/backend/computers/download-computer-file";
-import computerRunDirs, { computerWorkspaceRelative, resolveComputerPath } from "@/src/utils/computer-work-dirs";
+import computerRunDirs, { computerWorkspaceRelative, resolveComputerPath, sshRunDirs } from "@/src/utils/computer-work-dirs";
+import ensureSshHome from "@/src/functions/backend/computers/ssh/ensure-ssh-home";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import formatBytes from "@/src/utils/format-bytes";
 import AppError from "@/src/utils/app-error";
@@ -196,21 +197,24 @@ async function computerBytes({
 
     if (!target_id) throw new AppError(`Give computer_id: a reply doesn't work on a computer, so it has to name one.`);
 
-    const dirs = computerRunDirs({ bot_id, bot_kind: "coordinator", user_id, workspace_id });
-    const shown = resolveComputerPath({ path: args.path, dirs });
-    const source = computerWorkspaceRelative({ absolute: shown });
-
-    if (!source) throw new AppError(`Give a file inside the run's folders on the computer, e.g. "downloads/handbook.pdf".`);
-
-    const computer = await grabComputerMcpUrl({ computer_id: target_id });
+    const computer = await grabComputerTarget({ computer_id: target_id });
 
     if (!computer) throw new AppError(`Computer #${target_id} doesn't exist.`);
 
     if (!computer.ready) throw new AppError(computerNotReadyMessage(computer));
 
+    const dirs = computer.connection === "ssh"
+        ? sshRunDirs({ home: await ensureSshHome({ computer, signal }), bot_id, user_id })
+        : computerRunDirs({ bot_id, bot_kind: "coordinator", user_id, workspace_id });
+
+    const shown = resolveComputerPath({ path: args.path, dirs });
+    const filePath = computer.connection === "ssh"
+        ? shown
+        : `${AppData.ComputerWorkspaceDir}/${computerWorkspaceRelative({ absolute: shown, dirs })}`;
+
     const download = await downloadComputerFile({
         computer,
-        path: `${AppData.ComputerWorkspaceDir}/${source}`,
+        path: filePath,
         max_bytes: AppData.KnowledgebaseDocumentMaxBytes,
         run_as: dirs.run_as,
         signal,
@@ -233,7 +237,7 @@ async function computerBytes({
     }
 
     return {
-        name: source.split("/").pop() || "file",
+        name: shown.split("/").pop() || "file",
         mime_type: "",
         data: download.bytes,
     };

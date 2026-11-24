@@ -13,6 +13,7 @@ import {
     BotTaskStepStates,
 } from "@/src/dict/bot-dict";
 import {
+    ComputerConnections,
     ComputerKinds,
     ContainerPurposes,
     ContainerStatuses,
@@ -2844,6 +2845,35 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                 {
                     fieldName: "browser_settings",
                     fieldDescription: `JSON: its browser's timezone, languages, screen, sandbox and extra Chrome and Playwright MCP flags (ComputerBrowserSettingsSchema), passed to its container as env; empty uses the defaults`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "connection",
+                    fieldDescription: `Docker container or SSH server`,
+                    dataType: "TEXT",
+                    options: ComputerConnections.map((cc) => cc.value),
+                    defaultValue: "docker",
+                },
+                {
+                    fieldName: "ssh_host",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "ssh_port",
+                    dataType: "INTEGER",
+                },
+                {
+                    fieldName: "ssh_user",
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "ssh_home",
+                    fieldDescription: `Learned on the first connect (printf %s "$HOME") and stored, so relative path resolution never needs a live connection`,
+                    dataType: "TEXT",
+                },
+                {
+                    fieldName: "ssh_fingerprint",
+                    fieldDescription: `SHA256 hex of the host key, trust on first use`,
                     dataType: "TEXT",
                 },
             ],

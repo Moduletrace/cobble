@@ -32,7 +32,7 @@ export default async function endWorkerProcesses({ bot_id, jobs }: Params) {
 
         const computer = await grabComputerMcpUrl({ computer_id }).catch(() => null);
 
-        if (!computer?.ready) continue;
+        if (!computer?.ready || computer.connection === "ssh") continue;
 
         await runComputerCommand({
             computer,

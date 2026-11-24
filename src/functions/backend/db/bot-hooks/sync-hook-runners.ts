@@ -10,8 +10,8 @@ import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
 import hookRunnerDir, { hookRunnerBaseDir, hookRunnerFile } from "@/src/utils/hook-runner-paths";
 import hookRunnerVersion from "@/src/utils/hook-runner-version";
-import type { ComputerAddress } from "../computers/grab-computer-mcp-url";
-import grabComputerMcpUrl from "../computers/grab-computer-mcp-url";
+import type { ComputerAddress } from "../computers/grab-computer-target";
+import grabComputerTarget from "../computers/grab-computer-target";
 import grabComputerEnvs from "../envs/grab-computer-envs";
 
 type Params = {
@@ -122,13 +122,23 @@ export default async function syncHookRunners({ computer_id, restart_hook_id, st
 
         for (const group of groups.values()) {
             if (!addresses.has(group.computer_id)) {
-                addresses.set(group.computer_id, await grabComputerMcpUrl({ computer_id: group.computer_id }).catch(() => null));
+                addresses.set(group.computer_id, await grabComputerTarget({ computer_id: group.computer_id }).catch(() => null));
             }
 
             const address = addresses.get(group.computer_id);
 
             if (!address || address.ready !== true) {
                 const error = address ? computerNotReadyMessage(address) : "The computer has no container.";
+
+                for (const hook of group.hooks) {
+                    await recordRunnerFailure({ hook, sync, error });
+                }
+
+                continue;
+            }
+
+            if (address.connection === "ssh") {
+                const error = "The computer is an SSH server: hook runners require a Docker container.";
 
                 for (const hook of group.hooks) {
                     await recordRunnerFailure({ hook, sync, error });

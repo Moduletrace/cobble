@@ -37,6 +37,7 @@ export type ComputerUsage = {
  * agent measures with `du` and reuses the answer for a few seconds, so
  * asking before each write costs little.
  */
-export default function grabComputerUsage({ computer, signal }: Params) {
+export default async function grabComputerUsage({ computer, signal }: Params): Promise<ComputerUsage | null> {
+    if (computer.connection === "ssh") return null;
     return computerJson<ComputerUsage>({ computer, path: "/api/usage", timeout_ms: 60_000, signal });
 }

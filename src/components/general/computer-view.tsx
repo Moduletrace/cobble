@@ -1,11 +1,11 @@
-import { useContext, useEffect, useState } from "react";
+import { lazy, Suspense, useContext, useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import Link from "@moduletrace/twui/layout/Link";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { ExternalLink } from "lucide-react";
-import type { ComputerViewMode } from "@/src/dict/computer-dict";
+import type { ComputerConnection, ComputerViewMode } from "@/src/dict/computer-dict";
 import readComputerViewMode from "@/src/functions/frontend/read-computer-view-mode";
 import rememberComputerViewMode from "@/src/functions/frontend/remember-computer-view-mode";
 import { AppContext } from "@/src/pages/__root";
@@ -16,8 +16,17 @@ import pickComputerViewMode from "@/src/utils/pick-computer-view-mode";
 import ComputerViewFrame from "./computer-view-frame";
 import ComputerViewModeButton from "./computer-view-mode-button";
 
+/**
+ * The terminal itself (xterm and its socket) loads with the view.
+ */
+const SshTerminal = lazy(() => import("./ssh-terminal"));
+
 type Props = {
     computer_id: number;
+    /**
+     * An SSH server shows its terminal alone, with no frame or proxy.
+     */
+    connection?: ComputerConnection | "";
     /**
      * The computer's name, for the frame titles.
      */
@@ -39,9 +48,12 @@ type Props = {
  * park). The mode on show is remembered per computer on this device and
  * opens next time.
  */
-export default function ComputerView({ computer_id, name, default_mode, className }: Props) {
+export default function ComputerView({ computer_id, connection, name, default_mode, className }: Props) {
     const { user_types } = useContext(AppContext);
-    const modes = computerViewModesFor({ can_manage_crew: canManageCrew({ user_types: user_types || [] }) });
+    const modes = computerViewModesFor({
+        can_manage_crew: canManageCrew({ user_types: user_types || [] }),
+        connection,
+    });
     const [mode, setMode] = useState<ComputerViewMode>(() =>
         pickComputerViewMode({ modes, requested: default_mode, remembered: readComputerViewMode({ computer_id }) }),
     );
@@ -69,19 +81,27 @@ export default function ComputerView({ computer_id, name, default_mode, classNam
                 ) : (
                     <Span className="px-2 text-[13px] leading-[18px] font-bold text-ink">{modes[0]!.title}</Span>
                 )}
-                <Link
-                    href={computerViewUrl({ computer_id, mode })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open in a new tab"
-                    aria-label="Open in a new tab"
-                    className="ml-auto p-2 text-ink-secondary hover:text-ink rounded-default hover:bg-sunken"
-                >
-                    <ExternalLink size={16} aria-hidden />
-                </Link>
+                {connection == "ssh" ? null : (
+                    <Link
+                        href={computerViewUrl({ computer_id, mode })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open in a new tab"
+                        aria-label="Open in a new tab"
+                        className="ml-auto p-2 text-ink-secondary hover:text-ink rounded-default hover:bg-sunken"
+                    >
+                        <ExternalLink size={16} aria-hidden />
+                    </Link>
+                )}
             </Row>
             <Stack className="relative grow min-h-0 gap-0! items-stretch bg-sunken">
-                <ComputerViewFrame key={mode} computer_id={computer_id} name={name} mode={mode} />
+                {connection == "ssh" ? (
+                    <Suspense fallback={null}>
+                        <SshTerminal computer_id={computer_id} name={name} />
+                    </Suspense>
+                ) : (
+                    <ComputerViewFrame key={mode} computer_id={computer_id} name={name} mode={mode} />
+                )}
             </Stack>
         </Stack>
     );

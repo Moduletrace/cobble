@@ -9,4 +9,14 @@ describe("computerViewModesFor", () => {
     test("crew managers get the shell too, browser first", () => {
         expect(computerViewModesFor({ can_manage_crew: true }).map((mode) => mode.value)).toEqual(["browser", "terminal"]);
     });
+
+    test("an SSH server has its terminal alone, for anyone", () => {
+        expect(computerViewModesFor({ can_manage_crew: false, connection: "ssh" }).map((mode) => mode.value)).toEqual([
+            "ssh_terminal",
+        ]);
+        expect(computerViewModesFor({ can_manage_crew: true, connection: "docker" }).map((mode) => mode.value)).toEqual([
+            "browser",
+            "terminal",
+        ]);
+    });
 });

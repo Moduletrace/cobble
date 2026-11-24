@@ -14,6 +14,11 @@ export const RobotsDisallowPaths = [
 ];
 
 const config: BunextConfig = {
+    /**
+     * `ssh2` carries an optional native `cpu-features`, which esbuild
+     * cannot follow; the server loads it from `node_modules` at runtime.
+     */
+    ssr_compiler_excludes: ["ssh2"],
     public_envs: {
         NEXT_PUBLIC_TINYMCE_BASE_URL: "/public/tinymce",
     },

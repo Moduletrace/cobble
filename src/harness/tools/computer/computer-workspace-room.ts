@@ -49,6 +49,8 @@ export function workspaceHasRoom({ used_bytes, quota_bytes, incoming_bytes }: Ro
 }
 
 export default async function computerWorkspaceRoomError({ computer, dirs, incoming_bytes, signal }: Params) {
+    if (dirs.roots.length === 0 || computer.connection === "ssh") return null;
+
     const quota_bytes = await grabComputerWorkspaceQuotaBytes();
 
     if (quota_bytes <= 0) return null;

@@ -40,10 +40,12 @@ export default function computerBashTool({ computer, computer_id, dirs, shell_pa
 
     return {
         name: "computer_bash",
-        description: `Run a bash command on this computer (Debian, ${
-            dirs.run_as
-                ? `as your own account ${computerWorkerAccount({ bot_id: dirs.run_as.bot_id }).name}, without sudo: other bots' folders and the computer's own services are closed to you. Install Python and Node packages into your folder yourself (pip install --user ..., npm install -g ...: both land in ~/.local, on your PATH); for a system package (apt) or anything else that needs root, ask with request_install`
-                : `as the user gem, with passwordless sudo: install what you need with sudo apt-get update && sudo apt-get install -y ..., or pip install. Worker bots' folders belong to their own accounts, so read or change them with sudo`
+        description: `Run a bash command on this computer (${
+            computer.connection === "ssh"
+                ? "reached over SSH as the user set for it: you have exactly that user's privileges, sudo only if it has it"
+                : dirs.run_as
+                    ? `Debian, as your own account ${computerWorkerAccount({ bot_id: dirs.run_as.bot_id }).name}, without sudo: other bots' folders and the computer's own services are closed to you. Install Python and Node packages into your folder yourself (pip install --user ..., npm install -g ...: both land in ~/.local, on your PATH); for a system package (apt) or anything else that needs root, ask with request_install`
+                    : "Debian, as the user gem, with passwordless sudo: install what you need with sudo apt-get update && sudo apt-get install -y ..., or pip install. Worker bots' folders belong to their own accounts, so read or change them with sudo"
         }). It starts in your folder (${dirs.cwd}, also ~ and $HOME) with your envs set. Every call is a fresh shell (cd and export don't carry over), reads no input (anything waiting for a prompt fails at once: pass -y, a password through its env, and so on) and has no time limit${max > 0 ? ` unless you pass timeout seconds (at most ${max})` : ""}: it runs until the command ends, you stop it, or the run ends. Work that must outlive the run goes in the background (nohup ... > log 2>&1 &), checked in later calls. Output past ${Math.round(AppData.ComputerCommandMaxOutputChars / 1000)}k characters is cut in the middle, so filter it.`,
         /**
          * The command's own limit is what ends it: the harness's per-tool
@@ -52,7 +54,7 @@ export default function computerBashTool({ computer, computer_id, dirs, shell_pa
         timeout_ms: null,
         schema: z.object({
             command: z.string().min(1).max(100_000),
-            cwd: z.string().max(AppData.BotFilePathMaxChars).optional().describe("Where to start, inside your folders"),
+            cwd: z.string().max(AppData.BotFilePathMaxChars).optional().describe("Where to start (defaults to your folder)"),
             timeout: z.number().positive().optional().describe(timeout_note),
         }),
         run: async ({ args, signal }) => {

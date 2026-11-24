@@ -17,6 +17,9 @@ type Params = {
  */
 export default function computerProxyPathAllowed({ rest, can_manage_crew }: Params) {
     return computerViewModesFor({ can_manage_crew }).some(
-        ({ path }) => rest == path.replace(/\/$/, "") || (rest.startsWith(path) && !rest.split("/").includes("..")),
+        (mode) =>
+            "path" in mode &&
+            (rest == mode.path.replace(/\/$/, "") ||
+                (rest.startsWith(mode.path) && !rest.split("/").includes(".."))),
     );
 }

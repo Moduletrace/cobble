@@ -19,6 +19,7 @@ import dropStoredFileText from "./functions/backend/db/stored-text/drop-stored-f
 import syncKnowledgebaseFts from "./functions/backend/db/knowledgebases/fts/sync-knowledgebase-fts";
 import flushBootLogs from "./functions/backend/backups/flush-boot-logs";
 import handleComputerProxy from "./functions/server/computers/handle-computer-proxy";
+import handleSshTerminal from "./functions/server/computers/handle-ssh-terminal";
 import handleGraphicsRequest from "./functions/server/graphics/handle-graphics-request";
 import handlePwaFile from "./functions/server/pwa/handle-pwa-file";
 import handleInstallIconFile from "./functions/server/pwa/handle-install-icon-file";
@@ -155,6 +156,13 @@ const server = Bun.serve({
                 } catch {
                     return new Response("Not Found", { status: 404 });
                 }
+            }
+
+            if (
+                url.pathname.startsWith(`${ComputerProxyPrefix}/`) &&
+                url.pathname.endsWith("/ssh-terminal")
+            ) {
+                return await handleSshTerminal({ req, server });
             }
 
             if (url.pathname.startsWith(`${ComputerProxyPrefix}/`)) {

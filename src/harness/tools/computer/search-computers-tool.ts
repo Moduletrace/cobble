@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { BUN_SQLITE_COBBLE_COMPUTERS } from "@/db/types/db";
 import { AppData } from "@/src/data/app-data";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerRef from "@/src/utils/computer-ref";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
-import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import { sshRunDirs, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import ensureSshHome from "@/src/functions/backend/computers/ssh/ensure-ssh-home";
 import redactSecrets from "@/src/utils/redact-secrets";
 import type { HarnessTool } from "../../types";
 import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
@@ -65,18 +66,22 @@ export default function searchComputersTool({
                     const label = `## ${computerRef({ id: computer.id || 0 })} ${computer.name || "Computer"}`;
 
                     try {
-                        const target = await grabComputerMcpUrl({ computer_id: computer.id || 0 });
+                        const target = await grabComputerTarget({ computer_id: computer.id || 0 });
 
-                        if (!target) return `${label}\nNot reachable: it has no container.`;
+                        if (!target) return `${label}\nNot reachable: it has no container or server.`;
 
                         if (!target.ready) return `${label}\nNot reachable: ${computerNotReadyMessage(target)}`;
+
+                        const targetDirs = target.connection === "ssh"
+                            ? sshRunDirs({ home: await ensureSshHome({ computer: target, signal }), bot_id: bot_id || 0, user_id: user_id || 0 })
+                            : dirs;
 
                         const [result, envs] = await Promise.all([
                             runComputerCommand({
                                 computer: target,
-                                command: `${computerDirsShell({ dirs })}${args.command}`,
+                                command: `${computerDirsShell({ dirs: targetDirs })}${args.command}`,
                                 timeout_ms: AppData.ComputerSearchTimeoutMs,
-                                run_as: dirs.run_as,
+                                run_as: target.connection === "ssh" ? null : dirs.run_as,
                                 signal,
                             }),
                             grabComputerEnvs({

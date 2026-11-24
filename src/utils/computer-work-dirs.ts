@@ -107,6 +107,31 @@ export default function computerRunDirs({
 }
 
 /**
+ * Run dirs for an SSH computer: unrestricted access starting at the user's
+ * home directory. An empty `roots` array indicates unrestricted containment.
+ */
+export function sshRunDirs({
+    home,
+    bot_id,
+    user_id,
+}: {
+    home: string;
+    bot_id: number | string;
+    user_id: number | string;
+}): ComputerRunDirs {
+    const cleanHome = home.replace(/\/+$/, "") || "/";
+    return {
+        workspace: cleanHome,
+        cwd: cleanHome,
+        bot_dir: cleanHome,
+        shared_dir: null,
+        roots: [], // Convention: empty roots means unrestricted SSH environment
+        user_id: Number(user_id),
+        run_as: null,
+    };
+}
+
+/**
  * Whether `child` is `parent` or inside it (both absolute, normalized).
  */
 export function isInsideDir({ parent, child }: { parent: string; child: string }) {
@@ -144,6 +169,11 @@ export function resolveComputerPath({
               ? raw
               : path.posix.join(dirs.cwd, raw || "."),
     ).replace(/(.)\/+$/, "$1");
+
+    if (dirs.roots.length === 0) {
+        if (!raw) throw new AppError(`That path isn't valid.`);
+        return absolute;
+    }
 
     const real = computerWorkspacePath({ absolute });
 
@@ -202,6 +232,9 @@ function isComputerPathAllowed({ real, dirs }: { real: string; dirs: ComputerRun
  * relative to the workspace root, no leading slash. A worker's
  * `/home/cb-<bot>/workspace/...` is read as the real path it links to.
  */
-export function computerWorkspaceRelative({ absolute }: { absolute: string }) {
+export function computerWorkspaceRelative({ absolute, dirs }: { absolute: string; dirs?: ComputerRunDirs }) {
+    if (dirs?.roots.length === 0) {
+        return path.posix.relative(dirs.workspace, absolute);
+    }
     return path.posix.relative(AppData.ComputerWorkspaceDir, computerWorkspacePath({ absolute }));
 }

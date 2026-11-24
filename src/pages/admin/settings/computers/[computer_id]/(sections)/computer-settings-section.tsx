@@ -10,6 +10,7 @@ import ComputerBrowserGroup from "../(partials)/computer-browser-group";
 import ComputerDangerGroup from "../(partials)/computer-danger-group";
 import ComputerDetailsGroup from "../(partials)/computer-details-group";
 import ComputerOverviewGroup from "../(partials)/computer-overview-group";
+import ComputerSshGroup from "../(partials)/computer-ssh-group";
 import ComputerWorkspacesGroup from "../(partials)/computer-workspaces-group";
 
 /**
@@ -29,6 +30,7 @@ export default function ComputerSettingsSection() {
     const computer =
         computers.find((item) => item.id == initial.id) || initial;
     const name = computer.name || `Computer ${computer.id}`;
+    const is_ssh = computer.connection == "ssh";
     const is_super_admin = isPassThroughUser({
         user_types: pageProps?.user_types,
     });
@@ -45,7 +47,9 @@ export default function ComputerSettingsSection() {
             title={name}
             description={
                 computer.description ||
-                "Its container, the bots that reach it, and its workspaces."
+                is_ssh
+                    ? "The SSH server, the bots that reach it, and its workspaces."
+                    : "Its container, the bots that reach it, and its workspaces."
             }
         >
             <ComputerOverviewGroup computer={computer} />
@@ -55,7 +59,8 @@ export default function ComputerSettingsSection() {
                     onUpdated={update}
                 />
             ) : null}
-            {is_super_admin ? (
+            {is_super_admin && is_ssh ? <ComputerSshGroup computer={computer} /> : null}
+            {is_super_admin && !is_ssh ? (
                 <ComputerBrowserGroup computer={computer} onUpdated={update} />
             ) : null}
             <ComputerBotsGroup
@@ -69,10 +74,12 @@ export default function ComputerSettingsSection() {
                 workspaces={pageProps?.workspaces || []}
                 computer_workspaces={pageProps?.computer_workspaces || []}
             />
-            <HostDirectoryMountsGroup
-                description="Folders on the host machine mounted in this computer. Every bot that reaches it sees each at hosts/<name> in its own folder."
-                mounts={pageProps?.computer_host_directories || []}
-            />
+            {is_ssh ? null : (
+                <HostDirectoryMountsGroup
+                    description="Folders on the host machine mounted in this computer. Every bot that reaches it sees each at hosts/<name> in its own folder."
+                    mounts={pageProps?.computer_host_directories || []}
+                />
+            )}
             {is_super_admin ? (
                 <ComputerDangerGroup computer={computer} onUpdated={update} />
             ) : null}

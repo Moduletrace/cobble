@@ -3,7 +3,7 @@ import countComputerTaskJobs from "@/src/functions/backend/db/bots-queue/count-c
 import enqueueBotJob from "@/src/functions/backend/db/bots-queue/enqueue-bot-job";
 import grabOpenBotTask from "@/src/functions/backend/db/bots-queue/grab-open-bot-task";
 import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import isComputerDown from "@/src/utils/computer-down";
 import type { BrowserRunKind } from "@/src/dict/browser-dict";
@@ -74,7 +74,7 @@ export default async function queueBotTask({
         );
     }
 
-    const target = computer_id ? await grabComputerMcpUrl({ computer_id }) : null;
+    const target = computer_id ? await grabComputerTarget({ computer_id }) : null;
 
     if (target && !target.ready && isComputerDown({ status: target.status })) {
         throw new Error(

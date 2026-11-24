@@ -49,6 +49,10 @@ export default async function computerProxyTarget({ req }: Params) {
         return { error: new Response(computerNotReadyMessage(address), { status: 503 }) };
     }
 
+    if (address.connection === "ssh") {
+        return { error: new Response("This computer is reached over SSH; open its Shell.", { status: 409 }) };
+    }
+
     return {
         session,
         url,

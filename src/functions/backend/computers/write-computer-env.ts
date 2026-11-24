@@ -4,6 +4,7 @@ import computerWorkerAccount from "@/src/utils/computer-worker-account";
 import type { ComputerRunAs } from "@/src/utils/computer-work-dirs";
 import type { ComputerApi } from "./computer-fetch";
 import writeComputerFile from "./write-computer-file";
+import ensureSshHome from "./ssh/ensure-ssh-home";
 
 type Params = {
     computer: ComputerApi;
@@ -13,6 +14,10 @@ type Params = {
      * other bot on the computer can read them.
      */
     run_as?: ComputerRunAs | null;
+    /**
+     * The bot this run is for: distinguishes per-bot env files on SSH.
+     */
+    bot_id?: number | string | null;
     signal?: AbortSignal;
 };
 
@@ -23,7 +28,21 @@ type Params = {
  * last run's, so removed envs disappear too. Returns their paths, which
  * the shell and script tools load.
  */
-export default async function writeComputerEnv({ computer, envs, run_as, signal }: Params) {
+export default async function writeComputerEnv({ computer, envs, run_as, bot_id, signal }: Params) {
+    if (computer.connection === "ssh") {
+        const home = await ensureSshHome({ computer, signal });
+        const suffix = bot_id ? String(bot_id) : "app";
+        const dir = `${home}/.cobble`;
+        const shell_path = `${dir}/env-${suffix}`;
+        const json_path = `${dir}/env.json-${suffix}`;
+        const files = composeComputerEnvFiles({ envs });
+
+        await writeComputerFile({ computer, path: shell_path, content: files.shell, mode: 0o600, signal });
+        await writeComputerFile({ computer, path: json_path, content: files.json, mode: 0o600, signal });
+
+        return { shell_path, json_path };
+    }
+
     const home = run_as ? computerWorkerAccount({ bot_id: run_as.bot_id }).home : AppData.ComputerHomeDir;
     const dir = `${home}/.cobble`;
     const shell_path = `${dir}/env`;

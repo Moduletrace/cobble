@@ -2933,6 +2933,11 @@ export type PagePropsType = {
     workspace_computers?: ComputerWithStatus[] | null;
     computers?: ComputerWithStatus[] | null;
     /**
+     * Settings > Computers: whether an install-wide SSH key is set, and its
+     * public key for display (super admins only).
+     */
+    ssh_key?: { set: boolean; public_key: string | null } | null;
+    /**
      * A workspace's dashboard: the user's latest sessions there.
      */
     workspace_activity?: WorkspaceActivityItem[] | null;

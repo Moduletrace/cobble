@@ -26,8 +26,9 @@ export default function ComputerDangerGroup({
     const [busy, setBusy] = useState<"retry" | "rebuild" | "delete">();
     const [status, setStatus] = useState<Status>();
     const name = computer.name || "this computer";
-    const can_retry = computer.status == "failed";
-    const can_rebuild = computer.status != "failed" && computer.status != "creating";
+    const is_ssh = computer.connection == "ssh";
+    const can_retry = !is_ssh && computer.status == "failed";
+    const can_rebuild = !is_ssh && computer.status != "failed" && computer.status != "creating";
     const can_delete = computer.kind != "main";
 
     const retry = async () => {
@@ -80,7 +81,9 @@ export default function ComputerDangerGroup({
     const remove = async () => {
         if (
             !window.confirm(
-                `Delete ${name}? Its container goes; its files stay on disk.`,
+                is_ssh
+                    ? `Delete ${name}? Bots lose access to it; nothing on the server itself changes.`
+                    : `Delete ${name}? Its container goes; its files stay on disk.`,
             )
         )
             return;

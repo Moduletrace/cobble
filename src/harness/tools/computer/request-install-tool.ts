@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { InstallPackageManagers, InstallPackageNamePattern, type InstallPackageManager } from "@/src/dict/install-request-dict";
 import createInstallRequest from "@/src/functions/backend/db/install-requests/create-install-request";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import installRequestAsked from "@/src/utils/install-request-asked";
 import type { HarnessTool } from "../../types";
 
@@ -58,6 +59,12 @@ export default function requestInstallTool({ user_id, bot_id, session_id, worksp
                 .describe("Anything else the coordinator should know, e.g. a version the work needs"),
         }),
         run: async ({ args }) => {
+            const target = await grabComputerTarget({ computer_id });
+
+            if (target?.ready && target.connection == "ssh") {
+                return "This computer is reached over SSH, so you already work as its configured user: run the install yourself there (with sudo if that user has it), and only ask if it is refused.";
+            }
+
             const { request_id } = await createInstallRequest({
                 user_id,
                 bot_id,

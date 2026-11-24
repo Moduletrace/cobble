@@ -4,7 +4,7 @@ import H2 from "@moduletrace/twui/layout/H2";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import type { ComputerViewMode } from "@/src/dict/computer-dict";
+import type { ComputerConnection, ComputerViewMode } from "@/src/dict/computer-dict";
 import ComputerRestartButton from "./computer-restart-button";
 import ComputerView from "./computer-view";
 import { twMerge } from "tailwind-merge";
@@ -13,6 +13,10 @@ type Props = {
     open: boolean;
     onClose: () => void;
     computer_id: number;
+    /**
+     * An SSH server has its terminal alone and nothing to restart.
+     */
+    connection?: ComputerConnection | "";
     /**
      * The computer's name, in the header and the frame titles.
      */
@@ -40,6 +44,7 @@ export default function ComputerViewerModal({
     open,
     onClose,
     computer_id,
+    connection,
     name,
     default_mode,
     note,
@@ -79,16 +84,19 @@ export default function ComputerViewerModal({
                             {action}
                         </Stack>
                     ) : null}
-                    <ComputerRestartButton
-                        computer_id={computer_id}
-                        name={name}
-                        onRestarted={() => setRestarts((prev) => prev + 1)}
-                    />
+                    {connection == "ssh" ? null : (
+                        <ComputerRestartButton
+                            computer_id={computer_id}
+                            name={name}
+                            onRestarted={() => setRestarts((prev) => prev + 1)}
+                        />
+                    )}
                 </Row>
             </Row>
             <ComputerView
                 key={`${computer_id}-${default_mode}-${restarts}`}
                 computer_id={computer_id}
+                connection={connection}
                 name={name}
                 default_mode={default_mode}
                 className="grow"

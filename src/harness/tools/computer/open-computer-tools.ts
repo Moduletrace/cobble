@@ -2,13 +2,14 @@ import type { ComputerApi } from "@/src/functions/backend/computers/computer-fet
 import { AppData } from "@/src/data/app-data";
 import { ComputerMcpExcludedTools } from "@/src/dict/computer-dict";
 import runComputerCommand from "@/src/functions/backend/computers/run-computer-command";
+import ensureSshHome from "@/src/functions/backend/computers/ssh/ensure-ssh-home";
 import writeComputerEnv from "@/src/functions/backend/computers/write-computer-env";
-import grabComputerMcpUrl from "@/src/functions/backend/db/computers/grab-computer-mcp-url";
+import grabComputerTarget from "@/src/functions/backend/db/computers/grab-computer-target";
 import grabComputerEnvs from "@/src/functions/backend/db/envs/grab-computer-envs";
 import computerNotReadyMessage from "@/src/utils/computer-not-ready-message";
 import isComputerDown from "@/src/utils/computer-down";
 import BotJobFatalError from "@/src/bots-queue/bot-job-fatal-error";
-import type { ComputerRunDirs } from "@/src/utils/computer-work-dirs";
+import { sshRunDirs, type ComputerRunDirs } from "@/src/utils/computer-work-dirs";
 import type { StorageScope } from "@/src/utils/storage-access";
 import redactSecrets from "@/src/utils/redact-secrets";
 import maskPasswordFieldValues from "@/src/utils/mask-password-field-values";
@@ -118,16 +119,70 @@ export default async function openComputerTools({
     browser = true,
     signal,
 }: Params): Promise<OpenComputer> {
-    const target = await grabComputerMcpUrl({ computer_id });
+    const target = await grabComputerTarget({ computer_id });
 
     if (!target) {
-        throw new Error(`Computer #${computer_id} has no container to connect to.`);
+        throw new Error(`Computer #${computer_id} has no container or server to connect to.`);
     }
 
     if (!target.ready) {
         const message = computerNotReadyMessage(target);
 
         throw isComputerDown({ status: target.status }) ? new BotJobFatalError(message) : new Error(message);
+    }
+
+    if (target.connection === "ssh") {
+        const ssh_home = await ensureSshHome({
+            computer: { ssh: target.ssh, computer_id: Number(computer_id) },
+            signal,
+        });
+
+        const runDirs = sshRunDirs({
+            home: ssh_home,
+            bot_id: bot_id || 0,
+            user_id: user_id || 0,
+        });
+
+        const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });
+        const paths = await writeComputerEnv({
+            computer: target,
+            envs,
+            bot_id,
+            run_as: null,
+            signal,
+        });
+
+        const secrets: { key: string; value: string }[] = envs.filter((env) => env.secret);
+        const redact = (text: string) => redactSecrets({ text, secrets });
+
+        const context: ComputerToolContext = {
+            computer: target,
+            computer_id: Number(computer_id),
+            dirs: runDirs,
+            shell_path: paths.shell_path,
+            redact,
+            bot_id: Number(bot_id || 0),
+            workspace_id: workspace_id ? Number(workspace_id) : null,
+            session_id: Number(session_id),
+        };
+
+        const bashTool = computerBashTool(context);
+        bashTool.description = `Run a shell command on this server (over SSH as ${target.ssh.username}). It starts in your home directory (${runDirs.cwd}) with your envs set. Output past ${Math.round(AppData.ComputerCommandMaxOutputChars / 1000)}k characters is cut in the middle, so filter it.`;
+
+        return {
+            name: target.name,
+            computer: target,
+            tools: [
+                bashTool,
+                computerReadFileTool(context),
+                computerWriteFileTool(context),
+                computerEditFileTool(context),
+                exportFileTool({ computer: target, dirs: runDirs, scopes }),
+            ],
+            envs: envs.map((env) => ({ key: env.key, description: env.description })),
+            redact,
+            close: async () => {},
+        };
     }
 
     const envs = await grabComputerEnvs({ computer_id, bot_id, user_id, workspace_id });

@@ -36,7 +36,7 @@ export default function ComputerListRow({
     linked = true,
 }: Props) {
     const name = computer.name || `Computer ${computer.id}`;
-    const ready = computer.status == "running";
+    const ready = computer.connection == "ssh" || computer.status == "running";
 
     return (
         <SettingsListRow
@@ -50,7 +50,7 @@ export default function ComputerListRow({
                 subtitle ??
                 [
                     computerStatusLabel({ computer }),
-                    computerResourcesLabel({ computer }),
+                    computer.connection == "ssh" ? null : computerResourcesLabel({ computer }),
                     computer.description,
                 ]
                     .filter(Boolean)
@@ -59,6 +59,7 @@ export default function ComputerListRow({
         >
             <ComputerOpenButton
                 computer_id={Number(computer.id)}
+                connection={computer.connection}
                 name={name}
                 title={ready ? `Open ${name}` : `${name} isn't running yet`}
                 disabled={!ready}

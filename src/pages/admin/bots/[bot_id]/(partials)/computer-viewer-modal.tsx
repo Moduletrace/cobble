@@ -54,6 +54,7 @@ export default function ComputerViewerModal({ bot }: Props) {
             open
             onClose={closeComputer}
             computer_id={Number(computer.id)}
+            connection={computer.connection}
             name={name}
             default_mode={viewing.mode}
             note={

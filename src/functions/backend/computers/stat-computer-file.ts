@@ -2,6 +2,7 @@ import type { ComputerRunAs } from "@/src/utils/computer-work-dirs";
 import computerJson from "./computer-json";
 import type { ComputerApi } from "./computer-fetch";
 import computerRunAsQuery from "./computer-run-as-query";
+import statSshFile from "./ssh/stat-ssh-file";
 
 export type ComputerFileStat =
     | { exists: false }
@@ -21,6 +22,10 @@ type Params = {
  * What's at an absolute path on a computer.
  */
 export default function statComputerFile({ computer, path, run_as, signal }: Params) {
+    if (computer.connection === "ssh") {
+        return statSshFile({ computer, path, signal });
+    }
+
     return computerJson<ComputerFileStat>({
         computer,
         path: `/api/files/stat?path=${encodeURIComponent(path)}${computerRunAsQuery({ run_as })}`,

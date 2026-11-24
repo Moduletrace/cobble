@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import computerRunDirs, { computerWorkspaceRelative, resolveComputerPath } from "./computer-work-dirs";
+import computerRunDirs, { computerWorkspaceRelative, resolveComputerPath, sshRunDirs } from "./computer-work-dirs";
 
 const W = "/home/gem/workspace";
 const H = "/home/cb-3/workspace";
@@ -33,6 +33,20 @@ describe("computerRunDirs", () => {
         expect(computerRunDirs({ bot_id: 3, user_id: 7 }).run_as).toEqual({ bot_id: 3, workspace_id: null });
         expect(computerRunDirs({ bot_id: "3", user_id: 7, workspace_id: "2" }).run_as).toEqual({ bot_id: 3, workspace_id: 2 });
         expect(computerRunDirs({ bot_id: 1, bot_kind: "coordinator", user_id: 1, workspace_id: 2 }).run_as).toBeNull();
+    });
+});
+
+describe("sshRunDirs", () => {
+    test("an SSH run starts at the user's home and reaches the machine", () => {
+        const dirs = sshRunDirs({ home: "/home/deploy/", bot_id: 3, user_id: 7 });
+
+        expect(dirs.cwd).toBe("/home/deploy");
+        expect(dirs.workspace).toBe("/home/deploy");
+        expect(dirs.roots).toEqual([]);
+        expect(dirs.run_as).toBeNull();
+        expect(resolveComputerPath({ path: "~/apps/site", dirs })).toBe("/home/deploy/apps/site");
+        expect(resolveComputerPath({ path: "/etc/hosts", dirs })).toBe("/etc/hosts");
+        expect(computerWorkspaceRelative({ absolute: "/home/deploy/report.md", dirs })).toBe("report.md");
     });
 });
 

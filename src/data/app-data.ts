@@ -117,6 +117,10 @@ export const AppData = {
      */
     ComputerPort: 8080,
     /**
+     * Timeout for establishing an SSH connection to an SSH computer (ms).
+     */
+    SshConnectTimeoutMs: 10_000,
+    /**
      * Every computer the app creates runs this image (built from
      * `computer/`), unless the `COMPUTER_IMAGE` app setting names another,
      * named `<ComputerContainerPrefix>-<computer id>` on `DockerNetworkName`.

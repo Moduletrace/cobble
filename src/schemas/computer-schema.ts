@@ -17,9 +17,21 @@ const ComputerMemoryMbSchema = z.coerce
 const ComputerNameSchema = z.string().trim().min(1, "Give the computer a name").max(60, "Keep the name under 60 characters");
 const ComputerDescriptionSchema = z.string().trim().max(240, "Keep the description short");
 
+const SshHostSchema = z.string().trim().min(1, "Give its host or IP").max(255);
+const SshPortSchema = z.coerce.number().int().min(1).max(65535);
+const SshUserSchema = z.string().trim().min(1, "Give the user to sign in as").max(64);
+
 export const CreateComputerRequestSchema = z.object({
     name: ComputerNameSchema,
     description: ComputerDescriptionSchema.default(""),
+    /**
+     * A docker computer gets a container here; an SSH server is reached at
+     * `ssh_host`, `ssh_port` and `ssh_user` with the install-wide key.
+     */
+    connection: z.enum(["docker", "ssh"]).default("docker"),
+    ssh_host: SshHostSchema.optional(),
+    ssh_port: SshPortSchema.optional(),
+    ssh_user: SshUserSchema.optional(),
     /**
      * Defaults to `AppData.ComputerDefaultCpus` / `ComputerDefaultMemoryMb`.
      */
@@ -38,6 +50,13 @@ export const ComputerIdRequestSchema = z.object({
 });
 
 export type ComputerIdRequest = z.infer<typeof ComputerIdRequestSchema>;
+
+export const SaveSshKeyRequestSchema = z.object({
+    private_key: z.string().trim().min(1, "Paste a private key"),
+    passphrase: z.string().optional(),
+});
+
+export type SaveSshKeyRequest = z.infer<typeof SaveSshKeyRequestSchema>;
 
 /**
  * A text setting left empty uses the default.
@@ -104,6 +123,9 @@ export const UpdateComputerRequestSchema = ComputerIdRequestSchema.extend({
     description: ComputerDescriptionSchema.optional(),
     cpus: ComputerCpusSchema.optional(),
     memory_mb: ComputerMemoryMbSchema.optional(),
+    ssh_host: SshHostSchema.optional(),
+    ssh_port: SshPortSchema.optional(),
+    ssh_user: SshUserSchema.optional(),
 });
 
 export type UpdateComputerRequest = z.infer<typeof UpdateComputerRequestSchema>;

@@ -2,6 +2,7 @@ import type { ComputerRunAs } from "@/src/utils/computer-work-dirs";
 import computerFetch, { type ComputerApi } from "./computer-fetch";
 import computerRunAsQuery from "./computer-run-as-query";
 import statComputerFile from "./stat-computer-file";
+import readSshFile from "./ssh/read-ssh-file";
 
 type Params = {
     computer: ComputerApi;
@@ -34,6 +35,10 @@ export type ComputerDownload =
  * transfer is reported instead of being saved.
  */
 export default async function downloadComputerFile({ computer, path, max_bytes, run_as, signal }: Params): Promise<ComputerDownload> {
+    if (computer.connection === "ssh") {
+        return readSshFile({ computer, path, max_bytes, signal });
+    }
+
     const stat = await statComputerFile({ computer, path, run_as, signal });
 
     if (!stat.exists || stat.type != "file") return { ok: false, reason: "missing", size: 0 };

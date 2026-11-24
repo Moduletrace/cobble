@@ -55,7 +55,7 @@ export default async function warnFullComputerWorkspaces({ share }: Params = {})
     for (const row of rows) {
         const address = await grabComputerMcpUrl({ computer_id: row.id }).catch(() => null);
 
-        if (!address?.ready) continue;
+        if (!address?.ready || address.connection === "ssh") continue;
 
         const usage = await grabComputerUsage({
             computer: { base_url: address.base_url, token: address.token },

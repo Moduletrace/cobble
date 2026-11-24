@@ -1,6 +1,8 @@
 import type { ComputerRunAs } from "@/src/utils/computer-work-dirs";
+import shellQuote from "@/src/utils/shell-quote";
 import computerJson from "./computer-json";
 import type { ComputerApi } from "./computer-fetch";
+import runSshCommand from "./ssh/run-ssh-command";
 
 type Params = {
     computer: ComputerApi;
@@ -45,6 +47,15 @@ const NoDeadlineFetchMs = 20 * 24 * 60 * 60 * 1000;
  * Throws when the computer can't be reached or refuses the command.
  */
 export default async function runComputerCommand({ computer, command, timeout_ms, run_as, signal }: Params) {
+    if (computer.connection === "ssh") {
+        return runSshCommand({
+            computer,
+            command: `sh -c ${shellQuote({ text: command })}`,
+            timeout_ms,
+            signal,
+        });
+    }
+
     const result = await computerJson<Partial<ComputerCommandResult>>({
         computer,
         path: "/api/exec",

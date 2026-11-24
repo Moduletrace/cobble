@@ -8,12 +8,21 @@ export type WebSocketSession = {
      * Set on a socket bridged to a computer, never on the app's own `/ws`.
      */
     proxy?: ComputerProxySession;
+    /**
+     * Set on a socket that is one SSH computer's terminal: a shell the
+     * server opened, never the app's own `/ws`.
+     */
+    ssh_terminal?: SshTerminalSession;
 };
 /**
  * A websocket bridged to a computer (`computerProxySocket`): the address
  * on the computer and the headers to open it with. `upstream` and
  * `pending` are filled once it opens.
  */
+export type SshTerminalSession = {
+    computer_id: number;
+};
+
 export type ComputerProxySession = {
     url: string;
     headers: Record<string, string>;

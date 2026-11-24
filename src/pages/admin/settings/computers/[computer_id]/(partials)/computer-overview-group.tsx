@@ -18,13 +18,17 @@ type Props = {
  */
 export default function ComputerOverviewGroup({ computer }: Props) {
     const name = computer.name || `Computer ${computer.id}`;
-    const ready = computer.status == "running";
+    const ready = computer.connection == "ssh" || computer.status == "running";
 
     return (
         <SettingsGroup
             id="overview"
             title="Overview"
-            description="What this computer is, and its container's state."
+            description={
+                computer.connection == "ssh"
+                    ? "What this computer is, and how to reach it."
+                    : "What this computer is, and its container's state."
+            }
         >
             <Row className="w-full gap-4! flex-nowrap items-center">
                 <ComputerIconTile />
@@ -42,7 +46,7 @@ export default function ComputerOverviewGroup({ computer }: Props) {
                     <Span className="text-[13px] leading-[18px] text-ink-secondary truncate w-full">
                         {[
                             computerStatusLabel({ computer }),
-                            computerResourcesLabel({ computer }),
+                            computer.connection == "ssh" ? null : computerResourcesLabel({ computer }),
                             computer.description,
                         ]
                             .filter(Boolean)
@@ -51,6 +55,7 @@ export default function ComputerOverviewGroup({ computer }: Props) {
                 </Stack>
                 <ComputerOpenButton
                     computer_id={Number(computer.id)}
+                    connection={computer.connection}
                     name={name}
                     label="Open"
                     title={
