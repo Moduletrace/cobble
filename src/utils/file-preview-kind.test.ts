@@ -21,3 +21,9 @@ test("filePreviewKind falls back to the media type", () => {
     expect(filePreviewKind({ name: ".md" })).toBe("none");
     expect(filePreviewKind({})).toBe("none");
 });
+
+test("filePreviewKind shows a document with no extension as text", () => {
+    expect(filePreviewKind({ name: "dotfiles/bashrc", media_type: "document" })).toBe("text");
+    expect(filePreviewKind({ name: "bashrc-v2", media_type: "document" })).toBe("text");
+    expect(filePreviewKind({ name: "dotfiles/bashrc" })).toBe("none");
+});

@@ -67,6 +67,18 @@ export default function useFileText({ url, skip, size }: Params): FileText {
 
                 const text = await blob.text();
 
+                if (text.includes("\u0000")) {
+                    if (live) {
+                        setState({
+                            text: null,
+                            loading: false,
+                            error: "This file isn't text, so it can't be previewed here. Download it to open it.",
+                            too_large: false,
+                        });
+                    }
+                    return;
+                }
+
                 if (live) setState({ text, loading: false, error: null, too_large: false });
             } catch (error: any) {
                 if (live) {

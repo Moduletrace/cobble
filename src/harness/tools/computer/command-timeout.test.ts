@@ -1,9 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { AppData } from "@/src/data/app-data";
 import commandTimeoutSeconds from "./command-timeout";
 
 describe("commandTimeoutSeconds", () => {
-    test("has no limit when nothing is asked and the install sets none", () => {
-        expect(commandTimeoutSeconds({ max: 0 })).toBeNull();
+    test("falls back to the default when nothing is asked and the install sets none", () => {
+        expect(commandTimeoutSeconds({ max: 0 })).toBe(AppData.ComputerCommandDefaultSeconds);
+    });
+
+    test("unlimited means no limit when the install sets none", () => {
+        expect(commandTimeoutSeconds({ asked: "unlimited", max: 0 })).toBeNull();
     });
 
     test("a bot's own timeout still applies with no install limit", () => {
@@ -19,8 +24,9 @@ describe("commandTimeoutSeconds", () => {
         expect(commandTimeoutSeconds({ max: 270 })).toBe(270);
     });
 
-    test("an install limit caps what the bot asks for", () => {
+    test("an install limit caps what the bot asks for, unlimited included", () => {
         expect(commandTimeoutSeconds({ asked: 600, max: 270 })).toBe(270);
         expect(commandTimeoutSeconds({ asked: 60, max: 270 })).toBe(60);
+        expect(commandTimeoutSeconds({ asked: "unlimited", max: 270 })).toBe(270);
     });
 });

@@ -1,5 +1,6 @@
 import path from "node:path";
 import withSshClient from "./with-ssh-client";
+import replaceSshFile from "./replace-ssh-file";
 import runSshCommand from "./run-ssh-command";
 import shellQuote from "@/src/utils/shell-quote";
 import type { SshTarget } from "@/src/functions/backend/db/computers/grab-computer-target";
@@ -49,19 +50,20 @@ export default async function writeSshFile({
                 client.sftp((err, sftp) => {
                     if (err) return reject(err);
 
-                    sftp.writeFile(tmpPath, bytes, (writeErr) => {
-                        if (writeErr) return reject(writeErr);
+                    const fail = (error: Error) => sftp.unlink(tmpPath, () => reject(error));
 
-                        const finalize = () => {
-                            sftp.rename(tmpPath, filePath, (renameErr) => {
-                                if (renameErr) return reject(renameErr);
-                                resolve({ ok: true, size: bytes.length });
-                            });
-                        };
+                    sftp.writeFile(tmpPath, bytes, (writeErr) => {
+                        if (writeErr) return fail(writeErr);
+
+                        const finalize = () =>
+                            replaceSshFile({ sftp, from: tmpPath, to: filePath }).then(
+                                () => resolve({ ok: true, size: bytes.length }),
+                                fail,
+                            );
 
                         if (mode != null) {
                             sftp.chmod(tmpPath, mode, (chmodErr) => {
-                                if (chmodErr) return reject(chmodErr);
+                                if (chmodErr) return fail(chmodErr);
                                 finalize();
                             });
                         } else {

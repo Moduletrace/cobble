@@ -130,5 +130,12 @@ export default function filePreviewKind({ name, media_type }: Params): FilePrevi
     if (media_type == "audio") return "audio";
     if (media_type == "video") return "video";
 
+    /**
+     * A bot's text saved without an extension (`dotfiles/bashrc`); binaries
+     * almost always have one. Nothing binary reaches the code view: the
+     * text read refuses bytes holding a NUL.
+     */
+    if (!extension && media_type == "document") return "text";
+
     return "none";
 }

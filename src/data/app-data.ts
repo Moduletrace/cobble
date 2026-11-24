@@ -926,6 +926,14 @@ export const AppData = {
      */
     ComputerCommandMaxSeconds: 0,
     /**
+     * What `computer_bash` gives a command when the bot names no `timeout`:
+     * long enough for an install or a build, short enough that a command
+     * waiting on a prompt that never comes cannot hang the run. A bot that
+     * knows the work is long passes `timeout: "unlimited"` (still capped by
+     * `ComputerCommandMaxSeconds` when the install sets one).
+     */
+    ComputerCommandDefaultSeconds: 120,
+    /**
      * What a computer's command hands the bot back (its start and end), and
      * what `computer_read_file` reads: lines at a time, each line cut
      * past `ComputerReadFileMaxLineChars`, files up to

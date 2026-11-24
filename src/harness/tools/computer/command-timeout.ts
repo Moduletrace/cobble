@@ -1,13 +1,18 @@
+import { AppData } from "@/src/data/app-data";
+
 /**
- * How long a `computer_bash` call may run: the bot's own `timeout` when it
- * names one, else the install's limit (`AppData.ComputerCommandMaxSeconds`,
- * 0 for none). `null` means the command runs until it ends, the run is
- * stopped or its job ends.
+ * How long a `computer_bash` call may run. A bot's own `timeout` wins, or
+ * `"unlimited"` when it knows the work is long; a limit the install set
+ * (`AppData.ComputerCommandMaxSeconds`, 0 for none) caps either. Nobody
+ * named anything: the install's limit, else the default, so a command that
+ * waits on a prompt that never comes can't hang the run.
  */
-export default function commandTimeoutSeconds({ asked, max }: { asked?: number; max: number }): number | null {
-    const asked_seconds = asked ? Math.max(1, Math.ceil(asked)) : null;
+export default function commandTimeoutSeconds({ asked, max }: { asked?: number | "unlimited"; max: number }): number | null {
+    if (asked === "unlimited") return max > 0 ? max : null;
 
-    if (max <= 0) return asked_seconds;
+    const asked_seconds = typeof asked === "number" ? Math.max(1, Math.ceil(asked)) : null;
 
-    return asked_seconds == null ? max : Math.min(max, asked_seconds);
+    if (max > 0) return asked_seconds == null ? max : Math.min(max, asked_seconds);
+
+    return asked_seconds ?? AppData.ComputerCommandDefaultSeconds;
 }

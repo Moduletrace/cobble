@@ -19,24 +19,26 @@ import snapshotGitWorktree from "./snapshot-git-worktree";
 type Args = {
     command: string;
     cwd?: string;
-    timeout?: number;
+    timeout?: number | "unlimited";
 };
 
 /**
  * A bash command on the run's computer, from the run's folder (its
  * `HOME`), with the computer's envs loaded, as the worker's own account
  * (no sudo) or, for the coordinator, the computer's user (with sudo).
- * Each call is its own shell with no time limit of its own: it runs until
- * the command ends, the run is stopped, or it reaches the `timeout` the
- * bot named (`commandTimeoutSeconds`, capped by
- * `AppData.ComputerCommandMaxSeconds` when that is set), so a long script
- * is never cut short and nothing is left blocking the computer.
+ * Each call is stopped after the bot's `timeout`, or `AppData.
+ * ComputerCommandDefaultSeconds` when it names none, or not at all for
+ * `"unlimited"` (`commandTimeoutSeconds`); a limit the install set
+ * (`AppData.ComputerCommandMaxSeconds`) caps any of them. The default is
+ * what keeps a command that waits on a pty that never sees EOF, or a
+ * prompt nothing can answer, from hanging the whole run.
  */
 export default function computerBashTool({ computer, computer_id, dirs, shell_path, redact, bot_id, workspace_id, session_id }: ComputerToolContext): HarnessTool<Args> {
     const max = AppData.ComputerCommandMaxSeconds;
+    const default_seconds = AppData.ComputerCommandDefaultSeconds;
     const timeout_note = max > 0
-        ? `Seconds before it is stopped, at most ${max} (${max} when left out).`
-        : "Seconds before it is stopped. Left out, it has no time limit.";
+        ? `Seconds before it is stopped, at most ${max} (${max} when left out; "unlimited" also means ${max}).`
+        : `Seconds before it is stopped (${default_seconds} when left out). Pass "unlimited" for work that really takes long.`;
 
     return {
         name: "computer_bash",
@@ -46,7 +48,7 @@ export default function computerBashTool({ computer, computer_id, dirs, shell_pa
                 : dirs.run_as
                     ? `Debian, as your own account ${computerWorkerAccount({ bot_id: dirs.run_as.bot_id }).name}, without sudo: other bots' folders and the computer's own services are closed to you. Install Python and Node packages into your folder yourself (pip install --user ..., npm install -g ...: both land in ~/.local, on your PATH); for a system package (apt) or anything else that needs root, ask with request_install`
                     : "Debian, as the user gem, with passwordless sudo: install what you need with sudo apt-get update && sudo apt-get install -y ..., or pip install. Worker bots' folders belong to their own accounts, so read or change them with sudo"
-        }). It starts in your folder (${dirs.cwd}, also ~ and $HOME) with your envs set. Every call is a fresh shell (cd and export don't carry over), reads no input (anything waiting for a prompt fails at once: pass -y, a password through its env, and so on) and has no time limit${max > 0 ? ` unless you pass timeout seconds (at most ${max})` : ""}: it runs until the command ends, you stop it, or the run ends. Work that must outlive the run goes in the background (nohup ... > log 2>&1 &), checked in later calls. Output past ${Math.round(AppData.ComputerCommandMaxOutputChars / 1000)}k characters is cut in the middle, so filter it.`,
+        }). It starts in your folder (${dirs.cwd}, also ~ and $HOME) with your envs set. Every call is a fresh shell (cd and export don't carry over), reads no input (anything waiting for a prompt fails at once: pass -y, a password through its env, and so on). A command is stopped after ${Math.round((max > 0 ? max : default_seconds) / 60)} minutes unless you pass timeout seconds, or timeout: "unlimited" for work that really takes longer (an install, a build). Work that must outlive the run goes in the background (nohup ... > log 2>&1 &), checked in later calls. Output past ${Math.round(AppData.ComputerCommandMaxOutputChars / 1000)}k characters is cut in the middle, so filter it.`,
         /**
          * The command's own limit is what ends it: the harness's per-tool
          * deadline would cut a long script at 10 minutes.
@@ -55,7 +57,7 @@ export default function computerBashTool({ computer, computer_id, dirs, shell_pa
         schema: z.object({
             command: z.string().min(1).max(100_000),
             cwd: z.string().max(AppData.BotFilePathMaxChars).optional().describe("Where to start (defaults to your folder)"),
-            timeout: z.number().positive().optional().describe(timeout_note),
+            timeout: z.union([z.number().positive(), z.literal("unlimited")]).optional().describe(timeout_note),
         }),
         run: async ({ args, signal }) => {
             const cwd = args.cwd ? resolveComputerPath({ path: args.cwd, dirs }) : null;
@@ -122,7 +124,7 @@ export default function computerBashTool({ computer, computer_id, dirs, shell_pa
                 snapshot_failed ? `[The safety snapshot could not be saved before this command; any work it discards may be unrecoverable.]` : "",
                 `Exit code: ${result.exit_code ?? "unknown"}`,
                 output || "(no output)",
-                result.timed_out ? `[Stopped after ${seconds ?? 0}s: the command timed out. Run long work in the background and check its log.]` : "",
+                result.timed_out ? `[Stopped after ${seconds ?? 0}s: the command timed out. Run long work in the background and check its log, or pass a larger timeout, or timeout: "unlimited".]` : "",
                 result.truncated ? `[The computer kept only the first part of a very long output.]` : "",
                 full || "",
             ]
