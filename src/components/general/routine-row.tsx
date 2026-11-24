@@ -1,8 +1,11 @@
+import { ArrowRightLeft, MessageCircle, MessagesSquare, Pause, Pencil, Play, Trash2 } from "lucide-react";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
 import type { CronJobWithNames } from "@/src/types";
 import SettingsListRow from "@/src/pages/admin/settings/(partials)/settings-list-row";
-import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
+import SettingsRowMenu from "@/src/pages/admin/settings/(partials)/settings-row-menu";
+import SettingsRowMenuItem from "@/src/pages/admin/settings/(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "@/src/pages/admin/settings/(partials)/settings-row-menu-panel";
 import routineSubtitle from "@/src/utils/routine-subtitle";
 import conversationHref from "@/src/utils/conversation-href";
 import BotAvatar from "./bot-avatar";
@@ -26,8 +29,9 @@ type Props = {
 
 /**
  * One routine: its bot's avatar, its name (Paused or Done when it is),
- * whose it is and when it runs, then Thread (the session its latest run
- * left its messages in), Chat, Pause or Resume, Edit, Hand over, Delete.
+ * whose it is and when it runs, then a menu with Thread (the session its
+ * latest run left its messages in), Chat, Pause or Resume, Edit, Hand
+ * over and Delete.
  */
 export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete, onHandOver, compact }: Props) {
     const title = cron_job.title || `Routine ${cron_job.id}`;
@@ -61,32 +65,42 @@ export default function RoutineRow({ cron_job, busy, onToggle, onEdit, onDelete,
                 show_workspace: !compact,
             })}
         >
-            {thread_url ? (
-                <SettingsRowAction
-                    title={`Open ${title}'s latest thread: what its runs left there, where you can chat with ${cron_job.bot_name || "the bot"}`}
-                    label="Thread"
-                    href={thread_url}
-                />
-            ) : null}
-            {compact ? null : (
-                <SettingsRowAction title={`Chat with ${cron_job.bot_name || "the bot"}`} label="Chat" href={chat_url} />
-            )}
-            <SettingsRowAction
-                title={cron_job.enabled ? `Pause ${title}` : `Resume ${title}`}
-                label={cron_job.enabled ? "Pause" : "Resume"}
-                disabled={busy}
-                onClick={onToggle}
-            />
-            <SettingsRowAction title={`Edit ${title}`} label="Edit" disabled={busy} onClick={onEdit} />
-            {onHandOver ? (
-                <SettingsRowAction
-                    title={`Hand ${title} to another bot`}
-                    label="Hand over"
-                    disabled={busy}
-                    onClick={onHandOver}
-                />
-            ) : null}
-            <SettingsRowAction title={`Delete ${title}`} label="Delete" disabled={busy} onClick={onDelete} />
+            <SettingsRowMenu title={`${title} menu`} disabled={busy}>
+                <SettingsRowMenuPanel>
+                    {thread_url ? (
+                        <SettingsRowMenuItem
+                            icon={MessagesSquare}
+                            title="Thread"
+                            description={`Open ${title}'s latest thread: what its runs left there, where you can chat with ${cron_job.bot_name || "the bot"}`}
+                            href={thread_url}
+                        />
+                    ) : null}
+                    {compact ? null : (
+                        <SettingsRowMenuItem
+                            icon={MessageCircle}
+                            title="Chat"
+                            description={`Chat with ${cron_job.bot_name || "the bot"}`}
+                            href={chat_url}
+                        />
+                    )}
+                    <SettingsRowMenuItem
+                        icon={cron_job.enabled ? Pause : Play}
+                        title={cron_job.enabled ? "Pause" : "Resume"}
+                        description={cron_job.enabled ? `Pause ${title}` : `Resume ${title}`}
+                        onClick={onToggle}
+                    />
+                    <SettingsRowMenuItem icon={Pencil} title="Edit" description={`Edit ${title}`} onClick={onEdit} />
+                    {onHandOver ? (
+                        <SettingsRowMenuItem
+                            icon={ArrowRightLeft}
+                            title="Hand over"
+                            description={`Hand ${title} to another bot`}
+                            onClick={onHandOver}
+                        />
+                    ) : null}
+                    <SettingsRowMenuItem icon={Trash2} title="Delete" description={`Delete ${title}`} onClick={onDelete} />
+                </SettingsRowMenuPanel>
+            </SettingsRowMenu>
         </SettingsListRow>
     );
 }

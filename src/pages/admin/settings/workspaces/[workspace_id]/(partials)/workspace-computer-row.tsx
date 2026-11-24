@@ -1,6 +1,9 @@
+import { RefreshCw, Star, Trash2, Unlink } from "lucide-react";
 import type { ComputerWithStatus } from "@/src/types";
 import ComputerListRow from "@/src/pages/admin/settings/(partials)/computer-list-row";
-import SettingsRowAction from "@/src/pages/admin/settings/(partials)/settings-row-action";
+import SettingsRowMenu from "@/src/pages/admin/settings/(partials)/settings-row-menu";
+import SettingsRowMenuItem from "@/src/pages/admin/settings/(partials)/settings-row-menu-item";
+import SettingsRowMenuPanel from "@/src/pages/admin/settings/(partials)/settings-row-menu-panel";
 
 type Props = {
     computer: ComputerWithStatus;
@@ -15,7 +18,7 @@ type Props = {
 
 /**
  * A computer linked to the workspace: its name, state and whether it's
- * the default, then what can be done with it.
+ * the default, then a menu with what can be done with it.
  */
 export default function WorkspaceComputerRow({
     computer,
@@ -34,16 +37,40 @@ export default function WorkspaceComputerRow({
             computer={computer}
             badge={is_default ? "Default" : undefined}
         >
-            {is_default ? null : (
-                <SettingsRowAction title={`Make ${name} the default`} label="Make default" disabled={busy} onClick={onMakeDefault} />
-            )}
-            {computer.status == "failed" && is_super_admin ? (
-                <SettingsRowAction title={`Set ${name} up again`} label="Retry" disabled={busy} onClick={onRetry} />
-            ) : null}
-            <SettingsRowAction title={`Unlink ${name}; it stays yours`} label="Unlink" disabled={busy} onClick={onUnlink} />
-            {is_super_admin && computer.kind != "main" ? (
-                <SettingsRowAction title={`Delete ${name}; its files are kept`} label="Delete" disabled={busy} onClick={onDelete} />
-            ) : null}
+            <SettingsRowMenu title={`${name} menu`} disabled={busy}>
+                <SettingsRowMenuPanel>
+                    {is_default ? null : (
+                        <SettingsRowMenuItem
+                            icon={Star}
+                            title="Make default"
+                            description={`Make ${name} the default`}
+                            onClick={onMakeDefault}
+                        />
+                    )}
+                    {computer.status == "failed" && is_super_admin ? (
+                        <SettingsRowMenuItem
+                            icon={RefreshCw}
+                            title="Retry"
+                            description={`Set ${name} up again`}
+                            onClick={onRetry}
+                        />
+                    ) : null}
+                    <SettingsRowMenuItem
+                        icon={Unlink}
+                        title="Unlink"
+                        description={`Unlink ${name}; it stays yours`}
+                        onClick={onUnlink}
+                    />
+                    {is_super_admin && computer.kind != "main" ? (
+                        <SettingsRowMenuItem
+                            icon={Trash2}
+                            title="Delete"
+                            description={`Delete ${name}; its files are kept`}
+                            onClick={onDelete}
+                        />
+                    ) : null}
+                </SettingsRowMenuPanel>
+            </SettingsRowMenu>
         </ComputerListRow>
     );
 }
