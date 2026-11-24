@@ -1,3 +1,4 @@
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { ComputerApi } from "@/src/functions/backend/computers/computer-fetch";
 import { AppData } from "@/src/data/app-data";
 import { ComputerMcpExcludedTools } from "@/src/dict/computer-dict";
@@ -213,9 +214,28 @@ export default async function openComputerTools({
      */
     const redact_page = (text: string) => redact(maskPasswordFieldValues({ text }));
 
-    const client = browser
-        ? await connectMcpServer({ url: target.url, headers: { authorization: `Bearer ${target.token}` }, signal })
-        : null;
+    /**
+     * Connected on the first browser call, and again after the computer's
+     * agent restarts Playwright MCP under the run: a session it handed out
+     * stops existing, and every call fails with `Session not found` until
+     * the run connects again (`mcpHarnessTool`).
+     */
+    const link: { client: Client | null } = { client: null };
+    const connect = async () => {
+        const client =
+            link.client ??
+            (link.client = await connectMcpServer({
+                url: target.url,
+                headers: { authorization: `Bearer ${target.token}` },
+                signal,
+            }));
+
+        return client;
+    };
+    const reconnect = async () => {
+        await link.client?.close().catch(() => null);
+        link.client = null;
+    };
     const context: ComputerToolContext = {
         computer: target,
         computer_id: Number(computer_id),
@@ -228,9 +248,10 @@ export default async function openComputerTools({
     };
 
     try {
-        const browser_tools = client
+        const browser_tools = browser
             ? await grabMcpTools({
-                  client,
+                  client: connect,
+                  reconnect,
                   exclude: ComputerMcpExcludedTools,
                   redact: redact_page,
                   image_focus: "This is a screenshot of a web page. Describe the page layout, text, buttons and form fields, and any errors or popups.",
@@ -272,11 +293,11 @@ export default async function openComputerTools({
             envs: envs.map((env) => ({ key: env.key, description: env.description })),
             redact,
             close: async () => {
-                await client?.close().catch(() => {});
+                await link.client?.close().catch(() => {});
             },
         };
     } catch (error) {
-        await client?.close().catch(() => {});
+        await link.client?.close().catch(() => {});
         throw error;
     }
 }

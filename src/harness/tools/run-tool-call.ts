@@ -4,6 +4,7 @@ import isBrowserTool from "@/src/utils/browser-tool-name";
 import TaskTimeoutError from "@/src/utils/task-timeout-error";
 import withTimeout from "@/src/utils/with-timeout";
 import HarnessError from "../harness-error";
+import browserRecoveryHint from "./computer/browser-recovery-hint";
 import unknownToolArgs from "./unknown-tool-args";
 import unknownToolMessage from "./unknown-tool-message";
 import toolTimeoutMs from "./tool-timeout-ms";
@@ -130,11 +131,29 @@ async function runTool({ call, tools, signal }: Params): Promise<ToolOutput> {
         }
 
         if (error instanceof TaskTimeoutError) {
-            return { text: `Error: ${error.message}`, images: [], ok: false };
+            return { text: withBrowserHint({ name: call.name, text: `Error: ${error.message}` }), images: [], ok: false };
         }
 
-        return { text: `Error: ${error instanceof Error ? error.message : String(error)}`, images: [], ok: false };
+        return {
+            text: withBrowserHint({
+                name: call.name,
+                text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            }),
+            images: [],
+            ok: false,
+        };
     }
+}
+
+/**
+ * A failed browser call with what its error doesn't say (`browserRecoveryHint`):
+ * an element that never settled, or a bridge that is down and belongs to the
+ * computer. Every other tool, and every other failure, is left as it is.
+ */
+function withBrowserHint({ name, text }: { name: string; text: string }) {
+    const hint = browserRecoveryHint({ name, text });
+
+    return hint ? `${text}\n\n${hint}` : text;
 }
 
 /**

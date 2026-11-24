@@ -673,6 +673,18 @@ export const AppData = {
      */
     HarnessSameFailureRetries: 1,
     /**
+     * How many calls of one tool in a row end a run: at this count the run
+     * stops working and gets its wrap up, where it reports what it has and
+     * what is blocking it (`stuckToolNote`). A reply with no step or token
+     * limit otherwise loops until someone stops it: one spent 194 calls of
+     * `search_computers` and 18M prompt tokens probing a browser that its
+     * account can never reach (Nov 2026). Counted by tool name and its
+     * answer, since the loop's calls each had different arguments, and a run
+     * that clicks through a long list one item at a time gets a different
+     * answer each time and is not stuck.
+     */
+    HarnessStuckToolRepeats: 20,
+    /**
      * How many times the review may send an answer back to be written again
      * before the run stops without an answer. A note fixes most answers; the
      * second rewrite is for the one that dropped the claim but named a file

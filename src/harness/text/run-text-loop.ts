@@ -17,6 +17,7 @@ import {
     replyDraftNote,
     replyNoTextNote,
     staticPromptOverBudgetNote,
+    stuckToolNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
 import { isUnlimitedLimit, type RunLimit, UnlimitedLimit } from "@/src/utils/run-limit";
@@ -269,17 +270,28 @@ export const WrapUpSavingTurns = 2;
 export const wrapUpPrompt = ({
     uses,
     reason = "steps",
+    tool,
     saving = [],
     hand_off = [],
     answer = [],
 }: {
     uses: HarnessToolUse[];
-    reason?: "steps" | "tokens";
+    reason?: "steps" | "tokens" | "stuck";
+    /**
+     * The tool the run was stuck on, with the wrap up it caused (`stuck`).
+     */
+    tool?: { name: string; repeats: number };
     saving?: string[];
     hand_off?: string[];
     answer?: string[];
 }) =>
-    `${reason == "tokens" ? "This run has used all the tokens it may spend." : "You've used every step this run allows."} ${wrapUpToolsPrompt({
+    `${
+        reason == "stuck" && tool
+            ? stuckToolNote(tool)
+            : reason == "tokens"
+              ? "This run has used all the tokens it may spend."
+              : "You've used every step this run allows."
+    } ${wrapUpToolsPrompt({
         saving,
         hand_off,
         answer,
@@ -568,6 +580,17 @@ export default async function runTextLoop({
     const step_ceiling = isUnlimitedLimit(max_steps) ? Infinity : max_steps;
 
     const warn_at = isUnlimitedLimit(max_steps) ? 0 : stepsLowWarningLeft({ max_steps });
+    /**
+     * The last tool the run called, how many times in a row it called it,
+     * and the answer it got: the same call giving the same answer is a run
+     * getting nowhere, and at `AppData.HarnessStuckToolRepeats` it stops and
+     * reports (`same_tool.stuck`) instead of paying for that answer again
+     * with the whole conversation.
+     */
+    const same_tool: {
+        last: { name: string; answer: string; count: number } | null;
+        stuck: { name: string; repeats: number } | null;
+    } = { last: null, stuck: null };
     let prefer_key = planned_key;
     /**
      * How many answers the review has sent back, and the last one it faulted,
@@ -767,7 +790,12 @@ export default async function runTextLoop({
                 max_prompt_tokens > 0 &&
                 usage.prompt_tokens >= max_prompt_tokens,
         );
-        const wrap_up = out_of_steps || out_of_tokens;
+        const wrap_up: boolean = out_of_steps || out_of_tokens || same_tool.stuck !== null;
+        /**
+         * Why the run is wrapping up: its steps, its tokens, or one tool
+         * called over and over.
+         */
+        const wrap_reason = same_tool.stuck ? "stuck" : out_of_steps ? "steps" : "tokens";
         /**
          * The saving turn: only the tools a wrap up has left. Without one
          * of them, or once it had its round, the wrap up is the old one,
@@ -797,7 +825,8 @@ export default async function runTextLoop({
                 transcript,
                 content: wrapUpPrompt({
                     uses: tool_uses,
-                    reason: out_of_steps ? "steps" : "tokens",
+                    reason: wrap_reason,
+                    tool: same_tool.stuck ?? undefined,
                     saving: wrap_up_saving ? save_tools.map((tool) => tool.name) : [],
                     hand_off: wrap_up_saving ? hand_off_tools.map((tool) => tool.name) : [],
                     answer: answer_tools.map((tool) => tool.name),
@@ -808,7 +837,13 @@ export default async function runTextLoop({
                 kind: "event",
                 index,
                 name: "wrap_up",
-                text: `${out_of_steps ? "Out of steps" : "Out of tokens"}. ${wrap_tools.length ? `It has one turn left with ${wrap_tools.map((tool) => tool.name).join(", ")}.` : "It has no tool left and must answer now."}`,
+                text: `${
+                    same_tool.stuck
+                        ? `Stuck on ${same_tool.stuck.name} (${same_tool.stuck.repeats} calls in a row)`
+                        : out_of_steps
+                          ? "Out of steps"
+                          : "Out of tokens"
+                }. ${wrap_tools.length ? `It has one turn left with ${wrap_tools.map((tool) => tool.name).join(", ")}.` : "It has no tool left and must answer now."}`,
             });
         }
 
@@ -1228,6 +1263,20 @@ export default async function runTextLoop({
             }
 
             tool_uses.push({ name: call.name, ok });
+
+            /**
+             * The same tool over and over, answering the same thing, gets
+             * the run nowhere: it stops and reports at the wrap up
+             * (`AppData.HarnessStuckToolRepeats`).
+             */
+            const previous = same_tool.last;
+            const repeats =
+                previous && previous.name == call.name && previous.answer == content ? previous.count + 1 : 1;
+
+            same_tool.last = { name: call.name, answer: content, count: repeats };
+            if (!same_tool.stuck && repeats >= AppData.HarnessStuckToolRepeats) {
+                same_tool.stuck = { name: call.name, repeats };
+            }
 
             await traced({
                 kind: "tool",

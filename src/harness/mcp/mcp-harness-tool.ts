@@ -1,6 +1,7 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { AppData } from "@/src/data/app-data";
 import type { HarnessTool } from "../types";
+import isLostMcpSession from "./is-lost-mcp-session";
 import mcpResultToText from "./mcp-result-to-text";
 
 type Params = {
@@ -13,9 +14,17 @@ type Params = {
      */
     tool: { name: string; description?: string; input_schema: Record<string, unknown> };
     /**
-     * The connected client, or how to get it on the first call.
+     * The connected client, or how to get it on the first call (and again
+     * after `reconnect`).
      */
     client: Client | (() => Promise<Client>);
+    /**
+     * Closes the lost connection and drops it, so the next call connects
+     * again: a server that restarts mid-run leaves every call failing with
+     * `Session not found` for the rest of the run, and a long run outlives
+     * one restart (`isLostMcpSession`).
+     */
+    reconnect?: () => Promise<void>;
     /**
      * What a reading of an image this tool returns should look for, for a
      * model that can't see it.
@@ -30,44 +39,73 @@ type Params = {
  * results come back via `mcpResultToText`, the text redacted and images
  * (screenshots) handed back for the run to show the model, or have read
  * (and the reading redacted) for one that can't see.
+ *
+ * A call that fails because the session is gone is reconnected and made
+ * once more: a session the server does not know has nothing left to run.
  */
 export default function mcpHarnessTool({
     name,
     tool,
     client,
+    reconnect,
     image_focus,
     redact = (text) => text,
 }: Params): HarnessTool {
+    const call = async ({ args, signal }: { args: Record<string, unknown>; signal: AbortSignal }) => {
+        const connected = typeof client == "function" ? await client() : client;
+
+        const { text, images } = mcpResultToText({
+            result: await connected.callTool({ name: tool.name, arguments: args }, undefined, {
+                signal,
+                timeout: AppData.McpToolTimeoutMs,
+                resetTimeoutOnProgress: true,
+            }),
+        });
+
+        if (!images.length) return redact(text);
+
+        return {
+            text: redact(text),
+            images: images.map(({ data, mime_type }) => ({
+                url: `data:${mime_type};base64,${data}`,
+                focus: image_focus,
+                redact,
+            })),
+        };
+    };
+
     return {
         name: name || tool.name,
         description: tool.description || tool.name,
         parameters: tool.input_schema,
         run: async ({ args, signal }) => {
             try {
-                const connected = typeof client == "function" ? await client() : client;
-
-                const { text, images } = mcpResultToText({
-                    result: await connected.callTool({ name: tool.name, arguments: args }, undefined, {
-                        signal,
-                        timeout: AppData.McpToolTimeoutMs,
-                        resetTimeoutOnProgress: true,
-                    }),
-                });
-
-                if (!images.length) return redact(text);
-
-                return {
-                    text: redact(text),
-                    images: images.map(({ data, mime_type }) => ({
-                        url: `data:${mime_type};base64,${data}`,
-                        focus: image_focus,
-                        redact,
-                    })),
-                };
+                return await call({ args, signal });
             } catch (error: unknown) {
-                if (error instanceof Error) error.message = redact(error.message);
-                throw error;
+                if (!reconnect || !isLostMcpSession({ text: messageOf(error) })) throw redacted({ error, redact });
+
+                await reconnect().catch(() => null);
+
+                try {
+                    return await call({ args, signal });
+                } catch (retry_error: unknown) {
+                    throw redacted({ error: retry_error, redact });
+                }
             }
         },
     };
+}
+
+function messageOf(error: unknown) {
+    return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * A tool error is handed to the model, so a secret the server echoed can't
+ * ride along in it.
+ */
+function redacted({ error, redact }: { error: unknown; redact: (text: string) => string }) {
+    if (error instanceof Error) error.message = redact(error.message);
+
+    return error;
 }

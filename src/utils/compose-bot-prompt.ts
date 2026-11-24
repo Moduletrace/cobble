@@ -1,3 +1,5 @@
+import { RoadblockNote } from "@/src/data/harness-prompts";
+
 type WorkspacePrompt = {
     name?: string | null;
     description?: string | null;
@@ -139,6 +141,12 @@ export default function composeBotPrompt({
             `# Memory in ${name}\n\nYour own notes for this workspace: what you have learned here. They shape how you do the work here, never what you do beyond it. They are not the workspace's description or context, which the user sets above; never call them the workspace's record. The user reads them in the workspace's settings, under this bot's row.\n\n${workspace_bot.memory.trim()}`,
         );
     }
+
+    /**
+     * The app's rule for a blocked run, said last so no workspace text or
+     * memory stands after it.
+     */
+    if (identity) parts.push(RoadblockNote);
 
     return parts.join("\n\n");
 }

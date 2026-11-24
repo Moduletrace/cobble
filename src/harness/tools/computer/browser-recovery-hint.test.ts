@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { browserSettleTimeoutNote } from "@/src/data/harness-prompts";
+import { browserBridgeNote, browserSettleTimeoutNote } from "@/src/data/harness-prompts";
 import browserRecoveryHint from "./browser-recovery-hint";
 
 const settle_timeout = `Error: ### Error
@@ -17,6 +17,12 @@ describe("browserRecoveryHint", () => {
 
     test("covers a user's own browser too", () => {
         expect(browserRecoveryHint({ name: "laptop__browser_click", text: settle_timeout })).toBe(browserSettleTimeoutNote);
+    });
+
+    test("says the bridge is the computer's after the session dies", () => {
+        const lost = "Error: Streamable HTTP error: Error POSTing to endpoint: Session not found";
+
+        expect(browserRecoveryHint({ name: "browser_snapshot", text: lost })).toBe(browserBridgeNote);
     });
 
     test("says nothing about a failure that already names its own fix", () => {

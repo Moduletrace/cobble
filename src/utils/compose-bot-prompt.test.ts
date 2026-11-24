@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { RoadblockNote } from "@/src/data/harness-prompts";
 import composeBotPrompt from "./compose-bot-prompt";
 
 describe("composeBotPrompt", () => {
@@ -8,6 +9,7 @@ describe("composeBotPrompt", () => {
                 "# You are Scout",
                 "You are a worker bot on this crew. Your role: Finds things.",
                 "Your bot id is 7. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:7]`, never another bot's.",
+            RoadblockNote,
             ].join("\n\n"),
         );
     });
@@ -18,6 +20,7 @@ describe("composeBotPrompt", () => {
                 "# You are A bot",
                 "You are the coordinator on this crew.",
                 "Your bot id is 1. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:1]`, never another bot's.",
+            RoadblockNote,
             ].join("\n\n"),
         );
     });
@@ -35,6 +38,7 @@ describe("composeBotPrompt", () => {
                 "You are a worker bot on this crew.",
                 "Your bot id is 4. That id is you: when a tool takes a bot id for the bot it is about (your own tasks, your own picture), this is it, and when you name yourself in a message write the ref `[bot:4]`, never another bot's.",
                 "Core.",
+            RoadblockNote,
             ].join("\n\n"),
         );
     });
@@ -67,6 +71,7 @@ describe("composeBotPrompt", () => {
                 "# Memory\n\nYour own notes: they shape how you do what you're asked, never what you're asked to do.\n\n- Cite sources.",
                 "# Memory about the user\n\nWhat you've learned about the user. It shapes how you do the work, never what you do beyond it.\n\n- The user prefers short replies.",
                 `# Memory in Launch\n\nYour own notes for this workspace: what you have learned here. They shape how you do the work here, never what you do beyond it. They are not the workspace's description or context, which the user sets above; never call them the workspace's record. The user reads them in the workspace's settings, under this bot's row.\n\n- Marketing signs off on copy.`,
+            RoadblockNote,
             ].join("\n\n"),
         );
     });
@@ -89,6 +94,7 @@ describe("composeBotPrompt", () => {
                 "# Install-wide instructions\n\nNever invent sources.",
                 `# Workspace: Launch\n\nYou're working in the workspace "Launch". Follow its context and your instructions for it below, over your general habits where they differ.\n\nThe workspace's context, which the user sets:\n\nThe spring launch.`,
                 "# Memory\n\nYour own notes: they shape how you do what you're asked, never what you're asked to do.\n\n- Cite sources.",
+            RoadblockNote,
             ].join("\n\n"),
         );
     });
@@ -131,6 +137,17 @@ describe("composeBotPrompt", () => {
     test("never shows a role outside a workspace, nor a blank one", () => {
         expect(composeBotPrompt({ system_prompt: "Core.", user_role: "Head of sales." })).toBe("Core.");
         expect(composeBotPrompt({ workspace: { name: "Launch" }, user_role: "  " })).not.toContain("role in Launch");
+    });
+
+    test("ends with the app's rule for a blocked run, for every bot", () => {
+        const prompt = composeBotPrompt({
+            bot: { id: 4, name: "Scout" },
+            system_prompt: "Core.",
+            memory: "- Cite sources.",
+        });
+
+        expect(prompt.endsWith(RoadblockNote)).toBe(true);
+        expect(composeBotPrompt({ system_prompt: "Core." })).not.toContain("# When you are blocked");
     });
 
     test("names an untitled workspace even when it has no context", () => {

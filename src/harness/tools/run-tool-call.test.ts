@@ -22,6 +22,15 @@ const failing: HarnessTool = {
     },
 };
 
+const browser_fails: HarnessTool = {
+    name: "pc__browser_snapshot",
+    description: "Fails to reach the browser.",
+    schema: z.object({}),
+    run: async () => {
+        throw new Error("Streamable HTTP error: Error POSTing to endpoint: Session not found");
+    },
+};
+
 const signal = new AbortController().signal;
 const shot: HarnessTool = {
     name: "shot",
@@ -39,7 +48,7 @@ const shot: HarnessTool = {
 const run = (name: string, args: string) =>
     runToolCall({
         call: { id: "1", name, arguments: args },
-        tools: [echo, failing, shot],
+        tools: [echo, failing, shot, browser_fails],
         signal,
     });
 const call = async (name: string, args: string) => (await run(name, args)).text;
@@ -47,6 +56,13 @@ const call = async (name: string, args: string) => (await run(name, args)).text;
 describe("runToolCall", () => {
     test("runs the tool with validated arguments", async () => {
         expect(await call("echo", `{"text":"hi"}`)).toBe("hi");
+    });
+
+    test("adds what a failed browser call's error doesn't say", async () => {
+        const text = await call("pc__browser_snapshot", "");
+
+        expect(text.startsWith("Error: Streamable HTTP error")).toBe(true);
+        expect(text).toContain("Only the user can restart the computer");
     });
 
     test("reports problems to the model instead of throwing", async () => {

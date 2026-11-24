@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -53,6 +53,13 @@ const remember: HarnessTool<{ note: string }> = {
         memory.push(args.note);
         return "Saved.";
     },
+};
+
+const glance: HarnessTool<{ at: string }> = {
+    name: "glance",
+    description: "Looks at something.",
+    schema: z.object({ at: z.string() }),
+    run: async () => "Looked.",
 };
 
 const asked: string[] = [];
@@ -283,16 +290,23 @@ describe("runTextLoop", () => {
 
     test("a run with no step limit keeps going, and records the window it works to", async () => {
         memory.length = 0;
-        const loop_call = {
-            tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }],
-        };
+        /**
+         * Two tools in turn: the same one 30 times in a row is a stuck run
+         * now (`HarnessStuckToolRepeats`), which is not what this tests.
+         */
+        const loop_calls = [
+            { tool_calls: [{ id: "c", name: "remember", arguments: `{"note":"x"}` }] },
+            { tool_calls: [{ id: "c", name: "glance", arguments: `{"at":"x"}` }] },
+        ];
         const turns = 30;
-        const { generate, seen } = scripted(Array.from({ length: turns }, () => loop_call));
+        const { generate, seen } = scripted(
+            Array.from({ length: turns }, (_turn, index) => loop_calls[index % loop_calls.length]!),
+        );
 
         const result = await runTextLoop({
             system: "s",
             messages: [{ role: "user", content: "go" }],
-            tools: [remember],
+            tools: [remember, glance],
             max_steps: UnlimitedLimit,
             generate,
             resolveCandidates,
@@ -481,6 +495,80 @@ describe("runTextLoop", () => {
         expect(prompt).toContain("and nothing else");
         expect(prompt).not.toContain("call  with");
         expect(prompt).not.toContain("start_task");
+    });
+
+    test("stops a run stuck on one tool and makes it report", async () => {
+        const repeats = AppData.HarnessStuckToolRepeats;
+        const { generate, seen } = scripted(
+            Array.from({ length: repeats }, (_, index) => ({
+                text: null,
+                tool_calls: [{ id: `c${index}`, name: "remember", arguments: `{"note":"${index}"}` }],
+            })),
+        );
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+        });
+
+        const prompts = seen.map((params) => String(params.messages.at(-1)!.content));
+
+        expect(prompts.some((prompt) => prompt.includes(stuckToolNote({ name: "remember", repeats })))).toBe(true);
+        expect(seen).toHaveLength(repeats + 1);
+    });
+
+    test("a tool called over and over that answers differently each time is not stuck", async () => {
+        let counted = 0;
+        const counter: HarnessTool<Record<string, never>> = {
+            name: "count",
+            description: "Counts.",
+            schema: z.object({}),
+            run: async () => `Line ${++counted}.`,
+        };
+        const calls = AppData.HarnessStuckToolRepeats + 2;
+        const { generate, seen } = scripted(
+            Array.from({ length: calls }, (_, index) => ({
+                text: null,
+                tool_calls: [{ id: `c${index}`, name: "count", arguments: `` }],
+            })),
+        );
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [counter],
+            generate,
+            resolveCandidates,
+        });
+
+        const prompts = seen.map((params) => String(params.messages.at(-1)!.content));
+
+        expect(prompts.some((prompt) => prompt.includes("This run has called"))).toBe(false);
+    });
+
+    test("a run one call short of the limit is not stopped", async () => {
+        const calls = AppData.HarnessStuckToolRepeats - 1;
+        const { generate, seen } = scripted(
+            Array.from({ length: calls }, (_, index) => ({
+                text: null,
+                tool_calls: [{ id: `c${index}`, name: "remember", arguments: `{"note":"${index}"}` }],
+            })),
+        );
+
+        await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "go" }],
+            tools: [remember],
+            generate,
+            resolveCandidates,
+        });
+
+        const prompts = seen.map((params) => String(params.messages.at(-1)!.content));
+
+        expect(prompts.some((prompt) => prompt.includes("This run has called"))).toBe(false);
     });
 
     test("warns once, a few steps before the wrap up, in a long enough run", async () => {

@@ -1,5 +1,6 @@
-import { browserSettleTimeoutNote } from "@/src/data/harness-prompts";
+import { browserBridgeNote, browserSettleTimeoutNote } from "@/src/data/harness-prompts";
 import isBrowserTool from "@/src/utils/browser-tool-name";
+import isLostMcpSession from "../../mcp/is-lost-mcp-session";
 
 /**
  * Playwright's wording for an action that gave up on an element which never
@@ -10,15 +11,24 @@ import isBrowserTool from "@/src/utils/browser-tool-name";
 const SettleTimeout = /waiting for element to be visible, enabled and stable/i;
 
 /**
- * What to add after a browser action that timed out waiting for its element
- * to settle, or nothing when the call did not fail that way. The run has
- * just spent 5 seconds on it, and retrying the same call is what one Canva
- * run did five times in a row.
+ * What to add to a browser tool's error, or nothing when the call failed
+ * for a reason the error already explains (a bad target, a missing
+ * element). Two failures say more than the error itself:
+ *
+ * - the element never settled, so retrying it is what one Canva run did
+ *   five times in a row;
+ * - the connection to the computer's browser bridge is gone, which is the
+ *   computer's to fix, not the run's (`browserBridgeNote`).
+ *
+ * Applied where tool errors become the model's text (`run-tool-call`): a
+ * result the server flags as an error is thrown, so a wrapper around a
+ * successful result never sees it.
  */
 export default function browserRecoveryHint({ name, text }: { name: string; text: string }) {
     if (!isBrowserTool({ name })) return "";
     if (!text.startsWith("Error:")) return "";
-    if (!SettleTimeout.test(text)) return "";
+    if (SettleTimeout.test(text)) return browserSettleTimeoutNote;
+    if (isLostMcpSession({ text })) return browserBridgeNote;
 
-    return browserSettleTimeoutNote;
+    return "";
 }

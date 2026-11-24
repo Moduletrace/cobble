@@ -52,6 +52,19 @@ export const SupersededSnapshotNote = `[An older page snapshot or find, replaced
 export const browserSettleTimeoutNote = `This timed out because the element never stopped moving: the page animates, so the same call will time out in the same place however often it is made. Drive it from the page itself instead: browser_evaluate with getByRole('button', { name: 'Publish' }).click(), or with element.click() on the element.`;
 
 /**
+ * Appended to a browser tool whose connection to the computer's Playwright
+ * MCP is gone (`browserRecoveryHint`). The agent supervises that server and
+ * starts it again on its own, so the bridge being down is the computer's
+ * problem, not the run's: a worker account cannot reach the agent, CDP or
+ * the MCP port at all (`guardServicePorts`), and only the user can restart
+ * the computer. One routine spent 18M prompt tokens probing 9222/8931,
+ * starting its own Chrome and killing processes before it was told to stop.
+ */
+export const browserBridgeNote = `The browser belongs to the computer and is started and supervised there, so this run cannot start, restart or repair it. Your account is a worker account: the browser's ports are closed to it on purpose, so starting Chrome, killing processes, starting the MCP server or probing ports cannot work and is not the fix.
+
+Only the user can restart the computer (its Restart button on the computer's page) or sign in to a site again on its screen. Stop here and report: what you were doing, what the browser last showed, and what the user has to do. Do not spend more calls on it.`;
+
+/**
  * The folder-ref example a note shows, always over the running bot's own
  * folder: a literal owner id in the prompt teaches the bot to name another
  * bot's folder as if it were its own.
@@ -309,6 +322,19 @@ The user's request sets the scope. Do what they asked, in the scope they gave, a
 - If the user declines, or doesn't pick it, drop it: don't do it anyway, don't do a smaller version of it, and don't offer it again in this conversation.`;
 
 /**
+ * The last thing in every bot prompt (`composeBotPrompt`), not a note added
+ * once a tool has already failed: what a blocked run does is the app's rule,
+ * in replies, tasks, routines and hook calls alike. One routine spent 18M
+ * prompt tokens probing a browser its account can never reach, and stopped
+ * only when the user told it to (Nov 2026).
+ */
+export const RoadblockNote = `# When you are blocked
+
+When something stops the work - a tool that keeps failing, a page or computer that is down, access you do not have, a step that will not work however you try it - stop and report. Say what you were doing, what failed, what you tried, and what the user has to do next.
+
+Two or three attempts at the same error is the limit: another one buys the same answer and resends this whole conversation. Don't keep trying variations, don't switch to a way the user didn't ask for to get past it, and never describe the work as done while it is blocked. A clear block the user can act on is the right answer.`;
+
+/**
  * Added to chat replies and to tasks the user started: before acting on
  * something unclear, a bot asks (`ask_user`) rather than guesses.
  */
@@ -498,6 +524,15 @@ export const failedToolCallNote = ({
     `You called ${name} with these exact arguments ${attempts} times since step ${step + 1} of this run, and it failed the same way each time: ${error}
 
 Nothing has run since that could change that answer, so calling it once more only buys the same error (and resends this whole conversation). Fix the call itself: change the arguments, do the step it is missing first, or report it as blocked.`;
+
+/**
+ * What the wrap up says when it comes because one tool was called over and
+ * over (`AppData.HarnessStuckToolRepeats`): the run is not out of steps or
+ * tokens, it is out of ideas, and another call of the same tool buys the
+ * same answer for the price of the whole conversation.
+ */
+export const stuckToolNote = ({ name, repeats }: { name: string; repeats: number }) =>
+    `This run has called ${name} ${repeats} times in a row and got no further each time. Nothing about the situation has changed since the first call, so another one only buys the same answer (and resends this whole conversation). Stop working on it and say what is blocking it.`;
 
 /**
  * Told once to a run that wrote a message for the user and then called a

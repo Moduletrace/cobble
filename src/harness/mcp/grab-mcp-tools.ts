@@ -4,7 +4,16 @@ import listMcpTools from "./list-mcp-tools";
 import mcpHarnessTool from "./mcp-harness-tool";
 
 type Params = {
-    client: Client;
+    /**
+     * The connected client, or how to connect on the first call and again
+     * after a lost session.
+     */
+    client: Client | (() => Promise<Client>);
+    /**
+     * Drops a lost connection so the next call connects again
+     * (`mcpHarnessTool`).
+     */
+    reconnect?: () => Promise<void>;
     /**
      * Tool names to leave out.
      */
@@ -25,11 +34,14 @@ type Params = {
  */
 export default async function grabMcpTools({
     client,
+    reconnect,
     exclude = [],
     image_focus,
     redact,
 }: Params): Promise<HarnessTool[]> {
-    return (await listMcpTools({ client }))
+    const connected = typeof client == "function" ? await client() : client;
+
+    return (await listMcpTools({ client: connected }))
         .filter((tool) => !exclude.includes(tool.name))
-        .map((tool) => mcpHarnessTool({ tool, client, image_focus, redact }));
+        .map((tool) => mcpHarnessTool({ tool, client, reconnect, image_focus, redact }));
 }
