@@ -17,8 +17,8 @@ type Params = {
 /**
  * Runs one due schedule: moves it to its next run (claimed atomically, so
  * a run is never queued twice), then queues its brief as a task in the
- * routine's own session there (`ensureRoutineSession`, never the active
- * chat), on its computer or the bot's current one.
+ * routine's own thread (`ensureRoutineSession`, which makes it the active
+ * session), on its computer or the bot's current one.
  * A run is skipped while the last one is still queued or working. It
  * turns itself off once it has no next run or has done its `max_runs`.
  * Why a run couldn't be queued is kept in `last_error`.

@@ -337,8 +337,8 @@ const replyStatusFromCall = ({ call }: { call: HarnessToolCall }): ReplyStatus |
 };
 
 /**
- * Message or text passed in send_reply's arguments, when the model placed the
- * reply content in the tool call rather than assistant prose.
+ * Message or text passed in send_reply's arguments: the reply content the
+ * model placed in the tool call instead of assistant prose.
  */
 const replyTextFromCall = ({ call }: { call: HarnessToolCall }): string | undefined => {
     try {
@@ -932,7 +932,12 @@ export default async function runTextLoop({
         const reply_status = reply_call ? replyStatusFromCall({ call: reply_call }) : undefined;
         const call_text = reply_call ? replyTextFromCall({ call: reply_call }) : undefined;
 
-        if (!answer.text && call_text) {
+        /**
+         * Whichever the model wrote more fully is the answer: a lead-in
+         * beside a full `send_reply.message` is not it, and neither is a
+         * stub in the call beside a written answer.
+         */
+        if (call_text && call_text.length > (answer.text?.trim() || "").length) {
             answer.text = call_text;
         }
 

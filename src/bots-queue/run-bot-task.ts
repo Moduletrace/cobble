@@ -222,12 +222,25 @@ export default async function runBotTask({
         const coordinator_workspaces = powers.is_coordinator
             ? (await grabUserWorkspaces({ user_id })).filter((w) => !w.archived)
             : [];
-        const carry_over = await grabSessionCarryOver({
-            session_id,
-            bot_id: bot.id,
-            workspace_id,
-            signal,
-        }).catch(() => "");
+        const scheduled = Boolean(params.schedule_id);
+        /**
+         * Started by a call to one of the user's hooks: acts on its own
+         * like a routine, and treats the call's payload as data.
+         */
+        const hooked = Boolean(params.hook_id);
+        /**
+         * A routine or hook run starts from its brief alone: what the thread
+         * said is the user's conversation, not the run's context.
+         */
+        const carry_over =
+            scheduled || hooked
+                ? ""
+                : await grabSessionCarryOver({
+                      session_id,
+                      bot_id: bot.id,
+                      workspace_id,
+                      signal,
+                  }).catch(() => "");
         const take_overs: string[] = [];
         /**
          * The next steps the bot suggested: added to the message without
@@ -243,12 +256,6 @@ export default async function runBotTask({
          * posted (the review refused it), they are cancelled with it.
          */
         const queued_jobs: number[] = [];
-        const scheduled = Boolean(params.schedule_id);
-        /**
-         * Started by a call to one of the user's hooks: acts on its own
-         * like a routine, and treats the call's payload as data.
-         */
-        const hooked = Boolean(params.hook_id);
         /**
          * A session nobody follows from this bot's chat: a crew request's or
          * a hook's. Such a run acts on its own, like a routine.

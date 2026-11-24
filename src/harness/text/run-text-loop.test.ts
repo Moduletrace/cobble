@@ -1984,6 +1984,38 @@ describe("runTextLoop required send_reply", () => {
         expect(result.text).toBe("Working on it.");
     });
 
+    test("send_reply's message wins over a shorter lead-in beside it", async () => {
+        /**
+         * The 24 Nov digest run wrote "Let me provide the summary." beside a
+         * call carrying the whole report. The lead-in went out and the
+         * report was lost.
+         */
+        const report = "**Done.** The digest has been built and sent.\n\n- Sent UID 19\n- Verified in Sent";
+        const { generate } = scripted([
+            {
+                text: "The digest has been built and sent successfully. Let me provide the summary.",
+                tool_calls: [
+                    {
+                        id: "s1",
+                        name: "send_reply",
+                        arguments: JSON.stringify({ status: "done", message: report }),
+                    },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Send the digest." }],
+            tools: [sendReply],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe(report);
+    });
+
     test("a card alone doesn't close a reply that requires send_reply", async () => {
         asked.length = 0;
         const { generate, seen } = scripted([

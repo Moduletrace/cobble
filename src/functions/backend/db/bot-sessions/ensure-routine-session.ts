@@ -4,7 +4,9 @@ import type {
 } from "@/db/types/db";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import { grabBotSessionMaxMessages } from "../app-settings/grab-bot-session-max-messages";
+import activateBotSession from "./activate-bot-session";
 import createBotSession from "./create-bot-session";
+import grabUserBotSession from "./grab-user-bot-session";
 import rollOverLinkedSession from "./roll-over-linked-session";
 
 type Params = {
@@ -12,13 +14,12 @@ type Params = {
 };
 
 /**
- * The session a routine's run works in: the routine's own thread, not the
- * conversation's active session, so a run's messages never land in a chat
- * the user was having. Started closed when the routine has none, so it
- * doesn't take the conversation over; the user opens it from the routine
- * or the sessions list and can chat there. Once it's full
+ * The session a routine's run works in: the routine's own thread, never
+ * another conversation. It takes the conversation over like a hook, so the
+ * user sees the run and can chat there: started closed when the routine has
+ * none, then activated (`activateBotSession`). Once it's full
  * (`grabBotSessionMaxMessages`) it carries on in a new linked session
- * (`rollOverLinkedSession`). Returns the session's id.
+ * (`rollOverLinkedSession`), activated too. Returns the session's id.
  */
 export default async function ensureRoutineSession({ cron_job }: Params): Promise<number> {
     const user_id = cron_job.user_id!;
@@ -32,10 +33,10 @@ export default async function ensureRoutineSession({ cron_job }: Params): Promis
         values: [cron_job.id!, user_id, bot_id, workspace_id],
     });
 
-    const latest = res.payload?.[0];
+    let session = res.payload?.[0];
 
-    if (!latest?.id) {
-        const created = await createBotSession({
+    if (!session?.id) {
+        session = await createBotSession({
             user_id,
             bot_id,
             workspace_id,
@@ -43,28 +44,38 @@ export default async function ensureRoutineSession({ cron_job }: Params): Promis
             routine_id: Number(cron_job.id!),
             title: cron_job.title || "Scheduled task",
         });
+    } else {
+        const count =
+            Number(
+                (
+                    await BunSQLite.sql<{ n: number }>({
+                        sql: `SELECT COUNT(*) AS n FROM bot_messages WHERE session_id = ?`,
+                        values: [session.id!],
+                    })
+                ).payload?.[0]?.n,
+            ) || 0;
 
-        return Number(created.id);
+        if (count >= (await grabBotSessionMaxMessages())) {
+            const next = await rollOverLinkedSession({
+                session,
+                user_id,
+                bot_id,
+                workspace_id,
+            });
+
+            const carried = next ? await grabUserBotSession({ session_id: next, user_id }) : null;
+
+            if (carried?.id) session = carried;
+        }
     }
 
-    const count =
-        Number(
-            (
-                await BunSQLite.sql<{ n: number }>({
-                    sql: `SELECT COUNT(*) AS n FROM bot_messages WHERE session_id = ?`,
-                    values: [latest.id!],
-                })
-            ).payload?.[0]?.n,
-        ) || 0;
+    if (!session?.id) {
+        throw new Error(`Couldn't open a session for the routine ${cron_job.id}.`);
+    }
 
-    if (count < (await grabBotSessionMaxMessages())) return Number(latest.id);
+    if (session.status != "active") {
+        session = await activateBotSession({ session });
+    }
 
-    const next = await rollOverLinkedSession({
-        session: latest,
-        user_id,
-        bot_id,
-        workspace_id,
-    });
-
-    return next || Number(latest.id);
+    return Number(session.id);
 }
