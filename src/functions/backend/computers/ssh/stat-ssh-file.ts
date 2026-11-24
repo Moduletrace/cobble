@@ -22,6 +22,7 @@ export default async function statSshFile({
     return withSshClient({
         computer,
         signal,
+        action: `check ${path}`,
         use: (client) =>
             new Promise<ComputerFileStat>((resolve, reject) => {
                 client.sftp((err, sftp) => {

@@ -24,6 +24,7 @@ export default async function readSshFile({
     return withSshClient({
         computer,
         signal,
+        action: `read ${path}`,
         use: (client) =>
             new Promise<ComputerDownload>((resolve, reject) => {
                 client.sftp((err, sftp) => {

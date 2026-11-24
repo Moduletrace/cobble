@@ -26,6 +26,7 @@ export default async function runSshCommandBytes({
     return withSshClient({
         computer,
         signal,
+        action: "run a command",
         use: (client) =>
             new Promise((resolve, reject) => {
                 client.exec(command, (err, stream) => {

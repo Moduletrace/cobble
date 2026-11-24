@@ -43,6 +43,7 @@ export default async function writeSshFile({
     return withSshClient({
         computer,
         signal,
+        action: `write ${filePath}`,
         use: (client) =>
             new Promise<{ ok: boolean; size: number }>((resolve, reject) => {
                 client.sftp((err, sftp) => {
