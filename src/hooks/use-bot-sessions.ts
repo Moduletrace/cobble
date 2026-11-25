@@ -123,7 +123,21 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit, atte
         };
     }, [open, query, bot_id, workspace_id, limit, attended_only, revision, refresh_key]);
 
-    const act = async ({ id, path, body }: { id: number | "new"; path: "new-session" | "reopen-session"; body: Record<string, unknown> }) => {
+    const act = async ({
+        id,
+        path,
+        body,
+        reload = true,
+    }: {
+        id: number | "new";
+        path: "new-session" | "reopen-session" | "delete-session";
+        body: Record<string, unknown>;
+        /**
+         * Whether it lands the conversation on its session; a deleted
+         * session other than the one on screen only reloads the list.
+         */
+        reload?: boolean;
+    }) => {
         if (busy_id) return;
 
         setBusyId(id);
@@ -135,7 +149,7 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit, atte
          * The plain address, not a reload: one showing a session to read
          * (`?session_id=`) would stay on it.
          */
-        if (res?.success) {
+        if (res?.success && reload) {
             window.location.assign(conversationHref({ bot_id, workspace_id }));
             return;
         }
@@ -150,6 +164,12 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit, atte
         }
 
         setBusyId(undefined);
+
+        if (res?.success) {
+            setRevision((value) => value + 1);
+            return;
+        }
+
         setError(res?.msg || "That didn't work.");
     };
 
@@ -163,5 +183,7 @@ export default function useBotSessions({ bot_id, workspace_id, open, limit, atte
         startSession: () => act({ id: "new", path: "new-session", body: { bot_id, workspace_id } }),
         reopenSession: ({ session_id }: { session_id: number }) =>
             act({ id: session_id, path: "reopen-session", body: { session_id } }),
+        deleteSession: ({ session_id, current }: { session_id: number; current: boolean }) =>
+            act({ id: session_id, path: "delete-session", body: { session_id }, reload: current }),
     };
 }

@@ -9,6 +9,7 @@ type Params = {
         | "new-session"
         | "continue-session"
         | "reopen-session"
+        | "delete-session"
         | "session-messages"
         | "older-messages";
     body: Record<string, unknown>;

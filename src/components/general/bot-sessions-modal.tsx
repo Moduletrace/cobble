@@ -43,7 +43,7 @@ type Props = {
  * The sessions icon (or another target) that opens a conversation's
  * sessions. A conversation is split into sessions so a bot's context never
  * grows without bound; this lists them, searches them, starts a fresh one,
- * or reopens an old one to carry on.
+ * reopens an old one to carry on, or deletes one.
  */
 export default function BotSessionsModal({
     bot,
@@ -139,22 +139,42 @@ export default function BotSessionsModal({
                 </Span>
             ) : null}
             <Stack className="w-full mt-2 max-h-[60vh] overflow-y-auto gap-0! items-stretch">
-                {sessions.sessions.map((session) => (
-                    <BotSessionRow
-                        key={session.id}
-                        session={session}
-                        loading={sessions.busy_id == session.id}
-                        disabled={Boolean(sessions.busy_id)}
-                        current={on_screen?.id ? on_screen.id == session.id : session.status == "active"}
-                        onOpen={() =>
-                            session.status == "active"
-                                ? window.location.assign(conversationHref({ bot_id: Number(bot.id), workspace_id }))
-                                : sessions.reopenSession({
-                                      session_id: Number(session.id),
-                                  })
-                        }
-                    />
-                ))}
+                {sessions.sessions.map((session) => {
+                    const is_current = on_screen?.id
+                        ? on_screen.id == session.id
+                        : session.status == "active";
+
+                    return (
+                        <BotSessionRow
+                            key={session.id}
+                            session={session}
+                            loading={sessions.busy_id == session.id}
+                            disabled={Boolean(sessions.busy_id)}
+                            current={is_current}
+                            onOpen={() =>
+                                session.status == "active"
+                                    ? window.location.assign(conversationHref({ bot_id: Number(bot.id), workspace_id }))
+                                    : sessions.reopenSession({
+                                          session_id: Number(session.id),
+                                      })
+                            }
+                            onDelete={() => {
+                                if (
+                                    !window.confirm(
+                                        `Delete "${session.title || "this session"}"? Its messages go with it, and this can't be undone.`,
+                                    )
+                                ) {
+                                    return;
+                                }
+
+                                sessions.deleteSession({
+                                    session_id: Number(session.id),
+                                    current: is_current,
+                                });
+                            }}
+                        />
+                    );
+                })}
                 {sessions.loading ? (
                     <LoadingBlock className="w-full h-[300px]" />
                 ) : !sessions.sessions.length ? (

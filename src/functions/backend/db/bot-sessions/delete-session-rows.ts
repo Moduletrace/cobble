@@ -12,7 +12,9 @@ type Params = {
  * traces, jobs, what the runs were billed (`token_usages`), job tasks,
  * reactions, message files, messages, tasks, then the sessions.
  * Files a message carried are unlinked, and their media row is deleted once
- * nothing else points at it.
+ * nothing else points at it. A newer session's `previous_session_id` and a
+ * message's `carried_from_session_id` that named one of these are cleared,
+ * since neither is a foreign key.
  */
 export default async function deleteSessionRows({ session_ids }: Params) {
     const ids = session_ids.map(Number).filter(Boolean);
@@ -107,6 +109,20 @@ export default async function deleteSessionRows({ session_ids }: Params) {
         values: ids,
     });
     await deleteBotPlanRows({ session_ids: ids });
+
+    /**
+     * A newer session may carry on from one of these, and a message may have
+     * carried one over: neither link is a foreign key, so it dangles.
+     */
+    await BunSQLite.sql({
+        sql: `UPDATE bot_sessions SET previous_session_id = NULL WHERE previous_session_id IN (${session_placeholders})`,
+        values: ids,
+    });
+    await BunSQLite.sql({
+        sql: `UPDATE bot_messages SET carried_from_session_id = NULL WHERE carried_from_session_id IN (${session_placeholders})`,
+        values: ids,
+    });
+
     await BunSQLite.sql({
         sql: `DELETE FROM bot_sessions WHERE id IN (${session_placeholders})`,
         values: ids,
