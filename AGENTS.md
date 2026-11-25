@@ -226,7 +226,7 @@ sqlite-vec limits: metadata columns are NOT NULL; side-car columns can't be filt
 
 ### Files browser (`/admin/files`)
 
-Read-only browser of every volume (`src/utils/storage-volumes.ts`: bots, workspaces, computers, media, mcp, db). `resolveStorageSpec` is the only access gate (members see only their bots' and their own user folders inside a computer, `computerPathAllowed`); `resolveStoragePath` applies the path rules. Links built only by `storageSpecHref`. Deletion stays in the chat's files modal and bot tools.
+Read-only browser of every volume (`src/utils/storage-volumes.ts`: bots, workspaces, computers, media, mcp, db). `resolveStorageSpec` is the only access gate (members see only their bots' and their own user folders inside a computer, `computerPathAllowed`); `resolveStoragePath` applies the path rules. Links built only by `storageSpecHref`. Deletion stays in the chat's files modal and bot tools. A computer workspace folder this process may not open (a worker's `cb-<bot>` folder under a dev server running as a plain user) is listed through the computer's agent (`listComputerDirectory`, `find` as root) and its files stream from `/api/files/download` (`grabComputerStorageFile`), never through the host path.
 
 ### Harness (the model layer, `src/harness/`)
 

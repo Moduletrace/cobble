@@ -1,5 +1,6 @@
 import { statSync } from "node:fs";
 import userAuth from "@/src/functions/backend/auth/user-auth";
+import grabComputerStorageFile from "@/src/functions/backend/storage/grab-computer-storage-file";
 import grabStorageFile from "@/src/functions/backend/storage/grab-storage-file";
 import resolveStorageSpec from "@/src/functions/backend/storage/resolve-storage-spec";
 import servedFileHeaders from "@/src/utils/served-file-headers";
@@ -42,16 +43,24 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, q
 
         const file = grabStorageFile({ resolved, path });
 
-        if (!file) return { success: false, msg: `Not found.` };
+        if (!file) {
+            /**
+             * A computer folder this process can't open (a worker's, when the
+             * app runs as a plain user) is read through the computer's agent.
+             */
+            const from_computer = await grabComputerStorageFile({ resolved, path });
+
+            if (!from_computer) return { success: false, msg: `Not found.` };
+
+            return new Response(new Uint8Array(from_computer.bytes), {
+                headers: storageFileHeaders({ name: from_computer.name, mime_type: from_computer.mime_type }),
+            });
+        }
 
         const etag = `"${file.size}-${Math.round(statSync(file.absolute).mtimeMs)}"`;
-        const headers = new Headers({
-            "Content-Type": file.mime_type,
-            "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,
-            ...servedFileHeaders({ content_type: file.mime_type }),
-            ETag: etag,
-            "Cache-Control": "private, no-cache",
-        });
+        const headers = storageFileHeaders({ name: file.name, mime_type: file.mime_type });
+
+        headers.set("ETag", etag);
 
         if (req.headers.get("if-none-match") === etag) {
             return new Response(null, { status: 304, headers });
@@ -62,3 +71,16 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({ req, q
         return { success: false, msg: safeErrorMessage({ error }) };
     }
 };
+
+/**
+ * What a file opens as, whether it came from this machine or a computer's
+ * agent: no caching beyond a check, and the name kept as it is.
+ */
+function storageFileHeaders({ name, mime_type }: { name: string; mime_type: string }) {
+    return new Headers({
+        "Content-Type": mime_type,
+        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(name)}`,
+        ...servedFileHeaders({ content_type: mime_type }),
+        "Cache-Control": "private, no-cache",
+    });
+}

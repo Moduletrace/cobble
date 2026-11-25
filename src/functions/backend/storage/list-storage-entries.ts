@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync } from "node:fs";
+import { lstatSync, readdirSync, type Dirent } from "node:fs";
 import path from "node:path";
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_BOT_FILES } from "@/db/types/db";
@@ -6,6 +6,7 @@ import { AppData } from "@/src/data/app-data";
 import grabMediaURL from "../media/grab-media-url";
 import computerFolderLabel from "@/src/utils/computer-folder-label";
 import computerPathAllowed from "@/src/utils/computer-path-allowed";
+import listComputerDirectory, { type ComputerDirectoryEntry } from "./list-computer-directory";
 import { isInsideRoot } from "./resolve-storage-path";
 import type { ResolvedStorageSpec } from "./resolve-storage-spec";
 import type { StorageEntry } from "@/src/types";
@@ -58,13 +59,24 @@ export default async function listStorageEntries({
      * starts, a bot's before its first file) shows as empty rather than as
      * an error. `missing` keeps that apart from a path that isn't there at
      * all, which a stale folder link lands on (the page says so, instead of
-     * claiming the folder is empty).
+     * claiming the folder is empty). A worker's computer folder that this
+     * process can't open (a dev server running as a plain user) is read
+     * through the computer's agent instead.
      */
-    if (!existsSync(absolute) || !canSeePath({ resolved, path: relative })) {
+    const host = hostFolderEntries({ absolute });
+    const rows =
+        host == "missing"
+            ? null
+            : host == "unreadable"
+              ? resolved.spec.volume == "computers"
+                  ? await listComputerDirectory({ computer_id: resolved.spec.owner_id, relative })
+                  : null
+              : host;
+
+    if (!rows || !canSeePath({ resolved, path: relative })) {
         return { entries: [], total: 0, offset, missing: true };
     }
 
-    const rows = readdirSync(absolute, { withFileTypes: true });
     const indexed = await botFileRows({ resolved, paths: rows.map((row) => joinPath({ relative, name: row.name })) });
     const needle = search?.trim().toLowerCase() || "";
     const entries: StorageEntry[] = [];
@@ -82,27 +94,13 @@ export default async function listStorageEntries({
 
         if (!isInsideRoot({ root: resolved.root, absolute: entry_absolute })) continue;
 
-        let stats;
-
-        try {
-            stats = lstatSync(entry_absolute);
-        } catch {
-            continue;
-        }
-
-        /**
-         * A symlink is not followed: it may lead anywhere, and the
-         * volume's own folders are what this lists.
-         */
-        if (stats.isSymbolicLink()) continue;
-
-        if (stats.isDirectory()) {
+        if (row.kind == "folder") {
             entries.push({
                 name: row.name,
                 path: entry_path,
                 kind: "folder",
                 size: 0,
-                modified_at: Math.round(stats.mtimeMs),
+                modified_at: row.modified_at,
                 url: storageSpecHref({ spec: resolved.spec, path: entry_path }),
                 label: resolved.computer
                     ? computerFolderLabel({ path: entry_path, names: resolved.computer.names }) || undefined
@@ -110,8 +108,6 @@ export default async function listStorageEntries({
             });
             continue;
         }
-
-        if (!stats.isFile()) continue;
 
         const file = indexed.get(entry_path);
         const { media_url } = file?.media_id
@@ -122,8 +118,8 @@ export default async function listStorageEntries({
             name: row.name,
             path: entry_path,
             kind: "file",
-            size: stats.size,
-            modified_at: Math.round(stats.mtimeMs),
+            size: row.size,
+            modified_at: row.modified_at,
             media_type: file?.media_type || undefined,
             file_id: file?.id ? Number(file.id) : undefined,
             url: media_url || fileUrl({ spec: resolved.spec, path: entry_path }),
@@ -197,6 +193,56 @@ async function botFileRows({
  */
 export function canSeePath({ resolved, path }: { resolved: ResolvedStorageSpec; path: string }) {
     return !resolved.computer || computerPathAllowed({ ...resolved.computer, path });
+}
+
+/**
+ * One folder's own entries on this machine, or why there are none: a
+ * missing folder, or one this process may not open (a worker's computer
+ * folder belongs to the worker's own account).
+ */
+function hostFolderEntries({
+    absolute,
+}: {
+    absolute: string;
+}): ComputerDirectoryEntry[] | "unreadable" | "missing" {
+    let rows: Dirent[];
+
+    try {
+        rows = readdirSync(absolute, { withFileTypes: true });
+    } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+
+        return code == "EACCES" || code == "EPERM" ? "unreadable" : "missing";
+    }
+
+    const entries: ComputerDirectoryEntry[] = [];
+
+    for (const row of rows) {
+        let stats;
+
+        try {
+            stats = lstatSync(path.join(absolute, row.name));
+        } catch {
+            continue;
+        }
+
+        /**
+         * A symlink is not followed: it may lead anywhere, and the volume's
+         * own folders are what this lists.
+         */
+        if (stats.isSymbolicLink()) continue;
+
+        if (stats.isDirectory()) {
+            entries.push({ name: row.name, kind: "folder", size: 0, modified_at: Math.round(stats.mtimeMs) });
+            continue;
+        }
+
+        if (!stats.isFile()) continue;
+
+        entries.push({ name: row.name, kind: "file", size: stats.size, modified_at: Math.round(stats.mtimeMs) });
+    }
+
+    return entries;
 }
 
 function joinPath({ relative, name }: { relative: string; name: string }) {
