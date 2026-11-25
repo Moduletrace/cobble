@@ -3075,6 +3075,12 @@ export type PagePropsType = {
      */
     message_length?: MessageLengthOverview | null;
     /**
+     * The build the page was rendered from (the `cobble-build` meta tag),
+     * null in development. A send from an older build is refused so the
+     * page reloads into the running one.
+     */
+    build_id?: string | null;
+    /**
      * The name the install goes by as an installed app (Settings >
      * General, and the root's head tags). Empty when never named.
      */

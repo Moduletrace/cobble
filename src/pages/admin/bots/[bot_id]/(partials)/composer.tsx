@@ -28,6 +28,8 @@ import useOnlineStatus from "@/src/hooks/use-online-status";
 import { AppData } from "@/src/data/app-data";
 import messageTooLongMessage from "@/src/utils/message-too-long-message";
 import composerHistoryTexts from "../(utils)/composer-history-texts";
+import composerDraftKey from "../(utils)/composer-draft-key";
+import loadedBuildId from "../(utils)/loaded-build";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerClearButton from "./composer-clear-button";
@@ -290,6 +292,31 @@ export default function Composer({
     };
 
     /**
+     * The page is a build older than the server's: what was being sent goes
+     * into the draft synchronously (the hooks' own writes are debounced and
+     * may never run before the reload) and the page reloads into the
+     * running build, which picks the draft up.
+     */
+    const keepForReload = ({
+        lost_text,
+        attachments,
+    }: {
+        lost_text: string;
+        attachments: BotMessageAttachment[];
+    }) => {
+        const keep_text = latest_text.current.trim() ? latest_text.current : lost_text;
+        const text_key = composerDraftKey({ bot_id: bot.id, workspace_id, part: "text" });
+        const files_key = composerDraftKey({ bot_id: bot.id, workspace_id, part: "files" });
+
+        try {
+            localStorage.setItem(text_key, keep_text);
+
+            if (attachments.length) localStorage.setItem(files_key, JSON.stringify(attachments));
+            else localStorage.removeItem(files_key);
+        } catch {}
+    };
+
+    /**
      * Empties the input's text, without sending it: what was typed is
      * dropped, the quote and the picked files stay.
      */
@@ -392,7 +419,19 @@ export default function Composer({
                 session_id: session_id || null,
                 client_id: request_id,
                 plan_mode,
+                build_id: loadedBuildId(),
             });
+
+            /**
+             * A deploy replaced the build while this page was open: reload
+             * into it rather than writing from code the server no longer
+             * serves.
+             */
+            if (res.error == "stale_build") {
+                keepForReload({ lost_text: text_sent, attachments });
+                window.location.reload();
+                return;
+            }
 
             if (!res.success || !res.singleRes) {
                 setError(res.msg || "Message not sent");

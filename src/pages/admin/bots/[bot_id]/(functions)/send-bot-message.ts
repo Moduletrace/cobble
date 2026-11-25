@@ -12,6 +12,7 @@ export default async function sendBotMessage({
     session_id,
     client_id,
     plan_mode,
+    build_id,
 }: SendBotMessageRequest) {
     return await fetchApi<
         SendBotMessageRequest,
@@ -27,6 +28,7 @@ export default async function sendBotMessage({
             session_id,
             client_id,
             plan_mode,
+            build_id,
         },
     });
 }

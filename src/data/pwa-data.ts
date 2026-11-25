@@ -25,6 +25,12 @@ export const PwaLoadingPath = "/loading.html";
 export const PwaBuildInfoPath = "/build-info.json";
 export const PwaPrecacheCachePrefix = "cobble-assets-";
 export const PwaPrecacheMarkerPath = "/__cobble-precached";
+/**
+ * The meta tag the root puts the running build in, so the page's own code
+ * knows which build it was loaded from (`loaded-build.ts`) and a send from
+ * an older one can be refused.
+ */
+export const PwaBuildMetaName = "cobble-build";
 
 export type PwaIcon = {
     src: string;

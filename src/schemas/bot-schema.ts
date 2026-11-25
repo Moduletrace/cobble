@@ -77,6 +77,12 @@ export const SendBotMessageRequestSchema = z.object({
      */
     client_id: z.string().trim().max(64).optional(),
     /**
+     * The build the page was loaded from (`cobble-build`). A send from a
+     * page older than the running build is refused, so it reloads into the
+     * new one instead of writing from code the server no longer serves.
+     */
+    build_id: z.string().trim().max(64).nullish(),
+    /**
      * Plan mode: the reply plans and inspects, and changes nothing. For a
      * user who clicked Plan in the composer or pressed Tab, the run's write
      * tools are gated (`PlanModeToolNames`).

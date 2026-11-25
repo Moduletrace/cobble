@@ -9,6 +9,7 @@ import { SettingsDefaultPath } from "../dict/settings-pages-dict";
 import grabInstallName from "../functions/backend/db/app-settings/grab-install-name";
 import grabInstallIcon from "../functions/backend/db/app-settings/grab-install-icon";
 import grabLastConversation from "../functions/backend/db/bot-sessions/grab-last-conversation";
+import grabPrecacheManifest from "../functions/server/pwa/grab-precache-manifest";
 import isPagesRailPath from "../utils/is-pages-rail-path";
 
 /**
@@ -87,6 +88,7 @@ const server: BunextPageServerFn<PagePropsType> = async ({ req, url }) => {
             },
             user,
             user_types,
+            build_id: grabPrecacheManifest()?.build_id || null,
             install_name: await grabInstallName().catch(() => ""),
             install_icon: await grabInstallIcon().catch(() => null),
             last_conversation:

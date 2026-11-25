@@ -20,6 +20,7 @@ import AuthLayout from "../layouts/auth";
 import BotsLayout from "../layouts/bots";
 import ThemeInitScript from "../components/general/theme-init-script";
 import PwaInitScript from "../components/general/pwa-init-script";
+import { PwaBuildMetaName } from "../data/pwa-data";
 import ServiceWorkerRegistrar from "../components/general/service-worker-registrar";
 
 export const AppContext = React.createContext<AppContextObject>(
@@ -111,6 +112,9 @@ export function Head({ serverRes, ctx }: BunextPageHeadFCProps) {
         <>
             <ThemeInitScript />
             <PwaInitScript />
+            {root_props?.build_id ? (
+                <meta name={PwaBuildMetaName} content={root_props.build_id} />
+            ) : null}
             <meta name="application-name" content={app_name} />
             <meta name="mobile-web-app-capable" content="yes" />
             <meta name="apple-mobile-web-app-capable" content="yes" />

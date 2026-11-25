@@ -15,6 +15,8 @@ import enqueueBotReply from "@/src/functions/backend/db/bots-queue/enqueue-bot-r
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
 import wakeBotsQueue from "@/src/bots-queue/wake-bots-queue";
 import { SendBotMessageRequestSchema } from "@/src/schemas/bot-schema";
+import grabPrecacheManifest from "@/src/functions/server/pwa/grab-precache-manifest";
+import isStaleClientBuild from "@/src/utils/is-stale-client-build";
 import parseWithSchema from "@/src/utils/parse-with-schema";
 import isReadOnlyUser from "@/src/utils/rbac/is-read-only-user";
 import safeErrorMessage from "@/src/utils/safe-error-message";
@@ -67,10 +69,29 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
             session_id,
             client_id,
             plan_mode,
+            build_id,
         } = parseWithSchema({
                 schema: SendBotMessageRequestSchema,
                 data: body,
             });
+
+        /**
+         * The page's code is older than the build the server runs: nothing
+         * is stored or queued, and the composer reloads into the new build
+         * with what was typed kept.
+         */
+        if (
+            isStaleClientBuild({
+                client_build: build_id,
+                server_build: grabPrecacheManifest()?.build_id,
+            })
+        ) {
+            return {
+                success: false,
+                error: "stale_build",
+                msg: "A newer version is available. Reloading to it.",
+            };
+        }
 
         const max_chars = await grabBotMessageMaxChars();
 
