@@ -15,8 +15,10 @@ import type {
     BotVoicePayload,
     BotWithLastMessage,
 } from "@/src/types";
+import type { ComposerCommand } from "../(data)/composer-commands";
 import { CrewBotsContext } from "../(data)/crew-bots-context";
 import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
+import postSessionApi from "@/src/functions/frontend/post-session-api";
 import sendBotMessage from "../(functions)/send-bot-message";
 import transcribeVoice from "../(functions)/transcribe-voice";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
@@ -27,12 +29,15 @@ import useVoiceRecorder from "../(hooks)/use-voice-recorder";
 import useOnlineStatus from "@/src/hooks/use-online-status";
 import { AppData } from "@/src/data/app-data";
 import messageTooLongMessage from "@/src/utils/message-too-long-message";
+import conversationHref from "@/src/utils/conversation-href";
 import composerHistoryTexts from "../(utils)/composer-history-texts";
 import composerDraftKey from "../(utils)/composer-draft-key";
+import composerCommandMatches from "../(utils)/composer-command-matches";
 import loadedBuildId from "../(utils)/loaded-build";
 import ComposerAttachButton from "./composer-attach-button";
 import ComposerAttachments from "./composer-attachments";
 import ComposerClearButton from "./composer-clear-button";
+import ComposerCommandList from "./composer-command-list";
 import ComposerEditor from "./composer-editor";
 import ComposerMentionList from "./composer-mention-list";
 import ComposerNotice from "./composer-notice";
@@ -157,6 +162,13 @@ export default function Composer({
     const bots = useContext(CrewBotsContext);
     const workspaces = useContext(CrewWorkspacesContext);
     const send_ref = useRef<() => void>(() => {});
+    /**
+     * The slash commands the text is asking for, the one highlighted, and
+     * a command still on its way (`/continue` writes a summary).
+     */
+    const commands = composerCommandMatches({ text });
+    const [command_index, set_command_index] = useState(0);
+    const [command_busy, set_command_busy] = useState(false);
 
     /**
      * Temporary ids for messages the server doesn't have yet, and the text
@@ -192,9 +204,36 @@ export default function Composer({
         },
         onSubmit: () => send_ref.current(),
         onFiles: files.add,
-        onHistory: (params) => walk_history.current(params),
+        onHistory: (params) => {
+            /**
+             * An open command list keeps the arrows: they walk it when
+             * there's more than one, rather than the user's earlier
+             * messages.
+             */
+            if (commands.length) {
+                if (commands.length > 1) {
+                    moveCommand({ direction: params.direction });
+                }
+
+                return true;
+            }
+
+            return walk_history.current(params);
+        },
     });
     const editor = input.editor;
+
+    function moveCommand({ direction }: { direction: "up" | "down" }) {
+        const count = commands.length;
+        const step = direction == "down" ? 1 : -1;
+
+        set_command_index((index) => (index + step + count) % count);
+    }
+
+    /**
+     * Typing or deleting moves the highlight back to the first command.
+     */
+    useEffect(() => set_command_index(0), [text]);
 
     walk_history.current = ({ direction, empty }) => {
         const next = history.step({
@@ -328,12 +367,97 @@ export default function Composer({
     }
 
     /**
+     * A picked command goes into the input rather than running from the
+     * click, so what it does is read before Enter runs it.
+     */
+    function pickCommand(command: ComposerCommand) {
+        const command_text = `/${command.name}`;
+
+        setText(command_text);
+        history.reset();
+        input.setMarkdown({ markdown: command_text });
+        editor?.commands.focus("end");
+    }
+
+    /**
+     * `/new`, `/continue` and `/clear` act on the conversation's session
+     * rather than being sent, and the page lands on the session they
+     * leave. `/clear` destroys messages, so it asks first. A failure puts
+     * the command back in the input with the reason under it (a session
+     * with a run in progress can't be deleted).
+     */
+    async function runCommand({ command }: { command: ComposerCommand }) {
+        if (sending.current) return;
+
+        if (command.name == "clear") {
+            if (!session_id) {
+                setError("The session is still loading. Try again in a moment.");
+                return;
+            }
+
+            if (
+                !window.confirm(
+                    "Delete this session and all its messages, then start a new one? This can't be undone.",
+                )
+            ) {
+                return;
+            }
+        }
+
+        sending.current = true;
+        set_command_busy(true);
+        setError(undefined);
+
+        const lost_text = text.trim();
+
+        setText("");
+        history.reset();
+        input.clear();
+
+        const res = await postSessionApi({
+            path:
+                command.name == "new"
+                    ? "new-session"
+                    : command.name == "continue"
+                      ? "continue-session"
+                      : "delete-session",
+            body:
+                command.name == "clear"
+                    ? { session_id }
+                    : { bot_id: bot.id, workspace_id },
+        }).catch(() => null);
+
+        if (res?.success) {
+            window.location.assign(
+                conversationHref({ bot_id: Number(bot.id), workspace_id }),
+            );
+            return;
+        }
+
+        sending.current = false;
+        set_command_busy(false);
+        setError(res?.msg || "That didn't work.");
+
+        if (!latest_text.current.trim()) {
+            setText(lost_text);
+            input.setMarkdown({ markdown: lost_text });
+        }
+    }
+
+    /**
      * The bubble and the bot's "getting your message" row show at once, and
      * the input empties, so a slow connection never holds any of it. The
      * response swaps the bubble for the saved message, or takes it back.
      */
     async function send() {
         if (!can_send || !bot.id || sending.current) return;
+
+        const command = commands[command_index] ?? commands[0];
+
+        if (command) {
+            await runCommand({ command });
+            return;
+        }
 
         /**
          * Held until this send comes back: a second click while the first is
@@ -480,6 +604,13 @@ export default function Composer({
                         onCancel={onCancelReply}
                     />
                 ) : null}
+                {commands.length ? (
+                    <ComposerCommandList
+                        commands={commands}
+                        index={command_index}
+                        onPick={pickCommand}
+                    />
+                ) : null}
                 {input.menu ? <ComposerMentionList menu={input.menu} /> : null}
                 <Row
                     className={`w-full max-w-container mx-auto min-h-[88px] ${reply_to ? "pt-3 pb-7" : "py-7"} gap-3! md:gap-4! flex-nowrap items-end px-3 md:px-6 cursor-text`}
@@ -521,7 +652,7 @@ export default function Composer({
                     ) : null}
                     <ComposerSendButton
                         disabled={!can_send}
-                        loading={files.uploading}
+                        loading={files.uploading || command_busy}
                         onClick={send}
                     />
                 </Row>
