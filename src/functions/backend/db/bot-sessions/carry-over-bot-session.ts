@@ -3,9 +3,11 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import { AppData } from "@/src/data/app-data";
 import AppError from "@/src/utils/app-error";
 import insertBotMessage from "../bots/insert-bot-message";
+import conversationLock, { conversationLockKey } from "./conversation-lock";
 import createBotSession from "./create-bot-session";
 import grabActiveBotSession from "./grab-active-bot-session";
 import grabUserBotSession from "./grab-user-bot-session";
+import unansweredMessageSql from "./unanswered-message-sql";
 
 type Params = {
     /**
@@ -57,8 +59,27 @@ type Params = {
  * session (`allow_inactive`, `next_status` closed), keeping the link to
  * the routine or hook and the conversation's active session untouched.
  * Returns that first message, for the caller to push.
+ *
+ * A reply's carry is refused while the user has written something that
+ * reply hasn't answered: closing the session now leaves their message
+ * behind in it while the answer goes to the new one.
  */
-export default async function carryOverBotSession({
+export default async function carryOverBotSession(params: Params): Promise<BUN_SQLITE_COBBLE_BOT_MESSAGES> {
+    /**
+     * The reply writes to the conversation like a send does, so it waits
+     * its turn: a message the user writes while it works lands in one
+     * session or the other, never in one closed under it. A routine's or a
+     * silent hook's own thread (`allow_inactive`, no job) moves on its own.
+     */
+    if (!params.job_id) return await carryOverSession(params);
+
+    return await conversationLock.run({
+        key: conversationLockKey(params),
+        task: () => carryOverSession(params),
+    });
+}
+
+async function carryOverSession({
     session_id,
     user_id,
     bot_id,
@@ -102,6 +123,23 @@ export default async function carryOverBotSession({
 
     if (!message_count) {
         throw new AppError(`This session has no messages yet: it's already fresh.`);
+    }
+
+    if (job_id) {
+        const unanswered = unansweredMessageSql({ session_id: active.id, job_id });
+
+        const waiting = (
+            await BunSQLite.sql<{ unanswered: number }>({
+                sql: `SELECT ${unanswered.sql} AS unanswered`,
+                values: unanswered.values,
+            })
+        ).payload?.[0]?.unanswered;
+
+        if (waiting) {
+            throw new AppError(
+                `The user wrote something this reply hasn't answered yet. Answer it in this session first, and carry the conversation over in a later reply.`,
+            );
+        }
     }
 
     const now = Date.now();

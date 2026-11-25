@@ -3,7 +3,7 @@ import grabUserConversation from "@/src/functions/backend/db/bot-sessions/grab-u
 import grabUserBotSession from "@/src/functions/backend/db/bot-sessions/grab-user-bot-session";
 import reopenBotSession from "@/src/functions/backend/db/bot-sessions/reopen-bot-session";
 import ensureBotSession from "@/src/functions/backend/db/bot-sessions/ensure-bot-session";
-import conversationLock from "@/src/functions/backend/db/bot-sessions/conversation-lock";
+import conversationLock, { conversationLockKey } from "@/src/functions/backend/db/bot-sessions/conversation-lock";
 import insertUserMessage from "@/src/functions/backend/db/bots/insert-user-message";
 import grabUserBotMessage from "@/src/functions/backend/db/bots/grab-user-bot-message";
 import grabMessageIdByClientId from "@/src/functions/backend/db/bots/grab-message-id-by-client-id";
@@ -151,7 +151,7 @@ export const handler: BunextAPIRouteHandler<APIResponseObject> = async ({
          * or its reply.
          */
         const message = await conversationLock.run({
-            key: `${user.id}:${bot.id}:${conversation.workspace_id || 0}`,
+            key: conversationLockKey({ user_id: user.id, bot_id: bot.id, workspace_id: conversation.workspace_id }),
             task: async () => {
                 /**
                  * The thread on screen is where the message goes: a routine's

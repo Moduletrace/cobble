@@ -6,7 +6,7 @@ import wakeBotsQueue from "@/src/bots-queue/wake-bots-queue";
 import type { BotQuestionView } from "@/src/types";
 import botQuestionAnswersText from "@/src/utils/bot-question-answers-text";
 import planContinueAnswer from "@/src/utils/plan-continue-answer";
-import conversationLock from "../bot-sessions/conversation-lock";
+import conversationLock, { conversationLockKey } from "../bot-sessions/conversation-lock";
 import ensureBotSession from "../bot-sessions/ensure-bot-session";
 import grabUserBotSession from "../bot-sessions/grab-user-bot-session";
 import insertUserMessage from "../bots/insert-user-message";
@@ -43,7 +43,7 @@ export default async function postBotQuestionAnswers({ view, user_id }: Params) 
         const bot_id = Number(row.bot_id);
 
         await conversationLock.run({
-            key: `${user_id}:${bot_id}:${workspace_id || 0}`,
+            key: conversationLockKey({ user_id, bot_id, workspace_id }),
             task: async () => {
                 const session = await pickSession({ row, user_id });
 
