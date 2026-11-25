@@ -106,6 +106,30 @@ describe("composeBotPrompt", () => {
         expect(composeBotPrompt({ system_prompt: "Core.", appendix: "   " })).toBe("Core.");
     });
 
+    test("says who it's working for, so it never asks them to confirm it", () => {
+        expect(composeBotPrompt({ system_prompt: "Core.", user_name: "  Ada Lane  " })).toBe(
+            "Core.\n\n# Who you're working for\n\nYou're working for Ada Lane. Every message in this conversation is theirs (the app marks anything another bot passed on), so never ask them to confirm who they are.",
+        );
+
+        const prompt = composeBotPrompt({
+            appendix: "Be brief.",
+            user_name: "Ada Lane",
+            workspace: { name: "Launch" },
+        });
+
+        expect(prompt.indexOf("# Install-wide instructions")).toBeLessThan(
+            prompt.indexOf("# Who you're working for"),
+        );
+        expect(prompt.indexOf("# Who you're working for")).toBeLessThan(
+            prompt.indexOf("# Workspace: Launch"),
+        );
+    });
+
+    test("leaves the user out when the caller doesn't name them", () => {
+        expect(composeBotPrompt({ system_prompt: "Core.", user_name: "   " })).toBe("Core.");
+        expect(composeBotPrompt({ system_prompt: "Core." })).toBe("Core.");
+    });
+
     test("leaves out empty parts and has no workspace outside one", () => {
         expect(
             composeBotPrompt({

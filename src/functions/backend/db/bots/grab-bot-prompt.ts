@@ -3,13 +3,15 @@ import AppError from "@/src/utils/app-error";
 import grabSystemPromptAppend from "../app-settings/grab-system-prompt-append";
 import grabWorkspaceBot from "../workspaces/grab-workspace-bot";
 import grabWorkspaceUserRole from "../workspaces/grab-workspace-user-role";
+import grabUserName from "../users/grab-user-name";
 import grabBotUserMemory from "./grab-bot-user-memory";
 import grabUserBot from "./grab-user-bot";
 
 type Params = {
     bot_id: number | string;
     /**
-     * The user the bot works with: only their memory joins the prompt.
+     * The user the bot works with: their name and their memory join the
+     * prompt.
      */
     user_id: number | string;
     /**
@@ -23,8 +25,9 @@ type Params = {
 /**
  * The full prompt for one of the user's bots (`composeBotPrompt`): who it
  * is (its name and id), its core instructions, the install-wide appendix,
- * its memory, what it remembers about this user, and in a workspace that
- * workspace's context, what the bot has for it and who this user is there.
+ * who the user it's working for is, its memory, what it remembers about this
+ * user, and in a workspace that workspace's context, what the bot has for it
+ * and who this user is there.
  */
 export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: Params) {
     const bot = await grabUserBot({ bot_id, user_id });
@@ -45,6 +48,7 @@ export default async function grabBotPrompt({ bot_id, user_id, workspace_id }: P
         bot: { id: bot.id, name: bot.name, kind: bot.kind, role: bot.role },
         system_prompt: bot.system_prompt,
         appendix: await grabSystemPromptAppend(),
+        user_name: await grabUserName({ user_id }),
         memory: bot.memory,
         user_memory: await grabBotUserMemory({ bot_id: bot.id, user_id }),
         workspace: found?.workspace,

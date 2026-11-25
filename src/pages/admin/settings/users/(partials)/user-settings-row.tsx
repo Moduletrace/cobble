@@ -17,7 +17,8 @@ type Props = {
 };
 
 /**
- * One user: their photo, name, user types and email. The title opens
+ * One user: their photo, name, user types, email and id (`#7`, so a crew
+ * manager can name one to a bot or in a log). The title opens
  * their settings page; Revoke (not once revoked) and Delete sit at the
  * end where the actor may (`canRevokeUser`; never yourself).
  */
@@ -48,7 +49,7 @@ export default function UserSettingsRow({
             href={`/admin/settings/users/${person.id}`}
             title={name}
             badge={is_self ? "You" : undefined}
-            subtitle={[types_title, person.email].filter(Boolean).join(" · ")}
+            subtitle={[types_title, person.email, `#${person.id}`].filter(Boolean).join(" · ")}
         >
             {can_revoke ? (
                 <SettingsRowAction

@@ -38,6 +38,11 @@ type Params = {
      * instructions (Settings > General).
      */
     appendix?: string | null;
+    /**
+     * The name of the user whose conversation this run is for, so the bot
+     * never has to ask who it's talking to.
+     */
+    user_name?: string | null;
     memory?: string | null;
     /**
      * What the bot remembers about the user it's working with.
@@ -61,16 +66,18 @@ type Params = {
 /**
  * The full prompt a bot runs with (markdown): who it is (its name and id,
  * so it always knows which bot it is), its own core instructions, then the
- * install-wide appendix, then, in a workspace, the workspace's
- * context, the bot's instructions there and the user's role there, then its core memory, its
- * memory about the user and its memory in the workspace (said to be the
- * bot's own notes, not the workspace's context). Empty parts are left out;
- * the workspace heading always shows, so the bot knows where it is.
+ * install-wide appendix, then who the user it's working for is, then, in a
+ * workspace, the workspace's context, the bot's instructions there and the
+ * user's role there, then its core memory, its memory about the user and its
+ * memory in the workspace (said to be the bot's own notes, not the
+ * workspace's context). Empty parts are left out; the workspace heading
+ * always shows, so the bot knows where it is.
  */
 export default function composeBotPrompt({
     bot,
     system_prompt,
     appendix,
+    user_name,
     memory,
     user_memory,
     workspace,
@@ -91,6 +98,15 @@ export default function composeBotPrompt({
 
     if (appendix?.trim()) {
         parts.push(`# Install-wide instructions\n\n${appendix.trim()}`);
+    }
+
+    if (user_name?.trim()) {
+        parts.push(
+            [
+                `# Who you're working for`,
+                `You're working for ${user_name.trim()}. Every message in this conversation is theirs (the app marks anything another bot passed on), so never ask them to confirm who they are.`,
+            ].join("\n\n"),
+        );
     }
 
     if (workspace) {
