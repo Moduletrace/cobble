@@ -11,6 +11,10 @@ type Params = {
      * The coordinator pauses any of the user's hooks, not only its own.
      */
     is_coordinator?: boolean;
+    /**
+     * The workspace the run is in: only a hook that runs there.
+     */
+    workspace_id?: number | string | null;
 };
 
 type Args = {
@@ -22,7 +26,7 @@ type Args = {
  * again. Only taking away needs no confirming; switching it back on is a
  * proposal (`propose_hook`).
  */
-export default function pauseHookTool({ user_id, bot_id, is_coordinator }: Params): HarnessTool<Args> {
+export default function pauseHookTool({ user_id, bot_id, is_coordinator, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "pause_hook",
         description: `Pause ${
@@ -32,7 +36,7 @@ export default function pauseHookTool({ user_id, bot_id, is_coordinator }: Param
             hook_id: z.number().int().positive(),
         }),
         run: async ({ args }) => {
-            const hook = await grabOwnHook({ user_id, bot_id, hook_id: args.hook_id, is_coordinator });
+            const hook = await grabOwnHook({ user_id, bot_id, hook_id: args.hook_id, is_coordinator, workspace_id });
 
             if (!hook.enabled) return `Hook #${hook.id} "${hook.title}" is already paused.`;
 

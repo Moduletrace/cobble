@@ -9,18 +9,30 @@ type Params = {
      * Only a call to this bot's hooks.
      */
     bot_id?: number | string | null;
+    /**
+     * Only a call to a hook that runs in this workspace.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
  * One call to one of the user's hooks, whole: what it sent and what its
- * run answered. Throws when it isn't theirs (or that bot's).
+ * run answered. Throws when it isn't theirs (or that bot's, or that
+ * workspace's).
  */
-export default async function grabBotHookEvent({ user_id, event_id, bot_id }: Params) {
+export default async function grabBotHookEvent({ user_id, event_id, bot_id, workspace_id }: Params) {
     const res = await BunSQLite.sql<BotHookCall>({
         sql: `SELECT e.*, h.title AS hook_title, h.bot_id, h.workspace_id
             FROM bot_hook_events e JOIN bot_hooks h ON h.id = e.hook_id
-            WHERE e.id = ? AND h.user_id = ? AND (? IS NULL OR h.bot_id = ?)`,
-        values: [Number(event_id), user_id, bot_id ? Number(bot_id) : null, bot_id ? Number(bot_id) : null],
+            WHERE e.id = ? AND h.user_id = ? AND (? IS NULL OR h.bot_id = ?) AND (? IS NULL OR h.workspace_id = ?)`,
+        values: [
+            Number(event_id),
+            user_id,
+            bot_id ? Number(bot_id) : null,
+            bot_id ? Number(bot_id) : null,
+            workspace_id ? Number(workspace_id) : null,
+            workspace_id ? Number(workspace_id) : null,
+        ],
     });
 
     const call = res.payload?.[0];

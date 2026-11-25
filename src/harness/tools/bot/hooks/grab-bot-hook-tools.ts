@@ -50,11 +50,11 @@ export default function grabBotHookTools({
     if (hooked) return [];
 
     return [
-        listHooksTool({ user_id, bot_id, is_coordinator }),
-        searchHookCallsTool({ user_id, bot_id, is_coordinator }),
-        readHookCallTool({ user_id, bot_id, is_coordinator }),
-        pauseHookTool({ user_id, bot_id, is_coordinator }),
-        deleteHookTool({ user_id, bot_id, is_coordinator }),
+        listHooksTool({ user_id, bot_id, is_coordinator, workspace_id }),
+        searchHookCallsTool({ user_id, bot_id, is_coordinator, workspace_id }),
+        readHookCallTool({ user_id, bot_id, is_coordinator, workspace_id }),
+        pauseHookTool({ user_id, bot_id, is_coordinator, workspace_id }),
+        deleteHookTool({ user_id, bot_id, is_coordinator, workspace_id }),
         ...(session_id && onPropose
             ? [proposeHookTool({ user_id, bot_id, session_id, workspace_id, computers, onPropose })]
             : []),

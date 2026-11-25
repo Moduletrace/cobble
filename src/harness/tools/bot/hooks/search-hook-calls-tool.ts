@@ -12,6 +12,10 @@ type Params = {
      * The coordinator searches the calls to any of the user's hooks.
      */
     is_coordinator?: boolean;
+    /**
+     * The workspace the run is in: only calls to hooks that run there.
+     */
+    workspace_id?: number | string | null;
 };
 
 type Args = {
@@ -27,7 +31,7 @@ type Args = {
  * each sent and what its run answered, newest first. Never another bot's,
  * except the coordinator, which sees the crew's.
  */
-export default function searchHookCallsTool({ user_id, bot_id, is_coordinator }: Params): HarnessTool<Args> {
+export default function searchHookCallsTool({ user_id, bot_id, is_coordinator, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "search_hook_calls",
         description: `Search the calls to ${
@@ -47,6 +51,7 @@ export default function searchHookCallsTool({ user_id, bot_id, is_coordinator }:
             const calls = await grabBotHookEvents({
                 user_id,
                 ...(is_coordinator ? {} : { bot_id }),
+                workspace_id,
                 hook_id: args.hook_id,
                 query: args.query,
                 status: args.status,

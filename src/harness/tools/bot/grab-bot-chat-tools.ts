@@ -247,6 +247,7 @@ export default async function grabBotChatTools({
                     powers,
                     workers,
                     grabTargets: () => askableBots({ user_id, requester_bot_id: bot_id, workspace_id }),
+                    workspace_id,
                     onTask,
                 }),
             );

@@ -81,6 +81,10 @@ function resolvePlace({
     }
 
     if (is_coordinator) {
+        if (workspace_id && target_workspace && target_workspace != Number(workspace_id)) {
+            return `You're working in workspace #${workspace_id}, so a task made here goes there. Create it from your own chat to put it in another workspace.`;
+        }
+
         const place_workspace = target_workspace || (workspace_id ? Number(workspace_id) : null);
 
         if (args.workspace_wide) {

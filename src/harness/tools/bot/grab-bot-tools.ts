@@ -112,10 +112,10 @@ export default async function grabBotTools({
             ? []
             : [
                   createScheduleTool({ user_id, bot_id, workspace_id, computers }),
-                  updateScheduleTool({ user_id, bot_id, is_coordinator }),
-                  deleteScheduleTool({ user_id, bot_id, is_coordinator }),
+                  updateScheduleTool({ user_id, bot_id, is_coordinator, workspace_id }),
+                  deleteScheduleTool({ user_id, bot_id, is_coordinator, workspace_id }),
               ]),
-        listSchedulesTool({ user_id, bot_id, is_coordinator }),
+        listSchedulesTool({ user_id, bot_id, is_coordinator, workspace_id }),
         ...grabBotHookTools({ user_id, bot_id, session_id, workspace_id, computers, hooked, is_coordinator, onPropose }),
         ...(session_id ? [reactToMessageTool({ bot_id, user_id, session_id })] : []),
         /**

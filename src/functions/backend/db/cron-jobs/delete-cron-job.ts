@@ -8,6 +8,10 @@ type Params = {
      * Only if it's this bot's (a bot managing its own schedules).
      */
     bot_id?: number | string;
+    /**
+     * Only if it runs in that workspace (a run working there).
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
@@ -15,8 +19,8 @@ type Params = {
  * The sessions its runs held stay, as the user's own threads (they're
  * ordinary sessions once no routine owns them).
  */
-export default async function deleteCronJob({ user_id, cron_job_id, bot_id }: Params) {
-    const cron_job = await grabUserCronJob({ user_id, cron_job_id, bot_id });
+export default async function deleteCronJob({ user_id, cron_job_id, bot_id, workspace_id }: Params) {
+    const cron_job = await grabUserCronJob({ user_id, cron_job_id, bot_id, workspace_id });
 
     const detached = await BunSQLite.sql({
         sql: `UPDATE bot_sessions SET routine_id = NULL, updated_at = ? WHERE routine_id = ?`,

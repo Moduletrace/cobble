@@ -6,14 +6,19 @@ type Params = {
     bot_id: number | string;
     is_coordinator: boolean;
     admin_workspace_ids?: number[];
+    /**
+     * The workspace the run is in: only its tasks are in reach
+     * (`botTaskScopesSql`).
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
  * The read `grabRunTask` makes: the task, but only while the run reaches
  * it. Split out so the reach rules can be run against real SQLite.
  */
-export function runTaskSql({ task_id, bot_id, is_coordinator, admin_workspace_ids }: Params): SqlCondition {
-    const access = botTaskScopesSql({ bot_id, is_coordinator, admin_workspace_ids });
+export function runTaskSql({ task_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id }: Params): SqlCondition {
+    const access = botTaskScopesSql({ bot_id, is_coordinator, admin_workspace_ids, workspace_id });
 
     return {
         sql: `SELECT t.* FROM tasks t WHERE t.id = ? AND ${access.sql} LIMIT 1`,

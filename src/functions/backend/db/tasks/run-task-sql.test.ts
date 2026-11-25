@@ -21,8 +21,18 @@ db.run(`INSERT INTO tasks VALUES
     (7, 'Another bot''s, in a workspace it works in', 11, 5, 'todo')`);
 db.run(`INSERT INTO workspace_bots VALUES (5, 10)`);
 
-function task(bot_id: number, task_id: number, options: { is_coordinator?: boolean; admin_workspace_ids?: number[] } = {}) {
-    const { sql, values } = runTaskSql({ task_id, bot_id, is_coordinator: options.is_coordinator ?? false, admin_workspace_ids: options.admin_workspace_ids });
+function task(
+    bot_id: number,
+    task_id: number,
+    options: { is_coordinator?: boolean; admin_workspace_ids?: number[]; workspace_id?: number } = {},
+) {
+    const { sql, values } = runTaskSql({
+        task_id,
+        bot_id,
+        is_coordinator: options.is_coordinator ?? false,
+        admin_workspace_ids: options.admin_workspace_ids,
+        workspace_id: options.workspace_id,
+    });
 
     return db.query(sql).get(...values) as { id: number } | null;
 }
@@ -50,6 +60,20 @@ describe("runTaskSql", () => {
         expect(task(10, 6)).toBeNull();
     });
 
+    test("working in a workspace, it reaches that workspace alone", () => {
+        expect(task(10, 3, { workspace_id: 5 })?.id).toBe(3);
+        expect(task(10, 4, { workspace_id: 5 })?.id).toBe(4);
+        expect(task(10, 1, { workspace_id: 5 })).toBeNull();
+        expect(task(10, 5, { workspace_id: 5 })).toBeNull();
+        expect(task(10, 6, { workspace_id: 5 })).toBeNull();
+        expect(task(10, 3, { workspace_id: 6 })).toBeNull();
+    });
+
+    test("the coordinator in a workspace reaches that workspace alone", () => {
+        expect(task(1, 5, { is_coordinator: true, workspace_id: 6 })?.id).toBe(5);
+        expect(task(1, 2, { is_coordinator: true, workspace_id: 6 })).toBeNull();
+    });
+
     test("the coordinator reaches every task, whoever has it", () => {
         expect(task(1, 2, { is_coordinator: true })?.id).toBe(2);
         expect(task(1, 5, { is_coordinator: true })?.id).toBe(5);
@@ -59,6 +83,12 @@ describe("runTaskSql", () => {
     test("a workspace admin reaches every task in its workspace", () => {
         expect(task(10, 5, { admin_workspace_ids: [6] })?.id).toBe(5);
         expect(task(10, 6, { admin_workspace_ids: [6] })).toBeNull();
+    });
+
+    test("and in a run elsewhere, only what that run's workspace holds", () => {
+        expect(task(10, 5, { admin_workspace_ids: [6], workspace_id: 6 })?.id).toBe(5);
+        expect(task(10, 6, { admin_workspace_ids: [6], workspace_id: 6 })).toBeNull();
+        expect(task(10, 5, { admin_workspace_ids: [6], workspace_id: 5 })).toBeNull();
     });
 });
 

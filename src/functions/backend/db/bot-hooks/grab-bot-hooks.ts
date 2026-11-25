@@ -11,7 +11,9 @@ type Params = {
     bot_id?: number | string;
     /**
      * With `bot_id`: only the hooks of that conversation (null is the
-     * bot's own chat), as `grabCronJobs` does for routines.
+     * bot's own chat), as `grabCronJobs` does for routines. Without
+     * `bot_id`: every bot's hooks in that workspace (a coordinator working
+     * there).
      */
     workspace_id?: number | string | null;
     /**
@@ -46,6 +48,9 @@ export default async function grabBotHooks({
             where.push(scope.sql);
             values.push(...scope.values);
         }
+    } else if (workspace_id) {
+        where.push(`h.workspace_id = ?`);
+        values.push(workspace_id);
     }
 
     if (hook_id) {

@@ -24,6 +24,11 @@ type Params = {
      */
     admin_workspace_ids?: number[];
     /**
+     * The workspace the run is in: with `bot_id`, only that workspace's
+     * tasks are in reach (`botTaskScopesSql`).
+     */
+    workspace_id?: number | string | null;
+    /**
      * Only the tasks this bot has (anywhere, unless narrowed).
      */
     only_bot_id?: number | string | null;
@@ -64,6 +69,7 @@ export default async function grabTasks({
     bot_id,
     is_coordinator,
     admin_workspace_ids,
+    workspace_id,
     only_bot_id,
     with_workspace_wide,
     only_workspace_id,
@@ -81,7 +87,7 @@ export default async function grabTasks({
         where.push(access.sql);
         values.push(...access.values);
     } else if (bot_id != null) {
-        const access = botTaskScopesSql({ bot_id, is_coordinator: Boolean(is_coordinator), admin_workspace_ids });
+        const access = botTaskScopesSql({ bot_id, is_coordinator: Boolean(is_coordinator), admin_workspace_ids, workspace_id });
         where.push(access.sql);
         values.push(...access.values);
     }

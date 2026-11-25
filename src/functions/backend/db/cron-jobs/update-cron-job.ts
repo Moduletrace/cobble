@@ -11,6 +11,10 @@ type Params = {
      */
     bot_id?: number | string;
     /**
+     * Only if it runs in that workspace (a run working there).
+     */
+    workspace_id?: number | string | null;
+    /**
      * Only the fields given are changed. `max_runs: null` runs it until
      * it's stopped.
      */
@@ -28,8 +32,8 @@ type Params = {
  * on, counts the next run from now; turning a finished one back on (all
  * its `max_runs` done) starts its count over. Returns the schedule.
  */
-export default async function updateCronJob({ user_id, cron_job_id, bot_id, data }: Params) {
-    const cron_job = await grabUserCronJob({ user_id, cron_job_id, bot_id });
+export default async function updateCronJob({ user_id, cron_job_id, bot_id, workspace_id, data }: Params) {
+    const cron_job = await grabUserCronJob({ user_id, cron_job_id, bot_id, workspace_id });
 
     const schedule = data.schedule?.trim() || cron_job.schedule || "";
     const schedule_changed = Boolean(data.schedule?.trim()) && schedule != cron_job.schedule;
@@ -79,5 +83,5 @@ export default async function updateCronJob({ user_id, cron_job_id, bot_id, data
         throw new Error(`Couldn't update the schedule: ${res.error}`);
     }
 
-    return await grabUserCronJob({ user_id, cron_job_id: cron_job.id! });
+    return await grabUserCronJob({ user_id, cron_job_id: cron_job.id!, bot_id, workspace_id });
 }

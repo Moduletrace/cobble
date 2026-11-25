@@ -15,6 +15,10 @@ type Params = {
      * The workspaces the bot is admin of (`grabBotRunPowers`).
      */
     admin_workspace_ids?: number[];
+    /**
+     * The workspace the run is in: only its tasks are in reach.
+     */
+    workspace_id?: number | string | null;
 };
 
 /**
@@ -30,8 +34,9 @@ export default async function grabRunTask({
     bot_id,
     is_coordinator,
     admin_workspace_ids,
+    workspace_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_TASKS> {
-    const read = runTaskSql({ task_id, bot_id, is_coordinator, admin_workspace_ids });
+    const read = runTaskSql({ task_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id });
 
     const res = await BunSQLite.sql<BUN_SQLITE_COBBLE_TASKS>(read);
 

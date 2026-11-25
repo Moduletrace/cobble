@@ -33,6 +33,11 @@ type Params = {
      */
     grabTargets: () => Promise<BUN_SQLITE_COBBLE_BOTS[]>;
     /**
+     * The workspace the run is in: a task it hands over is one of that
+     * workspace's, never another workspace's.
+     */
+    workspace_id?: number | string | null;
+    /**
      * Called with the task it hands over, so the message the run posts links
      * to it (`bot_messages.task_ids`).
      */
@@ -62,7 +67,7 @@ type Args = {
  * for the move the bot asks first. The other bot works that same task, and
  * the result is reported back in this session.
  */
-export default function handOverTaskTool({ user_id, bot, session_id, powers, workers, grabTargets, onTask }: Params): HarnessTool<Args> {
+export default function handOverTaskTool({ user_id, bot, session_id, powers, workers, grabTargets, workspace_id, onTask }: Params): HarnessTool<Args> {
     const bot_id = bot.id || 0;
     const crew = workers.map((worker) => `${worker.id}: ${worker.name}`).join("; ");
 
@@ -90,6 +95,7 @@ export default function handOverTaskTool({ user_id, bot, session_id, powers, wor
                 bot_id,
                 is_coordinator: powers.is_coordinator,
                 admin_workspace_ids: powers.admin_workspace_ids,
+                workspace_id,
             });
 
             /**

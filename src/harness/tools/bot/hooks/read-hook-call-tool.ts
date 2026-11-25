@@ -11,6 +11,10 @@ type Params = {
      * The coordinator reads a call to any of the user's hooks.
      */
     is_coordinator?: boolean;
+    /**
+     * The workspace the run is in: only a call to a hook that runs there.
+     */
+    workspace_id?: number | string | null;
 };
 
 type Args = {
@@ -22,7 +26,7 @@ type Args = {
  * outside data, and what its run answered. The coordinator reads any of
  * the user's.
  */
-export default function readHookCallTool({ user_id, bot_id, is_coordinator }: Params): HarnessTool<Args> {
+export default function readHookCallTool({ user_id, bot_id, is_coordinator, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "read_hook_call",
         description: `Read one call to ${
@@ -35,6 +39,7 @@ export default function readHookCallTool({ user_id, bot_id, is_coordinator }: Pa
             const call = await grabBotHookEvent({
                 user_id,
                 ...(is_coordinator ? {} : { bot_id }),
+                workspace_id,
                 event_id: args.call_id,
             });
 

@@ -47,7 +47,7 @@ type Args = {
 export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_workspace_ids, workspace_id, onTask }: Params): HarnessTool<Args> {
     return {
         name: "list_tasks",
-        description: `List tasks: yours (your own list and the ones you have in workspaces), the ones in ${workspace_id ? "this workspace" : "a workspace"}, or ${is_coordinator ? "every task in the install" : "every task you can reach (yours, the workspace-wide ones in your workspaces, and as a workspace's admin every task there)"}. Each line is its id, status, title, whose it is, its files and its latest note with who wrote it. Open ones come first (blocked, then doing, then to do). Use it to plan work, and to check what's still pending when the user says hello or asks what's next. A workspace-wide task is worked on by every bot in its workspace: before you work on one, read it with task_id to see its brief and its whole log (which bot did what, and when), so you pick up where the others left off instead of redoing their part.`,
+        description: `List tasks: yours (your own list and the ones you have in workspaces), the ones in ${workspace_id ? "this workspace" : "a workspace"}, or ${is_coordinator ? "every task in the install" : "every task you can reach (yours, the workspace-wide ones in your workspaces, and as a workspace's admin every task there)"}.${workspace_id ? " You are working in a workspace, so only its tasks are in reach: never another workspace's, nor your own list outside it." : ""} Each line is its id, status, title, whose it is, its files and its latest note with who wrote it. Open ones come first (blocked, then doing, then to do). Use it to plan work, and to check what's still pending when the user says hello or asks what's next. A workspace-wide task is worked on by every bot in its workspace: before you work on one, read it with task_id to see its brief and its whole log (which bot did what, and when), so you pick up where the others left off instead of redoing their part.`,
         schema: z.object({
             task_id: z
                 .number()
@@ -66,14 +66,14 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
         }),
         run: async ({ args }) => {
             if (args.task_id) {
-                const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
+                const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id });
 
                 onTask?.({ task_id: Number(task.id) });
 
                 const [notes, files, parts] = await Promise.all([
                     grabTaskNotes({ task_id: task.id! }),
                     grabTaskMedia({ task_id: task.id! }),
-                    grabTasks({ bot_id, is_coordinator, admin_workspace_ids, only_parent_task_id: task.id! }),
+                    grabTasks({ bot_id, is_coordinator, admin_workspace_ids, workspace_id, only_parent_task_id: task.id! }),
                 ]);
 
                 const parent = task.parent_task_id ? await grabTaskRow({ task_id: task.parent_task_id }) : null;
@@ -88,8 +88,7 @@ export default function listTasksTool({ bot_id, user_id, is_coordinator, admin_w
             }
 
             const scope = args.scope || "all";
-            const only_workspace_id =
-                scope == "workspace" && workspace_id ? Number(workspace_id) : undefined;
+            const only_workspace_id = workspace_id ? Number(workspace_id) : undefined;
 
             const tasks = await grabTasks({
                 bot_id,

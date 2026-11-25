@@ -9,6 +9,10 @@ export type SearchHookCallsParams = {
     hook_id?: number | string | null;
     bot_id?: number | string | null;
     /**
+     * Only calls to hooks that run in this workspace (a run working there).
+     */
+    workspace_id?: number | string | null;
+    /**
      * Words to find in what a call sent or what its run answered.
      */
     query?: string | null;
@@ -33,6 +37,7 @@ export default function searchHookCallsSql({
     user_id,
     hook_id,
     bot_id,
+    workspace_id,
     query,
     status,
     before_id,
@@ -50,6 +55,11 @@ export default function searchHookCallsSql({
     if (bot_id) {
         where.push(`h.bot_id = ?`);
         values.push(Number(bot_id));
+    }
+
+    if (workspace_id) {
+        where.push(`h.workspace_id = ?`);
+        values.push(Number(workspace_id));
     }
 
     if (status) {

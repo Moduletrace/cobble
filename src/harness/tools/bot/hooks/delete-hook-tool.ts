@@ -10,6 +10,10 @@ type Params = {
      * The coordinator deletes any of the user's hooks, not only its own.
      */
     is_coordinator?: boolean;
+    /**
+     * The workspace the run is in: only a hook that runs there.
+     */
+    workspace_id?: number | string | null;
 };
 
 type Args = {
@@ -20,7 +24,7 @@ type Args = {
  * Lets a bot delete one of its hooks for good, or as the coordinator any of
  * the user's.
  */
-export default function deleteHookTool({ user_id, bot_id, is_coordinator }: Params): HarnessTool<Args> {
+export default function deleteHookTool({ user_id, bot_id, is_coordinator, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "delete_hook",
         description: `Delete ${
@@ -30,7 +34,7 @@ export default function deleteHookTool({ user_id, bot_id, is_coordinator }: Para
             hook_id: z.number().int().positive(),
         }),
         run: async ({ args }) => {
-            const hook = await grabOwnHook({ user_id, bot_id, hook_id: args.hook_id, is_coordinator });
+            const hook = await grabOwnHook({ user_id, bot_id, hook_id: args.hook_id, is_coordinator, workspace_id });
 
             await deleteBotHook({ user_id, hook_id: hook.id! });
 

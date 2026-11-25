@@ -165,7 +165,7 @@ export default function delegateTaskTool({
              * worked in that workspace, so the crew comes from there.
              */
             const task = args.task_id
-                ? await grabRunTask({ task_id: args.task_id, bot_id: requester_id, is_coordinator, admin_workspace_ids })
+                ? await grabRunTask({ task_id: args.task_id, bot_id: requester_id, is_coordinator, admin_workspace_ids, workspace_id })
                 : null;
 
             const asked_workspace_id = workspace_id || args.workspace_id;

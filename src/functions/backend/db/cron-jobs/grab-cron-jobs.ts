@@ -12,7 +12,8 @@ type Params = {
     /**
      * With `bot_id`: only the routines of that conversation, here
      * (`routineScopeSql`). `null` is the bot's own chat, so it has to be
-     * given rather than left out to mean "everywhere".
+     * given rather than left out to mean "everywhere". Without `bot_id`:
+     * every bot's routines in that workspace (a coordinator working there).
      */
     workspace_id?: number | string | null;
     /**
@@ -48,6 +49,9 @@ export default async function grabCronJobs({
             where.push(scope.sql);
             values.push(...scope.values);
         }
+    } else if (workspace_id) {
+        where.push(`c.workspace_id = ?`);
+        values.push(workspace_id);
     }
 
     if (cron_job_id) {

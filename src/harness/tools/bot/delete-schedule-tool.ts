@@ -9,6 +9,10 @@ type Params = {
      * The coordinator deletes any of the user's routines, not only its own.
      */
     is_coordinator?: boolean;
+    /**
+     * The workspace the run is in: only a routine that runs there.
+     */
+    workspace_id?: number | string | null;
 };
 
 type Args = {
@@ -19,7 +23,7 @@ type Args = {
  * Lets a bot delete one of its own schedules, or as the coordinator any of
  * the user's.
  */
-export default function deleteScheduleTool({ user_id, bot_id, is_coordinator }: Params): HarnessTool<Args> {
+export default function deleteScheduleTool({ user_id, bot_id, is_coordinator, workspace_id }: Params): HarnessTool<Args> {
     return {
         name: "delete_schedule",
         description: is_coordinator
@@ -33,6 +37,7 @@ export default function deleteScheduleTool({ user_id, bot_id, is_coordinator }: 
                 user_id,
                 cron_job_id: args.schedule_id,
                 ...(is_coordinator ? {} : { bot_id }),
+                ...(workspace_id ? { workspace_id } : {}),
             });
 
             return `Schedule #${cron_job.id} "${cron_job.title}" deleted.`;

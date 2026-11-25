@@ -86,6 +86,35 @@ describe("botTaskScopesSql for a workspace admin", () => {
     });
 });
 
+describe("botTaskScopesSql in a workspace", () => {
+    test("a worker's run there reaches that workspace's tasks and nothing else, not even its own list", () => {
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 3, is_coordinator: false, workspace_id: 10 }) })).toEqual([110]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 3, is_coordinator: false, workspace_id: 11 }) })).toEqual([112]);
+    });
+
+    test("the coordinator's run there reaches every task of that workspace alone", () => {
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 1, is_coordinator: true, workspace_id: 11 }) })).toEqual([
+            111, 112, 113,
+        ]);
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 1, is_coordinator: true, workspace_id: 10 }) })).toEqual([110]);
+    });
+
+    test("a workspace admin's run there reaches its whole workspace and no other", () => {
+        db.run(`INSERT INTO workspace_bots VALUES (11, 4)`);
+        expect(
+            ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false, admin_workspace_ids: [11], workspace_id: 11 }) }),
+        ).toEqual([111, 112, 113]);
+        expect(
+            ids({ condition: botTaskScopesSql({ bot_id: 4, is_coordinator: false, admin_workspace_ids: [11], workspace_id: 10 }) }),
+        ).toEqual([]);
+        db.run(`DELETE FROM workspace_bots WHERE bot_id = 4`);
+    });
+
+    test("workspace_id given as a string still scopes", () => {
+        expect(ids({ condition: botTaskScopesSql({ bot_id: 3, is_coordinator: false, workspace_id: "10" }) })).toEqual([110]);
+    });
+});
+
 describe("workspace-wide tasks", () => {
     test("every bot working there reaches one, no bot elsewhere does, and users see it with the workspace", () => {
         db.run(`INSERT INTO tasks VALUES (114, NULL, 11, NULL)`);

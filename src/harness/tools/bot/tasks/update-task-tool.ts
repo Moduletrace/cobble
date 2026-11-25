@@ -25,6 +25,10 @@ type Params = {
      */
     admin_workspace_ids?: number[];
     /**
+     * The workspace the run is in: only its tasks are in reach.
+     */
+    workspace_id?: number | string | null;
+    /**
      * The run's folders, for linking a deliverable by its `[file:ID]` ref.
      */
     scopes?: StorageScope[];
@@ -61,7 +65,15 @@ type Args = {
  * which bot did what and when. The coordinator and a workspace's admin bot
  * can also turn a bot's task there into a workspace-wide one.
  */
-export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_workspace_ids = [], scopes = [], onTask }: Params): HarnessTool<Args> {
+export default function updateTaskTool({
+    user_id,
+    bot_id,
+    is_coordinator,
+    admin_workspace_ids = [],
+    workspace_id,
+    scopes = [],
+    onTask,
+}: Params): HarnessTool<Args> {
     /**
      * Only the coordinator and workspace admins get the switch at all.
      */
@@ -131,7 +143,7 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                 ),
         }),
         run: async ({ args }) => {
-            const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids });
+            const task = await grabRunTask({ task_id: args.task_id, bot_id, is_coordinator, admin_workspace_ids, workspace_id });
             const said: string[] = [];
 
             onTask?.({ task_id: Number(task.id) });
@@ -197,6 +209,7 @@ export default function updateTaskTool({ user_id, bot_id, is_coordinator, admin_
                     bot_id,
                     is_coordinator,
                     admin_workspace_ids,
+                    workspace_id,
                     only_workspace_id: task.workspace_id,
                     own_list: !task.workspace_id,
                     open_only: true,
