@@ -4,6 +4,7 @@ import Row from "@moduletrace/twui/layout/Row";
 import Stack from "@moduletrace/twui/layout/Stack";
 import { Plus } from "lucide-react";
 import type { HarnessOverviewPayload, PublicHarnessProvider } from "@/src/types";
+import AddModalShell from "@/src/layouts/bots/(partials)/add-modal-shell";
 import SettingsGroup from "../../(partials)/settings-group";
 import SettingsStatus from "../../(partials)/settings-status";
 import ProviderForm from "./provider-form";
@@ -43,13 +44,22 @@ export default function ProvidersGroup({ providers, onChanged }: Props) {
                 ))}
             </Stack>
             {adding ? (
-                <ProviderForm
-                    onSaved={(overview, msg) => {
-                        setAdding(false);
-                        changed(overview, msg);
-                    }}
-                    onCancel={() => setAdding(false)}
-                />
+                <AddModalShell
+                    open
+                    setOpen={(next) => !next && setAdding(false)}
+                    title="Add a provider"
+                    description="Where models come from. The key is encrypted and never shown again."
+                >
+                    <Stack className="w-full items-stretch pt-4">
+                        <ProviderForm
+                            onSaved={(overview, msg) => {
+                                setAdding(false);
+                                changed(overview, msg);
+                            }}
+                            onCancel={() => setAdding(false)}
+                        />
+                    </Stack>
+                </AddModalShell>
             ) : (
                 <Row className="gap-3! items-center justify-between">
                     <SettingsStatus status={status} />
