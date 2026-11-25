@@ -193,8 +193,9 @@ export default function HookForm({
     };
 
     return (
+        // shrink-0: a capped flex column (the modal) would squash the form and clip the buttons away.
         <Form
-            className="w-full gap-4! items-stretch pt-4 overflow-hidden px-1"
+            className="w-full shrink-0 gap-4! items-stretch pt-4 overflow-hidden px-1"
             onSubmit={submit}
         >
             <Input
