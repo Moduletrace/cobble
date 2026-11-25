@@ -19,7 +19,9 @@ type Props = {
 export default function RoutineForm({ cron_job, onCancel, onSaved }: Props) {
     const [title, setTitle] = useState(cron_job.title || "");
     const [schedule, setSchedule] = useState(cron_job.schedule || "");
-    const [instructions, setInstructions] = useState(cron_job.instructions || "");
+    const [instructions, setInstructions] = useState(
+        cron_job.instructions || "",
+    );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
@@ -69,13 +71,18 @@ export default function RoutineForm({ cron_job, onCancel, onSaved }: Props) {
             />
             <CodeEditor
                 mode="markdown"
-                className="h-40"
+                className="h-[300px]"
                 title="Brief"
                 content={instructions}
                 info="What the bot does at every run, and how it knows it's done."
                 onChange={(value) => setInstructions(value)}
             />
-            <AddFormActions submit_label="Save" loading={loading} error={error} onCancel={onCancel} />
+            <AddFormActions
+                submit_label="Save"
+                loading={loading}
+                error={error}
+                onCancel={onCancel}
+            />
         </Form>
     );
 }
