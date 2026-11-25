@@ -16,6 +16,7 @@ type Props = {
     stone: BotStoneShape;
     image_media_id?: number | string | null;
     picked_src?: string;
+    avatar_size?: number;
 };
 
 /**
@@ -30,6 +31,7 @@ export default function BotFormPreview({
     stone,
     image_media_id,
     picked_src,
+    avatar_size = 56,
 }: Props) {
     const has_picture = Boolean(picked_src || image_media_id);
     /** A palette colour by name, else a colour the user made up. */
@@ -42,7 +44,7 @@ export default function BotFormPreview({
             <BotAvatar
                 color={color}
                 stone={stone}
-                size={56}
+                size={avatar_size}
                 image_media_id={image_media_id}
                 src={picked_src}
             />

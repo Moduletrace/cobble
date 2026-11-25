@@ -91,7 +91,14 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
               })
             : await postAdminApi<{ bot_id: number }>({
                   path: "bots/create-bot",
-                  body: { name, role, color, stone, system_prompt, workspace_id },
+                  body: {
+                      name,
+                      role,
+                      color,
+                      stone,
+                      system_prompt,
+                      workspace_id,
+                  },
               });
         const bot_id =
             bot?.id ||
@@ -158,6 +165,7 @@ export default function BotForm({ bot, onCancel, onSaved }: Props) {
                         stone={stone}
                         image_media_id={image.image_media_id}
                         picked_src={image.data_url}
+                        avatar_size={100}
                     />
                 }
                 has_image={image.has_image}

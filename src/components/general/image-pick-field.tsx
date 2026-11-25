@@ -34,7 +34,7 @@ export default function ImagePickField({
     const input_ref = useRef<HTMLInputElement>(null);
 
     return (
-        <Row className="w-full gap-4! flex-nowrap items-center">
+        <Row className="w-full gap-4! items-center">
             {preview}
             <Stack className="gap-2! min-w-0">
                 <Row className="gap-2!">
@@ -60,14 +60,17 @@ export default function ImagePickField({
                             disabled={disabled || loading}
                             onClick={() => {
                                 onRemove();
-                                if (input_ref.current) input_ref.current.value = "";
+                                if (input_ref.current)
+                                    input_ref.current.value = "";
                             }}
                         >
                             Remove
                         </Button>
                     ) : null}
                 </Row>
-                <Span className="text-[13px] leading-[18px] text-ink-secondary">{note}</Span>
+                <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                    {note}
+                </Span>
             </Stack>
             {/*
              * Raw on purpose: twui `Input` writes `value` on change, which
@@ -85,7 +88,8 @@ export default function ImagePickField({
                     if (!e.target.files?.[0]) return;
 
                     imageInputToBase64({ imageInput: e.target }).then((res) => {
-                        if (res?.imageBase64Full) onPick({ data_url: res.imageBase64Full });
+                        if (res?.imageBase64Full)
+                            onPick({ data_url: res.imageBase64Full });
                     });
                 }}
             />
