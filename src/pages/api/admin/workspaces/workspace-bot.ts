@@ -14,8 +14,9 @@ import type {
 /**
  * A bot's instructions and memory for one workspace, for the editor in its
  * conversation there, which loads them when it opens (page props leave
- * them out). For super admins and admins; only the super admin reaches
- * the coordinator.
+ * them out). Any user in the workspace reads its memory there (a member's
+ * panel shows it read-only); its instructions there stay with super admins
+ * and admins, and only the super admin reaches the coordinator.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<WorkspaceBotInstructions>
@@ -31,9 +32,7 @@ export const handler: BunextAPIRouteHandler<
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
 
-        if (!canManageCrew({ user_types })) {
-            throw new AppError(`Only an admin can do that.`);
-        }
+        const may_read_instructions = canManageCrew({ user_types });
 
         const { workspace_id, bot_id } = parseWithSchema({ schema: WorkspaceBotRequestSchema, data: body });
         const bot = (await grabWorkspaceBots({ user_id: user.id, workspace_id })).find(
@@ -47,7 +46,9 @@ export const handler: BunextAPIRouteHandler<
         return {
             success: true,
             singleRes: {
-                system_prompt: bot.workspace_system_prompt || "",
+                system_prompt: may_read_instructions
+                    ? bot.workspace_system_prompt || ""
+                    : "",
                 memory: bot.workspace_memory || "",
             },
         };

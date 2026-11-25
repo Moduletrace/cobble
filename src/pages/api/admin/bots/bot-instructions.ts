@@ -4,7 +4,6 @@ import grabUserBot from "@/src/functions/backend/db/bots/grab-user-bot";
 import { BotIdRequestSchema } from "@/src/schemas/bot-schema";
 import AppError from "@/src/utils/app-error";
 import parseWithSchema from "@/src/utils/parse-with-schema";
-import canManageCrew from "@/src/utils/rbac/can-manage-crew";
 import safeErrorMessage from "@/src/utils/safe-error-message";
 import type {
     APIResponseObject,
@@ -14,8 +13,8 @@ import type {
 /**
  * A bot's core instructions for its panel in the conversation, which loads
  * them when it opens (page props leave them out), plus what it remembers about
- * the user reading it. Any user who reaches the bot reads its instructions and
- * their own memory; its core memory stays with super admins and admins, and
+ * the user reading it. Any user who reaches the bot reads its instructions,
+ * its memory and their own (a member's panel shows the bot's as read-only);
  * only the super admin reaches the coordinator.
  */
 export const handler: BunextAPIRouteHandler<
@@ -26,13 +25,11 @@ export const handler: BunextAPIRouteHandler<
             throw new AppError(`Method not allowed`);
         }
 
-        const { user, user_types } = await userAuth({ req });
+        const { user } = await userAuth({ req });
 
         if (!user?.logged_in_status || !user.id) {
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
-
-        const may_read_core = canManageCrew({ user_types });
 
         const { bot_id } = parseWithSchema({ schema: BotIdRequestSchema, data: body });
         const bot = await grabUserBot({ bot_id, user_id: user.id });
@@ -45,7 +42,7 @@ export const handler: BunextAPIRouteHandler<
             success: true,
             singleRes: {
                 system_prompt: bot.system_prompt || "",
-                memory: may_read_core ? bot.memory || "" : "",
+                memory: bot.memory || "",
                 user_memory: (await grabBotUserMemory({ bot_id: bot.id, user_id: user.id })) || "",
             },
         };

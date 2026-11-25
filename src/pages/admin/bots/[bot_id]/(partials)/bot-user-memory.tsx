@@ -4,6 +4,7 @@ import Span from "@moduletrace/twui/layout/Span";
 import CodeEditor from "@/src/components/general/code-editor";
 import postAdminApi from "@/src/layouts/bots/(functions)/post-admin-api";
 import AddFormActions from "@/src/layouts/bots/(partials)/add-form-actions";
+import BotReadOnlyBlock from "./bot-read-only-block";
 
 type Props = {
     bot_id: number;
@@ -70,13 +71,10 @@ export default function BotUserMemory({
                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
                     {description}
                 </Span>
-                <CodeEditor
+                <BotReadOnlyBlock
                     title="About you"
-                    content={memory || "Nothing yet."}
-                    mode="markdown"
+                    content={memory}
                     className="h-32"
-                    readOnly
-                    onChange={() => {}}
                 />
             </>
         );

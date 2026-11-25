@@ -11,7 +11,6 @@ import Loading from "@moduletrace/twui/elements/Loading";
 import { X } from "lucide-react";
 import SidePanel from "@/src/components/general/side-panel";
 import BotAvatar from "@/src/components/general/bot-avatar";
-import CodeEditor from "@/src/components/general/code-editor";
 import TabButton from "@/src/components/general/tab-button";
 import type { BotFace } from "@/src/dict/bot-dict";
 import botStoneProps from "@/src/utils/bot-stone-props";
@@ -27,6 +26,7 @@ import useBotInstructions from "../(hooks)/use-bot-instructions";
 import useWorkspaceBotInstructions from "../(hooks)/use-workspace-bot-instructions";
 import BotMemoryForm from "./bot-memory-form";
 import BotPanelTrigger from "./bot-panel-trigger";
+import BotReadOnlyBlock from "./bot-read-only-block";
 import BotToolsTab from "./bot-tools-tab";
 import BotUserMemory from "./bot-user-memory";
 
@@ -78,15 +78,13 @@ export default function BotPanel({
     const workspace_instructions = useWorkspaceBotInstructions({
         workspace_id,
         bot_id: Number(bot.id) || 0,
-        enabled: open && can_edit && Boolean(workspace_id) && tab == "settings",
+        enabled: open && Boolean(workspace_id) && tab == "settings",
     });
     const memory_ready =
         system_prompt != undefined &&
         memory != undefined &&
         user_memory != undefined &&
-        (!can_edit ||
-            !workspace_id ||
-            Boolean(workspace_instructions.instructions));
+        (!workspace_id || Boolean(workspace_instructions.instructions));
     const loaded_error = error || workspace_instructions.error;
 
     useTopModalEscape({ onClose: on_close, enabled: open });
@@ -221,26 +219,40 @@ export default function BotPanel({
                         ) : (
                             <>
                                 <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                                    {`What ${name} is for, and the instructions it follows.`}
+                                    {`What ${name} is for, the instructions it follows and what it remembers.`}
                                 </Span>
                                 {bot.role ? (
                                     <Span className="text-[13px] leading-[18px] text-ink">
                                         {bot.role}
                                     </Span>
                                 ) : null}
-                                {system_prompt != undefined &&
-                                user_memory != undefined ? (
+                                {memory_ready ? (
                                     <>
-                                        <CodeEditor
+                                        <BotReadOnlyBlock
                                             title="Instructions"
-                                            content={
-                                                system_prompt || "Nothing yet."
-                                            }
-                                            mode="markdown"
+                                            content={system_prompt || ""}
                                             className="h-52"
-                                            readOnly
-                                            onChange={() => {}}
                                         />
+                                        <Divider className="my-2 border-hairline dark:border-hairline" />
+                                        <BotReadOnlyBlock
+                                            title="Memory"
+                                            content={memory || ""}
+                                            className="h-52"
+                                        />
+                                        {workspace_id ? (
+                                            <>
+                                                <Divider className="my-2 border-hairline dark:border-hairline" />
+                                                <BotReadOnlyBlock
+                                                    title={`Memory in ${workspace?.name || "this workspace"}`}
+                                                    content={
+                                                        workspace_instructions
+                                                            .instructions
+                                                            ?.memory || ""
+                                                    }
+                                                    className="h-40"
+                                                />
+                                            </>
+                                        ) : null}
                                         <Divider className="my-2 border-hairline dark:border-hairline" />
                                         <BotUserMemory
                                             bot_id={Number(bot.id) || 0}
@@ -250,9 +262,9 @@ export default function BotPanel({
                                             onCancel={on_close}
                                         />
                                     </>
-                                ) : error ? (
+                                ) : loaded_error ? (
                                     <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
-                                        {error}
+                                        {loaded_error}
                                     </Span>
                                 ) : (
                                     <Stack className="w-full py-10 items-center">
