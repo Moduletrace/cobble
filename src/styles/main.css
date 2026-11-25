@@ -564,7 +564,8 @@ footer .twui-anchor.active {
     @apply text-xs!;
 }
 
-.conversation-user-bubble a {
+/* Style the bubble's own links, not the pills: a ref chip keeps its colours. */
+.conversation-user-bubble a:not([data-quote-inline] a) {
     @apply text-blue-400 dark:text-blue-600;
 }
 
