@@ -18,15 +18,28 @@ type Props = {
  * Every bot (of the crew, or of a workspace), latest activity first, with
  * a search by name or job. A bot opens its conversation.
  */
-export default function AllBotsModal({ open, setOpen, title, bots, hrefFor }: Props) {
+export default function AllBotsModal({
+    open,
+    setOpen,
+    title,
+    bots,
+    hrefFor,
+}: Props) {
     const [query, setQuery] = useState("");
     const search = query.trim().toLowerCase();
     const found = search
-        ? bots.filter((bot) => `${bot.name} ${bot.role || ""}`.toLowerCase().includes(search))
+        ? bots.filter((bot) =>
+              `${bot.name} ${bot.role || ""}`.toLowerCase().includes(search),
+          )
         : bots;
 
     return (
-        <AddModalShell open={open} setOpen={setOpen} title={title} description={`${bots.length} in all.`}>
+        <AddModalShell
+            open={open}
+            setOpen={setOpen}
+            title={title}
+            description={`${bots.length} in all.`}
+        >
             <Input
                 id="all-bots-search"
                 title="Search bots"
@@ -35,6 +48,7 @@ export default function AllBotsModal({ open, setOpen, title, bots, hrefFor }: Pr
                 defaultValue={query}
                 onChange={(e) => setQuery(e.target.value)}
                 wrapperWrapperProps={{ className: "mt-4" }}
+                autoFocus
             />
             <Stack className="w-full mt-2 max-h-[60vh] overflow-y-auto gap-0! items-stretch">
                 {found.map((bot) => (
