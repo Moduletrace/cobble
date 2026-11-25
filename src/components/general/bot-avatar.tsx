@@ -31,7 +31,11 @@ type Props = ComponentProps<typeof BotStone> & {
  * never a circle, so it isn't mistaken for a person), else its stone. Its
  * colour still marks it everywhere else, e.g. the unread dot.
  */
-export default function BotAvatar({ image_media_id, src: picked, ...stone }: Props) {
+export default function BotAvatar({
+    image_media_id,
+    src: picked,
+    ...stone
+}: Props) {
     const saved = profileImageUrls({ media_id: image_media_id });
     const thumbnail_src = picked || saved.thumbnail_src;
     const src = picked || saved.src;
@@ -49,6 +53,7 @@ export default function BotAvatar({ image_media_id, src: picked, ...stone }: Pro
                 BotAvatarSizeClasses[size] || BotAvatarSizeClasses[32],
                 stone.className,
             )}
+            size={size}
         />
     );
 }

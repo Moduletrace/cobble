@@ -12,6 +12,8 @@ const UserAvatarSizeClasses = {
     sm: "size-6 text-[11px]",
     md: "size-8 text-xs",
     lg: "size-16 text-lg",
+    xl: "size-24 text-xl",
+    xxl: "size-32 text-2xl",
 } as const;
 
 type Props = {
@@ -47,7 +49,9 @@ export default function UserAvatar({
     size = "md",
     className,
 }: Props) {
-    const photo = person?.profile_media_id ? grabMediaURL({ user: person }) : {};
+    const photo = person?.profile_media_id
+        ? grabMediaURL({ user: person })
+        : {};
     const src = passed_src || photo.media_thumbnail_url || photo.media_url;
     const img_err_src = passed_src ? passed_err_src : photo.media_url;
     const initials = passed_initials || userInitials(person || {});

@@ -54,7 +54,13 @@ type PanelTab = "settings" | "tools";
  * without a conversation has nobody listening). The tab's data loads when it
  * opens, and Escape, the backdrop or the X closes it.
  */
-export default function BotPanel({ bot, workspace, open, on_open, on_close }: Props) {
+export default function BotPanel({
+    bot,
+    workspace,
+    open,
+    on_open,
+    on_close,
+}: Props) {
     const { pageProps } = useContext(AppContext);
     const name = bot.name || "This bot";
     const can_edit = canManageCrew({ user_types: pageProps?.user_types });
@@ -109,7 +115,11 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                     <Stack className="shrink-0">
                         <BotAvatar
                             image_media_id={bot.image_media_id}
-                            {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
+                            {...botStoneProps({
+                                color: bot.color,
+                                stone: bot.stone,
+                                hue: bot.hue,
+                            })}
                             face={(bot.face || "idle") as BotFace}
                             size={35}
                         />
@@ -134,8 +144,16 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                     aria-label={`Edit ${name}`}
                     className="shrink-0 gap-1! flex-nowrap items-center px-3 py-2 border-0 border-b border-solid border-hairline"
                 >
-                    <TabButton title="Settings" active={tab == "settings"} onPick={() => setTab("settings")} />
-                    <TabButton title="Tools" active={tab == "tools"} onPick={() => setTab("tools")} />
+                    <TabButton
+                        title="Settings"
+                        active={tab == "settings"}
+                        onPick={() => setTab("settings")}
+                    />
+                    <TabButton
+                        title="Tools"
+                        active={tab == "tools"}
+                        onPick={() => setTab("tools")}
+                    />
                 </Row>
                 <Stack className="grow min-h-0 overflow-y-auto gap-4! items-stretch px-4 pt-4 pb-6 [&>*]:shrink-0">
                     {open && tab == "settings" ? (
@@ -161,13 +179,22 @@ export default function BotPanel({ bot, workspace, open, on_open, on_close }: Pr
                                                 bot_id={Number(bot.id) || 0}
                                                 bot_name={name}
                                                 memory={memory || ""}
-                                                workspace_id={workspace_id || undefined}
+                                                workspace_id={
+                                                    workspace_id || undefined
+                                                }
                                                 workspace_name={workspace?.name}
-                                                workspace_memory={workspace_instructions.instructions?.memory || ""}
+                                                workspace_memory={
+                                                    workspace_instructions
+                                                        .instructions?.memory ||
+                                                    ""
+                                                }
                                                 onCancel={on_close}
                                             />
                                             <Divider className="my-2 border-hairline dark:border-hairline" />
-                                            <BotUserMemory bot_name={name} memory={user_memory || ""} />
+                                            <BotUserMemory
+                                                bot_name={name}
+                                                memory={user_memory || ""}
+                                            />
                                         </>
                                     ) : loaded_error ? (
                                         <Span className="py-6 text-[13px] leading-[18px] text-ink-secondary">
