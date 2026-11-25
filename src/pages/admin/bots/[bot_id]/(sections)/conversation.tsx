@@ -41,6 +41,7 @@ import useOlderMessages from "../(hooks)/use-older-messages";
 import ConversationHeader from "../(partials)/conversation-header";
 import useDebugOpen from "../(hooks)/use-debug-open";
 import MessageThread from "../(partials)/message-thread";
+import conversationHref from "@/src/utils/conversation-href";
 import Composer, { type ComposerHandle } from "../(partials)/composer";
 /**
  * A computer's live screen (noVNC, its websocket and transport) is only
@@ -110,6 +111,14 @@ export default function Conversation() {
      * session, which the composer gives way to a link to.
      */
     const [moved_to_session_id, setMovedToSessionId] = useState<number | null>(null);
+    /**
+     * The page was opened on one session (`?session_id=`) rather than the
+     * live conversation: that's the way back into an old thread, so it
+     * stays there even when that session was carried on into a newer one.
+     */
+    const pinned_session = useRef(
+        typeof window != "undefined" && new URLSearchParams(window.location.search).has("session_id"),
+    ).current;
     /**
      * How many replies the session still has to come, as the last catch-up
      * read found them, or null while that isn't known yet. A reply that ends
@@ -324,6 +333,14 @@ export default function Conversation() {
         running: Boolean(progress.task_id) || Boolean(open_reply_jobs),
         last_message_id: last_saved_id,
         on_open_jobs: ({ open_jobs }) => setOpenReplyJobs(open_jobs),
+        /**
+         * A carry whose push the page missed: the live conversation goes to
+         * the session that answers, rather than waiting on this one for
+         * ever. A pinned read stays where it is, as the push path does.
+         */
+        on_moved_to: () => {
+            if (!pinned_session) history.retry();
+        },
     });
 
     /**
@@ -403,15 +420,14 @@ export default function Conversation() {
             ) {
                 /**
                  * This session's conversation was carried into a new one,
-                 * whose summary opens it. While the user's message is on
-                 * its way, it was that message (the rollover at the
-                 * session length): the thread follows into the new
-                 * session. Otherwise (the bot, Continue in new session in
-                 * another tab) the composer gives way to a link there.
+                 * whose summary opens it. The live page follows it without
+                 * a word (the bot's answer lands there, and a rollover's
+                 * message on its way goes there too); a page opened on this
+                 * session keeps its thread and offers the way on instead.
                  */
                 if (Number(message.carried_from_session_id) == session_id) {
-                    if (pending_messages.length) {
-                        following_send.current = true;
+                    if (pending_messages.length || !pinned_session) {
+                        following_send.current = Boolean(pending_messages.length);
                         history.retry();
                         return;
                     }
@@ -568,6 +584,14 @@ export default function Conversation() {
      * The thread, kept intact so the stop control can wrap it without
      * reindenting every provider.
      */
+    const previous_session_href = older.previous_session_id
+        ? conversationHref({
+              bot_id: Number(bot?.id) || 0,
+              workspace_id,
+              session_id: older.previous_session_id,
+          })
+        : null;
+
     const thread = (
         <CrewBotsContext.Provider value={bots}>
             <CrewWorkspacesContext.Provider value={workspaces}>
@@ -610,6 +634,7 @@ export default function Conversation() {
                                     reply_progress={reply_progress}
                                     receiving={pending_messages.length > 0}
                                     awaiting_reply={awaiting_reply}
+                                    moved_on={Boolean(moved_to_session_id)}
                                     has_task={Boolean(progress.task_id)}
                                     rerun_message_id={rerun_after_id}
                                     session_id={session_id}
@@ -622,7 +647,7 @@ export default function Conversation() {
                                             <NoModelNotice bot_name={live_bot.name || "This bot"} />
                                         ) : null
                                     }
-                                    older={older}
+                                    older={{ ...older, previous_session_href }}
                                     onReload={reload_conversation}
                                     onQuote={({ text }) =>
                                         composer.current?.insertQuote({ text })

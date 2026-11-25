@@ -763,6 +763,11 @@ export type SessionMessagesResponse = APIResponseObject<BotMessageWithAttachment
      * which is what a run that ended without a message looks like.
      */
     open_jobs?: number | null;
+    /**
+     * The session this one was carried into, when it was: the open
+     * conversation follows it, since the bot's answer lands there.
+     */
+    moved_to_session_id?: number | null;
 };
 
 /**

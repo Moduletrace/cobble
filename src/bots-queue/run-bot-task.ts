@@ -15,7 +15,6 @@ import {
     ConnectorsNote,
     ComputerFilesNote,
     ScheduledRunNote,
-    ScheduledPlanNote,
     HookRunNote,
     InstallRequestNote,
     TasksNote,
@@ -489,22 +488,6 @@ export default async function runBotTask({
                 job_id: job.id || null,
                 onGraphic: ({ ref }) => shown.push(ref),
             }),
-            /**
-             * A routine's plan is approved at once and worked through in
-             * the run, since nobody is there to approve it on a card
-             * (`ScheduledPlanNote`). A hook call gets none: its thread is a
-             * log of calls, not a conversation to read a plan in.
-             */
-            ...(scheduled && session_id
-                ? grabBotPlanTools({
-                      user_id,
-                      bot_id: bot.id,
-                      session_id,
-                      workspace_id,
-                      approve: true,
-                      onPlan: ({ ref }) => shown.push(ref),
-                  })
-                : []),
         ];
 
         extensions = await openBotExtensions({
@@ -657,7 +640,6 @@ export default async function runBotTask({
             TaskRunNote,
             steps_note,
             scheduled ? ScheduledRunNote : "",
-            scheduled ? ScheduledPlanNote : "",
             hooked ? HookRunNote : "",
             install_request_id ? InstallRequestNote : "",
             Number(params.ask_id) ? AskTaskRunNote : "",
@@ -721,9 +703,10 @@ export default async function runBotTask({
          * a step (`planBotTask`). It shares this run's prompt, so it costs
          * little more than the plan, and it saves the steps a long run
          * spends finding out what it is doing. A run whose plan can't be
-         * written starts the way it always did.
+         * written starts the way it always did. A routine or a hook call
+         * already has its plan (the brief, the runbook), so it works that.
          */
-        const planned = shouldPlanBotTask({ max_steps })
+        const planned = !scheduled && !hooked && shouldPlanBotTask({ max_steps })
             ? await planBotTask({ system, messages: opening, signal, bot_id: bot.id, workspace_id }).catch(
                   (error) => {
                       if (signal.aborted) throw error;

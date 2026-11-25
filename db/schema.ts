@@ -674,6 +674,10 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     indexTableFields: ["session_id", "created_at"],
                 },
                 {
+                    indexName: "idx_bot_messages_carried_from_session_id",
+                    indexTableFields: ["carried_from_session_id"],
+                },
+                {
                     indexName: "idx_bot_messages_reply_to_message_id",
                     indexTableFields: ["reply_to_message_id"],
                 },

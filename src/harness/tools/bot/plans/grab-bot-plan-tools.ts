@@ -15,11 +15,6 @@ type Params = {
      */
     on_step?: boolean;
     /**
-     * A scheduled run, which nobody watches: a plan it writes is approved
-     * at once and worked through in the run (`ScheduledPlanNote`).
-     */
-    approve?: boolean;
-    /**
      * Called with each plan's ref, so the message carries its card.
      */
     onPlan: (params: { ref: string; waiting?: boolean }) => void;
@@ -28,9 +23,9 @@ type Params = {
 /**
  * The tools a bot plans with: `create_plan` when work is several steps,
  * `update_plan` when what it found makes the rest wrong, and
- * `complete_plan_step` to finish the step it worked. A chat reply's plan
- * waits on its card for the user; a scheduled run's is approved at once,
- * since nobody is there to approve it.
+ * `complete_plan_step` to finish the step it worked. A plan waits on its
+ * card for the user; only a chat reply writes one, since routines and hook
+ * calls already have their plan.
  *
  * A run that is itself working a plan gets neither `create_plan` (the
  * conversation already has one open) nor `cancel_plan` (whether the plan
@@ -40,20 +35,17 @@ type Params = {
  * finish it with no card under its report, and the plan would sit active
  * with nothing to start the next one.
  */
-export default function grabBotPlanTools({ user_id, bot_id, session_id, workspace_id, on_step, approve, onPlan }: Params) {
+export default function grabBotPlanTools({ user_id, bot_id, session_id, workspace_id, on_step, onPlan }: Params) {
     const tools: HarnessTool[] = [];
 
     if (!on_step) {
-        tools.push(createPlanTool({ user_id, bot_id, session_id, workspace_id, approve, onPlan }));
-
-        if (!approve) {
-            tools.push(cancelPlanTool({ user_id, bot_id, session_id }));
-        }
+        tools.push(createPlanTool({ user_id, bot_id, session_id, workspace_id, onPlan }));
+        tools.push(cancelPlanTool({ user_id, bot_id, session_id }));
     }
 
     tools.push(updatePlanTool({ user_id, bot_id, session_id, onPlan }));
 
-    if (on_step || approve) tools.push(completePlanStepTool({ bot_id, session_id, in_run: approve }));
+    if (on_step) tools.push(completePlanStepTool({ bot_id, session_id }));
 
     return tools;
 }

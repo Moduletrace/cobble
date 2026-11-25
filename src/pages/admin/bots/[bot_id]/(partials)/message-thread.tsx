@@ -47,6 +47,11 @@ type Props = {
      */
     awaiting_reply?: boolean;
     /**
+     * The session shown was carried into a newer one: its thread is a record
+     * to read, so a last word of the user's isn't a reply that never came.
+     */
+    moved_on?: boolean;
+    /**
      * This session has an active task.
      */
     has_task?: boolean;
@@ -102,7 +107,10 @@ type Props = {
         loading: boolean;
         error?: string;
         loadOlder: () => void;
-        loadPrevious?: () => void;
+        /**
+         * The session this one carries on from, as the page that reads it.
+         */
+        previous_session_href?: string | null;
     };
 };
 
@@ -112,9 +120,9 @@ type Props = {
  * While the bot works on a reply or a task, a status row sits under the
  * last one, and each request the bot has open with the crew shows where
  * its bots stand until it's done. Text selected in a message can be quoted in the composer.
- * Older messages load as it scrolls to the top, and at the start of a
- * session that carries on from another, the earlier one can be opened
- * above it (shown only, never put in the bot's prompt); the reversed column keeps
+ * Older messages load as it scrolls to the top, and the session before
+ * this one is linked above the thread as its own page (shown only, never
+ * put in the bot's prompt); the reversed column keeps
  * the view where it was as they land above it. The thread follows new
  * messages while it sits at its bottom, stays put while it's scrolled up
  * and then offers a button to get back down. Pulled up past its bottom on
@@ -127,6 +135,7 @@ export default function MessageThread({
     reply_progress,
     receiving,
     awaiting_reply,
+    moved_on,
     session_id,
     debug_open,
     on_toggle_debug,
@@ -182,7 +191,9 @@ export default function MessageThread({
      */
     const last_shown = shown[shown.length - 1];
     const unanswered =
-        !awaiting_reply && !receiving && last_shown?.author == "user" ? last_shown : null;
+        !awaiting_reply && !receiving && !moved_on && last_shown?.author == "user"
+            ? last_shown
+            : null;
     const scroll = useThreadScroll({ messages: shown });
     const pull_state = usePullToRefresh({
         column_ref: scroll.column_ref,
@@ -215,13 +226,10 @@ export default function MessageThread({
                             error={older.error}
                             onLoad={older.loadOlder}
                         />
-                    ) : older?.has_previous && older.loadPrevious ? (
+                    ) : older?.previous_session_href ? (
                         <OlderMessagesLoader
-                            loading={older.loading}
-                            error={older.error}
-                            onLoad={older.loadPrevious}
+                            href={older.previous_session_href}
                             label="Show the previous session"
-                            manual
                         />
                     ) : null}
                     <SessionGalleryContext.Provider value={session_gallery}>

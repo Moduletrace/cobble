@@ -5,6 +5,7 @@ import grabBotFace from "@/src/functions/backend/db/bots/grab-bot-face";
 import grabActiveBotTask from "@/src/functions/backend/db/bots/grab-active-bot-task";
 import grabSessionReplyStep from "@/src/functions/backend/db/bots-queue/grab-session-reply-step";
 import grabSessionOpenReplies from "@/src/functions/backend/db/bots-queue/grab-session-open-replies";
+import grabCarriedToSessionId from "@/src/functions/backend/db/bot-sessions/grab-carried-to-session-id";
 import { AppData } from "@/src/data/app-data";
 import { BotSessionIdRequestSchema } from "@/src/schemas/bot-schema";
 import type { SessionMessagesResponse } from "@/src/types";
@@ -62,6 +63,7 @@ export const handler: BunextAPIRouteHandler<SessionMessagesResponse> = async ({ 
             },
             step: await grabSessionReplyStep({ session_id: session.id }),
             open_jobs: await grabSessionOpenReplies({ session_id: session.id }),
+            moved_to_session_id: await grabCarriedToSessionId({ session_id: session.id, user_id: user.id }),
         };
     } catch (error: unknown) {
         return { success: false, msg: safeErrorMessage({ error }) };

@@ -4,30 +4,31 @@ import Button from "@moduletrace/twui/layout/Button";
 import Stack from "@moduletrace/twui/layout/Stack";
 
 type Props = {
-    loading: boolean;
+    loading?: boolean;
     error?: string;
-    onLoad: () => void;
+    onLoad?: () => void;
+    /**
+     * Opens a page instead of loading more here (the session before this
+     * one, read as it was).
+     */
+    href?: string;
     /**
      * Defaults to "Show earlier messages".
      */
     label?: string;
-    /**
-     * Loads only on a click, never as it scrolls into view.
-     */
-    manual?: boolean;
 };
 
 /**
  * The top of a thread with older messages: loads them as it scrolls into
- * view (unless `manual`), with a button for when it can't (or a load
- * failed).
+ * view, with a button for when it can't (or a load failed). With `href` it
+ * is only ever a link.
  */
 export default function OlderMessagesLoader({
-    loading,
+    loading = false,
     error,
     onLoad,
+    href,
     label = "Show earlier messages",
-    manual,
 }: Props) {
     const ref = useRef<HTMLDivElement>(null);
     const load = useRef(onLoad);
@@ -37,11 +38,11 @@ export default function OlderMessagesLoader({
     useEffect(() => {
         const el = ref.current;
 
-        if (!el || error || manual || typeof IntersectionObserver == "undefined") return;
+        if (!el || href || error || typeof IntersectionObserver == "undefined") return;
 
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries.some((entry) => entry.isIntersecting)) load.current();
+                if (entries.some((entry) => entry.isIntersecting)) load.current?.();
             },
             { rootMargin: "400px 0px 0px 0px" },
         );
@@ -49,7 +50,7 @@ export default function OlderMessagesLoader({
         observer.observe(el);
 
         return () => observer.disconnect();
-    }, [error, loading, manual]);
+    }, [error, loading, href]);
 
     return (
         <Stack
@@ -64,6 +65,7 @@ export default function OlderMessagesLoader({
                     type="button"
                     variant="ghost"
                     color="text"
+                    href={href}
                     onClick={onLoad}
                     className="text-[13px]! leading-[18px]! text-ink-secondary"
                 >

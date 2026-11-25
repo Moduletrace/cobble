@@ -3,11 +3,10 @@ import grabBotPlanTools from "./grab-bot-plan-tools";
 
 /**
  * A run working a plan's step may only work it: writing another plan, or
- * cancelling the one it was woken for, is the user's call on the card. A
- * scheduled run has no card to approve anything on, so its plan starts
- * itself and nothing is left for the bot to cancel. A reply that isn't a
- * step can't finish one either, or the plan would sit active with no card
- * to start the next step from.
+ * cancelling the one it was woken for, is the user's call on the card. Only
+ * a chat reply writes a plan. A reply that isn't a step can't finish one
+ * either, or the plan would sit active with no card to start the next step
+ * from.
  */
 const names = (tools: { name: string }[]) => tools.map((tool) => tool.name);
 
@@ -28,10 +27,6 @@ describe("grabBotPlanTools", () => {
 
     test("a run working a step can only change the plan and finish its step", () => {
         expect(names(build({ on_step: true }))).toEqual(["update_plan", "complete_plan_step"]);
-    });
-
-    test("a scheduled run writes a plan that's already approved, and can't cancel it", () => {
-        expect(names(build({ approve: true }))).toEqual(["create_plan", "update_plan", "complete_plan_step"]);
     });
 
     test("a plan the app writes shows its card on the message", () => {

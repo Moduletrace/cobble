@@ -29,6 +29,11 @@ type Params = {
      * zero means the one it was waiting on ended without a message.
      */
     on_open_jobs?: (params: { open_jobs: number }) => void;
+    /**
+     * The session was carried into a newer one: what the thread waited on
+     * is answering there, so an open conversation follows it.
+     */
+    on_moved_to?: () => void;
 };
 
 /**
@@ -47,7 +52,8 @@ type Params = {
  * face or task clear itself without a reload. The replies the session still
  * has to come are handed back too: a run that ended without a word leaves
  * the thread's last message the user's, so the face alone can't tell it from
- * one still on its way.
+ * one still on its way. A session carried into a newer one is handed back
+ * with them, so the page that missed that push follows the answer there.
  */
 export default function useReplyCatchUp({
     session_id,
@@ -55,6 +61,7 @@ export default function useReplyCatchUp({
     running,
     last_message_id,
     on_open_jobs,
+    on_moved_to,
 }: Params) {
     const last_message = useRef(Number(last_message_id) || 0);
     /**
@@ -62,6 +69,7 @@ export default function useReplyCatchUp({
      * the check (and the poll's timer with it).
      */
     const report_open_jobs = useRef(on_open_jobs);
+    const report_moved_to = useRef(on_moved_to);
     /**
      * The open session: a read that lands after the thread moved to
      * another one is dropped instead of replaying into the wrong thread.
@@ -71,6 +79,7 @@ export default function useReplyCatchUp({
     last_message.current = Number(last_message_id) || 0;
     open_session.current = session_id;
     report_open_jobs.current = on_open_jobs;
+    report_moved_to.current = on_moved_to;
 
     const check = useCallback(async () => {
         if (!session_id) return;
@@ -116,6 +125,12 @@ export default function useReplyCatchUp({
         if (typeof res.open_jobs == "number") {
             report_open_jobs.current?.({ open_jobs: res.open_jobs });
         }
+
+        /**
+         * The session was carried while the page wasn't looking (a phone
+         * that slept through the push): the new one holds the answer.
+         */
+        if (Number(res.moved_to_session_id)) report_moved_to.current?.();
     }, [session_id]);
 
     useRefocus({ onRefocus: () => void check() });

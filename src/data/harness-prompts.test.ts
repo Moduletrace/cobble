@@ -23,7 +23,6 @@ import {
     PlanWaitingNote,
     PlanActiveNote,
     PlanPausedNote,
-    ScheduledPlanNote,
     RetryFailureNote,
 } from "./harness-prompts";
 import computerRunDirs from "@/src/utils/computer-work-dirs";
@@ -355,8 +354,5 @@ describe("plan notes", () => {
         expect(PlanPausedNote({ plan: { ...plan, status: "paused" } })).toContain("paused by the user");
     });
 
-    test("a routine's plan is approved at once and worked through in the run", () => {
-        expect(ScheduledPlanNote).toContain("approved at once");
-        expect(ScheduledPlanNote).toContain("work its steps in this run");
-    });
+    
 });
