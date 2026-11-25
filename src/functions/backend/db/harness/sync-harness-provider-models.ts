@@ -1,6 +1,9 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_HARNESS_PROVIDERS } from "@/db/types/db";
 import grabHarnessAdapter from "@/src/harness/providers/grab-harness-adapter";
+import providerParameterKeys from "@/src/harness/providers/provider-parameter-keys";
+import { providerSupportedParameters } from "@/src/dict/harness-parameter-dict";
+import parseProviderParameters from "./parse-provider-parameters";
 import resolveProviderConfig from "./resolve-provider-config";
 import upsertHarnessModels from "./upsert-harness-models";
 
@@ -29,6 +32,15 @@ export default async function syncHarnessProviderModels({ provider }: Params) {
             provider_id: provider.id,
             models,
             provider_context_length: provider.context_length || null,
+            provider_parameters: providerSupportedParameters({
+                keys: providerParameterKeys({
+                    kind: config.kind,
+                    base_url: provider.base_url,
+                    declared: parseProviderParameters({
+                        text: provider.parameters,
+                    }),
+                }),
+            }),
         });
 
         await BunSQLite.sql({

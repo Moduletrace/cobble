@@ -38,6 +38,7 @@ import type { APIResponseObject, BunextPageModuleServerReturnURLObject } from "@
 import type { BUN_SQLITE_COBBLE_USERS_JOIN } from "./sql-joins";
 import type { ImageInputToBase64FunctionReturn } from "@moduletrace/twui/utils/form/imageInputToBase64";
 import type { HarnessKind } from "../dict/harness-dict";
+import type { HarnessParameterKey } from "../dict/harness-parameter-dict";
 import type { HarnessProviderKind } from "../dict/harness-provider-dict";
 import type { EnvParadigm, KnownEnv, SecretRequestStatus } from "../dict/env-dict";
 import type { BotQuestionKind, BotQuestionStatus } from "../dict/bot-question-dict";
@@ -794,6 +795,11 @@ export type PublicHarnessProvider = {
      * own (a custom provider lists ids only).
      */
     context_length?: number;
+    /**
+     * The generation settings its models are offered (its saved pick, else
+     * its preset's or host's list). Undefined: it takes none.
+     */
+    parameters?: HarnessParameterKey[];
     last_synced_at?: number;
     sync_error?: string;
 };

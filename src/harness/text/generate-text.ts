@@ -2,6 +2,7 @@ import HarnessError from "../harness-error";
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
 import withCandidates from "../resolve/with-candidates";
+import type { HarnessWireParams } from "@/src/dict/harness-parameter-dict";
 import type {
     HarnessCandidate,
     HarnessChatResult,
@@ -38,7 +39,7 @@ export type GenerateTextParams = {
     /**
      * Overrides the saved generation settings (media reading wants 0).
      */
-    params?: Record<string, number | string | { effort: string }>;
+    params?: HarnessWireParams;
     signal?: AbortSignal;
     /**
      * Media readings shared across calls of one run.
@@ -67,7 +68,7 @@ type ChatAnswer = Omit<HarnessChatResult, "text"> & {
     /**
      * The generation settings sent to this candidate, for its usage row.
      */
-    sent_params?: Record<string, number | string | { effort: string }>;
+    sent_params?: HarnessWireParams;
 };
 
 /**

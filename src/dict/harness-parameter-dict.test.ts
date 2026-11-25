@@ -5,6 +5,7 @@ import {
     harnessParametersFromOptions,
     harnessParameterValue,
     modelAdvertisesParameter,
+    providerSupportedParameters,
     withHarnessParameters,
 } from "./harness-parameter-dict";
 
@@ -67,5 +68,15 @@ describe("harness parameters", () => {
         expect(
             harnessParameterValue({ harness: "text", params: { temperature: 0 }, key: "temperature" }),
         ).toEqual({ value: 0, saved: true });
+    });
+
+    test("a provider's declared settings go under the names its models advertise", () => {
+        expect(
+            providerSupportedParameters({
+                keys: ["temperature", "reasoning_effort"],
+            }),
+        ).toEqual(["temperature", "reasoning"]);
+        expect(providerSupportedParameters({})).toBeUndefined();
+        expect(providerSupportedParameters({ keys: [] })).toEqual([]);
     });
 });

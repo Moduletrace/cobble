@@ -10,6 +10,9 @@ import {
     HarnessProviderKinds,
     type HarnessProviderKind,
 } from "@/src/dict/harness-provider-dict";
+import type { HarnessParameterKey } from "@/src/dict/harness-parameter-dict";
+import providerParameterKeys from "@/src/harness/providers/provider-parameter-keys";
+import HarnessProviderParameters from "./harness-provider-parameters";
 import type {
     HarnessOverviewPayload,
     PublicHarnessProvider,
@@ -43,11 +46,26 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
     const [context_length, setContextLength] = useState(
         provider?.context_length ? String(provider.context_length) : "",
     );
+    /**
+     * What the admin ticked. Null follows the preset, then the host, so a
+     * custom provider pointed at Alibaba starts with its settings ticked.
+     */
+    const [chosen_parameters, setChosenParameters] = useState<
+        HarnessParameterKey[] | null
+    >(provider ? (provider.parameters ?? []) : null);
     const [enabled, setEnabled] = useState(provider?.enabled ?? true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
 
     const id = `provider-${provider?.id || "new"}`;
+
+    const parameters =
+        chosen_parameters ??
+        providerParameterKeys({
+            kind,
+            base_url: base_url || preset.base_url,
+        }) ??
+        [];
 
     const submit = async () => {
         if (loading) return;
@@ -73,6 +91,7 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 api_key: api_key || undefined,
                 clear_key: clear_key || undefined,
                 context_length: Number(context_length) || 0,
+                parameters,
                 enabled,
             },
         });
@@ -173,6 +192,10 @@ export default function ProviderForm({ provider, onSaved, onCancel }: Props) {
                 info={`The window every model this provider lists without one of its own is given. Leave empty if its list carries them (OpenRouter's does). A run sizes itself to the model's window less the room its answer needs, so with nothing declared it assumes ${AppData.HarnessUnknownContextWindow.toLocaleString("en-US")} tokens, and a smaller model refuses such a prompt and stops the run with its own limit.`}
                 onChange={(e) => setContextLength(e.target.value)}
                 placeholder="Eg. 1,000,000"
+            />
+            <HarnessProviderParameters
+                parameters={parameters}
+                onChange={setChosenParameters}
             />
             <Checkbox
                 title="Turn this provider on"

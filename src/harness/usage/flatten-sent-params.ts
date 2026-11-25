@@ -1,8 +1,10 @@
+import type { HarnessWireParams } from "@/src/dict/harness-parameter-dict";
+
 type Params = {
     /**
      * Keyed by the field sent on the wire (`grabChatParams`).
      */
-    params?: Record<string, number | string | { effort: string }> | null;
+    params?: HarnessWireParams | null;
 };
 
 /**
@@ -17,6 +19,8 @@ export default function flattenSentParams({ params }: Params) {
     for (const [key, value] of Object.entries(params || {})) {
         if (value && typeof value == "object") {
             if (value.effort) flat[key == "reasoning" ? "reasoning_effort" : key] = String(value.effort);
+        } else if (typeof value == "boolean") {
+            flat[key] = value ? "on" : "off";
         } else if (typeof value == "number" || (typeof value == "string" && value)) {
             flat[key] = value;
         }

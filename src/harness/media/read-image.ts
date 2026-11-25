@@ -1,4 +1,5 @@
 import { ReadImagePrompt } from "@/src/data/harness-prompts";
+import type { HarnessWireParams } from "@/src/dict/harness-parameter-dict";
 import HarnessError from "../harness-error";
 import grabHarnessAdapter from "../providers/grab-harness-adapter";
 import resolveHarnessCandidates from "../resolve/resolve-harness-candidates";
@@ -56,7 +57,7 @@ export default async function readImage({ url, focus, signal, bot_id, workspace_
     const { result } = await withCandidates<{
         text: string;
         usage?: HarnessUsage;
-        sent_params: Record<string, number | string | { effort: string }>;
+        sent_params: HarnessWireParams;
     }>({
         harness: "vision",
         candidates,

@@ -2,6 +2,7 @@ import {
     HarnessParameters,
     harnessParameterValue,
     modelAdvertisesParameter,
+    type HarnessWireParams,
 } from "@/src/dict/harness-parameter-dict";
 import grabHarnessSetting from "@/src/functions/backend/db/harness/grab-harness-setting";
 import type { HarnessModelInfo } from "../types";
@@ -26,7 +27,7 @@ export default async function grabChatParams({
     bot_id,
     workspace_id,
 }: Params): Promise<{
-    paramsFor: (model: HarnessModelInfo) => Record<string, number | string | { effort: string }>;
+    paramsFor: (model: HarnessModelInfo) => HarnessWireParams;
     source: "default" | "bot" | "workspace";
 }> {
     const setting = await grabHarnessSetting({
@@ -55,9 +56,17 @@ export default async function grabChatParams({
                     return [];
 
                 const key = "wire" in parameter ? parameter.wire : parameter.key;
+                const boolean = "wire_boolean" in parameter;
 
                 return [
-                    [key, key == "reasoning" ? { effort: String(value) } : value],
+                    [
+                        key,
+                        key == "reasoning"
+                            ? { effort: String(value) }
+                            : boolean
+                              ? value === "true"
+                              : value,
+                    ],
                 ];
             }),
         );

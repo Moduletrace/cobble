@@ -2,6 +2,7 @@ import type { HarnessAdapter } from "../../types";
 import grabProviderPreset from "../grab-provider-preset";
 import providerRequest from "./provider-request";
 import readChatResponse from "./read-chat-response";
+import toWireChatParams from "./to-wire-chat-params";
 import toWireMessages from "./to-wire-messages";
 
 /**
@@ -24,7 +25,7 @@ const chat: HarnessAdapter["chat"] = async ({
             // Generation settings first, so the core fields below always win:
             // a saved parameter must never override the model, the messages,
             // the tools or the token ceiling (R12).
-            ...(params || {}),
+            ...toWireChatParams({ params, kind: provider.kind }),
             model: model.slug,
             messages: toWireMessages({ messages }),
             ...(tools?.length

@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { HarnessKind } from "@/src/dict/harness-dict";
 import type { HarnessProviderKind } from "@/src/dict/harness-provider-dict";
+import type { HarnessWireParams } from "@/src/dict/harness-parameter-dict";
 
 /**
  * Part of a user message. Images are an https or `data:` URL; audio is
@@ -234,7 +235,7 @@ export type HarnessChatParams = {
      * Sampling and reasoning fields, keyed by their wire name. The caller
      * only includes what the model advertises.
      */
-    params?: Record<string, number | string | { effort: string }>;
+    params?: HarnessWireParams;
     signal: AbortSignal;
 };
 

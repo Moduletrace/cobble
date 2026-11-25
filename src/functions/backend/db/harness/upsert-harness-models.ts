@@ -1,6 +1,7 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import type { HarnessCatalogModel } from "@/src/harness/types";
 import modelContextLength from "./model-context-length";
+import modelSupportedParameters from "./model-supported-parameters";
 
 type Params = {
     provider_id: number;
@@ -10,6 +11,11 @@ type Params = {
      * of their own (a custom provider lists ids only).
      */
     provider_context_length?: number | null;
+    /**
+     * The generation settings its provider declares, as the names a model's
+     * `supported_parameters` carries, for the models it lists without any.
+     */
+    provider_parameters?: string[] | null;
     now?: number;
 };
 
@@ -49,6 +55,7 @@ export default async function upsertHarnessModels({
     provider_id,
     models,
     provider_context_length,
+    provider_parameters,
     now = Date.now(),
 }: Params) {
     const unique = [...new Map(models.map((m) => [m.slug, m])).values()];
@@ -63,27 +70,36 @@ export default async function upsertHarnessModels({
                 ${Columns.filter((c) => c != "created_at" && c != "provider_id" && c != "slug")
                     .map((c) => `${c} = excluded.${c}`)
                     .join(", ")}`,
-            values: chunk.flatMap((model) => [
-                now,
-                now,
-                provider_id,
-                model.slug,
-                model.name || model.slug,
-                model.free ? 1 : 0,
-                1,
-                JSON.stringify(model.input_modalities),
-                JSON.stringify(model.output_modalities),
-                model.supports_tools ? 1 : 0,
-                modelContextLength({ model, provider_context_length }),
-                model.max_output_tokens ?? null,
-                model.voices ? JSON.stringify(model.voices) : null,
-                model.supported_parameters ? JSON.stringify(model.supported_parameters) : null,
-                model.intelligence_score ?? null,
-                model.agentic_score ?? null,
-                model.released_at ?? null,
-                model.expires_at ?? null,
-                now,
-            ]),
+            values: chunk.flatMap((model) => {
+                const supported_parameters = modelSupportedParameters({
+                    model,
+                    provider_parameters,
+                });
+
+                return [
+                    now,
+                    now,
+                    provider_id,
+                    model.slug,
+                    model.name || model.slug,
+                    model.free ? 1 : 0,
+                    1,
+                    JSON.stringify(model.input_modalities),
+                    JSON.stringify(model.output_modalities),
+                    model.supports_tools ? 1 : 0,
+                    modelContextLength({ model, provider_context_length }),
+                    model.max_output_tokens ?? null,
+                    model.voices ? JSON.stringify(model.voices) : null,
+                    supported_parameters
+                        ? JSON.stringify(supported_parameters)
+                        : null,
+                    model.intelligence_score ?? null,
+                    model.agentic_score ?? null,
+                    model.released_at ?? null,
+                    model.expires_at ?? null,
+                    now,
+                ];
+            }),
         });
 
         if (!res.success) {

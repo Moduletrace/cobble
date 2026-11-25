@@ -83,6 +83,15 @@ describe("grabChatParams", () => {
         expect(paramsFor(model(["reasoning_effort"]))).toEqual({});
     });
 
+    test("thinking on/off goes on the wire as a boolean", async () => {
+        options = { enable_thinking: "false" };
+        const { paramsFor } = await grabChatParams({ harness: "text" });
+
+        expect(paramsFor(model(["enable_thinking"]))).toEqual({
+            enable_thinking: false,
+        });
+    });
+
     test("the vision default is a literal 0", async () => {
         const { paramsFor } = await grabChatParams({ harness: "vision" });
 

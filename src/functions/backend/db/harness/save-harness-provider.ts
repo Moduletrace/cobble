@@ -4,6 +4,7 @@ import type {
     BunSQLiteTables,
 } from "@/db/types/db";
 import type { HarnessProviderKind } from "@/src/dict/harness-provider-dict";
+import type { HarnessParameterKey } from "@/src/dict/harness-parameter-dict";
 import grabProviderPreset from "@/src/harness/providers/grab-provider-preset";
 import AppError from "@/src/utils/app-error";
 import { encrypt } from "@/src/utils/crypt";
@@ -27,6 +28,11 @@ type Params = {
      * leaves them unknown.
      */
     context_length?: number;
+    /**
+     * The generation settings its models are offered. Left out follows its
+     * preset or host; an empty array means it takes none.
+     */
+    parameters?: HarnessParameterKey[];
     enabled: boolean;
 };
 
@@ -42,6 +48,7 @@ export default async function saveHarnessProvider({
     api_key,
     clear_key,
     context_length,
+    parameters,
     enabled,
 }: Params) {
     const preset = grabProviderPreset({ kind });
@@ -75,6 +82,7 @@ export default async function saveHarnessProvider({
          * cleared with null (the plugin binds it as NULL).
          */
         context_length: (context_length && context_length > 0 ? context_length : null) as number,
+        parameters: (parameters ? JSON.stringify(parameters) : null) as string,
         ...key_update,
     };
 

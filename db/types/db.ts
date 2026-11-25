@@ -2010,6 +2010,10 @@ export type BUN_SQLITE_COBBLE_HARNESS_PROVIDERS = {
      */
     context_length?: number | "";
     /** 
+     * JSON array of the generation settings this provider's models are offered, for the models whose own list carries none (a custom provider lists ids only). Null follows the preset's or host's own list; an empty array means it takes none
+     */
+    parameters?: string;
+    /** 
      * Unix timestamp of the last model list sync
      */
     last_synced_at?: number | "";

@@ -13,6 +13,12 @@ describe("flattenSentParams", () => {
         expect(flattenSentParams({ params: { temperature: 0, seed: "" } })).toEqual({ temperature: 0 });
     });
 
+    test("reads a boolean setting back as on or off", () => {
+        expect(
+            flattenSentParams({ params: { enable_thinking: false, temperature: 0.3 } }),
+        ).toEqual({ enable_thinking: "off", temperature: 0.3 });
+    });
+
     test("is undefined when nothing was sent", () => {
         expect(flattenSentParams({ params: {} })).toBeUndefined();
         expect(flattenSentParams({ params: null })).toBeUndefined();

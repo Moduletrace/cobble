@@ -5,6 +5,10 @@ import {
     HarnessProviderKinds,
     type HarnessProviderKind,
 } from "@/src/dict/harness-provider-dict";
+import {
+    HarnessParameterKeys,
+    type HarnessParameterKey,
+} from "@/src/dict/harness-parameter-dict";
 
 const ProviderIdSchema = z.coerce
     .number()
@@ -43,6 +47,22 @@ export const SaveHarnessProviderRequestSchema = z.object({
             },
         )
         .default(0),
+    /**
+     * The generation settings its models are offered, for the models whose
+     * own list carries none. Left out follows its preset or host; an empty
+     * array means it takes none.
+     */
+    parameters: z
+        .array(
+            z.enum(
+                HarnessParameterKeys as [
+                    HarnessParameterKey,
+                    ...HarnessParameterKey[],
+                ],
+                "That is not a generation setting",
+            ),
+        )
+        .optional(),
 });
 
 export const HarnessProviderIdRequestSchema = z.object({

@@ -8,6 +8,7 @@
  * - `advertised`: the name a provider's model list uses for it, when it
  *   differs (OpenRouter's `supported_parameters`)
  * - `wire`: how the field is written, for providers that nest it
+ * - `wire_boolean`: saved as "true"/"false", sent as a JSON boolean
  */
 export const HarnessParameters = [
     {
@@ -104,11 +105,41 @@ export const HarnessParameters = [
             { value: "high", title: "High" },
         ],
     },
+    {
+        key: "enable_thinking",
+        title: "Thinking",
+        description: `Whether it thinks before it answers, which is slower and costs more. "Default" leaves each model's own setting alone. Providers that turn thinking on by another field ignore it.`,
+        value_type: "select",
+        wire_boolean: true,
+        options: [
+            { value: "true", title: "On" },
+            { value: "false", title: "Off" },
+        ],
+    },
+    {
+        key: "thinking_budget",
+        title: "Thinking budget",
+        description: `How many tokens it may think with, up to 32768. Only some models take it, and usually only while thinking is on.`,
+        value_type: "number",
+        min: 0,
+        max: 32768,
+        step: 1,
+    },
 ] as const;
 
 export type HarnessParameter = (typeof HarnessParameters)[number];
 export type HarnessParameterKey = HarnessParameter["key"];
 export type HarnessParameterValue = number | string;
+
+/**
+ * The generation settings as they go on the wire: OpenRouter's reasoning
+ * effort nests as `reasoning: { effort }`, a boolean setting as a JSON
+ * boolean, the rest as they are.
+ */
+export type HarnessWireParams = Record<
+    string,
+    number | string | boolean | { effort: string }
+>;
 
 /**
  * The harnesses whose models are chat models, so the only ones the
@@ -187,6 +218,30 @@ export function modelAdvertisesParameter({
             "advertised" in parameter ? parameter.advertised : parameter.key,
         ),
     );
+}
+
+/**
+ * The names a provider's declared settings go under: what its models'
+ * `supported_parameters` should carry, so the same advertised names
+ * OpenRouter's catalog uses. Undefined when the provider declares nothing,
+ * which leaves its models with none.
+ */
+export function providerSupportedParameters({
+    keys,
+}: {
+    keys?: readonly HarnessParameterKey[] | null;
+}) {
+    if (!keys) return undefined;
+
+    return keys.flatMap((key) => {
+        const parameter = HarnessParameters.find((p) => p.key == key);
+
+        if (!parameter) return [];
+
+        return [
+            "advertised" in parameter ? parameter.advertised : parameter.key,
+        ];
+    });
 }
 
 /**
