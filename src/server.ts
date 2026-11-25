@@ -221,7 +221,13 @@ const server = Bun.serve({
      * port sharing split requests between an old and a new process.
      */
     reusePort: false,
-    idleTimeout: development ? 80 : undefined,
+    /**
+     * 80 in development for its slow reloads and debugger pauses. In
+     * production above Bun's 10s default: stopping a bot waits for its run
+     * to say what it did (`AppData.BotStopSummaryMs`) before the plain
+     * stopped line goes out.
+     */
+    idleTimeout: development ? 80 : 30,
 });
 
 bunext.bunextLog.info(

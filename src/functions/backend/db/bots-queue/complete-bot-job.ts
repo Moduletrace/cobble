@@ -1,6 +1,6 @@
 import BunSQLite from "@moduletrace/bun-sqlite";
 import AppError from "@/src/utils/app-error";
-import { BotNeedsYouStatusLine } from "@/src/dict/bot-queue-dict";
+import { BotNeedsYouStatusLine, BotJobStoppedError } from "@/src/dict/bot-queue-dict";
 import insertBotMessage from "../bots/insert-bot-message";
 import deleteBotMessage from "../bots/delete-bot-message";
 import setBotFace from "../bots/set-bot-face";
@@ -63,6 +63,14 @@ type Params = {
      * a run that spent its whole budget and did no work says so itself.
      */
     exhausted?: boolean;
+    /**
+     * The user stopped this run, and its message says what it did so far
+     * (`StoppedRunNote`). Nothing is answered by it: no crew request is
+     * finished, no hand-over is relayed, no handed-over task is touched
+     * (`stop-bot-jobs` ends the rest), and the bot goes idle rather than
+     * done.
+     */
+    stopped?: boolean;
 };
 
 /**
@@ -75,7 +83,9 @@ type Params = {
  * it over (`relay`), and a handed-over task left open says so, or is blocked when the run used
  * its whole step budget without finishing (`noteTrackerTask`). A hook
  * run's result is kept on the calls it answered (`recordHookCallResponse`). A job working a crew
- * request ends it (`onAskJobEnded`) and leaves the bot's face alone. Throws if this handler no longer holds the job.
+ * request ends it (`onAskJobEnded`) and leaves the bot's face alone. A run the
+ * user stopped (`stopped`) only says what it did so far and goes idle: it
+ * answers nothing. Throws if this handler no longer holds the job.
  */
 export default async function completeBotJob({
     job_id,
@@ -88,6 +98,7 @@ export default async function completeBotJob({
     task_ids = [],
     plan_id,
     exhausted,
+    stopped,
 }: Params) {
     const job = await grabLockedBotJob({ job_id, worker });
 
@@ -198,31 +209,49 @@ export default async function completeBotJob({
         bot =
             !user_id || unattended
                 ? null
-                : needs_you
-                  ? await setBotFace({
-                        bot_id: job.bot_id,
-                        user_id,
-                        face: "needs-you",
-                        status_line: BotNeedsYouStatusLine,
-                    })
-                  : await botFaceAfterJob({ bot_id: job.bot_id, user_id, kind: job.kind });
+                : stopped
+                  ? await setBotFace({ bot_id: job.bot_id, user_id, face: "idle" })
+                  : needs_you
+                    ? await setBotFace({
+                          bot_id: job.bot_id,
+                          user_id,
+                          face: "needs-you",
+                          status_line: BotNeedsYouStatusLine,
+                      })
+                    : await botFaceAfterJob({ bot_id: job.bot_id, user_id, kind: job.kind });
 
-        await noteTrackerTask({ job, exhausted });
+        if (stopped) {
+            /**
+             * A stopped run answers nothing: the hook call it was in and an
+             * install request it was settling end as stopped, and the crew
+             * request it was answering is ended by `stop-bot-jobs`.
+             */
+            await recordHookCallResponse({
+                job,
+                status: "failed",
+                response: BotJobStoppedError,
+                message_id: inserted?.id,
+            });
 
-        await recordHookCallResponse({
-            job,
-            status: "done",
-            response: result,
-            message_id: inserted?.id,
-        });
+            await settleInstallRequest({ job, text: BotJobStoppedError, failed: true });
+        } else {
+            await noteTrackerTask({ job, exhausted });
 
-        relay = silent
-            ? null
-            : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
+            await recordHookCallResponse({
+                job,
+                status: "done",
+                response: result,
+                message_id: inserted?.id,
+            });
 
-        await onAskJobEnded({ job, text: silent ? "" : result, tool_uses: tool_log });
+            relay = silent
+                ? null
+                : await relayJobToRequester({ job, text: result, task_ids: message_task_ids });
 
-        await settleInstallRequest({ job, text: result });
+            await onAskJobEnded({ job, text: silent ? "" : result, tool_uses: tool_log });
+
+            await settleInstallRequest({ job, text: result });
+        }
     } catch (error) {
         await logError({
             title: `Bot job #${job.id} completed, its clearing up didn't`,

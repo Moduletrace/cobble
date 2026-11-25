@@ -1044,6 +1044,12 @@ export const AppData = {
      */
     BotJobStepsKeepMs: 60 * 1000,
     /**
+     * How long a stop waits for the run to write what it did before it
+     * stopped (`StoppedRunNote`). Past it the plain stopped message goes out
+     * instead, so Stop never leaves the thread thinking.
+     */
+    BotStopSummaryMs: 20 * 1000,
+    /**
      * The debug view's detailed trace of a job (`bot_job_traces`, read and
      * written only by `process-bot-job`): how many rows one job keeps, how
      * much of any one text, and how long the rows stay before the daily

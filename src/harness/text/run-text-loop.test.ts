@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, StoppedRunNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -2707,5 +2707,95 @@ describe("runTextLoop trimming and wrap up notes", () => {
         });
 
         expect(runText(seen[1]!.messages)).not.toContain("What is on disk now");
+    });
+});
+
+describe("runTextLoop stop", () => {
+    const sendReply: HarnessTool<{ status?: "done" | "working" | "blocked"; message?: string }> = {
+        name: "send_reply",
+        description: "Sends the message.",
+        schema: z.object({
+            status: z.enum(["done", "working", "blocked"]).optional(),
+            message: z.string().optional(),
+        }),
+        run: async () => "Sent.",
+    };
+
+    test("a stopped run drops the call in flight and writes what it did", async () => {
+        const stop = new AbortController();
+        const seen: GenerateTextParams[] = [];
+        const generate = async (params: GenerateTextParams) => {
+            seen.push(params);
+
+            if (seen.length == 1) {
+                stop.abort();
+                throw new HarnessError({ message: "Cancelled.", code: "aborted" });
+            }
+
+            return {
+                text: "Stopped. I read the file; the report is unwritten.",
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }],
+                candidate,
+            } as GenerateTextResult;
+        };
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Write the report." }],
+            tools: [remember, sendReply],
+            stop_signal: stop.signal,
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toContain("Stopped.");
+        expect(result.status).toBe("done");
+        expect(
+            seen[1]!.messages.some(
+                (message) => typeof message.content == "string" && message.content.includes(StoppedRunNote),
+            ),
+        ).toBe(true);
+        expect(seen[1]!.tools?.map((tool) => tool.name)).toEqual(["send_reply"]);
+    });
+
+    test("a call the stop cuts off still answers every call of its turn", async () => {
+        const stop = new AbortController();
+        const cut: HarnessTool = {
+            name: "glance",
+            description: "Looks at something.",
+            schema: z.object({ at: z.string() }),
+            run: async () => {
+                stop.abort();
+                throw new HarnessError({ message: "Cancelled.", code: "aborted" });
+            },
+        };
+        const { generate, seen } = scripted([
+            {
+                tool_calls: [
+                    { id: "c1", name: "glance", arguments: `{"at":"one"}` },
+                    { id: "c2", name: "glance", arguments: `{"at":"two"}` },
+                ],
+            },
+            { text: "Stopped. I looked at one page.", tool_calls: [{ id: "s1", name: "send_reply", arguments: "{}" }] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Check both." }],
+            tools: [cut, sendReply],
+            stop_signal: stop.signal,
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        const tools = seen[1]!.messages.filter((message) => message.role == "tool");
+
+        expect(tools).toEqual([
+            { role: "tool", tool_call_id: "c1", content: "The user stopped this call." },
+            { role: "tool", tool_call_id: "c2", content: "The user stopped this call." },
+        ]);
+        expect(result.text).toContain("Stopped.");
     });
 });

@@ -137,6 +137,7 @@ export default async function runBotTask({
     job,
     params,
     signal,
+    stop_signal,
     report,
     trace,
 }: Params): Promise<BotJobOutcome> {
@@ -771,6 +772,7 @@ export default async function runBotTask({
             bot_id: bot.id,
             workspace_id,
             signal,
+            stop_signal,
             onStep: (step) =>
                 report({ ...step, text: step.text ? redact_text(step.text) : step.text }),
             /**

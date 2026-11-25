@@ -87,11 +87,26 @@ export default async function processBotJob({
 
     const controller = new AbortController();
     /**
+     * The user's Stop, which is not a cancellation: the run stops at its
+     * step and writes what it did so far, and that message is posted instead
+     * of the app's plain stopped line (`stop-bot-jobs` waits
+     * `AppData.BotStopSummaryMs` for it).
+     */
+    const stop_controller = new AbortController();
+    let stop_requested = false;
+    /**
      * Registered before the first read below: those queries can wait on a
      * busy database, and a Stop that arrived while they ran found nothing
      * to abort, so a stopped job went on running until its own next write.
      */
-    registerJobAbort({ job_id, abort: () => controller.abort() });
+    registerJobAbort({
+        job_id,
+        abort: () => controller.abort(),
+        stop_summary: () => {
+            stop_requested = true;
+            stop_controller.abort();
+        },
+    });
 
     /**
      * Its face changes only for the user it works for.
@@ -280,6 +295,7 @@ export default async function processBotJob({
                         params,
                         checkpoint: parseJobJson({ text: job.checkpoint }),
                         signal: run_signal,
+                        stop_signal: stop_controller.signal,
                         update,
                         report,
                         trace,
@@ -319,6 +335,7 @@ export default async function processBotJob({
             task_ids: outcome.task_ids,
             plan_id: outcome.plan_message_id,
             exhausted: outcome.exhausted,
+            stopped: stop_requested,
         });
 
         await pushBotNotice({ bot_id, ...completion });
@@ -362,6 +379,13 @@ export default async function processBotJob({
         }
     } catch (error: unknown) {
         if (controller.signal.aborted) return;
+
+        /**
+         * A stopped run that couldn't write its summary leaves the job open:
+         * `stop-bot-jobs` fails it and posts the plain stopped line when its
+         * wait runs out, so a stop is never turned into a retryable failure.
+         */
+        if (stop_requested) return;
 
         /**
          * Every model is cooling down (rate limits): nothing was tried, so

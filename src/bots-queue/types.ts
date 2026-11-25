@@ -18,6 +18,14 @@ export type BotJobContext = {
      */
     signal: AbortSignal;
     /**
+     * Aborted when the user stops this run from the chat. Unlike `signal`
+     * the job is not cancelled: the run stops at the step it is on and
+     * writes what it did so far (`StoppedRunNote`), which is posted as the
+     * run's message. `stop-bot-jobs` gives it
+     * `AppData.BotStopSummaryMs` before the plain stopped line goes out.
+     */
+    stop_signal: AbortSignal;
+    /**
      * Save progress and a checkpoint. The lock is renewed on a timer
      * already, so call this for meaningful steps. False once the job is
      * cancelled or lost.

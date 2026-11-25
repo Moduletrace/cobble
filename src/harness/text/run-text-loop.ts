@@ -17,6 +17,7 @@ import {
     replyDraftNote,
     replyNoTextNote,
     staticPromptOverBudgetNote,
+    StoppedRunNote,
     stuckToolNote,
     tokensLowNote,
 } from "@/src/data/harness-prompts";
@@ -98,6 +99,13 @@ type Params = {
      */
     context_budget?: RunLimit;
     signal?: AbortSignal;
+    /**
+     * Aborted when the user stops the run from the chat: the call in flight
+     * is dropped, and the run's next turn stops where it is and writes what
+     * it did so far (`StoppedRunNote`). Never the same as `signal`: that one
+     * ends the run with no answer at all.
+     */
+    stop_signal?: AbortSignal;
     /**
      * The model a plan turn already used (`planBotTask`). Tried first among
      * the automatic picks, so the run works the plan on the model that
@@ -432,6 +440,7 @@ export default async function runTextLoop({
     max_prompt_tokens,
     context_budget,
     signal = new AbortController().signal,
+    stop_signal,
     prefer_key: planned_key,
     onStep,
     trace,
@@ -699,6 +708,18 @@ export default async function runTextLoop({
      * on): the next turn offers none, so the run always ends.
      */
     let used_wrap_turn = false;
+    /**
+     * The user stopped the run: whatever was in flight is dropped, and the
+     * turn that follows says what the run did so far (`StoppedRunNote`).
+     */
+    let stopped = false;
+    /**
+     * What an in-flight call is aborted by. The stop reaches only the turn
+     * it interrupted: the summary after it has to reach the model, or the
+     * run could never say what it did (the job's own `signal` still ends it,
+     * and `stop-bot-jobs` gives up after `AppData.BotStopSummaryMs`).
+     */
+    const callSignal = () => (stopped || !stop_signal ? signal : AbortSignal.any([signal, stop_signal]));
 
     /**
      * One trace entry, kept only when the run has somewhere to put it. A
@@ -790,7 +811,13 @@ export default async function runTextLoop({
                 max_prompt_tokens > 0 &&
                 usage.prompt_tokens >= max_prompt_tokens,
         );
-        const wrap_up: boolean = out_of_steps || out_of_tokens || same_tool.stuck !== null;
+        /**
+         * A stop is the run's own wrap up: no more work, one turn to say
+         * what it did. Read once and kept, so the turn after a dropped call
+         * is still the summary.
+         */
+        stopped ||= Boolean(stop_signal?.aborted);
+        const wrap_up: boolean = out_of_steps || out_of_tokens || same_tool.stuck !== null || stopped;
         /**
          * Why the run is wrapping up: its steps, its tokens, or one tool
          * called over and over.
@@ -802,12 +829,33 @@ export default async function runTextLoop({
          * with no tools at all, so the run always ends.
          */
         const wrap_up_saving =
-            wrap_up && !used_wrap_turn && saving_turns < WrapUpSavingTurns && wrap_tools.length > 0;
+            wrap_up && !stopped && !used_wrap_turn && saving_turns < WrapUpSavingTurns && wrap_tools.length > 0;
+        /**
+         * The turn past which nothing is written again. A stopped run keeps
+         * its one rewrite: a summary the review faults has to be written
+         * once more, or the stop says nothing.
+         */
+        const final_wrap = wrap_up && !wrap_up_saving && !stopped;
 
         if (wrap_up && !wrap_up_announced) {
             wrap_up_announced = true;
 
-            if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up, index, counted: false });
+            if (stopped) {
+                /**
+                 * A stopped run gets no wrap-up prompt and no worktree
+                 * read: it stops where it is and writes what happened.
+                 */
+                pushUserTurn({ transcript, content: StoppedRunNote });
+                await traced({
+                    kind: "event",
+                    index,
+                    name: "stopped",
+                    text: "The user stopped this run. It writes what happened so far.",
+                });
+            }
+
+            if (!stopped) {
+                if (incoming_notes?.wrap_up) await takeIncoming({ note: incoming_notes.wrap_up, index, counted: false });
 
             /**
              * The machine's own account of the work, when the caller has
@@ -845,6 +893,7 @@ export default async function runTextLoop({
                           : "Out of tokens"
                 }. ${wrap_tools.length ? `It has one turn left with ${wrap_tools.map((tool) => tool.name).join(", ")}.` : "It has no tool left and must answer now."}`,
             });
+            }
         }
 
         if (wrap_up_saving) saving_turns++;
@@ -935,17 +984,30 @@ export default async function runTextLoop({
 
         const turn_started_at = Date.now();
 
-        const answer = await generate({
-            messages: [{ role: "system", content: run_system }, ...transcript],
-            tools: definitions.length ? definitions : undefined,
-            candidates,
-            prefer_key,
-            signal,
-            media_cache,
-            bot_id,
-            workspace_id,
-            limits: call_limits,
-        });
+        let answer: Awaited<ReturnType<typeof generate>>;
+
+        try {
+            answer = await generate({
+                messages: [{ role: "system", content: run_system }, ...transcript],
+                tools: definitions.length ? definitions : undefined,
+                candidates,
+                prefer_key,
+                signal: callSignal(),
+                media_cache,
+                bot_id,
+                workspace_id,
+                limits: call_limits,
+            });
+        } catch (error) {
+            /**
+             * The user stopped the run while the model was answering: that
+             * call is dropped and the next turn writes what happened.
+             */
+            if (!stop_signal?.aborted || signal.aborted) throw error;
+
+            stopped = true;
+            continue;
+        }
 
         prefer_key = answer.candidate.key;
         usage.prompt_tokens += answer.usage?.prompt_tokens || 0;
@@ -1007,6 +1069,7 @@ export default async function runTextLoop({
         if (
             wrap_up &&
             !wrap_up_saving &&
+            !stopped &&
             answer_tools.length > 0 &&
             answer.tool_calls.some((call) => !answer_tools.some((tool) => tool.name == call.name))
         ) {
@@ -1085,7 +1148,7 @@ export default async function runTextLoop({
              * the end: returning it as an answer is exactly the hole this
              * protocol closes.
              */
-            if (!(wrap_up && !wrap_up_saving) && reply_drafts < AppData.HarnessReplyDraftsMax) {
+            if (!final_wrap && reply_drafts < AppData.HarnessReplyDraftsMax) {
                 reply_drafts += 1;
                 draft_text = answer.text || "";
                 card_text = "";
@@ -1108,7 +1171,7 @@ export default async function runTextLoop({
         if (!tool_calls.length && (!wrap_up || review_pending)) {
             review_pending = false;
 
-            const check = await checkAnswer({ text: answer.text || "", index, final: wrap_up });
+            const check = await checkAnswer({ text: answer.text || "", index, final: final_wrap });
 
             if (check.verdict === "refused") {
                 /**
@@ -1126,7 +1189,7 @@ export default async function runTextLoop({
                      * (M3). So the repaired text is checked again, and goes
                      * out only once the app's record supports all of it.
                      */
-                    const recheck = await checkAnswer({ text: repaired.text, index, final: wrap_up });
+                    const recheck = await checkAnswer({ text: repaired.text, index, final: final_wrap });
 
                     if (recheck.verdict === "passed") {
                         await traced({
@@ -1182,7 +1245,7 @@ export default async function runTextLoop({
                 const said = (answer.text || "").trim();
 
                 return {
-                    text: said || `I ran out of steps before I could finish.`,
+                    text: said || (stopped ? "" : `I ran out of steps before I could finish.`),
                     messages: transcript,
                     steps: index + 1,
                     candidate: answer.candidate,
@@ -1200,7 +1263,7 @@ export default async function runTextLoop({
             const said = (answer.text || "").trim();
 
             return {
-                text: said || (wrap_up ? `I ran out of steps before I could finish.` : ""),
+                text: said || (wrap_up && !stopped ? `I ran out of steps before I could finish.` : ""),
                 messages: transcript,
                 steps: index + 1,
                 candidate: answer.candidate,
@@ -1212,6 +1275,12 @@ export default async function runTextLoop({
         if (wrap_up_saving) used_wrap_turn = true;
 
         const shown: { tool_name: string; images: HarnessToolImage[] }[] = [];
+
+        /**
+         * A call the stop cut off takes the rest of the turn with it: the
+         * summary is the next turn, not this one.
+         */
+        let broke_for_stop = false;
 
         for (const call of tool_calls) {
             const repeat_key = repeatToolCallKey({ call });
@@ -1229,27 +1298,51 @@ export default async function runTextLoop({
             const give_up =
                 failed_before !== undefined && failed_before.attempts > AppData.HarnessSameFailureRetries;
 
-            const result: ToolCallResult =
-                already_read !== undefined
-                    ? {
-                          text: alreadyRanToolNote({ name: call.name, step: already_read }),
-                          images: [],
-                          duration_ms: 0,
-                          ok: true,
-                      }
-                    : give_up
-                      ? {
-                            text: failedToolCallNote({
-                                name: call.name,
-                                step: failed_before.step,
-                                attempts: failed_before.attempts,
-                                error: failed_before.error,
-                            }),
-                            images: [],
-                            duration_ms: 0,
-                            ok: false,
-                        }
-                      : await runToolCall({ call, tools: run_tools, signal });
+            let result: ToolCallResult;
+
+            try {
+                result =
+                    already_read !== undefined
+                        ? {
+                              text: alreadyRanToolNote({ name: call.name, step: already_read }),
+                              images: [],
+                              duration_ms: 0,
+                              ok: true,
+                          }
+                        : give_up
+                          ? {
+                                text: failedToolCallNote({
+                                    name: call.name,
+                                    step: failed_before.step,
+                                    attempts: failed_before.attempts,
+                                    error: failed_before.error,
+                                }),
+                                images: [],
+                                duration_ms: 0,
+                                ok: false,
+                            }
+                          : await runToolCall({ call, tools: run_tools, signal: callSignal() });
+            } catch (error) {
+                /**
+                 * The user stopped the run while this call ran: it stops
+                 * here, and every call of the turn still gets an answer so
+                 * the conversation stays valid. The next turn says what
+                 * happened.
+                 */
+                if (!stop_signal?.aborted || signal.aborted) throw error;
+
+                for (const cut of tool_calls.slice(tool_calls.indexOf(call))) {
+                    transcript.push({
+                        role: "tool",
+                        tool_call_id: cut.id,
+                        content: "The user stopped this call.",
+                    });
+                }
+
+                stopped = true;
+                broke_for_stop = true;
+                break;
+            }
 
             const { text: content, images } = result;
             const ok = result.ok;
@@ -1323,6 +1416,8 @@ export default async function runTextLoop({
 
             if (images.length) shown.push({ tool_name: call.name, images });
         }
+
+        if (broke_for_stop) continue;
 
         /**
          * An answer that called a card is the whole reply: the question
@@ -1404,7 +1499,7 @@ export default async function runTextLoop({
              * card it can't put up. A required closing message is refused
              * instead: without `send_reply` there is no honest message.
              */
-            if (closing_retries >= AppData.MaxClosingRetries || (wrap_up && !wrap_up_saving)) {
+            if (closing_retries >= AppData.MaxClosingRetries || final_wrap) {
                 if (require_closing_answer) {
                     return {
                         text: "",
@@ -1421,7 +1516,7 @@ export default async function runTextLoop({
                     };
                 }
 
-                const check = await checkAnswer({ text: answer.text || "", index, final: wrap_up && !wrap_up_saving });
+                const check = await checkAnswer({ text: answer.text || "", index, final: final_wrap });
 
                 return {
                     text: check.verdict === "refused" ? "" : answer.text || "",
@@ -1460,7 +1555,7 @@ export default async function runTextLoop({
         if (closing_worked && called_card && !message_text.trim()) {
             const no_text_note = called_send_reply ? replyNoTextNote : closingNoTextNote;
 
-            if (!told_closing_text && !(wrap_up && !wrap_up_saving)) {
+            if (!told_closing_text && !final_wrap) {
                 told_closing_text = true;
                 pushUserTurn({ transcript, content: no_text_note });
                 await traced({ kind: "event", index, name: "closing_no_text", text: no_text_note });
@@ -1500,7 +1595,7 @@ export default async function runTextLoop({
             const unfinished = unfinishedAnswerText({ text: message_text });
 
             if (unfinished) {
-                if (!told_unfinished && !(wrap_up && !wrap_up_saving)) {
+                if (!told_unfinished && !final_wrap) {
                     told_unfinished = true;
                     draft_text = "";
                     card_text = "";
@@ -1520,7 +1615,7 @@ export default async function runTextLoop({
                 };
             }
 
-            const final_turn = wrap_up && !wrap_up_saving;
+            const final_turn = final_wrap;
             const check = await checkAnswer({ text: message_text, index, status: reply_status, final: final_turn });
 
             if (check.verdict === "refused") {
@@ -1546,7 +1641,7 @@ export default async function runTextLoop({
                             candidate: answer.candidate,
                             usage,
                             tool_uses,
-                            status: reply_status,
+                            status: stopped ? "done" : reply_status,
                         };
                     }
                 }
@@ -1581,7 +1676,7 @@ export default async function runTextLoop({
                 candidate: answer.candidate,
                 usage,
                 tool_uses,
-                status: reply_status,
+                status: stopped ? "done" : reply_status,
             };
         }
 

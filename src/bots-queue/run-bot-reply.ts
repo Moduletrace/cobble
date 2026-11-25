@@ -135,6 +135,7 @@ export default async function runBotReply({
     user_id,
     job,
     signal,
+    stop_signal,
     report,
     trace,
 }: Params): Promise<BotJobOutcome> {
@@ -731,6 +732,7 @@ export default async function runBotReply({
             bot_id: bot.id,
             workspace_id,
             signal,
+            stop_signal,
             onStep: report,
             trace,
             incoming,

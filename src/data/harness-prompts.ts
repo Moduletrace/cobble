@@ -130,6 +130,18 @@ The user asked for this reply again. Work from their latest messages and write i
 - Start the work now, in this reply or with send_reply status "working" and work: never answer that you'll look into it.`;
 
 /**
+ * The turn a run gets when the user stops it from the chat: stop where it
+ * is, and say what happened so far, so the thread's last word comes from
+ * the run instead of the app's plain stopped line. `stop-bot-jobs` gives it
+ * `AppData.BotStopSummaryMs` before that line goes out anyway.
+ */
+export const StoppedRunNote = `# Stopped
+
+The user stopped this run. Stop at the step you are on: don't call any tool that does work, and don't start, queue or promise anything new.
+
+Write one short message for them that starts with "Stopped." and says what this run did so far and what is still undone, only from what it actually did (the tool calls it made and what came back). Then call send_reply with status "done".`;
+
+/**
  * Added beside `RerunReplyNote` when the attempt before this one failed:
  * `reason` is the job's `last_error` (`grabRetryFailure`), so the run knows
  * what went wrong instead of starting from the same wrong premise. Cut
