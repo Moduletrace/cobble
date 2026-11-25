@@ -38,7 +38,7 @@ export default function updateScheduleTool({ user_id, bot_id, is_coordinator, wo
         schema: z.object({
             schedule_id: z.number().int(),
             title: z.string().min(1).max(80).optional(),
-            instructions: z.string().min(1).max(8000).optional(),
+            instructions: z.string().min(1).max(8000).optional().describe("The brief every run follows, as its plan: the steps in order"),
             schedule: z.string().min(1).max(100).optional(),
             enabled: z.boolean().optional(),
             max_runs: z.number().int().positive().nullable().optional(),

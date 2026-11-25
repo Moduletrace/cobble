@@ -46,7 +46,7 @@ export default function createScheduleTool({ user_id, bot_id, workspace_id, comp
             computers.length
                 ? `Runs use the computer you're on when they start unless you pick one: ${listed}.`
                 : `You have no computer here, so runs can't use one.`
-        } Write the instructions as a full brief for a future you with no memory of this chat. Runs carry the brief out without asking the user, so state the action itself ("send the summary to ..."), not a draft for them to approve, unless they asked to approve it.`,
+        } Write the instructions as a full brief for a future you with no memory of this chat, and as the plan the run follows: the steps in order, each naming what it produces. Runs carry the brief out without asking the user, so state the action itself ("send the summary to ..."), not a draft for them to approve, unless they asked to approve it.`,
         schema: z.object({
             title: z.string().min(1).max(80).describe(`A short label, e.g. "Morning inbox digest"`),
             instructions: z.string().min(1).max(8000),
