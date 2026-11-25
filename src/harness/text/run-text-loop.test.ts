@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, StoppedRunNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, closingToolGoneNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, StoppedRunNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -2044,6 +2044,77 @@ describe("runTextLoop required send_reply", () => {
 
         expect(result.text).toBe("");
         expect(result.review_note).toBe(replyDraftNote);
+    });
+
+    test("a stray call on the last turn is traced, and gets one more turn to answer", async () => {
+        /**
+         * Job 687 reached for a tool the run no longer had on its last turn:
+         * the call and a finished report were dropped, the turn was never
+         * traced, and the notice read as if the review had refused the text.
+         */
+        const { generate, seen } = scripted([
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"x"}` }] },
+            { text: "First draft." },
+            { text: "Second draft." },
+            { tool_calls: [{ id: "c2", name: "remember", arguments: `{"note":"again"}` }] },
+            {
+                text: "The report.",
+                tool_calls: [{ id: "s1", name: "send_reply", arguments: `{"status":"done"}` }],
+            },
+        ]);
+        const traces: HarnessTrace[] = [];
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Go." }],
+            tools: [remember, sendReply],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+            trace: (entry) => {
+                traces.push(entry);
+            },
+        });
+
+        expect(seen).toHaveLength(5);
+        expect(seen[4]!.tools!.map((tool) => tool.name)).toEqual(["send_reply"]);
+        expect(seen[4]!.messages.at(-1)!.content).toContain(closingToolGoneNote);
+        expect(traces.find((entry) => entry.kind === "turn" && entry.index === 3)).toMatchObject({
+            text: null,
+            tool_calls: [{ name: "remember", arguments: `{"note":"again"}` }],
+        });
+        expect(traces.find((entry) => entry.kind === "event" && entry.name === "closing_failed")).toMatchObject({
+            index: 3,
+        });
+        expect(result.text).toBe("The report.");
+        expect(result.tool_uses).toEqual([
+            { name: "remember", ok: true },
+            { name: "send_reply", ok: true },
+        ]);
+    });
+
+    test("a second stray call on the last turn ends the run unsent", async () => {
+        const { generate } = scripted([
+            { tool_calls: [{ id: "c1", name: "remember", arguments: `{"note":"x"}` }] },
+            { text: "First draft." },
+            { text: "Second draft." },
+            { tool_calls: [{ id: "c2", name: "remember", arguments: `{"note":"again"}` }] },
+            { tool_calls: [{ id: "c3", name: "remember", arguments: `{"note":"and again"}` }] },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Go." }],
+            tools: [remember, sendReply],
+            max_steps: 1,
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(result.text).toBe("");
+        expect(result.review_note).toBe(closingToolGoneNote);
     });
 
     test("passes send_reply's status to the review", async () => {

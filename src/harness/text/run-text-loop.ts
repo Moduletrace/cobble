@@ -5,6 +5,7 @@ import {
     closingFailedNote,
     closingMixedNote,
     closingNoTextNote,
+    closingToolGoneNote,
     commitEarlyNote,
     contextTrimmedNote,
     failedToolCallNote,
@@ -626,6 +627,11 @@ export default async function runTextLoop({
      */
     let told_closing_text = false;
     /**
+     * The last turn called a tool the run no longer has, and has been told
+     * once to write its message again beside `send_reply`.
+     */
+    let told_stray_call = false;
+    /**
      * A message that stopped inside a table, a fence or a bare marker has
      * been sent back once (`unfinishedAnswerText`). Past that the run
      * fails rather than shipping the cut-off text.
@@ -734,6 +740,35 @@ export default async function runTextLoop({
             /* the debug view is never worth a failed run */
         }
     };
+
+    /**
+     * A turn as the debug view reads it: what the model reasoned and said,
+     * the calls it made and the answer it spent. Written wherever a turn
+     * ends, the one dropped for calling a tool it no longer has included.
+     */
+    const traceTurn = async ({
+        index,
+        answer,
+        calls,
+        started_at,
+    }: {
+        index: number;
+        answer: Awaited<ReturnType<typeof generate>>;
+        calls: { name: string; arguments: string }[];
+        started_at: number;
+    }) =>
+        traced({
+            kind: "turn",
+            index,
+            model: answer.candidate.model.name || answer.candidate.model.slug,
+            provider: answer.candidate.provider.name || null,
+            text: answer.text,
+            reasoning: answer.reasoning ?? null,
+            tool_calls: calls.map((call) => ({ name: call.name, arguments: call.arguments })),
+            usage: answer.usage ?? null,
+            finish_reason: answer.finish_reason ?? null,
+            duration_ms: Date.now() - started_at,
+        });
 
     /**
      * The answer checked against the app's own record before it goes out:
@@ -1061,25 +1096,41 @@ export default async function runTextLoop({
         }
 
         /**
-         * On the last turn only the answer tool is offered: a turn that
-         * reaches for anything else beside it would have that call silently
-         * dropped, and the message could say it happened. Refuse the whole
-         * turn and say what is left.
+         * On the last turn only the answer tool is offered: a call for
+         * anything else beside it would never run, and the message could say
+         * it did. The call and that turn's message are dropped, and the turn
+         * is told once what is left.
          */
-        if (
-            wrap_up &&
-            !wrap_up_saving &&
-            !stopped &&
-            answer_tools.length > 0 &&
-            answer.tool_calls.some((call) => !answer_tools.some((tool) => tool.name == call.name))
-        ) {
+        const stray_calls =
+            wrap_up && !wrap_up_saving && !stopped && answer_tools.length > 0
+                ? answer.tool_calls.filter((call) => !answer_tools.some((tool) => tool.name == call.name))
+                : [];
+
+        if (stray_calls.length) {
             /**
-             * This is the last turn, so there is no next one to try again
-             * on: the message would be a draft the app cannot vouch for.
+             * The dropped turn is traced before it goes: it is the one that
+             * ended the run, and a debug view that left it out showed a run
+             * failing with nothing after its last tool (job 687).
              */
+            await traceTurn({ index, answer, calls: answer.tool_calls, started_at: turn_started_at });
+
+            if (!told_stray_call && !out_of_tokens) {
+                told_stray_call = true;
+                pushUserTurn({ transcript, content: closingToolGoneNote });
+                await traced({
+                    kind: "event",
+                    index,
+                    name: "closing_failed",
+                    text: `Only ${answer_tools.map((tool) => tool.name).join(" and ")} can end this run, and this turn called ${stray_calls.map((call) => call.name).join(", ")} instead, so it has one more turn to write the message.`,
+                });
+                continue;
+            }
+
+            await traced({ kind: "event", index, name: "closing_failed", text: closingToolGoneNote });
+
             return {
                 text: "",
-                review_note: `Only ${answer_tools.map((tool) => tool.name).join(" and ")} can end this run, and this turn called something else beside it, so no message was sent.`,
+                review_note: closingToolGoneNote,
                 messages: transcript,
                 steps: index + 1,
                 candidate: answer.candidate,
@@ -1101,18 +1152,7 @@ export default async function runTextLoop({
             candidate: answer.candidate,
         });
 
-        await traced({
-            kind: "turn",
-            index,
-            model: answer.candidate.model.name || answer.candidate.model.slug,
-            provider: answer.candidate.provider.name || null,
-            text: answer.text,
-            reasoning: answer.reasoning ?? null,
-            tool_calls: tool_calls.map((call) => ({ name: call.name, arguments: call.arguments })),
-            usage: answer.usage ?? null,
-            finish_reason: answer.finish_reason ?? null,
-            duration_ms: Date.now() - turn_started_at,
-        });
+        await traceTurn({ index, answer, calls: tool_calls, started_at: turn_started_at });
 
         /**
          * An answer the user wrote past is drafted again. Not on the wrap

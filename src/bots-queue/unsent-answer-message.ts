@@ -1,4 +1,4 @@
-import { closingNoTextNote, replyDraftNote, replyNoTextNote } from "@/src/data/harness-prompts";
+import { closingNoTextNote, closingToolGoneNote, replyDraftNote, replyNoTextNote } from "@/src/data/harness-prompts";
 
 type Params = {
     /**
@@ -23,6 +23,10 @@ export default function unsentAnswerMessage({ note }: Params) {
 
     if (note === replyDraftNote) {
         return `The reply ended as a draft instead of a sent message, so it wasn't sent.`;
+    }
+
+    if (note === closingToolGoneNote) {
+        return `The run's last turn called a tool it no longer had, so its message wasn't sent.`;
     }
 
     return `The answer didn't hold up against the app's record, so it wasn't sent.`;

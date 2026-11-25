@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { closingNoTextNote, replyDraftNote, replyNoTextNote } from "@/src/data/harness-prompts";
+import { closingNoTextNote, closingToolGoneNote, replyDraftNote, replyNoTextNote } from "@/src/data/harness-prompts";
 import unsentAnswerMessage from "./unsent-answer-message";
 
 /**
@@ -20,6 +20,12 @@ describe("unsentAnswerMessage", () => {
     test("a draft says the reply was never sent as a message", () => {
         expect(unsentAnswerMessage({ note: replyDraftNote })).toBe(
             `The reply ended as a draft instead of a sent message, so it wasn't sent.`,
+        );
+    });
+
+    test("a last turn that called a tool it no longer had says so", () => {
+        expect(unsentAnswerMessage({ note: closingToolGoneNote })).toBe(
+            `The run's last turn called a tool it no longer had, so its message wasn't sent.`,
         );
     });
 

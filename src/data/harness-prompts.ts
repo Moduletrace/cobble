@@ -574,6 +574,15 @@ export const closingFailedNote = `The card that call was meant to put up was not
 export const closingMixedNote = `The card you put up is there: that call worked. This turn also did other work, so it isn't the reply yet. Don't put another card up - a run asks once - and don't call ask_user or suggest_next_steps again. Write the message that goes with the card you already created, and stop there.`;
 
 /**
+ * Told when the run's last turn called a tool it no longer has: only
+ * `send_reply` is offered by then, so the call and the message beside it are
+ * dropped and nothing was sent. A finished report is the whole point of a
+ * run that got this far, so it is written again once before the run gives up
+ * (job 687 lost one to a stray call).
+ */
+export const closingToolGoneNote = `This run's last turn offers send_reply alone, and the tool you called is not one it can run any more: that call and the message beside it were dropped, so nothing was sent. Write the whole message again in that turn as send_reply's text or its message argument, with status "done" when nothing is running after it, "working" when something is, or "blocked" when it can't go on. Finish every table, list and code fence in it.`;
+
+/**
  * Told once when a closing call worked but the turn said nothing beside it:
  * a card alone leaves the user with buttons and no answer, and a run that
  * carries on from there works on the thing it just asked about.
