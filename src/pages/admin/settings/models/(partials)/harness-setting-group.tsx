@@ -1,5 +1,5 @@
 import { harnessFallbackTitle } from "@/src/dict/harness-dict";
-import type { HarnessFormValue, HarnessOverview } from "@/src/types";
+import type { HarnessFormValue, HarnessModelOption, HarnessOverview } from "@/src/types";
 import SettingsGroup from "../../(partials)/settings-group";
 import harnessDefaultName from "../(utils)/harness-default-name";
 import nextHarnessModelValue from "../(utils)/next-harness-model-value";
@@ -9,6 +9,7 @@ import HarnessModelSelect from "./harness-model-select";
 import HarnessOptionsCheckboxes from "./harness-options-checkboxes";
 import HarnessParamsButton from "./harness-params-button";
 import HarnessProviderSelect from "./harness-provider-select";
+import HarnessReferenceModelNote from "./harness-reference-model-note";
 import HarnessTextFallbacks from "./harness-text-fallbacks";
 import HarnessVoiceControls from "./harness-voice-controls";
 import HarnessWindowNote from "./harness-window-note";
@@ -17,13 +18,18 @@ type Props = {
     harness: HarnessOverview;
     value: HarnessFormValue;
     onChange: (value: HarnessFormValue) => void;
+    /**
+     * Image editing's current model, for the Image group's note about
+     * reference images.
+     */
+    reference_model?: HarnessModelOption;
 };
 
 /**
  * One harness: its provider, its model, text fallback models,
  * automatic fallback options, and voice controls for speech.
  */
-export default function HarnessSettingGroup({ harness, value, onChange }: Props) {
+export default function HarnessSettingGroup({ harness, value, onChange, reference_model }: Props) {
     const id = `harness-${harness.harness}`;
     const provider = harness.providers.find((p) => p.id == value.provider_id);
     const models = value.provider_id
@@ -67,6 +73,12 @@ export default function HarnessSettingGroup({ harness, value, onChange }: Props)
                     onChange={(model_id) => onChange(nextHarnessModelValue({ value, model_id }))}
                 />
             )}
+            {harness.harness == "image" ? (
+                <HarnessReferenceModelNote
+                    model={value.inherit ? harness.default?.current : picked || harness.current}
+                    reference_model={reference_model}
+                />
+            ) : null}
             <HarnessTextFallbacks id={id} harness={harness} value={value} onChange={onChange} />
             <HarnessCurrentModel
                 harness={value.inherit && harness.default ? { ...harness, ...harness.default } : harness}

@@ -11,6 +11,12 @@ type Params = {
     status?: number;
     retryable?: boolean;
     retry_at?: number;
+    /**
+     * The provider never answered within `AppData.HarnessRequestTimeoutMs`.
+     * A tool whose retry only waits the same span again (`generate_image`)
+     * reads it to stop instead of spending another three minutes.
+     */
+    timed_out?: boolean;
     provider_wide?: boolean;
     candidate_key?: string;
     resting?: boolean;
@@ -49,6 +55,7 @@ export default class HarnessError extends Error {
      * Unix ms before which the failed candidate shouldn't be tried again.
      */
     retry_at?: number;
+    timed_out: boolean;
     /**
      * The provider's key or account is the problem, so every model on it
      * fails the same way.
@@ -75,6 +82,7 @@ export default class HarnessError extends Error {
         status,
         retryable = false,
         retry_at,
+        timed_out = false,
         provider_wide = false,
         candidate_key,
         resting = false,
@@ -89,6 +97,7 @@ export default class HarnessError extends Error {
         this.status = status;
         this.retryable = retryable;
         this.retry_at = retry_at;
+        this.timed_out = timed_out;
         this.provider_wide = provider_wide;
         this.candidate_key = candidate_key;
         this.resting = resting;

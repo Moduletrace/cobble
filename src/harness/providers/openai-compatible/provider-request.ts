@@ -88,7 +88,14 @@ export default async function providerRequest({
                     : `Couldn't reach ${provider_name} at ${method} ${url}: ${error instanceof Error ? error.message : String(error)}`
                 : `${provider_name} stopped sending the response.`;
 
-        return new HarnessError({ message, retryable: true, candidate_key, method, url });
+        return new HarnessError({
+            message,
+            retryable: true,
+            candidate_key,
+            method,
+            url,
+            timed_out: phase == "headers" && controller.signal.aborted,
+        });
     };
 
     let res: Response;

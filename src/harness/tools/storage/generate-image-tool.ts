@@ -4,6 +4,7 @@ import { AppData } from "@/src/data/app-data";
 import generateImage from "@/src/harness/image/generate-image";
 import loadReferenceImages from "@/src/harness/image/load-reference-images";
 import describeHarnessFailure from "@/src/harness/describe-harness-failure";
+import HarnessError from "@/src/harness/harness-error";
 import parseFileRef from "@/src/utils/parse-file-ref";
 import type { HarnessTool } from "../../types";
 import {
@@ -35,6 +36,12 @@ type Args = {
  */
 export default function generateImageTool(context: StorageToolContext): HarnessTool<Args> {
     const own = context.scopes[0];
+    /**
+     * A provider that never answers costs the whole request timeout and a
+     * retry waits the same span again (one run spent 29 minutes on four).
+     * This run gets one timeout, then a plain report.
+     */
+    let timed_out = false;
 
     return {
         name: "generate_image",
@@ -68,6 +75,12 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
             scope: z.string().optional().describe(`"bot:<id>" or "workspace:<id>"`),
         }),
         run: async ({ args, signal }) => {
+            if (timed_out) {
+                throw new Error(
+                    `The image model timed out earlier in this run, so calling it again would wait the same ${Math.round(AppData.HarnessRequestTimeoutMs / 60_000)} minutes and fail the same way. Stop here and report what failed. Don't build the image another way unless the user asks for that.`,
+                );
+            }
+
             const named = args.scope
                 ? findNamedScope({ scopes: context.scopes, name: args.scope })
                 : own;
@@ -100,6 +113,7 @@ export default function generateImageTool(context: StorageToolContext): HarnessT
                 bot_id: context.bot_id,
                 workspace_id: context.workspace_id,
             }).catch((error: unknown) => {
+                timed_out = error instanceof HarnessError && error.timed_out;
                 throw new Error(`Image generation isn't working: ${describeHarnessFailure({ error })}`);
             });
 

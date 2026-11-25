@@ -259,6 +259,7 @@ export default async function withCandidates<T>({
         model_name: last.model_name,
         method: last.method,
         url: last.url,
+        timed_out: last.timed_out,
     });
 }
 

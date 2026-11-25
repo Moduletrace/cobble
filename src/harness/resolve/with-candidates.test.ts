@@ -170,6 +170,30 @@ describe("withCandidates", () => {
         expect(error.retryable).toBe(false);
     });
 
+    /**
+     * `generate_image` stops a run's later calls after a provider timeout, so
+     * the flag has to survive the error the caller finally sees.
+     */
+    test("keeps the timeout flag from the failure it reports", async () => {
+        const a = candidate("a");
+
+        const error = (await withCandidates({
+            harness: "image",
+            candidates: [a],
+            cooldowns: createCooldowns(),
+            run: async () => {
+                throw new HarnessError({
+                    message: "took too long to answer",
+                    retryable: true,
+                    candidate_key: a.key,
+                    timed_out: true,
+                });
+            },
+        }).catch((e) => e)) as HarnessError;
+
+        expect(error.timed_out).toBe(true);
+    });
+
     test("waits instead of calling when everything is cooling down", async () => {
         const cooldowns = createCooldowns();
         const a = candidate("a");

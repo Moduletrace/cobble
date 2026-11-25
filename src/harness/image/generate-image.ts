@@ -7,6 +7,7 @@ import type { HarnessImageOutput, HarnessUsage } from "../types";
 import buildUsageCall from "../usage/build-usage-call";
 import recordHarnessUsage from "../usage/record-harness-usage";
 import orderImageCandidates from "./order-image-candidates";
+import referenceModelNote from "./reference-model-note";
 
 type Params = {
     prompt: string;
@@ -63,8 +64,15 @@ export default async function generateImage({
     }
 
     const harness_of = new Map(ordered.map(({ candidate, harness }) => [candidate.key, harness]));
+    /**
+     * A pick that can't take an image is skipped with references, so the
+     * failure names the model that actually ran and why the pick wasn't it.
+     */
+    const note = has_references
+        ? referenceModelNote({ image, tried: ordered[0]?.candidate.model })
+        : undefined;
 
-    const { result } = await withCandidates<{ images: HarnessImageOutput[]; usage?: HarnessUsage }>({
+    const made = await withCandidates<{ images: HarnessImageOutput[]; usage?: HarnessUsage }>({
         harness: edit?.picked ? "image_edit" : "image",
         harness_of,
         candidates: ordered.map(({ candidate }) => candidate),
@@ -89,9 +97,13 @@ export default async function generateImage({
                 references,
                 signal: signal || new AbortController().signal,
             }),
+    }).catch((error: unknown) => {
+        if (note && error instanceof Error) error.message = `${error.message} ${note}`;
+
+        throw error;
     });
 
-    return result.images;
+    return made.result.images;
 }
 
 /**

@@ -39,6 +39,11 @@ export default function HarnessSettingsForm({
 }: Props) {
     const saved = toHarnessForm({ harnesses });
     /**
+     * Image editing's current model: the models page's Image group says where
+     * a reference call goes when the image pick can't take one.
+     */
+    const reference_model = harnesses.find((harness) => harness.harness == "image_edit")?.current;
+    /**
      * Inputs keep their own state; bumping this remounts them on Discard.
      */
     const [form_key, setFormKey] = useState(0);
@@ -90,6 +95,7 @@ export default function HarnessSettingsForm({
                     key={harness.harness}
                     harness={harness}
                     value={form[harness.harness] || saved[harness.harness]!}
+                    reference_model={reference_model}
                     onChange={(value) => {
                         setNotice(undefined);
                         setForm((prev) => ({ ...prev, [harness.harness]: value }));
