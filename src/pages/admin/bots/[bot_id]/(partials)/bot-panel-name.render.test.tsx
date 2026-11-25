@@ -25,8 +25,9 @@ type RenderProps = {
 };
 
 /**
- * The name is the header's heading either way; only a crew manager's is a
- * button that opens the bot's panel.
+ * The name is the header's heading either way, and a button that opens the
+ * bot's panel for everyone who reaches it, labelled by what they may do
+ * there.
  */
 function render({ user_type, name = "Assistant" }: RenderProps) {
     const pageProps: PagePropsType = {
@@ -42,13 +43,14 @@ function render({ user_type, name = "Assistant" }: RenderProps) {
 }
 
 describe("BotPanelName", () => {
-    test("a member reads the name as a plain heading", () => {
+    test("a member's name opens the panel too, to read", () => {
         const html = render({ user_type: "member" });
 
         expect(html).toContain("<h1");
         expect(html).toContain(">Assistant<");
-        expect(html).not.toContain("<button");
-        expect(html).not.toContain('aria-haspopup="dialog"');
+        expect(html).toContain("<button");
+        expect(html).toContain('aria-haspopup="dialog"');
+        expect(html).toContain('aria-label="About Assistant"');
     });
 
     test("a crew manager's name is a button that opens the panel", () => {

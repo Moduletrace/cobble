@@ -14,27 +14,20 @@ type Props = {
 };
 
 /**
- * The conversation's name: the page's heading, and for super admins and
- * admins a second way into the bot's panel, beside its avatar. Everyone else
- * reads the name alone.
+ * The conversation's name: the page's heading, and a second way into the
+ * bot's panel beside its avatar, for everyone who can reach it.
  */
 export default function BotPanelName({ bot, on_open }: Props) {
     const { pageProps } = useContext(AppContext);
     const name = bot.name || "This bot";
-    const can_edit = canManageCrew({ user_types: pageProps?.user_types });
-
-    if (!can_edit) {
-        return (
-            <H1 className="min-w-0 text-lg! leading-6! tracking-normal! font-bold text-ink truncate line-clamp-1">
-                {bot.name}
-            </H1>
-        );
-    }
+    const label = canManageCrew({ user_types: pageProps?.user_types })
+        ? `Edit ${name}`
+        : `About ${name}`;
 
     return (
         <H1 className="min-w-0 text-lg! leading-6! tracking-normal! font-bold text-ink">
             <Button
-                title={`Edit ${name}`}
+                title={label}
                 type="button"
                 variant="ghost"
                 color="text"

@@ -2,7 +2,6 @@
 
 import { useContext } from "react";
 import Button from "@moduletrace/twui/layout/Button";
-import Stack from "@moduletrace/twui/layout/Stack";
 import { twMerge } from "tailwind-merge";
 import BotAvatar from "@/src/components/general/bot-avatar";
 import type { BotFace } from "@/src/dict/bot-dict";
@@ -27,9 +26,10 @@ type Props = {
 };
 
 /**
- * The bot's stone: opens the bot's panel to edit it, for super admins and
- * admins. Everyone else sees the stone alone. It sits in the header beside
- * the conversation's name and beside the bot's messages in the thread.
+ * The bot's stone: opens the bot's panel, which super admins and admins edit
+ * and everyone else reads (their own memory there is theirs to rewrite). It
+ * sits in the header beside the conversation's name and beside the bot's
+ * messages in the thread.
  */
 export default function BotPanelTrigger({
     bot,
@@ -39,28 +39,17 @@ export default function BotPanelTrigger({
 }: Props) {
     const { pageProps } = useContext(AppContext);
     const name = bot.name || "This bot";
-    const can_edit = canManageCrew({ user_types: pageProps?.user_types });
-
-    const avatar = (
-        <BotAvatar
-            image_media_id={bot.image_media_id}
-            {...botStoneProps({ color: bot.color, stone: bot.stone, hue: bot.hue })}
-            face={(bot.face || "idle") as BotFace}
-            size={size}
-        />
-    );
-
-    if (!can_edit) {
-        return <Stack className={twMerge("shrink-0", className)}>{avatar}</Stack>;
-    }
+    const label = canManageCrew({ user_types: pageProps?.user_types })
+        ? `Edit ${name}`
+        : `About ${name}`;
 
     return (
         <Button
-            title={`Edit ${name}`}
+            title={label}
             type="button"
             variant="ghost"
             color="text"
-            aria-label={`Edit ${name}`}
+            aria-label={label}
             aria-haspopup="dialog"
             onClick={on_open}
             className={twMerge(
@@ -68,7 +57,16 @@ export default function BotPanelTrigger({
                 className,
             )}
         >
-            {avatar}
+            <BotAvatar
+                image_media_id={bot.image_media_id}
+                {...botStoneProps({
+                    color: bot.color,
+                    stone: bot.stone,
+                    hue: bot.hue,
+                })}
+                face={(bot.face || "idle") as BotFace}
+                size={size}
+            />
         </Button>
     );
 }

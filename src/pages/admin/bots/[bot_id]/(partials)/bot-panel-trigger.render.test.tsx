@@ -25,8 +25,9 @@ type RenderProps = {
 };
 
 /**
- * The stone is the same either way; only a crew manager's opens the bot's
- * panel, whether it sits in the header or beside a message.
+ * The stone is the same either way; it opens the bot's panel for everyone
+ * who reaches the bot, labelled by what they may do there, whether it sits in
+ * the header or beside a message.
  */
 function render({ user_type, name = "Assistant" }: RenderProps) {
     const pageProps: PagePropsType = {
@@ -42,12 +43,13 @@ function render({ user_type, name = "Assistant" }: RenderProps) {
 }
 
 describe("BotPanelTrigger", () => {
-    test("a member sees the stone alone", () => {
+    test("a member's stone opens the panel too, to read", () => {
         const html = render({ user_type: "member" });
 
         expect(html).toContain("<svg");
-        expect(html).not.toContain("<button");
-        expect(html).not.toContain('aria-haspopup="dialog"');
+        expect(html).toContain("<button");
+        expect(html).toContain('aria-haspopup="dialog"');
+        expect(html).toContain('aria-label="About Assistant"');
     });
 
     test("a crew manager's stone is a button that opens the panel", () => {

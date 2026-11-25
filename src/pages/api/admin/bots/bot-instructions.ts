@@ -12,10 +12,11 @@ import type {
 } from "@moduletrace/bunext/types";
 
 /**
- * A bot's core instructions and memory for its panel in the conversation,
- * which loads them when it opens (page props leave them out), plus what it
- * remembers about the user reading it. For super admins and admins; only the
- * super admin reaches the coordinator.
+ * A bot's core instructions for its panel in the conversation, which loads
+ * them when it opens (page props leave them out), plus what it remembers about
+ * the user reading it. Any user who reaches the bot reads its instructions and
+ * their own memory; its core memory stays with super admins and admins, and
+ * only the super admin reaches the coordinator.
  */
 export const handler: BunextAPIRouteHandler<
     APIResponseObject<{ system_prompt: string; memory: string; user_memory: string }>
@@ -31,9 +32,7 @@ export const handler: BunextAPIRouteHandler<
             return { success: false, msg: `Unauthorized`, logoutUser: true };
         }
 
-        if (!canManageCrew({ user_types })) {
-            throw new AppError(`Only an admin can edit a bot.`);
-        }
+        const may_read_core = canManageCrew({ user_types });
 
         const { bot_id } = parseWithSchema({ schema: BotIdRequestSchema, data: body });
         const bot = await grabUserBot({ bot_id, user_id: user.id });
@@ -46,7 +45,7 @@ export const handler: BunextAPIRouteHandler<
             success: true,
             singleRes: {
                 system_prompt: bot.system_prompt || "",
-                memory: bot.memory || "",
+                memory: may_read_core ? bot.memory || "" : "",
                 user_memory: (await grabBotUserMemory({ bot_id: bot.id, user_id: user.id })) || "",
             },
         };

@@ -25,6 +25,12 @@ type Props = {
      */
     has_browsers?: boolean;
     /**
+     * Whether the viewer may move the bot to another of its computers. Any
+     * user who reaches it can, except a workspace's default computer, which
+     * is the crew's.
+     */
+    can_switch_computer?: boolean;
+    /**
      * Whether the tab is on show, so its connectors are read then and its
      * computer switches show.
      */
@@ -32,16 +38,18 @@ type Props = {
 };
 
 /**
- * The bot panel's third tab: where it works and what it can use there - its
+ * The bot panel's tools tab: where it works and what it can use there - its
  * computer, the MCP servers, tools and skills it was given (the apps its
  * connectors reach for you among them), its knowledgebases, and which of
- * your browsers it acts as you in.
+ * your browsers it acts as you in. Read-only for a user who cannot manage the
+ * crew: the lists show, adding and removing them does not.
  */
 export default function BotToolsTab({
     bot,
     workspace_id,
     initial,
     has_browsers,
+    can_switch_computer = false,
     open,
 }: Props) {
     const bot_name = bot.name || "this bot";
@@ -82,8 +90,12 @@ export default function BotToolsTab({
             >
                 {computers.length ? (
                     <Stack
-                        role="radiogroup"
-                        aria-label={`${bot_name}'s computers`}
+                        role={can_switch_computer ? "radiogroup" : undefined}
+                        aria-label={
+                            can_switch_computer
+                                ? `${bot_name}'s computers`
+                                : undefined
+                        }
                         className="w-full mt-2 py-1 gap-0! items-stretch rounded-default border border-solid border-hairline bg-surface"
                     >
                         {computers.map((computer, index) => (
@@ -91,6 +103,7 @@ export default function BotToolsTab({
                                 key={computer.id}
                                 computer={computer}
                                 current={index == 0}
+                                can_pick={can_switch_computer}
                                 onPick={async () => {
                                     await switchComputer({
                                         computer_id: computer.id || 0,
