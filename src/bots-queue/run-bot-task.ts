@@ -326,6 +326,7 @@ export default async function runBotTask({
                 scopes,
                 hooked,
                 onTask: ({ task_id }) => task_ids.push(task_id),
+                job_id: job.id,
             })),
             ...admin_tools,
             /**

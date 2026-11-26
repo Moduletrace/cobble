@@ -20,6 +20,11 @@ type Params = {
     target_bot_id: number | string;
     title: string;
     request: string;
+    /**
+     * The run making the request, recorded so stopping that run ends this
+     * request and no other ask made from the same conversation.
+     */
+    requester_job_id?: number | string | null;
 };
 
 /**
@@ -34,6 +39,7 @@ export default async function createAsk({
     target_bot_id,
     title,
     request,
+    requester_job_id,
 }: Params): Promise<BUN_SQLITE_COBBLE_BOT_ASKS> {
     if (requester.kind == "coordinator") {
         throw new AppError(`The coordinator hands work out itself; it doesn't ask the crew.`);
@@ -101,6 +107,7 @@ export default async function createAsk({
                 target_bot_id: Number(target_bot_id),
                 origin_session_id: Number(origin_session_id),
                 parent_ask_id: parent_ask_id ? Number(parent_ask_id) : undefined,
+                requester_job_id: requester_job_id ? Number(requester_job_id) : undefined,
                 title: truncateText({ text: title.trim(), max: 120 }),
                 request: truncateText({ text: request.trim(), max: AppData.AskBriefMaxChars }),
                 status: "pending",
@@ -122,6 +129,7 @@ export default async function createAsk({
         target_bot_id: Number(target_bot_id),
         origin_session_id: Number(origin_session_id),
         parent_ask_id: parent_ask_id ? Number(parent_ask_id) : undefined,
+        requester_job_id: requester_job_id ? Number(requester_job_id) : undefined,
         title: truncateText({ text: title.trim(), max: 120 }),
         request: truncateText({ text: request.trim(), max: AppData.AskBriefMaxChars }),
         status: "pending",

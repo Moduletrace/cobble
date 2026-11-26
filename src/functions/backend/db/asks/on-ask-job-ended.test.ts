@@ -17,6 +17,7 @@ import type { HarnessToolUse } from "@/src/harness/types";
  */
 let ask: BUN_SQLITE_COBBLE_BOT_ASKS;
 let open_work: boolean;
+let reopened: BUN_SQLITE_COBBLE_BOT_ASKS | null;
 let finished: Array<{ status: string; outcome?: string | null }> = [];
 let told: Array<{ text: string }> = [];
 let shared: string[] = [];
@@ -39,6 +40,9 @@ mock.module("@/src/functions/backend/db/asks/finish-ask", () => ({
         finished.push({ status, outcome });
         return ask;
     },
+}));
+mock.module("@/src/functions/backend/db/asks/reopen-failed-ask", () => ({
+    default: async () => reopened,
 }));
 mock.module("@/src/functions/backend/db/asks/tell-ask-requester", () => ({
     default: async ({ text }: { text: string }) => {
@@ -91,6 +95,7 @@ const real_answer = "Done. The post is built and saved: [file:650].";
 beforeEach(() => {
     ask = workingAsk();
     open_work = false;
+    reopened = null;
     finished = [];
     told = [];
     shared = [];
@@ -98,10 +103,21 @@ beforeEach(() => {
 });
 
 describe("onAskJobEnded - the answer reply", () => {
-    test("an answer that started work still running keeps the request open and relays nothing", async () => {
+    test("an answer that started work still running keeps the request open and relays the ack as an update", async () => {
         open_work = true;
 
         await onAskJobEnded({ job: answerJob(), text: claim, tool_uses: started_task });
+
+        expect(finished).toEqual([]);
+        expect(told.length).toBe(1);
+        expect(told[0]?.text).toContain(claim);
+        expect(told[0]?.text).toContain("still open");
+    });
+
+    test("a failed answer with work open relays nothing", async () => {
+        open_work = true;
+
+        await onAskJobEnded({ job: answerJob(), text: "The model call died.", failed: true });
 
         expect(finished).toEqual([]);
         expect(told).toEqual([]);
@@ -200,6 +216,49 @@ describe("onAskJobEnded - a run the answer handed the work to", () => {
 
         expect(finished).toEqual([]);
         expect(told[0]?.text).toContain("couldn't finish one piece");
+    });
+});
+
+describe("onAskJobEnded - a result landing after the request already failed", () => {
+    test("a late child result is delivered and the request reads answered", async () => {
+        ask = { ...workingAsk(), status: "failed" } as BUN_SQLITE_COBBLE_BOT_ASKS;
+        reopened = ask;
+
+        await onAskJobEnded({ job: childJob(), text: real_answer });
+
+        expect(finished).toEqual([]);
+        expect(shared).toEqual([real_answer]);
+        expect(told.length).toBe(1);
+        expect(told[0]?.text).toContain("which answered");
+        expect(told[0]?.text).toContain(real_answer);
+    });
+
+    test("a late failure changes nothing", async () => {
+        ask = { ...workingAsk(), status: "failed" } as BUN_SQLITE_COBBLE_BOT_ASKS;
+
+        await onAskJobEnded({ job: childJob(), text: "", failed: true });
+
+        expect(finished).toEqual([]);
+        expect(told).toEqual([]);
+    });
+
+    test("a request someone else re-ended first is not written twice", async () => {
+        ask = { ...workingAsk(), status: "failed" } as BUN_SQLITE_COBBLE_BOT_ASKS;
+        reopened = null;
+
+        await onAskJobEnded({ job: childJob(), text: real_answer });
+
+        expect(finished).toEqual([]);
+        expect(told).toEqual([]);
+    });
+
+    test("a stopped request is not reopened", async () => {
+        ask = { ...workingAsk(), status: "stopped" } as BUN_SQLITE_COBBLE_BOT_ASKS;
+
+        await onAskJobEnded({ job: childJob(), text: real_answer });
+
+        expect(finished).toEqual([]);
+        expect(told).toEqual([]);
     });
 });
 

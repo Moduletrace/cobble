@@ -187,6 +187,7 @@ export default async function grabBotChatTools({
             can_delete_tasks: Boolean(attended),
             onPropose,
             onTask,
+            job_id,
         })),
         sendReplyTool({
             user_id,

@@ -13,6 +13,7 @@ import grabSessionAskId from "../bot-sessions/grab-session-ask-id";
 import parseJobJson from "@/src/bots-queue/parse-job-json";
 import stopAsk from "../asks/stop-ask";
 import stopAsks from "../asks/stop-asks";
+import grabAsk from "../asks/grab-ask";
 import grabOpenAskBySession from "../asks/grab-open-ask-by-session";
 import isUnattendedHookSession from "../bot-hooks/is-unattended-hook-session";
 import settleInstallRequest from "../install-requests/settle-install-request";
@@ -198,19 +199,44 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
     }
 
     for (const ask_id of ask_ids) {
+        /**
+         * When the answer run already finished, the request isn't left
+         * silent: its acknowledgement went back as an update (with the
+         * files and anything it asked to check), so the stopped reason
+         * tells the asker that what it already has stands and only the
+         * queued work is gone. A stopped answer run means there truly is
+         * no answer.
+         */
+        const ask = await grabAsk({ ask_id }).catch(() => null);
+
+        const answered =
+            !!ask?.job_id &&
+            !!(
+                await BunSQLite.sql<{ id: number }>({
+                    sql: `SELECT id FROM bots_queue WHERE id = ? AND status = 'completed' LIMIT 1`,
+                    values: [Number(ask.job_id)],
+                }).catch(() => null)
+            )?.payload?.length;
+
         await stopAsk({
             ask_id,
-            reason: "The user stopped the run answering it, so there is no answer.",
+            reason: answered
+                ? "The user stopped the work it had queued before it finished. Anything it had already answered stands."
+                : "The user stopped the run answering it, so there is no answer.",
         }).catch(() => null);
     }
 
     /**
      * And the requests a run of its own had open go with it: its bot isn't
-     * woken about work the user just stopped.
+     * woken about work the user just stopped. Matched by the run that made
+     * each request, so stopping one run never ends an ask another run of
+     * the same conversation is waiting on; asks made before that was
+     * recorded keep the old session match.
      */
     await stopAsks({
         user_id,
         requester_bot_id: bot_id,
+        job_ids: jobs.map((job) => Number(job.id)),
         session_ids: open.map((job) => Number(job.session_id)),
     }).catch(() => []);
 

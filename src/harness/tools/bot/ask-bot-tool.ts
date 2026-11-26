@@ -20,6 +20,11 @@ type Params = {
      * Where it works: in a workspace, only its members can be asked.
      */
     workspace_id?: number | string | null;
+    /**
+     * The run asking, recorded on the ask so stopping that run ends this
+     * request and no other ask from the same conversation.
+     */
+    job_id?: number | string | null;
 };
 
 type Args = {
@@ -37,7 +42,7 @@ type Args = {
  * call, never the model's: in a workspace its members, otherwise every worker
  * the user reaches.
  */
-export default function askBotTool({ user_id, bot_id, session_id, workspace_id }: Params): HarnessTool<Args> {
+export default function askBotTool({ user_id, bot_id, session_id, workspace_id, job_id }: Params): HarnessTool<Args> {
     return {
         name: "ask_bot",
         description: `Ask another bot for something you need (what it knows, a file it has, work in its line). The coordinator reads every request first: it passes it to the bot that should answer, sends it to a better-placed bot, or turns it down with the reason. An approved request's answer comes back here as a message, which wakes you to act on it: don't wait or check on it. If a task you'd start needs the answer, don't start it in the same reply: it would run without it, so start it once the answer wakes you. Write the request as a full brief: what you need, why, and what a good answer looks like. Name a bot with bot_id if you know who can help; the coordinator decides. ${
@@ -104,6 +109,7 @@ export default function askBotTool({ user_id, bot_id, session_id, workspace_id }
                 target_bot_id: named?.id || askable[0]!.id!,
                 title: args.title,
                 request,
+                requester_job_id: job_id,
             });
 
             return `Asked ${named ? `${named.name} [bot:${named.id}]` : "the crew"} (ask #${ask.id}). The coordinator reads it first; its outcome comes back here as a message and you'll be woken for it. Tell the user you asked; don't ask again while it's open.`;

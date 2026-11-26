@@ -304,6 +304,10 @@ export type BUN_SQLITE_COBBLE_BOT_ASKS = {
      */
     parent_ask_id?: number | "";
     /** 
+     * The asking bot's run that made the request, so stopping that run ends this request and no other ask from the same conversation. Not a foreign key
+     */
+    requester_job_id?: number | "";
+    /** 
      * A short label for the request
      */
     title?: string;

@@ -8,8 +8,10 @@ import { AskStages } from "@/src/dict/ask-dict";
 import hasOpenWork from "../bots-queue/has-open-work";
 import deleteEmptyAskSession from "../bot-sessions/delete-empty-ask-session";
 import askUpdateMessage from "./ask-update-message";
+import askOutcomeMessage from "./ask-outcome-message";
 import finishAsk from "./finish-ask";
 import grabAsk from "./grab-ask";
+import reopenFailedAskAnswered from "./reopen-failed-ask";
 import shareAskFiles from "./share-ask-files";
 import tellAskRequester from "./tell-ask-requester";
 
@@ -44,7 +46,32 @@ export default async function onAskJobEnded({ job, text, failed, tool_uses = [] 
 
     const ask = await grabAsk({ ask_id });
 
-    if (!ask?.id || (ask.status != "pending" && ask.status != "working")) return;
+    if (!ask?.id) return;
+
+    /**
+     * A request that already failed can still get a result: the answer run
+     * can die after it had queued the work, and the asking bot was told it
+     * couldn't answer while the deliverable exists. When that run comes back
+     * with the real answer, it goes to the asking bot and the request reads
+     * answered, instead of the result being dropped quietly. A stopped or
+     * refused request stays ended: the user or the coordinator said so.
+     */
+    if (ask.status == "failed") {
+        const late = (text || "").trim();
+
+        if (failed || !late || params.stage == AskStages.review) return;
+
+        const shared = stripQuestionRefs({ text: await shareAskFiles({ ask, answer: late }) }).text;
+        const reopened = await reopenFailedAskAnswered({ ask_id: ask.id, outcome: shared });
+
+        if (!reopened?.id) return;
+
+        await tellAskRequester({ ask, text: askOutcomeMessage({ ask, status: "answered", outcome: shared }) });
+
+        return;
+    }
+
+    if (ask.status != "pending" && ask.status != "working") return;
 
     if (params.stage == AskStages.review) {
         /**
@@ -83,12 +110,30 @@ export default async function onAskJobEnded({ job, text, failed, tool_uses = [] 
 
         /**
          * The answer started work that is still running (a task, a hand-over,
-         * a nested request): the acknowledgement is not the answer. The
-         * request stays open and the results come back as they land; the
-         * ack itself is not relayed, so the asking bot isn't woken for a
-         * promise.
+         * a nested request): the acknowledgement is not the whole answer. The
+         * request stays open and the results come back as they land. The ack
+         * is relayed as an update too, because it can carry work already done
+         * - measurements, files, copy to check - and the asking bot should
+         * have it, especially if the run it just queued is stopped or fails
+         * and nothing further comes.
          */
-        if (await hasOpenWork({ bot_id: job.bot_id!, session_id: answer_session_id })) return;
+        if (await hasOpenWork({ bot_id: job.bot_id!, session_id: answer_session_id })) {
+            const ack = (text || "").trim();
+
+            if (ack && !failed) {
+                const shared = await shareAskFiles({ ask, answer: ack });
+
+                await tellAskRequester({
+                    ask,
+                    text: askUpdateMessage({
+                        ask,
+                        text: stripQuestionRefs({ text: shared }).text,
+                    }),
+                });
+            }
+
+            return;
+        }
 
         if (failed) {
             await finishAsk({

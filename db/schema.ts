@@ -357,6 +357,11 @@ const schema: BUN_SQLITE_DatabaseSchemaType = {
                     dataType: "INTEGER",
                 },
                 {
+                    fieldName: "requester_job_id",
+                    fieldDescription: `The asking bot's run that made the request, so stopping that run ends this request and no other ask from the same conversation. Not a foreign key`,
+                    dataType: "INTEGER",
+                },
+                {
                     fieldName: "title",
                     fieldDescription: `A short label for the request`,
                     dataType: "TEXT",

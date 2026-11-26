@@ -53,6 +53,11 @@ type Params = {
      */
     hooked?: boolean;
     /**
+     * The run's own job, recorded on asks the bot makes so stopping exactly
+     * that run ends exactly those requests.
+     */
+    job_id?: number | string | null;
+    /**
      * A chat reply the user follows, which may delete tasks.
      */
     can_delete_tasks?: boolean;
@@ -85,6 +90,7 @@ export default async function grabBotTools({
     admin_workspace_ids,
     scopes = [],
     hooked,
+    job_id,
     can_delete_tasks,
     onPropose,
     onTask,
@@ -125,7 +131,7 @@ export default async function grabBotTools({
          */
         ...(session_id && !is_coordinator && !hooked
             ? [
-                  askBotTool({ user_id, bot_id, session_id, workspace_id }),
+                  askBotTool({ user_id, bot_id, session_id, workspace_id, job_id }),
                   listAsksTool({ user_id, bot_id }),
               ]
             : []),
