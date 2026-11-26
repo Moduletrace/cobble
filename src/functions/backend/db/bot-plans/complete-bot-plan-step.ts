@@ -16,6 +16,12 @@ type Params = {
      * What the step produced, in a line or two.
      */
     summary: string;
+    /**
+     * The run finishing it, kept on the step so a report that never went out
+     * (a refused answer, a stop) puts the step back instead of leaving the
+     * card offering the next one over a step nobody delivered.
+     */
+    job_id?: number | string;
 };
 
 /**
@@ -27,7 +33,7 @@ type Params = {
  * time: a plan waiting on the user can't be worked, and neither can one
  * that's paused, ended, or has nothing left.
  */
-export default async function completeBotPlanStep({ plan_id, session_id, summary }: Params) {
+export default async function completeBotPlanStep({ plan_id, session_id, summary, job_id }: Params) {
     const row = await grabBotPlan({ plan_id });
 
     if (Number(row.session_id) != Number(session_id)) {
@@ -58,7 +64,12 @@ export default async function completeBotPlanStep({ plan_id, session_id, summary
         throw new AppError(`Every step of plan #${row.id} is already done.`);
     }
 
-    steps[index] = { text: working.text, state: "done", note };
+    steps[index] = {
+        text: working.text,
+        state: "done",
+        note,
+        ...(Number(job_id) ? { done_job_id: Number(job_id) } : {}),
+    };
 
     const next = currentPlanStepIndex({ steps });
     const now = Date.now();

@@ -547,6 +547,7 @@ export default async function runBotReply({
                       user_id,
                       session_id: Number(session_id),
                       ask_id: ask_id_for_updates,
+                      redact: redact_reply,
                   }),
               ]
             : []),
@@ -618,6 +619,7 @@ export default async function runBotReply({
                   bot_id: bot.id,
                   session_id,
                   workspace_id,
+                  job_id: job.id,
                   on_step: on_plan_step,
                   /**
                    * A plan nobody approved yet needs the user, so
@@ -669,12 +671,18 @@ export default async function runBotReply({
                 prompt,
                 carry_over,
                 long_session_note,
-                chatReplyNote({ bot_id: bot.id }),
+                chatReplyNote({ bot_id: bot.id, can_take_over: computers.length > 0 }),
                 plan_mode ? PlanModeNote : "",
                 is_retry ? RerunReplyNote : "",
                 retry_failure ? RetryFailureNote({ reason: retry_failure.reason }) : "",
                 botFilesNote({ bot_id: bot.id }),
-                ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: computers.length > 0 }),
+                /**
+                 * Only with a computer: the note is about the run's folders and
+                 * browser there, and a reply without one has neither tool.
+                 */
+                computers.length
+                    ? ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: true })
+                    : "",
                 TasksNote,
                 TaskReminderNote,
                 can_hand_over ? HandOverTaskNote : "",

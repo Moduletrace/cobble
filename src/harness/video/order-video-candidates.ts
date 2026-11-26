@@ -22,7 +22,7 @@ type Params = {
      */
     video: HarnessCandidate[];
     /**
-     * Video editing's setting and candidates; undefined when it's off.
+     * Video editing's setting and candidates; no pick while it's off.
      */
     edit?: {
         /**
@@ -59,7 +59,9 @@ export default function orderVideoCandidates({ images, videos, video, edit }: Pa
         ? edit.candidates.filter(takes).map((candidate) => ({ candidate, harness: "video_edit" as const }))
         : [];
 
-    const ordered = !edits.length ? generation : [...edits, ...(edit?.fallback ? generation : [])];
+    // The hand-over to generation, whether the edit pick failed or there is
+    // none, happens only with fallback on: the same rule as image editing.
+    const ordered = [...edits, ...(edit?.fallback ? generation : [])];
     const seen = new Set<string>();
 
     return ordered.filter(({ candidate }) => {

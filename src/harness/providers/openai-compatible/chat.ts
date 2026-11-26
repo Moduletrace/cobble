@@ -47,6 +47,7 @@ const chat: HarnessAdapter["chat"] = async ({
         provider_name:
             provider.name || grabProviderPreset({ kind: provider.kind }).title,
         candidate_key: candidate.key,
+        url: res.url,
     });
 };
 

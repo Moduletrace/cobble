@@ -51,11 +51,21 @@ export default function loadToolsTool({ deferred, isLoaded, onLoad }: Params): H
 
             if (fresh.length) onLoad(fresh);
 
+            /**
+             * A name already offered inline isn't in the loadable list at all,
+             * so without this a run that had the tool in hand was sent looking
+             * for it in a list it wasn't in, and gave up (production:
+             * `load_tools("browser")`).
+             */
+            const ready = missing.filter((name) => isLoaded(name));
+
             return [
                 fresh.length ? `Loaded: ${fresh.join(", ")}. Call them from your next step.` : "",
                 already.length ? `Already loaded: ${already.join(", ")}.` : "",
                 missing.length
-                    ? `Not in the list: ${missing.join(", ")}. Use the exact names or family names under "Tools you can load".`
+                    ? `Not in the list: ${missing.join(", ")}.${
+                          ready.length ? ` Already yours, no loading needed: ${ready.join(", ")}.` : ""
+                      } Use the exact names or family names under "Tools you can load", and a computer or browser tool a reply doesn't carry is work for send_reply with status "working".`
                     : "",
             ]
                 .filter(Boolean)

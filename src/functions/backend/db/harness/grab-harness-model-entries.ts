@@ -11,7 +11,10 @@ type Params = {
     pinned_ids?: number[];
 };
 
-type ModelRow = BUN_SQLITE_COBBLE_HARNESS_MODELS & { provider_name?: string };
+type ModelRow = BUN_SQLITE_COBBLE_HARNESS_MODELS & {
+    provider_name?: string;
+    provider_kind?: string;
+};
 
 export type HarnessModelEntry = {
     row: ModelRow;
@@ -31,7 +34,7 @@ export default async function grabHarnessModelEntries({
     const rows =
         (
             await BunSQLite.sql<ModelRow>({
-                sql: `SELECT m.*, p.name AS provider_name FROM harness_models m
+                sql: `SELECT m.*, p.name AS provider_name, p.kind AS provider_kind FROM harness_models m
                     JOIN harness_providers p ON p.id = m.provider_id
                     WHERE (m.available = 1 AND p.enabled = 1)
                     ${ids.length ? `OR m.id IN (${ids.map(() => "?").join(", ")})` : ""}
@@ -57,6 +60,14 @@ export default async function grabHarnessModelEntries({
                 input_modalities: model.input_modalities,
                 supported_parameters: model.supported_parameters,
                 context_length: model.context_length,
+                /**
+                 * Only OpenRouter's catalog says what a model takes; every
+                 * other provider is listed by id and guessed from its name
+                 * (`guessModelModalities`, via `list-models.ts`). Said on the
+                 * option so the picker can warn about a text model pinned
+                 * from a list that never said it calls tools.
+                 */
+                capabilities_guessed: row.provider_kind != "openrouter",
             },
         };
     });

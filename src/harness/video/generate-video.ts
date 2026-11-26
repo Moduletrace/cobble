@@ -106,7 +106,9 @@ export default async function generateVideo({
 }
 
 /**
- * Video editing's setting and candidates, or undefined while it's off.
+ * Video editing's setting and candidates. Turned off still reports its
+ * fallback, the way image editing does, so the order is the same decision
+ * in both lanes.
  */
 async function grabEdit({
     bot_id,
@@ -117,7 +119,7 @@ async function grabEdit({
 }) {
     const setting = await grabHarnessSetting({ harness: "video_edit", bot_id, workspace_id });
 
-    if (!setting.enabled) return undefined;
+    if (!setting.enabled) return { picked: false, fallback: setting.fallback, candidates: [] };
 
     return {
         picked: Boolean(setting.model_id),

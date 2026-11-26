@@ -339,6 +339,7 @@ export default async function runBotTask({
                       bot_id: bot.id,
                       session_id: session_id!,
                       workspace_id,
+                      job_id: job.id,
                       on_step: true,
                       onPlan: ({ ref }) => shown.push(ref),
                   })
@@ -354,6 +355,7 @@ export default async function runBotTask({
                           user_id,
                           session_id: Number(session_id),
                           ask_id: Number(params.ask_id),
+                          redact: redact_text,
                       }),
                   ]
                 : []),
@@ -638,14 +640,19 @@ export default async function runBotTask({
         const system = [
             prompt,
             carry_over,
-            TaskRunNote,
+            TaskRunNote({ can_ask }),
             steps_note,
             scheduled ? ScheduledRunNote : "",
             hooked ? HookRunNote : "",
             install_request_id ? InstallRequestNote : "",
             Number(params.ask_id) ? AskTaskRunNote : "",
             botFilesNote({ bot_id: bot.id }),
-            ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }),
+            /**
+             * Only when the run has a computer: the note describes its folders
+             * and its browser, and a run with none has no computer tools at all
+             * (the closing note below is what tells it so).
+             */
+            computer ? ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }) : "",
             named_files_note,
             TasksNote,
             /**

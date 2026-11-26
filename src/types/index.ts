@@ -836,6 +836,13 @@ export type HarnessModelOption = {
      * every run, which the picker says out loud.
      */
     context_length?: number;
+    /**
+     * True when the app guessed what the model takes (its provider lists
+     * ids only, so `guessModelModalities` decided from the name), rather than
+     * reading it from a catalog that says. The picker warns about a text
+     * model picked this way: a guessed `supports_tools` is not a promise.
+     */
+    capabilities_guessed?: boolean;
 };
 
 /**

@@ -28,4 +28,32 @@ describe("unknownToolMessage", () => {
         expect(text).toContain("only exist in a task on a computer");
         expect(text).not.toContain("start_task");
     });
+
+    /**
+     * The user's own browser's tools carry the browser's slug, so a reply that
+     * has one is not short of a browser: it named the tool the wrong way.
+     */
+    test("names the slug when the run's browser tools have one", () => {
+        const text = unknownToolMessage({
+            name: "browser_navigate",
+            tools: [{ name: "send_reply" }, { name: "work-laptop__browser_navigate" }],
+        });
+
+        expect(text).toContain(`the browser's slug, e.g. "work-laptop__browser_navigate"`);
+        expect(text).not.toContain("only exist in a task");
+    });
+
+    /**
+     * A task run's own `browser_*` tools have no slug, so an excluded one must
+     * not be told to look for a prefixed name it does not have.
+     */
+    test("keeps the task message for a computer browser tool", () => {
+        const text = unknownToolMessage({
+            name: "browser_close",
+            tools: [{ name: "browser_navigate" }, { name: "computer_bash" }],
+        });
+
+        expect(text).toContain("only exist in a task on a computer");
+        expect(text).not.toContain("slug");
+    });
 });

@@ -16,6 +16,8 @@ import stopAsks from "../asks/stop-asks";
 import grabOpenAskBySession from "../asks/grab-open-ask-by-session";
 import isUnattendedHookSession from "../bot-hooks/is-unattended-hook-session";
 import settleInstallRequest from "../install-requests/settle-install-request";
+import pauseFailedPlanStep from "../bot-plans/pause-failed-plan-step";
+import pushBotPlan from "@/src/bots-queue/push-bot-plan";
 import attachJobTracesToMessage from "./attach-job-traces-to-message";
 import attachJobCallsToMessage from "../usage/attach-job-calls-to-message";
 import withMessageUsage from "../usage/with-message-usage";
@@ -127,6 +129,15 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
         await recordHookCallResponse({ job: stopped, status: "failed", response: BotJobStoppedError, now });
 
         /**
+         * A plan whose step this run was working pauses with it, the way a
+         * failed run's does (`notifyBotJobFailed`): nothing else would ever
+         * advance it, and the card would show that step running for ever.
+         */
+        const paused_plan = await pauseFailedPlanStep({ job: stopped }).catch(() => null);
+
+        if (paused_plan) await pushBotPlan(paused_plan).catch(() => null);
+
+        /**
          * A coordinator stopped on an install request: the worker that
          * asked is told.
          */
@@ -236,9 +247,23 @@ export default async function stopBotJobs({ bot_id, user_id }: Params): Promise<
 
         if (answered) continue;
 
+        /**
+         * The session this run's conversation is in now, not the one it was
+         * queued in: a reply that carried the conversation into a new session
+         * between the UPDATE above and here would put the stopped line in a
+         * thread the user has left, and the live conversation would show
+         * nothing.
+         */
+        const current = (
+            await BunSQLite.sql<{ session_id: number | null }>({
+                sql: `SELECT session_id FROM bots_queue WHERE id = ?`,
+                values: [Number(job.id)],
+            }).catch(() => null)
+        )?.payload?.[0]?.session_id;
+
         const message = await insertBotMessage({
             bot_id: Number(bot_id),
-            session_id,
+            session_id: Number(current || session_id),
             workspace_id: job.workspace_id || null,
             text: stoppedJobReport({ job }),
         }).catch(() => null);

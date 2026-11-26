@@ -102,6 +102,25 @@ export default async function resolveHarnessCandidates({
     );
 
     /**
+     * A pick that can't run is not "no model set up": with fallback off the
+     * call would otherwise answer on a free automatic pick while the setting
+     * names a model, and the usage row would say `auto` (this is how a pinned
+     * tool-less model ran eleven replies and none of them closed).
+     */
+    if (setting.model_id && !pinned && !setting.fallback) {
+        const title = Harnesses.find((h) => h.value == harness)?.title;
+        const slug = rows.find((row) => row.id == setting.model_id)?.slug;
+
+        throw new HarnessError({
+            message:
+                `${slug || "The picked model"} can't be used for ${title ? title.toLowerCase() : harness} ` +
+                `(it's unavailable, its provider isn't usable, or it doesn't serve this harness), and fallback is off. ` +
+                `Pick a model that serves it under Models, or turn fallback on.`,
+            code: "unavailable",
+        });
+    }
+
+    /**
      * Each fallback model names its own provider, so the setting's
      * provider limit doesn't apply to them.
      */

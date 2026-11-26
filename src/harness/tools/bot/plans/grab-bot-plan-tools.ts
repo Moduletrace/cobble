@@ -18,6 +18,11 @@ type Params = {
      * Called with each plan's ref, so the message carries its card.
      */
     onPlan: (params: { ref: string; waiting?: boolean }) => void;
+    /**
+     * The run these tools belong to, kept on a step the run finishes (see
+     * `completeBotPlanStep`).
+     */
+    job_id?: number | string;
 };
 
 /**
@@ -35,7 +40,15 @@ type Params = {
  * finish it with no card under its report, and the plan would sit active
  * with nothing to start the next one.
  */
-export default function grabBotPlanTools({ user_id, bot_id, session_id, workspace_id, on_step, onPlan }: Params) {
+export default function grabBotPlanTools({
+    user_id,
+    bot_id,
+    session_id,
+    workspace_id,
+    on_step,
+    onPlan,
+    job_id,
+}: Params) {
     const tools: HarnessTool[] = [];
 
     if (!on_step) {
@@ -45,7 +58,7 @@ export default function grabBotPlanTools({ user_id, bot_id, session_id, workspac
 
     tools.push(updatePlanTool({ user_id, bot_id, session_id, onPlan }));
 
-    if (on_step) tools.push(completePlanStepTool({ bot_id, session_id }));
+    if (on_step) tools.push(completePlanStepTool({ bot_id, session_id, job_id }));
 
     return tools;
 }

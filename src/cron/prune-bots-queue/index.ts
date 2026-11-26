@@ -10,7 +10,12 @@ export default async function pruneBotsQueue() {
         Date.now() - AppData.BotQueueRetentionDays * 24 * 60 * 60 * 1000;
 
     const res = await BunSQLite.sql({
-        sql: `DELETE FROM bots_queue WHERE status IN ('completed', 'failed') AND finished_at IS NOT NULL AND finished_at < ? RETURNING id`,
+        /**
+         * `updated_at` stands in for a row finished without a timestamp (an
+         * older build, or a writer that set the status directly): without it
+         * such a row sits in the queue for ever.
+         */
+        sql: `DELETE FROM bots_queue WHERE status IN ('completed', 'failed') AND COALESCE(finished_at, updated_at) < ? RETURNING id`,
         values: [cutoff],
     });
 

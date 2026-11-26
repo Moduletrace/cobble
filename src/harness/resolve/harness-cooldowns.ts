@@ -14,8 +14,13 @@ import type { HarnessCooldowns } from "./create-cooldowns";
  */
 const slot = globalCache<HarnessCooldowns>({ name: "cobble.harnessCooldowns" });
 
-const HarnessCooldowns = slot.get() || createCooldowns();
+/**
+ * Not named `HarnessCooldowns`: the type of that name is imported above, and
+ * an `export default` of a name both declare resolves to the type for some
+ * compilers, so every importer of this value is then called a type-only import.
+ */
+const cooldowns = slot.get() || createCooldowns();
 
-slot.set(HarnessCooldowns);
+slot.set(cooldowns);
 
-export default HarnessCooldowns;
+export default cooldowns;

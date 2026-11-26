@@ -9,7 +9,8 @@ import processBotJob from "./process-bot-job";
 import reportLostBotJobs from "./report-lost-bot-jobs";
 import { setBotsQueueWaker } from "./wake-bots-queue";
 
-const worker = AppData.BotQueueWorker;
+/** Per-process lock id: the family plus this process's pid. */
+const worker = `${AppData.BotQueueWorker}-${process.pid}`;
 const running = { task: 0, reply: 0 };
 let polling = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -41,7 +42,7 @@ export default async function botsQueue() {
      * it fails, polling still starts, and the lock timeout releases them.
      */
     try {
-        const released = await releaseWorkerBotJobs({ worker });
+        const released = await releaseWorkerBotJobs({ family: AppData.BotQueueWorker });
 
         if (released) {
             bunext.bunextLog.info(`Bots queue: released ${released} cut-off job(s)`);

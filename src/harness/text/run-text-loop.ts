@@ -12,6 +12,7 @@ import {
     oversizedRequestNote,
     repairedAnswerNote,
     repeatedAnswerNote,
+    replyCardFailedNote,
     replyClosingFailedNote,
     replyClosingMixedNote,
     replyClosingRequiredNote,
@@ -1088,6 +1089,13 @@ export default async function runTextLoop({
          * ends).
          */
         if (wrap_up_saving && answer.tool_calls.length && !tool_calls.length) {
+            /**
+             * Traced before the note, like the stray-call turn below: the run
+             * did call these, and a debug view that skipped the turn showed a
+             * wrap up with nothing in it.
+             */
+            await traceTurn({ index, answer, calls: answer.tool_calls, started_at: turn_started_at });
+
             pushUserTurn({
                 transcript,
                 content: `Only ${wrap_tools.map((tool) => tool.name).join(" and ")} can still be called in this run. Nothing else you call will run. Save the report or deliverable with one of them, or answer with what you have.`,
@@ -1490,8 +1498,26 @@ export default async function runTextLoop({
          * to ask again, which the once-per-run guard refuses, and the same
          * note looped for the whole budget (H1).
          */
-        const closing_uses = tool_uses.slice(-tool_calls.length).filter((use) => isClosingTool({ name: use.name }));
-        const closing_failed = closing_uses.some((use) => !use.ok);
+        const closing_uses = (tool_calls.length ? tool_uses.slice(-tool_calls.length) : []).filter((use) =>
+            isClosingTool({ name: use.name }),
+        );
+        const failed_closing = closing_uses.filter((use) => !use.ok);
+        const closing_failed = failed_closing.length > 0;
+        /**
+         * Which closing call failed decides the note. A card the tool refused
+         * (`suggest_next_steps` over its length cap) is not `send_reply`
+         * failing: its message is kept, and telling the model the send did not
+         * go through sent it re-writing the answer for nothing (job 699, three
+         * turns and a `closing_failed` trace against the wrong tool).
+         */
+        const send_reply_failed = failed_closing.some((use) => use.name === SendReplyToolName);
+        const failed_cards = failed_closing.filter((use) => use.name !== SendReplyToolName).map((use) => use.name);
+        const closing_failed_note =
+            send_reply_failed || !called_send_reply
+                ? called_send_reply || require_closing_answer
+                    ? replyClosingFailedNote
+                    : closingFailedNote
+                : replyCardFailedNote({ tools: failed_cards });
         const closing_worked = closing && !closing_failed && closing_required;
         /**
          * The message this turn wrote beside the call. An earlier draft is
@@ -1544,7 +1570,7 @@ export default async function runTextLoop({
                     return {
                         text: "",
                         review_note: closing_failed
-                            ? replyClosingFailedNote
+                            ? closing_failed_note
                             : !closing
                               ? replyClosingMixedNote
                               : replyClosingRequiredNote,
@@ -1572,9 +1598,7 @@ export default async function runTextLoop({
             closing_retries++;
 
             const note = closing_failed
-                ? called_send_reply || require_closing_answer
-                    ? replyClosingFailedNote
-                    : closingFailedNote
+                ? closing_failed_note
                 : !closing
                   ? called_send_reply
                       ? replyClosingMixedNote

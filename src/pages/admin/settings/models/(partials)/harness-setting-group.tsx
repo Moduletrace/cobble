@@ -5,6 +5,7 @@ import harnessDefaultName from "../(utils)/harness-default-name";
 import nextHarnessModelValue from "../(utils)/next-harness-model-value";
 import nextHarnessProviderValue from "../(utils)/next-harness-provider-value";
 import HarnessCurrentModel from "./harness-current-model";
+import HarnessGuessedModelNote from "./harness-guessed-model-note";
 import HarnessModelSelect from "./harness-model-select";
 import HarnessOptionsCheckboxes from "./harness-options-checkboxes";
 import HarnessParamsButton from "./harness-params-button";
@@ -37,6 +38,8 @@ export default function HarnessSettingGroup({ harness, value, onChange, referenc
         : harness.models;
     const picked = models.find((model) => model.id == value.model_id);
     const on_bot_page = harness.default !== undefined;
+    /** The model this row's settings would show the user the truth about. */
+    const shown = value.inherit ? harness.default?.current : picked || harness.current;
     const falls_back_title = harnessFallbackTitle({ harness: harness.harness });
     const default_name = harnessDefaultName({
         harness_default: harness.default,
@@ -75,7 +78,7 @@ export default function HarnessSettingGroup({ harness, value, onChange, referenc
             )}
             {harness.harness == "image" ? (
                 <HarnessReferenceModelNote
-                    model={value.inherit ? harness.default?.current : picked || harness.current}
+                    model={shown}
                     reference_model={reference_model}
                 />
             ) : null}
@@ -84,13 +87,16 @@ export default function HarnessSettingGroup({ harness, value, onChange, referenc
                 harness={value.inherit && harness.default ? { ...harness, ...harness.default } : harness}
             />
             {harness.harness == "text" ? (
-                <HarnessWindowNote model={value.inherit ? harness.default?.current : picked || harness.current} />
+                <>
+                    <HarnessWindowNote model={shown} />
+                    <HarnessGuessedModelNote model={shown} />
+                </>
             ) : null}
             <HarnessOptionsCheckboxes
                 harness={harness}
                 value={value}
                 provider={provider}
-                model={value.inherit ? harness.default?.current : picked || harness.current}
+                model={shown}
                 falls_back_title={falls_back_title}
                 onChange={onChange}
             />

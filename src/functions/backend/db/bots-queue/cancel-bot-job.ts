@@ -5,6 +5,8 @@ import AppError from "@/src/utils/app-error";
 import { abortRunningJob } from "@/src/bots-queue/job-abort-registry";
 import recordHookCallResponse from "../bot-hooks/record-hook-call-response";
 import settleInstallRequest from "../install-requests/settle-install-request";
+import pauseFailedPlanStep from "../bot-plans/pause-failed-plan-step";
+import pushBotPlan from "@/src/bots-queue/push-bot-plan";
 import botFaceAfterJob from "./bot-face-after-job";
 
 type Params = {
@@ -58,6 +60,14 @@ export default async function cancelBotJob({ user_id, job_id }: Params) {
     await recordHookCallResponse({ job, status: "failed", response: BotJobCancelledError, now });
 
     await settleInstallRequest({ job, text: BotJobCancelledError, failed: true });
+
+    /**
+     * Its plan pauses with it, the way a stopped or failed run's does: no
+     * card would ever offer the step again otherwise.
+     */
+    const paused_plan = await pauseFailedPlanStep({ job }).catch(() => null);
+
+    if (paused_plan) await pushBotPlan(paused_plan).catch(() => null);
 
     return job;
 }

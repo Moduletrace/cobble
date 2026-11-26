@@ -77,7 +77,13 @@ function ownFolderRef({ bot_id }: { bot_id: number | string }) {
  * Added to a bot's prompt when it answers the user in chat. `bot_id` is the
  * bot itself: the examples it reads are its own refs.
  */
-export const chatReplyNote = ({ bot_id }: { bot_id: number | string }) => `# Replying in chat
+export const chatReplyNote = ({
+    bot_id,
+    can_take_over = true,
+}: {
+    bot_id: number | string;
+    can_take_over?: boolean;
+}) => `# Replying in chat
 
 You are chatting with the user. Answer their latest messages directly and briefly, in markdown.
 
@@ -87,8 +93,11 @@ You are chatting with the user. Answer their latest messages directly and briefl
 - send_reply({status:"working", work:{title, instructions, computer_id?}}) for work that takes more than a moment, or anything on a computer (running commands, editing files, browsing). The app queues the run before your message goes out; a task you start is your own work, so never say you handed it to anyone else. Its result is posted here when it's done.
 - send_reply({status:"blocked"}) when the work can't go on; say why in the message.
 - When a message mixes both, answer the quick parts and queue the rest with status "working" and work.
-- When only the user can do something on a computer (log in, solve a captcha, enter a code), ask them to take over with ask_user_to_take_over and say exactly what to do. They'll tell you when they hand it back; then carry on.
-- When the user tells you something worth keeping, save it with update_memory: about them in your memory of this user, never in your core memory, which every user you work for shares. When they correct how you work for everyone, update your instructions with update_instructions; a correction that's only their preference goes in your memory of them.
+${
+    can_take_over
+        ? `- When only the user can do something on a computer (log in, solve a captcha, enter a code), ask them to take over with ask_user_to_take_over and say exactly what to do. They'll tell you when they hand it back; then carry on.\n`
+        : ""
+}- When the user tells you something worth keeping, save it with update_memory: about them in your memory of this user, never in your core memory, which every user you work for shares. When they correct how you work for everyone, update your instructions with update_instructions; a correction that's only their preference goes in your memory of them.
 - An app record saying the user reacted to one of your messages is their feedback on it: 👍, ❤️ and 🎉 mean they liked it, 👎 that they didn't; 😂, 😮 and 😢 are how it made them feel, not a verdict. When reactions show a preference that lasts (length, format, tone, what to include or leave out), save it in your memory of this user with update_memory (scope "user", in a workspace too). One reaction to one answer isn't a preference yet, so don't save it, and don't save what your memory already says. Bring a reaction up only when it helps: after a 👎 on your last answer with no word about why, you can ask in one short question what to change.
 - To add a worker to the crew, use create_bot once the user has asked for it or agreed, and add_bot_to_workspace to place it. A bot exists only when create_bot made it: never describe one as if it did, and never write it into a workspace's context.
 - Never claim you did something you didn't do.
@@ -408,10 +417,18 @@ export const workspaceAdminsLine = ({ admins }: { admins: { id?: number | "" }[]
 
 /**
  * Added to a bot's prompt when it works through a queued task.
+ *
+ * `can_ask` decides whether it may name `ask_user`: a routine, a hook call or
+ * a hidden session has no card the user would see (the tool is taken away
+ * there), so the note must not order a call that isn't offered.
  */
-export const TaskRunNote = `# Working on a task
+export const TaskRunNote = ({ can_ask }: { can_ask: boolean }) => `# Working on a task
 
-You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. The report is posted straight to them, so write to them ("you"), never about them by name or as "the user". End it with the next step you'd suggest: offered with ask_user when a real choice or new direction remains for the user, otherwise state the outcome plainly without ask_user. Keep the report short and in markdown.
+You are working through a task on your own; the user isn't watching. Use your tools until the task is done, then answer with the report for the user: what you did, what you found, and anything left for them. The report is posted straight to them, so write to them ("you"), never about them by name or as "the user". End it with the next step you'd suggest${
+    can_ask
+        ? `: offered with ask_user when a real choice or new direction remains for the user, otherwise state the outcome plainly without ask_user`
+        : `, or state the outcome plainly`
+}. Keep the report short and in markdown.
 
 When they asked for this work in their chat, the run opens with their own words: that message is the request itself, and the brief after it is your summary of it. Where the two disagree the words win, and the way they named (a tool, app, service or path) is the way it is done. If that way can't work, the report says what blocked it and what the alternatives are; never reach the same result some other way without asking first.
 
@@ -423,7 +440,11 @@ Work larger than one run is handed on, not half-done: start_task with separate f
 
 The report ends with send_reply and the text beside it: status "done" when nothing follows it, "working" when you handed work on and it is still running, or "blocked" when it can't finish. A report without it is a draft and is never sent.
 
-If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same. If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`;
+If you're blocked on something only the user can give you, stop and ask for it in the report. The same goes for being stuck: when several different tries at the same thing (a search, a page, a fix) leave you no closer, stop there and report what you tried and what you need, rather than spending the run on more of the same.${
+    can_ask
+        ? ` If they need to do it on the computer themselves (log in, a captcha, a code), call ask_user_to_take_over first.`
+        : ""
+}`;
 
 /**
  * Told to a task run with what the user wrote in its conversation since
@@ -623,6 +644,16 @@ export const replyClosingMixedNote = `send_reply's turn can also call suggest_ne
  * sent, and the status must match what is actually running.
  */
 export const replyClosingFailedNote = `send_reply did not go through (its error is above), so the message was not sent. Status "working" needs work queued in the call or a run you already started; fix that and call send_reply again with the message, or use status "done" or "blocked".`;
+
+/**
+ * Told when `send_reply` went through and only the card beside it was refused
+ * (a step over its length cap, an argument the tool rejected): the message is
+ * kept, so the model must not rewrite it. Naming send_reply as the failed
+ * call here spent three turns of one run re-writing an answer that had already
+ * shipped, and logged the failure against the wrong tool.
+ */
+export const replyCardFailedNote = ({ tools }: { tools: string[] }) =>
+    `send_reply went through and your message is kept. The card call did not: ${tools.join(" and ")} refused (its error is above). Fix those arguments, or drop the card, and call send_reply again in the same turn with the same message.`;
 
 /**
  * Put under an answer the review kept faulting once its unsupported parts

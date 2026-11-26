@@ -231,10 +231,13 @@ describe("wrapUpWorktreeNote", () => {
 });
 
 describe("TaskRunNote", () => {
+    const attended = TaskRunNote({ can_ask: true });
+    const unattended = TaskRunNote({ can_ask: false });
+
     test("says a brief can be wrong about the tree, and that handing on finishes the task", () => {
-        expect(TaskRunNote).toContain("A brief can be wrong about the repository");
-        expect(TaskRunNote).toContain("the tree wins");
-        expect(TaskRunNote).toContain("start_task with separate for the rest");
+        expect(attended).toContain("A brief can be wrong about the repository");
+        expect(attended).toContain("the tree wins");
+        expect(attended).toContain("start_task with separate for the rest");
     });
 
     test("gives the plan permission to hand work on", () => {
@@ -242,11 +245,17 @@ describe("TaskRunNote", () => {
     });
 
     test("says the user's own words win over the brief, and the way they named is the way it is done", () => {
-        expect(TaskRunNote).toContain("the run opens with their own words");
-        expect(TaskRunNote).toContain("the brief after it is your summary of it");
-        expect(TaskRunNote).toContain("the way they named (a tool, app, service or path) is the way it is done");
-        expect(TaskRunNote).toContain("never reach the same result some other way without asking first");
-        expect(TaskRunNote).not.toContain("\u2014");
+        expect(attended).toContain("the run opens with their own words");
+        expect(attended).toContain("the brief after it is your summary of it");
+        expect(attended).toContain("the way they named (a tool, app, service or path) is the way it is done");
+        expect(attended).toContain("never reach the same result some other way without asking first");
+        expect(attended).not.toContain("\u2014");
+    });
+
+    test("names ask_user only for a run the user watches", () => {
+        expect(attended).toContain("ask_user");
+        expect(attended).toContain("ask_user_to_take_over");
+        expect(unattended).not.toContain("ask_user");
     });
 });
 

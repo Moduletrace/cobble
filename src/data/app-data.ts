@@ -389,8 +389,12 @@ export const AppData = {
      */
     ScheduledRunRetryMs: 5 * 60 * 1000,
     /**
-     * The queue handler's lock name. Stable across restarts, so on startup
-     * it can release the jobs it was running when the process stopped.
+     * The queue handler's lock family. The id a handler locks with adds the
+     * process's pid (`src/bots-queue/index.ts`), so two processes (a dev
+     * server and the app, or two replicas) can never renew each other's
+     * locks: a heartbeat then fails, and the handler that lost the job stops.
+     * Startup still releases the family's jobs, so a restart doesn't leave
+     * its own cut-off runs waiting out the lock timeout.
      */
     BotQueueWorker: "main",
     BotQueuePollMs: 3000,

@@ -58,7 +58,7 @@ export default async function generateImage({
 
     if (has_references && !ordered.length && image.length) {
         throw new HarnessError({
-            message: `None of the image models here takes reference images. A super admin can pick one under Image editing in Settings, under Models.`,
+            message: `None of the image models here takes reference images. A super admin can pick one under Image editing in Settings, under Models, or turn Image editing's fallback on to send the call to a generation model that takes them.`,
             code: "unavailable",
         });
     }
@@ -107,7 +107,9 @@ export default async function generateImage({
 }
 
 /**
- * Image editing's setting and candidates, or undefined while it's off.
+ * Image editing's setting and candidates. Turned off still reports its
+ * fallback, so a call with references can hand over to a generation model
+ * that takes images (with fallback off it never leaves the harness).
  */
 async function grabEdit({
     bot_id,
@@ -118,7 +120,14 @@ async function grabEdit({
 }) {
     const setting = await grabHarnessSetting({ harness: "image_edit", bot_id, workspace_id });
 
-    if (!setting.enabled) return undefined;
+    if (!setting.enabled) {
+        /**
+         * Turned off still hands its fallback flag down: a call with
+         * references may go to a generation model that takes images, but only
+         * while fallback is on, or it would leave the harness quietly.
+         */
+        return { picked: false, fallback: setting.fallback, candidates: [] };
+    }
 
     return {
         picked: Boolean(setting.model_id),

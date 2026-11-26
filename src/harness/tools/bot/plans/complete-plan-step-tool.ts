@@ -7,6 +7,11 @@ import type { HarnessTool } from "../../../types";
 type Params = {
     bot_id: number | string;
     session_id: number | string;
+    /**
+     * The run working the step, kept on it so a report the app never sent
+     * puts the step back (`pauseFailedPlanStep`).
+     */
+    job_id?: number | string;
 };
 
 type Args = {
@@ -20,7 +25,7 @@ type Args = {
  * ends on, so a step is only ever finished by a run that did the work, one
  * at a time.
  */
-export default function completePlanStepTool({ bot_id, session_id }: Params): HarnessTool<Args> {
+export default function completePlanStepTool({ bot_id, session_id, job_id }: Params): HarnessTool<Args> {
     let completed = false;
 
     return {
@@ -47,6 +52,7 @@ export default function completePlanStepTool({ bot_id, session_id }: Params): Ha
                 plan_id: args.plan_id,
                 session_id,
                 summary: args.summary,
+                job_id,
             });
 
             completed = true;

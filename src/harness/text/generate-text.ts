@@ -37,7 +37,10 @@ export type GenerateTextParams = {
      */
     limits?: HarnessCallLimits;
     /**
-     * Overrides the saved generation settings (media reading wants 0).
+     * Overrides the saved generation settings (media reading wants 0). Sent as
+     * given: `prepareMessagesForModel` and `readImage` build their own call, and
+     * anything passed here must already be keys the candidate advertises, since
+     * this path does not filter them the way `grabChatParams` does.
      */
     params?: HarnessWireParams;
     signal?: AbortSignal;
@@ -146,8 +149,16 @@ export default async function generateText({
                 : { text: "", reasoning: null };
 
             if (!stripped.text && !answer.tool_calls.length) {
+                /**
+                 * Named for what happened: a thinking model whose content came
+                 * back empty or all inline tags reaches here, and "an empty
+                 * answer" sent a bot to explain a model it had just been
+                 * charged for (job 699 attempt 1).
+                 */
                 throw new HarnessError({
-                    message: `The model returned an empty answer.`,
+                    message: answer.reasoning || stripped.reasoning
+                        ? `The model answered with only its thinking: no message and no tool call.`
+                        : `The model returned an empty answer.`,
                     retryable: true,
                     candidate_key: candidate.key,
                 });

@@ -22,6 +22,12 @@ type Params = {
      * Called with each update sent, so the run knows it said something.
      */
     onSend?: (params: { message_id: number }) => void;
+    /**
+     * What the run typed, run through the run's secret redaction before it is
+     * stored: an update lands in another bot's conversation, where a raw env
+     * value or a password field's content would sit in a message forever.
+     */
+    redact?: (text: string) => string;
 };
 
 type Args = {
@@ -37,7 +43,7 @@ type Args = {
  * back on its own when the work ends. At most
  * `AppData.BotReplyInterimMessagesMax` per run.
  */
-export default function updateRequesterTool({ user_id, session_id, ask_id, onSend }: Params): HarnessTool<Args> {
+export default function updateRequesterTool({ user_id, session_id, ask_id, onSend, redact = (text) => text }: Params): HarnessTool<Args> {
     let sent = 0;
 
     return {
@@ -63,7 +69,7 @@ export default function updateRequesterTool({ user_id, session_id, ask_id, onSen
 
             const posted = await tellAskRequester({
                 ask,
-                text: askUpdateMessage({ ask, text: stripQuestionRefs({ text: args.text }).text }),
+                text: askUpdateMessage({ ask, text: stripQuestionRefs({ text: redact(args.text) }).text }),
             });
 
             sent++;

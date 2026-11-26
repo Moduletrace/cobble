@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
+import describeHarnessFailure from "@/src/harness/describe-harness-failure";
 import recordBotFile from "@/src/functions/backend/db/bot-files/record-bot-file";
 import loadReferenceImages from "@/src/harness/image/load-reference-images";
 import generateVideo from "@/src/harness/video/generate-video";
@@ -129,8 +130,7 @@ export default function generateVideoTool(context: StorageToolContext): HarnessT
                 bot_id: context.bot_id,
                 workspace_id: context.workspace_id,
             }).catch((error: unknown) => {
-                const message = error instanceof Error ? error.message : String(error);
-                throw new Error(`Video generation isn't working: ${message}`);
+                throw new Error(`Video generation isn't working: ${describeHarnessFailure({ error })}`);
             });
 
             if (!made.length) {

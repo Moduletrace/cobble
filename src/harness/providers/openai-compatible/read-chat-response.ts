@@ -1,7 +1,7 @@
 import HarnessError from "../../harness-error";
+import toHarnessError from "../to-harness-error";
 import type { HarnessChatResult, HarnessToolCall } from "../../types";
 import readReasoning from "./read-reasoning";
-import redactProviderError from "../redact-provider-error";
 
 type WireToolCall = {
     id?: string;
@@ -15,6 +15,10 @@ type Params = {
     json: any;
     provider_name: string;
     candidate_key?: string;
+    /**
+     * Where the call went, so a refusal names the address it came from.
+     */
+    url?: string;
 };
 
 /**
@@ -25,15 +29,22 @@ export default function readChatResponse({
     json,
     provider_name,
     candidate_key,
+    url,
 }: Params): HarnessChatResult {
     if (json?.error) {
-        const status = Number(json.error.code) || undefined;
-
-        throw new HarnessError({
-            message: `${provider_name}: ${redactProviderError({ text: json.error.message || "The model failed." })}`,
-            status,
-            retryable: !status || status == 429 || status >= 500,
+        /**
+         * Built by the classifier, not by hand: a 200 carrying an error body
+         * skipped `toHarnessError` whole, so an oversized request read as a
+         * plain refusal that benched nothing and re-fired on every turn (52
+         * failed rows, one task limping through its fallbacks for 18 minutes).
+         * Overflow, a dead key and the provider's own words are decided there.
+         */
+        throw toHarnessError({
+            status: Number(json.error.code) || 400,
+            body: JSON.stringify({ error: json.error }),
+            provider_name,
             candidate_key,
+            url,
         });
     }
 

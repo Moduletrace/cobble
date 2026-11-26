@@ -51,7 +51,9 @@ export default function suggestNextStepsTool({ user_id, bot_id, session_id, work
                 .max(AppData.BotSuggestionTitleMaxChars)
                 .optional()
                 .describe(`A short heading for the row, e.g. "What I can do next" (defaults to "Next steps")`),
-            steps: BotSuggestionStepsSchema.describe("The suggested steps, best first, each written as the message the user would send"),
+            steps: BotSuggestionStepsSchema.describe(
+                `The suggested steps, best first, at most ${AppData.BotSuggestionMaxSteps}, each under ${AppData.BotSuggestionStepMaxChars} characters and written as the message the user would send`,
+            ),
         }),
         run: async ({ args }) => {
             if (suggested) {

@@ -165,7 +165,26 @@ export default async function withCandidates<T>({
 
             return { result, candidate };
         } catch (error: unknown) {
-            if (!(error instanceof HarnessError)) throw error;
+            if (!(error instanceof HarnessError)) {
+                /**
+                 * A bug in an adapter is not swallowed (it goes up as it is),
+                 * but it stops being invisible: with no row the message's
+                 * Details modal showed nothing at all for the call that ended
+                 * the run.
+                 */
+                if (log_failures) {
+                    await recordHarnessFailure({
+                        harness: harness_of?.get(candidate.key) || harness,
+                        candidate,
+                        error: new HarnessError({
+                            message: error instanceof Error ? error.message : String(error),
+                            candidate_key: candidate.key,
+                        }),
+                    });
+                }
+
+                throw error;
+            }
             if (error.code == "aborted") throw error;
             /**
              * A fatal failure is the run's own: another model fails the same
@@ -229,7 +248,13 @@ export default async function withCandidates<T>({
         }
     }
 
-    const last = errors[errors.length - 1];
+    /**
+     * The error worth reading, not simply the last one: a dead key on the
+     * first candidate and a 400 on the second left the bot told its user the
+     * request was bad, when the provider's key was the whole story.
+     */
+    const last =
+        errors.find((error) => error.provider_wide || error.fatal) || errors[errors.length - 1];
 
     if (!last) {
         const next = soonestRest({ candidates: ordered, cooldowns, now: now() });
@@ -369,7 +394,13 @@ function coolDown({
         return at;
     }
 
-    if (error.status == 403 || error.status == 404) {
+    /**
+     * A 405 says the path isn't there at all (`toHarnessError` calls it a
+     * missing endpoint), so another turn on the same base URL answers the
+     * same way: benched like a 404, or a wrong base URL is paid for on every
+     * turn, forever.
+     */
+    if (error.status == 403 || error.status == 404 || error.status == 405) {
         cooldowns.set({ key: candidate.key, at: until });
         return until;
     }

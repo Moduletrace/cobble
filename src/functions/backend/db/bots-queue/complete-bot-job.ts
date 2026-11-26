@@ -169,7 +169,13 @@ export default async function completeBotJob({
     }
 
     await BunSQLite.sql({
-        sql: `UPDATE bots_queue SET result = ?, finished_at = ? WHERE id = ?`,
+        /**
+         * A job that failed, was retried and then answered must not stay
+         * marked with the old failure: the Details modal reads last_error off
+         * the row (job #699 shipped as "completed" beside "The model returned
+         * an empty answer.").
+         */
+        sql: `UPDATE bots_queue SET result = ?, finished_at = ?, last_error = NULL WHERE id = ?`,
         values: [result, now, job.id],
     });
 

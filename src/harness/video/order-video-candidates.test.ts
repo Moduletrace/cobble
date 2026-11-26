@@ -51,10 +51,7 @@ describe("orderVideoCandidates", () => {
         ).toEqual(["video_edit:flux-video-edit"]);
     });
 
-    test("video editing off or unpicked goes to the generation models that take videos", () => {
-        expect(
-            slugs(orderVideoCandidates({ images: false, videos: true, video: [veo, seedance] })),
-        ).toEqual(["video:seedance"]);
+    test("video editing unpicked goes to the generation models that take videos, with fallback on", () => {
         expect(
             slugs(
                 orderVideoCandidates({
@@ -67,14 +64,30 @@ describe("orderVideoCandidates", () => {
         ).toEqual(["video:seedance"]);
     });
 
-    test("an edit pick that can't take the images passed falls to generation", () => {
+    test("video editing off with no fallback has nothing to try, as image editing does", () => {
+        expect(
+            slugs(orderVideoCandidates({ images: false, videos: true, video: [veo, seedance] })),
+        ).toEqual([]);
+        expect(
+            slugs(
+                orderVideoCandidates({
+                    images: false,
+                    videos: true,
+                    video: [veo, seedance],
+                    edit: { picked: false, fallback: false, candidates: [] },
+                }),
+            ),
+        ).toEqual([]);
+    });
+
+    test("an edit pick that can't take the images passed falls to generation, with fallback on", () => {
         expect(
             slugs(
                 orderVideoCandidates({
                     images: true,
                     videos: true,
                     video: [veo, seedance],
-                    edit: { picked: true, fallback: false, candidates: [flux_edit] },
+                    edit: { picked: true, fallback: true, candidates: [flux_edit] },
                 }),
             ),
         ).toEqual(["video:seedance"]);

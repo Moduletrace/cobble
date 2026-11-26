@@ -7,6 +7,12 @@ export type BotPlanStepRecord = {
      * What the step produced, written when it was completed.
      */
     note: string;
+    /**
+     * The run that finished it (`complete_plan_step`). Kept so a step whose
+     * report never went out can be put back by `pauseFailedPlanStep`: the
+     * card must not show as delivered what the user was never sent.
+     */
+    done_job_id?: number;
 };
 
 /**
@@ -39,12 +45,14 @@ export default function parseBotPlanSteps({ text }: { text: string | null | unde
         if (!step_text) return [];
 
         const state = typeof row.state == "string" && states.includes(row.state) ? (row.state as BotPlanStepState) : "pending";
+        const done_job_id = Number(row.done_job_id);
 
         return [
             {
                 text: step_text,
                 state,
                 note: typeof row.note == "string" ? row.note : "",
+                ...(Number.isSafeInteger(done_job_id) && done_job_id > 0 ? { done_job_id } : {}),
             },
         ];
     });

@@ -2,7 +2,7 @@ import { afterAll, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
 import { AppData } from "@/src/data/app-data";
 import { UnlimitedLimit } from "@/src/utils/run-limit";
-import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, closingToolGoneNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, StoppedRunNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
+import { alreadyRanToolNote, answerNotSentNote, closingFailedNote, closingMixedNote, closingNoTextNote, closingToolGoneNote, contextTrimmedNote, DroppedToolImageNote, repeatedAnswerNote, replyCardFailedNote, replyClosingFailedNote, replyClosingMixedNote, replyClosingRequiredNote, replyDraftNote, replyNoTextNote, StoppedRunNote, stuckToolNote, SupersededSnapshotNote, ToolImagesNote } from "@/src/data/harness-prompts";
 import HarnessError from "../harness-error";
 import type { HarnessCandidate, HarnessTool } from "../types";
 import type { HarnessTrace } from "../trace/types";
@@ -2200,6 +2200,115 @@ describe("runTextLoop required send_reply", () => {
         expect(result.text).toBe("Asked. Waiting on your answer.");
         expect(asked).toEqual(["Which date rule?"]);
         expect(seen[1]!.messages.at(-1)).toMatchObject({ role: "user", content: replyClosingRequiredNote });
+    });
+
+    test("a card the tool refused beside a good send_reply names the card, not send_reply", async () => {
+        /**
+         * Job 699: `send_reply` returned ok and `suggest_next_steps` refused a
+         * step over its length cap. The note said "send_reply did not go
+         * through", so the model spent three turns re-writing a message that
+         * had already shipped, and the trace logged closing_failed against the
+         * wrong tool.
+         */
+        const cappedSteps: HarnessTool<{ steps: string[] }> = {
+            name: "suggest_next_steps",
+            description: "Offers the next steps as buttons.",
+            schema: z.object({
+                steps: z.array(z.string().max(AppData.BotSuggestionStepMaxChars, "Keep each step under 120 characters")),
+            }),
+            run: async ({ args }) => {
+                suggested.push(...args.steps);
+                return "Suggested. The buttons are under your message.";
+            },
+        };
+        const long_step =
+            "Summarise every tab open in the browser on the computer, name the ones you think are stale, and tell me which I can close today.";
+
+        expect(long_step.length).toBeGreaterThan(AppData.BotSuggestionStepMaxChars);
+
+        const { generate, seen } = scripted([
+            {
+                text: "Nine tabs are open.",
+                tool_calls: [
+                    { id: "s1", name: "send_reply", arguments: `{"status":"done"}` },
+                    { id: "c1", name: "suggest_next_steps", arguments: JSON.stringify({ steps: [long_step] }) },
+                ],
+            },
+            {
+                text: "Nine tabs are open.",
+                tool_calls: [
+                    { id: "s2", name: "send_reply", arguments: `{"status":"done"}` },
+                    { id: "c2", name: "suggest_next_steps", arguments: `{"steps":["Close the extras"]}` },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "What's open?" }],
+            tools: [sendReply, cappedSteps],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        expect(seen[1]!.messages.at(-1)).toMatchObject({
+            role: "user",
+            content: replyCardFailedNote({ tools: ["suggest_next_steps"] }),
+        });
+        expect(result.text).toBe("Nine tabs are open.");
+        expect(result.tool_uses).toEqual([
+            { name: "send_reply", ok: true },
+            { name: "suggest_next_steps", ok: false },
+            { name: "send_reply", ok: true },
+            { name: "suggest_next_steps", ok: true },
+        ]);
+    });
+
+    test("a send_reply that failed is still blamed, even beside a failed card", async () => {
+        const failingSend: HarnessTool<{ status?: string }> = {
+            name: "send_reply",
+            description: "Sends the message.",
+            schema: z.object({ status: z.string().optional() }),
+            run: async () => {
+                throw new Error('Status "working" needs work queued in the call.');
+            },
+        };
+        const refusedSteps: HarnessTool<{ steps: string[] }> = {
+            name: "suggest_next_steps",
+            description: "Offers the next steps as buttons.",
+            schema: z.object({ steps: z.array(z.string()) }),
+            run: async () => {
+                throw new Error("Keep each step under 120 characters");
+            },
+        };
+
+        const { generate, seen } = scripted([
+            {
+                text: "I'm on it.",
+                tool_calls: [
+                    { id: "s1", name: "send_reply", arguments: `{"status":"working"}` },
+                    { id: "c1", name: "suggest_next_steps", arguments: `{"steps":["Look again"]}` },
+                ],
+            },
+        ]);
+
+        const result = await runTextLoop({
+            system: "s",
+            messages: [{ role: "user", content: "Check the browser." }],
+            tools: [failingSend, refusedSteps],
+            generate,
+            resolveCandidates,
+            require_closing_answer: true,
+        });
+
+        /**
+         * Both closing calls failed, so the message never went out and the old
+         * note is the right one: it names send_reply, which is what has to be
+         * fixed. Only a card failing on its own takes the new note.
+         */
+        expect(seen[1]!.messages.at(-1)!.content).toBe(replyClosingFailedNote);
+        expect(result.text).toBe("");
     });
 
     test("send_reply with no message beside it is told once", async () => {
