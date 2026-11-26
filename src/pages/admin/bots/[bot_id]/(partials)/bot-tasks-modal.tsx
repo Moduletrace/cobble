@@ -16,6 +16,7 @@ import TaskListItem from "@/src/components/general/task-list-item";
 
 import { AppContext } from "@/src/pages/__root";
 import canManageCrew from "@/src/utils/rbac/can-manage-crew";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import useBotTasks from "../(hooks)/use-bot-tasks";
 import HeaderMenuItem from "./header-menu-item";
 
@@ -27,6 +28,11 @@ type Props = {
      */
     menu?: boolean;
     on_open?: () => void;
+    /**
+     * The composer command that opens this modal (`/tasks`): only the
+     * instance named by the header menu listens.
+     */
+    command?: string;
 };
 
 /**
@@ -36,9 +42,11 @@ type Props = {
  * and deletes; a card opens the task in a modal of its own with everything
  * about it.
  */
-export default function BotTasksModal({ bot, workspace, menu, on_open }: Props) {
+export default function BotTasksModal({ bot, workspace, menu, on_open, command }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => setOpen(true) });
     const [adding, set_adding] = useState(false);
     const [open_task, set_open_task] = useState<TaskWithNames | null>(null);
     const [busy, set_busy] = useState(false);

@@ -19,6 +19,12 @@ import type { ComposerCommand } from "../(data)/composer-commands";
 import { CrewBotsContext } from "../(data)/crew-bots-context";
 import { CrewWorkspacesContext } from "../(data)/crew-workspaces-context";
 import postSessionApi from "@/src/functions/frontend/post-session-api";
+import { AppContext } from "@/src/pages/__root";
+import dispatchComposerCommand from "@/src/utils/composer-command-event";
+import requestBotPanel from "@/src/utils/bot-panel-open-event";
+import copyConversation from "../(functions)/copy-conversation";
+import visibleComposerCommands from "../(utils)/visible-composer-commands";
+import { StopBotContext } from "../(data)/stop-bot-context";
 import sendBotMessage from "../(functions)/send-bot-message";
 import transcribeVoice from "../(functions)/transcribe-voice";
 import useComposerAttachments from "../(hooks)/use-composer-attachments";
@@ -161,12 +167,22 @@ export default function Composer({
     const online = useOnlineStatus();
     const bots = useContext(CrewBotsContext);
     const workspaces = useContext(CrewWorkspacesContext);
+    const { pageProps } = useContext(AppContext);
+    const { stop, can_stop } = useContext(StopBotContext);
     const send_ref = useRef<() => void>(() => {});
     /**
-     * The slash commands the text is asking for, the one highlighted, and
-     * a command still on its way (`/continue` writes a summary).
+     * The slash commands the text is asking for, from the ones this user
+     * gets here, the one highlighted, and a command still on its way
+     * (`/continue` writes a summary).
      */
-    const commands = composerCommandMatches({ text });
+    const commands = composerCommandMatches({
+        text,
+        commands: visibleComposerCommands({
+            user_types: pageProps?.user_types,
+            bot_kind: bot.kind,
+            workspace_id,
+        }),
+    });
     const [command_index, set_command_index] = useState(0);
     const [command_busy, set_command_busy] = useState(false);
 
@@ -380,14 +396,76 @@ export default function Composer({
     }
 
     /**
-     * `/new`, `/continue` and `/clear` act on the conversation's session
-     * rather than being sent, and the page lands on the session they
-     * leave. `/clear` destroys messages, so it asks first. A failure puts
-     * the command back in the input with the reason under it (a session
-     * with a run in progress can't be deleted).
+     * A command acts on the page rather than being sent: the session trio
+     * posts and lands on the session it leaves (`/clear` destroys messages,
+     * so it asks first); the modal commands open what the header menu's
+     * rows open; `/copy` puts the session on the clipboard and `/stop`
+     * pulls the bot's plug; `/panel` slides the bot panel in; `/settings`
+     * goes to the settings page. A failure puts the command back in the
+     * input with the reason under it (a session with a run in progress
+     * can't be deleted, a bot with nothing running has nothing to stop).
      */
     async function runCommand({ command }: { command: ComposerCommand }) {
         if (sending.current) return;
+
+        setError(undefined);
+
+        const lost_text = text.trim();
+
+        const restore = () => {
+            if (!latest_text.current.trim()) {
+                setText(lost_text);
+                input.setMarkdown({ markdown: lost_text });
+            }
+        };
+
+        // Nothing to pull the plug on: say so and leave the command in the
+        // input (this is before the clear, so there is nothing to restore).
+        if (command.action == "stop" && !can_stop) {
+            setError(
+                `Nothing of ${bot.name || "the bot"}'s is running for you.`,
+            );
+            return;
+        }
+
+        if (command.action != "session") {
+            setText("");
+            history.reset();
+            input.clear();
+
+            switch (command.action) {
+                case "modal":
+                    dispatchComposerCommand({ name: command.name });
+                    return;
+                case "panel":
+                    requestBotPanel();
+                    return;
+                case "link":
+                    if (command.href) {
+                        window.location.assign(
+                            command.href({ bot_id: Number(bot.id) }),
+                        );
+                    }
+
+                    return;
+                case "copy": {
+                    const failure = await copyConversation({
+                        bot_id: Number(bot.id),
+                        workspace_id,
+                    });
+
+                    if (failure) {
+                        setError(failure);
+                        restore();
+                    }
+
+                    return;
+                }
+                case "stop":
+                    void stop();
+                    return;
+            }
+        }
 
         if (command.name == "clear") {
             if (!session_id) {
@@ -406,21 +484,13 @@ export default function Composer({
 
         sending.current = true;
         set_command_busy(true);
-        setError(undefined);
-
-        const lost_text = text.trim();
 
         setText("");
         history.reset();
         input.clear();
 
         const res = await postSessionApi({
-            path:
-                command.name == "new"
-                    ? "new-session"
-                    : command.name == "continue"
-                      ? "continue-session"
-                      : "delete-session",
+            path: command.path || "new-session",
             body:
                 command.name == "clear"
                     ? { session_id }
@@ -437,11 +507,7 @@ export default function Composer({
         sending.current = false;
         set_command_busy(false);
         setError(res?.msg || "That didn't work.");
-
-        if (!latest_text.current.trim()) {
-            setText(lost_text);
-            input.setMarkdown({ markdown: lost_text });
-        }
+        restore();
     }
 
     /**

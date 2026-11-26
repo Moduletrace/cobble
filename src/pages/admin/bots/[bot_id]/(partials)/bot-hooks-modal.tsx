@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Row from "@moduletrace/twui/layout/Row";
@@ -37,6 +38,8 @@ type Props = {
     bot: BotWithLastMessage;
     workspace?: BUN_SQLITE_COBBLE_WORKSPACES | null;
     on_open?: () => void;
+    /** The composer command that opens this modal (`/hooks`). */
+    command?: string;
 };
 
 /**
@@ -47,9 +50,11 @@ type Props = {
  * their own; bots propose new hooks and changes from the chat
  * (`propose_hook`), which the user confirms there.
  */
-export default function BotHooksModal({ bot, workspace, on_open }: Props) {
+export default function BotHooksModal({ bot, workspace, on_open, command }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, set_open] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => set_open(true) });
     const [view, set_view] = useState<View>();
     const [opened, set_opened] = useState<BotHookWithNames>();
     const [busy, set_busy] = useState(false);

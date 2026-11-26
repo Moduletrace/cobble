@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -27,6 +28,8 @@ type Props = {
      */
     menu?: boolean;
     on_open?: () => void;
+    /** The composer command that opens this modal (`/files`). */
+    command?: string;
 };
 
 /**
@@ -36,9 +39,11 @@ type Props = {
  * as the user types) goes through the same endpoint, so the page props
  * stay small.
  */
-export default function BotFilesModal({ bot, workspace, menu, on_open }: Props) {
+export default function BotFilesModal({ bot, workspace, menu, on_open, command }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => setOpen(true) });
     const [search, setSearch] = useState("");
     const query = useDebouncedValue({ value: search.trim() });
     const [busy_id, setBusyId] = useState<number>();

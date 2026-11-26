@@ -1,4 +1,5 @@
 import ContinueSessionButton from "./continue-session-button";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import useShownSession from "@/src/hooks/use-shown-session";
 import conversationHref from "@/src/utils/conversation-href";
 import {
@@ -37,6 +38,8 @@ type Props = {
      * Runs as it opens, e.g. closing the menu it was opened from.
      */
     on_open?: () => void;
+    /** The composer command that opens this modal (`/sessions`). */
+    command?: string;
 };
 
 /**
@@ -52,8 +55,11 @@ export default function BotSessionsModal({
     target,
     target_wrapper_props,
     on_open,
+    command,
 }: Props) {
     const [open, setOpen] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => setOpen(true) });
     const on_screen = useShownSession({ bot_id: Number(bot.id), workspace_id });
     const sessions = useBotSessions({
         bot_id: Number(bot.id),

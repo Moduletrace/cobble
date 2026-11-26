@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -41,6 +42,8 @@ type Props = {
      */
     meta_text?: string;
     onSaved: (harnesses: HarnessOverview[]) => void;
+    /** The composer command that opens this modal (`/models`). */
+    command?: string;
 };
 
 /**
@@ -63,9 +66,12 @@ export default function BotModelsModal({
     on_open,
     meta_text,
     onSaved,
+    command,
 }: Props) {
     const { pageProps } = useContext(AppContext);
     const [open, setOpen] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => setOpen(true) });
     /**
      * The pointer or focus reached the icon: start loading before the click.
      */

@@ -120,6 +120,7 @@ export default function ConversationHeaderMenu({
             <Stack className="w-full gap-0! items-stretch">
                 <BotSessionsModal
                     bot={bot}
+                    command="sessions"
                     workspace_id={workspace?.id || null}
                     has_other_unread={has_other_unread}
                     target={
@@ -165,24 +166,28 @@ export default function ConversationHeaderMenu({
                     menu
                     bot={bot}
                     workspace={workspace}
+                    command="files"
                     on_open={on_open}
                 />
                 <BotTasksModal
                     menu
                     bot={bot}
                     workspace={workspace}
+                    command="tasks"
                     on_open={on_open}
                 />
                 <BotRoutinesModal
                     menu
                     bot={bot}
                     workspace={workspace}
+                    command="routines"
                     on_open={on_open}
                 />
                 {can_make_hooks ? (
                     <BotHooksModal
                         bot={bot}
                         workspace={workspace}
+                        command="hooks"
                         on_open={on_open}
                     />
                 ) : null}
@@ -195,6 +200,7 @@ export default function ConversationHeaderMenu({
                             : null
                     }
                     menu_hint={computer_name}
+                    command="computers"
                     on_open={on_open}
                 />
                 <BotModelsModal
@@ -203,6 +209,7 @@ export default function ConversationHeaderMenu({
                     bot={bot}
                     workspace={workspace}
                     menu_hint={model_name}
+                    command="models"
                     on_open={on_open}
                     onSaved={on_model_saved}
                 />
@@ -210,6 +217,7 @@ export default function ConversationHeaderMenu({
                     <BotWorkspaceInstructionsModal
                         bot={bot}
                         workspace={workspace}
+                        command="instructions"
                         on_open={on_open}
                     />
                 ) : null}

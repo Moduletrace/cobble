@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import Modal from "@moduletrace/twui/elements/Modal";
 import Loading from "@moduletrace/twui/elements/Loading";
 import H2 from "@moduletrace/twui/layout/H2";
@@ -15,6 +16,8 @@ type Props = {
     bot: BotWithLastMessage;
     workspace: BUN_SQLITE_COBBLE_WORKSPACES;
     on_open?: () => void;
+    /** The composer command that opens this modal (`/instructions`). */
+    command?: string;
 };
 
 /**
@@ -23,8 +26,10 @@ type Props = {
  * here (crew managers). Both load when it opens, so it shows the bot's
  * own latest edits.
  */
-export default function BotWorkspaceInstructionsModal({ bot, workspace, on_open }: Props) {
+export default function BotWorkspaceInstructionsModal({ bot, workspace, on_open, command }: Props) {
     const [open, setOpen] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => setOpen(true) });
     const name = bot.name || "This bot";
     const place = workspace.name || "this workspace";
     const { instructions, error } = useWorkspaceBotInstructions({

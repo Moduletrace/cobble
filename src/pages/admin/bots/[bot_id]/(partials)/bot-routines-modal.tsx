@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Row from "@moduletrace/twui/layout/Row";
@@ -28,6 +29,8 @@ type Props = {
      */
     menu?: boolean;
     on_open?: () => void;
+    /** The composer command that opens this modal (`/routines`). */
+    command?: string;
 };
 
 /**
@@ -37,8 +40,10 @@ type Props = {
  * page's props stay small. The user pauses, resumes, edits, hands over
  * and deletes their own; the bot makes them when asked in chat.
  */
-export default function BotRoutinesModal({ bot, workspace, menu, on_open }: Props) {
+export default function BotRoutinesModal({ bot, workspace, menu, on_open, command }: Props) {
     const [open, set_open] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => set_open(true) });
     const [editing, set_editing] = useState<CronJobWithNames>();
     const [handing, set_handing] = useState<CronJobWithNames>();
     const [busy, set_busy] = useState(false);

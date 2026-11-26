@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import useOpenOnCommand from "@/src/hooks/use-open-on-command";
 import Modal from "@moduletrace/twui/elements/Modal";
 import H2 from "@moduletrace/twui/layout/H2";
 import Span from "@moduletrace/twui/layout/Span";
@@ -36,6 +37,8 @@ type Props = {
      * (its text) instead of an icon: clicking it opens the modal.
      */
     meta_text?: string;
+    /** The composer command that opens this modal (`/computers`). */
+    command?: string;
 };
 
 /**
@@ -51,10 +54,13 @@ export default function BotComputersModal({
     menu_hint,
     on_open,
     meta_text,
+    command,
 }: Props) {
     const { computers, switching_id, error, switchComputer, openComputer } =
         useContext(BotComputersContext);
     const [open, setOpen] = useState(false);
+
+    useOpenOnCommand({ command, on_fire: () => setOpen(true) });
 
     const current = computers[0];
 
