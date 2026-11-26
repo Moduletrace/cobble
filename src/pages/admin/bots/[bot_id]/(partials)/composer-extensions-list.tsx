@@ -31,6 +31,11 @@ type Props = {
     add_hint: string;
     add_noun: string;
     onAdd: (params: { kind: BotExtensionKind; id: number }) => Promise<boolean>;
+    /**
+     * Reads a knowledgebase's documents. Only crew managers: the documents
+     * API is theirs.
+     */
+    onOpenItem?: (item: BotExtension) => void;
     onRemove: (params: {
         kind: BotExtensionKind;
         id: number;
@@ -55,6 +60,7 @@ export default function ComposerExtensionsList({
     add_hint,
     add_noun,
     onAdd,
+    onOpenItem,
     onRemove,
 }: Props) {
     return (
@@ -69,6 +75,11 @@ export default function ComposerExtensionsList({
                             key={`${item.kind}:${item.id}`}
                             item={item}
                             busy={busy == `${item.kind}:${item.id}`}
+                            onOpen={
+                                can_manage && item.kind == "knowledgebase" && onOpenItem
+                                    ? () => onOpenItem(item)
+                                    : undefined
+                            }
                             onRemove={
                                 can_manage && item.source == "bot"
                                     ? () =>

@@ -2016,6 +2016,11 @@ export type KnowledgebaseDocument = {
     knowledgebase_id: number;
     name: string;
     source: "file" | "text";
+    /**
+     * The uploaded file's private `media` row, for a file document: what
+     * "Open original" loads.
+     */
+    media_id: number | null;
     mime_type: string;
     size: number;
     chunk_count: number;
@@ -2036,6 +2041,11 @@ export type KnowledgebaseDocument = {
 export type KnowledgebaseDocumentsPayload = {
     knowledgebase_id: number;
     documents: KnowledgebaseDocument[];
+    /**
+     * The install's embedding model, to tell a document it needs
+     * re-indexing.
+     */
+    embedding_model: string | null;
 };
 
 export type KnowledgebasesOverviewPayload = ExtensionTargets & {

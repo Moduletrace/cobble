@@ -2,6 +2,7 @@ import BunSQLite from "@moduletrace/bun-sqlite";
 import type { BUN_SQLITE_COBBLE_MEDIA, BunSQLiteTables } from "@/db/types/db";
 import grabSharedPictureMedia from "@/src/functions/backend/db/access/grab-shared-picture-media";
 import grabBotFileMedia from "@/src/functions/backend/db/bot-files/grab-bot-file-media";
+import grabKnowledgebaseDocumentMedia from "@/src/functions/backend/db/knowledgebases/grab-knowledgebase-document-media";
 import grabTaskMediaFile from "@/src/functions/backend/db/tasks/grab-task-media-file";
 
 type Params = {
@@ -20,7 +21,9 @@ type Params = {
  * - a bot's or workspace's file, to whoever reaches the folder it lives in
  *   (`grabBotFileMedia`),
  * - a file attached to a task, to whoever reaches the task
- *   (`grabTaskMediaFile`).
+ *   (`grabTaskMediaFile`),
+ * - a knowledgebase document's file, to crew managers
+ *   (`grabKnowledgebaseDocumentMedia`).
  *
  * Null when it is not theirs to see, so a request never turns into a path
  * before this has passed.
@@ -51,6 +54,7 @@ export default async function grabUserMedia({
         (await grabSharedPictureMedia({ media_id })) ||
         (await grabBotFileMedia({ media_id, user_id })) ||
         (await grabTaskMediaFile({ media_id, user_id })) ||
+        (await grabKnowledgebaseDocumentMedia({ media_id, user_id })) ||
         undefined
     );
 }

@@ -21,6 +21,7 @@ const PollMs = 4000;
  */
 export default function useKnowledgebaseDocuments({ knowledgebase_id }: Params) {
     const [documents, setDocuments] = useState<KnowledgebaseDocument[]>();
+    const [embedding_model, setEmbeddingModel] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState<Status>();
 
@@ -30,8 +31,10 @@ export default function useKnowledgebaseDocuments({ knowledgebase_id }: Params) 
             body: { knowledgebase_id },
         });
 
-        if (res.success && res.singleRes) setDocuments(res.singleRes.documents);
-        else setStatus({ error: true, msg: res.msg || "Couldn't load the documents." });
+        if (res.success && res.singleRes) {
+            setDocuments(res.singleRes.documents);
+            setEmbeddingModel(res.singleRes.embedding_model);
+        } else setStatus({ error: true, msg: res.msg || "Couldn't load the documents." });
     };
 
     useEffect(() => {
@@ -62,6 +65,7 @@ export default function useKnowledgebaseDocuments({ knowledgebase_id }: Params) 
         }
 
         setDocuments(res.singleRes.documents);
+        setEmbeddingModel(res.singleRes.embedding_model);
         setStatus({ success: true, msg: res.msg || "Saved." });
         return true;
     };
@@ -116,5 +120,5 @@ export default function useKnowledgebaseDocuments({ knowledgebase_id }: Params) 
         });
     };
 
-    return { documents, busy, status, upload, saveText, remove, retry };
+    return { documents, embedding_model, busy, status, upload, saveText, remove, retry };
 }

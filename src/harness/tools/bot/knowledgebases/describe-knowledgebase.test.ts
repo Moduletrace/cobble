@@ -22,6 +22,7 @@ const document: KnowledgebaseDocument = {
     knowledgebase_id: 3,
     name: "leave.md",
     source: "file",
+    media_id: null,
     mime_type: "md",
     size: 2048,
     chunk_count: 4,

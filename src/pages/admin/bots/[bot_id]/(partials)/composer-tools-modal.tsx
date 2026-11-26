@@ -13,6 +13,7 @@ import type {
     BotExtensionsPayload,
     ConnectorAppIcon,
 } from "@/src/types";
+import KnowledgebaseDocumentsModal from "@/src/pages/admin/settings/knowledgebases/(partials)/knowledgebase-documents-modal";
 import ComposerConnectorsSection from "./composer-connectors-section";
 import ComposerExtensionsList from "./composer-extensions-list";
 import { twMerge } from "tailwind-merge";
@@ -108,6 +109,11 @@ export default function ComposerToolsModal({
     onConnectorApps,
 }: Props) {
     const [open, setOpen] = useState(false);
+    /**
+     * The knowledgebase whose documents are read from its row; a read-only
+     * look at what the bot searches.
+     */
+    const [viewing, setViewing] = useState<BotExtension>();
     const count = attached.length;
     const total = count + (connectors ? Number(connector_count || 0) : 0);
     const has_problem = attached.some(
@@ -120,77 +126,87 @@ export default function ComposerToolsModal({
         : copy.empty_label;
 
     return (
-        <Modal
-            target={
-                <Button
-                    title={copy.title}
-                    type="button"
-                    variant="ghost"
-                    color="gray"
-                    size="small"
-                    beforeIcon={
-                        <Row className="items-center gap-1! flex-nowrap">
-                            {app_icons.map((app, index) => (
-                                <Img
-                                    key={app.id}
-                                    src={app.logo}
-                                    alt={app.name}
-                                    title={app.name}
-                                    size={16}
-                                    circle
-                                    className={twMerge(
-                                        "shrink-0 border border-hairline bg-white object-contain relative",
-                                        index > 0 ? "-ml-1.5" : "",
-                                    )}
-                                    style={{ zIndex: index + 1 }}
-                                />
-                            ))}
-                            <TriggerIcon size={12} aria-hidden />
-                        </Row>
-                    }
-                    className={twMerge(
-                        "shrink-0 gap-1! px-2! py-0.5! text-[12px] leading-4 text-ink-secondary",
-                    )}
-                >
-                    {label}
-                </Button>
-            }
-            targetWrapperProps={{ className: "shrink-0" }}
-            open={open}
-            setOpen={setOpen}
-            className="max-w-lg bg-paper p-6"
-        >
-            <Stack className="w-full gap-1! items-stretch">
-                <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">
-                    {copy.title}
-                </H2>
-                <Span className="text-[13px] leading-[18px] text-ink-secondary">
-                    {total ? copy.some : copy.none}
-                </Span>
-            </Stack>
+        <>
+            <Modal
+                target={
+                    <Button
+                        title={copy.title}
+                        type="button"
+                        variant="ghost"
+                        color="gray"
+                        size="small"
+                        beforeIcon={
+                            <Row className="items-center gap-1! flex-nowrap">
+                                {app_icons.map((app, index) => (
+                                    <Img
+                                        key={app.id}
+                                        src={app.logo}
+                                        alt={app.name}
+                                        title={app.name}
+                                        size={16}
+                                        circle
+                                        className={twMerge(
+                                            "shrink-0 border border-hairline bg-white object-contain relative",
+                                            index > 0 ? "-ml-1.5" : "",
+                                        )}
+                                        style={{ zIndex: index + 1 }}
+                                    />
+                                ))}
+                                <TriggerIcon size={12} aria-hidden />
+                            </Row>
+                        }
+                        className={twMerge(
+                            "shrink-0 gap-1! px-2! py-0.5! text-[12px] leading-4 text-ink-secondary",
+                        )}
+                    >
+                        {label}
+                    </Button>
+                }
+                targetWrapperProps={{ className: "shrink-0" }}
+                open={open}
+                setOpen={setOpen}
+                className="max-w-lg bg-paper p-6"
+            >
+                <Stack className="w-full gap-1! items-stretch">
+                    <H2 className="text-lg! leading-6! tracking-normal! font-bold text-ink">
+                        {copy.title}
+                    </H2>
+                    <Span className="text-[13px] leading-[18px] text-ink-secondary">
+                        {total ? copy.some : copy.none}
+                    </Span>
+                </Stack>
 
-            <ComposerExtensionsList
-                id={copy.id}
-                label={copy.title}
-                items={attached}
-                addable={addable}
-                can_manage={can_manage}
-                busy={busy}
-                add_hint={copy.add_hint}
-                add_noun={copy.add_noun}
-                onAdd={onAdd}
-                onRemove={onRemove}
-            />
+                <ComposerExtensionsList
+                    id={copy.id}
+                    label={copy.title}
+                    items={attached}
+                    addable={addable}
+                    can_manage={can_manage}
+                    busy={busy}
+                    add_hint={copy.add_hint}
+                    add_noun={copy.add_noun}
+                    onAdd={onAdd}
+                    onOpenItem={setViewing}
+                    onRemove={onRemove}
+                />
 
-            {connectors ? (
-                <ComposerConnectorsSection
-                    bot_id={connectors.bot_id}
-                    workspace_id={connectors.workspace_id}
-                    open={open}
-                    onCount={onConnectorCount}
-                    onApps={onConnectorApps}
+                {connectors ? (
+                    <ComposerConnectorsSection
+                        bot_id={connectors.bot_id}
+                        workspace_id={connectors.workspace_id}
+                        open={open}
+                        onCount={onConnectorCount}
+                        onApps={onConnectorApps}
+                    />
+                ) : null}
+            </Modal>
+            {viewing ? (
+                <KnowledgebaseDocumentsModal
+                    knowledgebase={{ id: viewing.id, name: viewing.name }}
+                    can_edit={false}
+                    onClose={() => setViewing(undefined)}
                 />
             ) : null}
-        </Modal>
+        </>
     );
 }

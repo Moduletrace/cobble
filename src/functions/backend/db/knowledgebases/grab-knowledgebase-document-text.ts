@@ -5,7 +5,7 @@ type Params = {
     document: {
         source?: string | null;
         content?: string | null;
-        media_id?: number | null;
+        media_id?: number | string | null;
         name?: string | null;
         mime_type?: string | null;
     };
@@ -18,11 +18,12 @@ type Params = {
 export default async function grabKnowledgebaseDocumentText({ document }: Params) {
     if (document.source == "text") return document.content || "";
 
-    if (!document.media_id) return "";
+    const media_id = Number(document.media_id) || 0;
+    if (!media_id) return "";
 
     const media = await BunSQLite.sql<{ media_write_path?: string; text_content?: string }>({
         sql: `SELECT media_write_path, text_content FROM media WHERE id = ? LIMIT 1`,
-        values: [document.media_id],
+        values: [media_id],
     }).then((res) => res.payload?.[0]);
 
     return (

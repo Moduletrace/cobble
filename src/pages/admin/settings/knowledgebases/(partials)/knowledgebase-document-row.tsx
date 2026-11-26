@@ -13,6 +13,11 @@ type Props = {
     embedding_model: string | null;
     busy?: boolean;
     /**
+     * Reads the document over the list: its text, and the original behind
+     * "Open original".
+     */
+    onOpen?: () => void;
+    /**
      * Opens a text document to edit; not given for a file or when the user
      * can't edit.
      */
@@ -28,11 +33,12 @@ type Props = {
  * One document in a knowledgebase: what it is and how much of it bots can
  * search, or why it couldn't be read.
  */
-export default function KnowledgebaseDocumentRow({ document, embedding_model, busy, onEdit, onRetry, onDelete }: Props) {
+export default function KnowledgebaseDocumentRow({ document, embedding_model, busy, onOpen, onEdit, onRetry, onDelete }: Props) {
     return (
         <SettingsListRow
             avatar={<IconTile Icon={document.source == "text" ? NotebookPen : FileText} />}
             title={document.name}
+            onOpen={onOpen}
             title_icon={
                 <IndexStateMark
                     state={knowledgebaseIndexState({

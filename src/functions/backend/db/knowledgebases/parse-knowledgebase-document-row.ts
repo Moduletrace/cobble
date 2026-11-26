@@ -18,6 +18,7 @@ export default function parseKnowledgebaseDocumentRow({ row }: Params): Knowledg
         knowledgebase_id: Number(row.knowledgebase_id),
         name: row.name || "",
         source: row.source == "text" ? "text" : "file",
+        media_id: Number(row.media_id) || null,
         mime_type: row.mime_type || "",
         size: Number(row.size) || 0,
         chunk_count: Number(row.chunk_count) || 0,

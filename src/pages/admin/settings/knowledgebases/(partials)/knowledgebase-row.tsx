@@ -22,7 +22,7 @@ type Props = {
     knowledgebase: PublicKnowledgebase;
     targets: ExtensionTargets;
     /**
-     * The install's embedding model, for the documents' lines.
+     * The install's embedding model, for its index mark.
      */
     embedding_model: string | null;
     onChanged: (overview: KnowledgebasesOverviewPayload, msg: string) => void;
@@ -167,7 +167,6 @@ export default function KnowledgebaseRow({ selected, onSelected, knowledgebase, 
                 <KnowledgebaseDocumentsModal
                     knowledgebase={knowledgebase}
                     can_edit={targets.can_edit}
-                    embedding_model={embedding_model}
                     onClose={closeDocuments}
                 />
             ) : null}

@@ -2,14 +2,19 @@ import Button from "@moduletrace/twui/layout/Button";
 import Row from "@moduletrace/twui/layout/Row";
 import Span from "@moduletrace/twui/layout/Span";
 import Stack from "@moduletrace/twui/layout/Stack";
-import { X } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import extensionIcon from "@/src/components/general/extension-icon";
+import RowIconButton from "@/src/components/general/row-icon-button";
 import type { BotExtension } from "@/src/types";
 import extensionStateNote from "@/src/utils/extension-state-note";
 
 type Props = {
     item: BotExtension;
     busy?: boolean;
+    /**
+     * Reads a knowledgebase's documents; not given for anything else.
+     */
+    onOpen?: () => void;
     /**
      * Takes it from the bot; not given for a workspace's own or when the
      * user can't.
@@ -22,7 +27,7 @@ type Props = {
  * the composer's modals. One that isn't working says so
  * (`extensionStateNote`), one that's off is struck out.
  */
-export default function ComposerToolRow({ item, busy, onRemove }: Props) {
+export default function ComposerToolRow({ item, busy, onOpen, onRemove }: Props) {
     const Icon = extensionIcon({ kind: item.kind });
     const notes = [
         item.detail,
@@ -50,6 +55,13 @@ export default function ComposerToolRow({ item, busy, onRemove }: Props) {
                     </Span>
                 ) : null}
             </Stack>
+            {onOpen ? (
+                <RowIconButton
+                    icon={FileText}
+                    title={`Open ${item.name}`}
+                    onClick={onOpen}
+                />
+            ) : null}
             {onRemove ? (
                 <Button
                     title={`Remove ${item.name}`}
