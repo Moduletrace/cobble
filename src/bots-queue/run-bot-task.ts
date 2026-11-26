@@ -74,6 +74,8 @@ import grabBotPlanTools from "@/src/harness/tools/bot/plans/grab-bot-plan-tools"
 import grabBotGraphicTools from "@/src/harness/tools/graphics/grab-bot-graphic-tools";
 import reportRunFailedTool from "@/src/harness/tools/bot/report-run-failed-tool";
 import updateRequesterTool from "@/src/harness/tools/bot/update-requester-tool";
+import answerRequesterTool from "@/src/harness/tools/bot/answer-requester-tool";
+import grabEndedAskBySession from "@/src/functions/backend/db/asks/grab-ended-ask-by-session";
 import answerInstallRequestTool from "@/src/harness/tools/bot/answer-install-request-tool";
 import requestInstallTool from "@/src/harness/tools/computer/request-install-tool";
 import worktreeSummary from "@/src/harness/tools/computer/worktree-summary";
@@ -288,6 +290,16 @@ export default async function runBotTask({
          * (`request_install`): it answers it with answer_install_request.
          */
         const install_request_id = powers.is_coordinator ? Number(params.install_request_id) || 0 : 0;
+        /**
+         * The request this run's session answered, once it has ended (and
+         * this run isn't part of one): so a task the user asked for here
+         * can send its finished answer back to the bot that asked, instead
+         * of opening a fresh request the gate reads as a new handoff.
+         */
+        const ended_ask =
+            !Number(params.ask_id) && session_id
+                ? await grabEndedAskBySession({ session_id: Number(session_id), user_id }).catch(() => null)
+                : null;
         let failure = null as string | null;
 
         /**
@@ -356,6 +368,16 @@ export default async function runBotTask({
                           user_id,
                           session_id: Number(session_id),
                           ask_id: Number(params.ask_id),
+                          redact: redact_text,
+                      }),
+                  ]
+                : []),
+            ...(ended_ask?.id && Number(ended_ask.target_bot_id) == Number(bot.id)
+                ? [
+                      answerRequesterTool({
+                          user_id,
+                          bot_id: bot.id,
+                          ask_id: Number(ended_ask.id),
                           redact: redact_text,
                       }),
                   ]

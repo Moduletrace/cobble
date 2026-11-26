@@ -34,4 +34,13 @@ describe("askUpdateMessage", () => {
 
         expect(text).toContain("your crew request");
     });
+
+    test("an answer sent after the request ended says so instead of still open", () => {
+        const text = askUpdateMessage({ ask, text: "Banner finished: [file:389].", ended: true });
+
+        expect(text).toContain("[bot:3] sent a response on");
+        expect(text).toContain("Banner finished: [file:389].");
+        expect(text).toContain("had already ended");
+        expect(text).not.toContain("still open");
+    });
 });

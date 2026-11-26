@@ -57,6 +57,7 @@ import openBotExtensions from "@/src/harness/tools/extensions/open-bot-extension
 import isHiddenSession from "@/src/functions/backend/db/bot-sessions/is-hidden-session";
 import grabSessionAskId from "@/src/functions/backend/db/bot-sessions/grab-session-ask-id";
 import grabOpenAskBySession from "@/src/functions/backend/db/asks/grab-open-ask-by-session";
+import grabEndedAskBySession from "@/src/functions/backend/db/asks/grab-ended-ask-by-session";
 import deleteBotQuestion from "@/src/functions/backend/db/bot-questions/delete-bot-question";
 import parseJobJson from "./parse-job-json";
 import openBotSkills from "@/src/harness/tools/skills/open-bot-skills";
@@ -89,6 +90,7 @@ import grabRetryFailure from "@/src/functions/backend/db/bots-queue/grab-retry-f
 import markReplyAnswered from "@/src/functions/backend/db/bots-queue/mark-reply-answered";
 import sendMessageTool from "@/src/harness/tools/bot/send-message-tool";
 import updateRequesterTool from "@/src/harness/tools/bot/update-requester-tool";
+import answerRequesterTool from "@/src/harness/tools/bot/answer-requester-tool";
 import grabBotSecretTools from "@/src/harness/tools/bot/secrets/grab-bot-secret-tools";
 import askUserTool from "@/src/harness/tools/bot/questions/ask-user-tool";
 import suggestNextStepsTool from "@/src/harness/tools/bot/suggestions/suggest-next-steps-tool";
@@ -394,6 +396,17 @@ export default async function runBotReply({
      * back to the bot that asked while the work is still open).
      */
     const ask_id_for_updates = job_ask_id || (open_ask?.id ? Number(open_ask.id) : 0);
+    /**
+     * The request this conversation answered and that has since ended: the
+     * one place a late or corrected answer can go back from, so the bot
+     * doesn't open a fresh request through the gate for what belongs to
+     * that one (an ended request's answer session, once the user resumes
+     * it, had no way to finish back).
+     */
+    const ended_ask =
+        !ask_id_for_updates && session_id
+            ? await grabEndedAskBySession({ session_id: Number(session_id), user_id }).catch(() => null)
+            : null;
     let led: WorkspaceAdminTools | null = null;
 
     const tools = await grabBotChatTools({
@@ -547,6 +560,16 @@ export default async function runBotReply({
                       user_id,
                       session_id: Number(session_id),
                       ask_id: ask_id_for_updates,
+                      redact: redact_reply,
+                  }),
+              ]
+            : []),
+        ...(ended_ask?.id && Number(ended_ask.target_bot_id) == Number(bot.id)
+            ? [
+                  answerRequesterTool({
+                      user_id,
+                      bot_id: bot.id,
+                      ask_id: Number(ended_ask.id),
                       redact: redact_reply,
                   }),
               ]

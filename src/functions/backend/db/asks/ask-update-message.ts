@@ -12,6 +12,11 @@ type Params = {
      * The run that produced this result failed.
      */
     failed?: boolean;
+    /**
+     * The request had already ended when this was sent (`answer_requester`):
+     * it's the answer arriving late, not one piece of work still running.
+     */
+    ended?: boolean;
 };
 
 /**
@@ -19,9 +24,10 @@ type Params = {
  * bot finished one piece of the work, but more is still running, so the
  * request isn't ended yet. Stored on the user's side like the final outcome
  * (`from_ask_id`), and says plainly that more may follow so the asking bot
- * doesn't treat it as the whole answer.
+ * doesn't treat it as the whole answer. With `ended`, it's the same shape
+ * for a request that had already finished: a late or corrected answer.
  */
-export default function askUpdateMessage({ ask, text, failed }: Params) {
+export default function askUpdateMessage({ ask, text, failed, ended }: Params) {
     const title = ask.title ? `"${ask.title}"` : "your crew request";
     const pill = ask.id ? ` ${askRef({ id: ask.id })}` : "";
     const target = ask.target_bot_id ? botRef({ id: ask.target_bot_id }) : "the crew";
@@ -30,5 +36,9 @@ export default function askUpdateMessage({ ask, text, failed }: Params) {
         ? `${target} couldn't finish one piece of ${title}${pill}:`
         : `${target} sent a response on ${title}${pill}:`;
 
-    return `${head}\n\n${text}\n\n_The request is still open - more may follow._`;
+    const tail = ended
+        ? `_The request had already ended; this is the answer, sent afterwards._`
+        : `_The request is still open - more may follow._`;
+
+    return `${head}\n\n${text}\n\n${tail}`;
 }
