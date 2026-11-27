@@ -29,6 +29,9 @@ import {
     taskPlanNote,
     wrapUpWorktreeNote,
     PlanStepNote,
+    PlanActiveNote,
+    PlanPausedNote,
+    OpenTasksNote,
 } from "@/src/data/harness-prompts";
 import {
     grabContextBudgetTokens,
@@ -39,7 +42,9 @@ import {
 import grabBotComputers from "@/src/functions/backend/db/computers/grab-bot-computers";
 import grabBotPrompt from "@/src/functions/backend/db/bots/grab-bot-prompt";
 import grabBotPlan from "@/src/functions/backend/db/bot-plans/grab-bot-plan";
+import grabSessionPlan from "@/src/functions/backend/db/bot-plans/grab-session-plan";
 import toBotPlanView from "@/src/functions/backend/db/bot-plans/to-bot-plan-view";
+import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import grabUserWorkspaces from "@/src/functions/backend/db/workspaces/grab-user-workspaces";
 import runTextLoop from "@/src/harness/text/run-text-loop";
 import redactTrace from "@/src/harness/trace/redact-trace";
@@ -286,6 +291,43 @@ export default async function runBotTask({
          */
         const on_plan_step = can_ask && Boolean(plan && plan.status == "active" && plan.current_step != null);
         /**
+         * The conversation's open plan, when this run is not a step's own
+         * work: a long task run is where a bot loses the plan (it used to
+         * see no plan at all unless the app queued it for a step). An
+         * attended run that is asked for the plan's current step may work
+         * and tick it like a step's own run; nothing here starts a step on
+         * its own.
+         */
+        const session_plan_row =
+            !Number(params.plan_id) && session_id && can_ask
+                ? await grabSessionPlan({ session_id: Number(session_id) }).catch(() => null)
+                : null;
+        const session_plan =
+            session_plan_row && (session_plan_row.status == "active" || session_plan_row.status == "paused")
+                ? toBotPlanView({ row: session_plan_row })
+                : null;
+        let ticked_plan_id: number | null = null;
+        const can_complete_plan_step =
+            !on_plan_step &&
+            can_ask &&
+            (session_plan?.status == "active" || session_plan?.status == "paused");
+        /**
+         * The tasks this run could be working, injected into its prompt so
+         * an open task is never forgotten. Paused ones are the user's to
+         * park: the bot reads them with `list_tasks`, they just don't ask
+         * for attention.
+         */
+        const open_tasks = (
+            await grabTasks({
+                bot_id: bot.id,
+                is_coordinator: powers.is_coordinator,
+                admin_workspace_ids: powers.admin_workspace_ids,
+                workspace_id,
+                open_only: true,
+                limit: AppData.TaskDigestCount,
+            })
+        ).filter((task) => task.status != "paused");
+        /**
          * The coordinator weighing a worker's install request
          * (`request_install`): it answers it with answer_install_request.
          */
@@ -342,21 +384,28 @@ export default async function runBotTask({
             })),
             ...admin_tools,
             /**
-             * The plan's own step: it finishes the step, or says the plan
-             * is wrong. Writing or cancelling a plan is a reply's job, never
-             * a run's, so those stay out.
+             * The plan this run sits in. Writing or cancelling a plan stays
+             * a reply's job. A step's own run finishes its step; an
+             * attended run that isn't one may tick a step only when the
+             * message asked for that step's work, and then owes the plan
+             * its card.
              */
-            ...(on_plan_step
-                ? grabBotPlanTools({
-                      user_id,
-                      bot_id: bot.id,
-                      session_id: session_id!,
-                      workspace_id,
-                      job_id: job.id,
-                      on_step: true,
-                      onPlan: ({ ref }) => shown.push(ref),
-                  })
-                : []),
+             ...(on_plan_step || can_complete_plan_step
+                 ? grabBotPlanTools({
+                       user_id,
+                       bot_id: bot.id,
+                       session_id: session_id!,
+                       workspace_id,
+                       job_id: job.id,
+                       on_step: on_plan_step,
+                       can_complete: can_complete_plan_step,
+                       writes_plan: false,
+                       onCompleted: ({ plan_id }) => {
+                           ticked_plan_id = plan_id;
+                       },
+                       onPlan: ({ ref }) => shown.push(ref),
+                   })
+                 : []),
             /**
              * Part of a crew request (`start_task`/`delegate_task` in an
              * answer session): the bot can send the asker an interim word
@@ -454,7 +503,7 @@ export default async function runBotTask({
                           session_id,
                           workspace_id,
                           in_task: true,
-                          plan_id: on_plan_step ? plan?.id : null,
+                          plan_id: () => (on_plan_step ? plan?.id ?? null : ticked_plan_id),
                           onAsk: ({ ref }) => take_overs.push(ref),
                           redact: redact_text,
                       }),
@@ -678,6 +727,18 @@ export default async function runBotTask({
             computer ? ComputerFilesNote({ computer_id: job.computer_id || 0, dirs }) : "",
             named_files_note,
             TasksNote,
+            open_tasks.length ? OpenTasksNote({ tasks: open_tasks }) : "",
+            /**
+             * The plan this run sits in when it isn't a step's own work:
+             * an attended run may work that plan's current step when the
+             * message asked for it, and must tick it and end on the card
+             * like the run the app queued for the step.
+             */
+            !on_plan_step && session_plan
+                ? session_plan.status == "active"
+                    ? PlanActiveNote({ plan: session_plan })
+                    : PlanPausedNote({ plan: session_plan })
+                : "",
             /**
              * The plan's step this run works: it finishes that step, or asks
              * the user on the card, and the report says which. This is the
@@ -854,7 +915,7 @@ export default async function runBotTask({
                 }).then((note) => {
                     if (note) return note;
 
-                    return planStepReviewNote({ plan, on_step: on_plan_step, tool_uses, status });
+                    return planStepReviewNote({ plan: plan ?? session_plan, on_step: on_plan_step, tool_uses, status });
                 }),
             /**
              * A report goes out only through `send_reply`, so it can't say
@@ -925,7 +986,7 @@ export default async function runBotTask({
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,
-            plan_message_id: on_plan_step ? plan?.id : undefined,
+            plan_message_id: on_plan_step ? plan?.id : ticked_plan_id ?? undefined,
             /**
              * The wrap up was announced (`steps` counts its turns), so the
              * run never got to the end of the work it was given.

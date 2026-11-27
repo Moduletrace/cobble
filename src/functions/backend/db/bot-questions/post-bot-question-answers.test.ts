@@ -129,7 +129,7 @@ describe("postBotQuestionAnswers", () => {
         expect(paused).toHaveLength(0);
     });
 
-    test("any other answer to a plan's card pauses the plan and still answers", async () => {
+    test("any other answer to a plan's card leaves the plan where it stands and lets the reply decide", async () => {
         question.plan_id = 3;
 
         await postBotQuestionAnswers({
@@ -137,8 +137,7 @@ describe("postBotQuestionAnswers", () => {
             user_id: 1,
         });
 
-        expect(paused).toHaveLength(1);
-        expect(paused[0]!.status).toBe("paused");
+        expect(paused).toHaveLength(0);
         expect(step_jobs).toEqual([]);
         expect(enqueued).toHaveLength(1);
     });
@@ -152,6 +151,7 @@ describe("postBotQuestionAnswers", () => {
         });
 
         expect(step_jobs).toEqual([]);
-        expect(paused).toHaveLength(1);
+        expect(paused).toHaveLength(0);
+        expect(enqueued).toHaveLength(1);
     });
 });

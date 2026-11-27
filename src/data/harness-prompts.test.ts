@@ -17,6 +17,8 @@ import {
     TaskRunNote,
     TaskWrapUpIncomingNote,
     TasksNote,
+    OpenTasksNote,
+    PlanModeNote,
     wrapUpWorktreeNote,
     PlansNote,
     PlanStepNote,
@@ -359,9 +361,62 @@ describe("plan notes", () => {
         expect(PlanActiveNote({ plan })).toContain("leave the plan where it is");
     });
 
+    test("an active plan lets an ordinary reply tick the step and ends on the card", () => {
+        const note = PlanActiveNote({ plan });
+
+        expect(note).toContain("work it now: finish it with complete_plan_step");
+        expect(note).toContain('"Continue to step 3"');
+        expect(note).toContain('"Pause the plan"');
+        expect(note).toContain('status "paused"');
+    });
+
+    test("in Plan mode an active plan is refined, not worked", () => {
+        const note = PlanActiveNote({ plan, plan_mode: true });
+
+        expect(note).toContain("the plan is yours to pick up and refine here, not to work");
+        expect(note).toContain("update_plan");
+        expect(note).not.toContain("complete_plan_step");
+        expect(PlanModeNote).toContain("The plan is the point of this mode");
+        expect(PlanModeNote).toContain("refine it with update_plan as many times");
+    });
+
+    test("in Plan mode a waiting or paused plan is refined too", () => {
+        expect(PlanWaitingNote({ plan: { ...plan, status: "planned" }, plan_mode: true })).toContain(
+            "rewrite the steps with update_plan",
+        );
+        expect(PlanWaitingNote({ plan: { ...plan, status: "planned" } })).toContain("they make them on the card");
+        expect(PlanPausedNote({ plan: { ...plan, status: "paused" }, plan_mode: true })).toContain(
+            "the plan is yours to refine here with update_plan",
+        );
+        expect(PlanPausedNote({ plan: { ...plan, status: "paused" } })).toContain('status "active"');
+    });
+
     test("a paused plan is the user's to resume", () => {
         expect(PlanPausedNote({ plan: { ...plan, status: "paused" } })).toContain("paused by the user");
     });
+});
 
-    
+describe("open tasks digest", () => {
+    test("names each open task with its ref and status", () => {
+        const note = OpenTasksNote({
+            tasks: [
+                { id: 33, title: "Fix the hero crop", status: "doing" },
+                { id: 46, title: null, status: "todo" },
+            ],
+        });
+
+        expect(note).toContain("- [task:33] Fix the hero crop (doing)");
+        expect(note).toContain("- [task:46] (todo)");
+    });
+
+    test("tells the run to keep the list true and never report a move it didn't make", () => {
+        const note = OpenTasksNote({ tasks: [{ id: 1, title: "One", status: "blocked" }] });
+
+        expect(note).toContain("Keep this list true as you work");
+        expect(note).toContain("update_task");
+    });
+
+    test("reads a row whose columns are missing", () => {
+        expect(OpenTasksNote({ tasks: [{}] })).toContain("- [task] (open)");
+    });
 });

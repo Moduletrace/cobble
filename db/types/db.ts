@@ -583,7 +583,7 @@ export type BUN_SQLITE_COBBLE_TASKS = {
      * The brief (markdown): what to do, where, and how you'll know it's done
      */
     description?: string;
-    status?: "todo" | "doing" | "blocked" | "done" | "cancelled" | "";
+    status?: "todo" | "doing" | "blocked" | "paused" | "done" | "cancelled" | "";
     /** 
      * What the user has to do to unblock it; only meaningful while `status` is blocked
      */

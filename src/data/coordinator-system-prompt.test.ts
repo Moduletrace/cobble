@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { TaskStatuses } from "@/src/dict/task-dict";
 import { CoordinatorSystemPrompt } from "./coordinator-system-prompt";
 import { SiteData } from "./site-data";
 
@@ -24,8 +25,8 @@ describe("CoordinatorSystemPrompt", () => {
     });
 
     test("uses the real task statuses, not invented ones", () => {
-        for (const status of ["todo", "doing", "blocked", "done", "cancelled"]) {
-            expect(CoordinatorSystemPrompt).toContain(status);
+        for (const { value } of TaskStatuses) {
+            expect(CoordinatorSystemPrompt).toContain(value);
         }
 
         // Words from the previous draft that no tool accepts.

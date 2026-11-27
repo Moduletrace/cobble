@@ -27,7 +27,7 @@ export default async function createBotPlan({ user_id, bot_id, session_id, works
 
     if (open) {
         throw new AppError(
-            `There's already a plan open in this conversation (#${open.id}, "${open.title || "untitled"}"): work that one, or cancel it before writing another.`,
+            `There's already a plan open in this conversation (#${open.id}, "${open.title || "untitled"}"): work that one, or refine it with update_plan, or cancel it before writing another.`,
         );
     }
 

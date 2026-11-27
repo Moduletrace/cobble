@@ -19,6 +19,10 @@ export const TaskStatuses = [
         value: "blocked",
     },
     {
+        title: "Paused",
+        value: "paused",
+    },
+    {
         title: "Done",
         value: "done",
     },
@@ -31,10 +35,10 @@ export const TaskStatuses = [
 export type TaskStatus = (typeof TaskStatuses)[number]["value"];
 
 /**
- * The statuses a task still needs work in: what a reminder may name and
- * what a digest shows.
+ * The statuses a task still needs work in: a paused task is open (it waits
+ * for the user to pick it up), but the run digest leaves it out.
  */
-export const OpenTaskStatuses = ["todo", "doing", "blocked"] as const;
+export const OpenTaskStatuses = ["todo", "doing", "blocked", "paused"] as const;
 
 /**
  * Every status as a zod-friendly tuple of its values.

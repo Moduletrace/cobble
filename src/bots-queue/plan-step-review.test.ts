@@ -60,6 +60,24 @@ describe("planStepReviewNote", () => {
         expect(note({ on_step: false, uses: [{ name: "write_file", ok: true }] })).toBeNull();
     });
 
+    test("an ordinary reply that ticked a step without its card is sent back for the card", () => {
+        const fault = note({ on_step: false, uses: [{ name: "complete_plan_step", ok: true }] });
+
+        expect(fault).toContain("finished step 2 of Plan #3");
+        expect(fault).toContain("ask_user");
+        expect(fault).toContain("Continue to step 3");
+
+        expect(
+            note({
+                on_step: false,
+                uses: [
+                    { name: "complete_plan_step", ok: true },
+                    { name: "ask_user", ok: true },
+                ],
+            }),
+        ).toBeNull();
+    });
+
     test("a plan with no step left is left alone", () => {
         expect(planStepReviewNote({ plan: { ...plan, current_step: null }, on_step: true, tool_uses: [] })).toBeNull();
     });

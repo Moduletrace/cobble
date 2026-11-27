@@ -10,7 +10,9 @@ import { BotMessageActionsContext } from "../(data)/message-actions-context";
  * (it never sends on its own). Nothing shows once the mode is off.
  */
 export default function PlanModeOffButton() {
-    const { plan_mode, onTurnOffPlanMode } = useContext(BotMessageActionsContext);
+    const { plan_mode, onTurnOffPlanMode } = useContext(
+        BotMessageActionsContext,
+    );
 
     if (!plan_mode) return null;
 
@@ -21,6 +23,7 @@ export default function PlanModeOffButton() {
             title="Turn Plan mode off: the next message can write, run and change things"
             beforeIcon={<CircleOff size={14} aria-hidden />}
             onClick={onTurnOffPlanMode}
+            variant="outlined"
         >
             Turn Plan mode off
         </Button>

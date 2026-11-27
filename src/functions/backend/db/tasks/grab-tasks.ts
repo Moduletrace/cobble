@@ -53,7 +53,7 @@ type Params = {
      */
     statuses?: string[];
     /**
-     * Only the open ones (todo, doing, blocked).
+     * Only the open ones (todo, doing, blocked, paused).
      */
     open_only?: boolean;
     limit?: number;
@@ -136,7 +136,7 @@ export default async function grabTasks({
             LEFT JOIN workspaces w ON w.id = t.workspace_id
             LEFT JOIN tasks p ON p.id = t.parent_task_id
             ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-            ORDER BY CASE t.status WHEN 'blocked' THEN 0 WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'done' THEN 3 ELSE 4 END,
+            ORDER BY CASE t.status WHEN 'blocked' THEN 0 WHEN 'doing' THEN 1 WHEN 'todo' THEN 2 WHEN 'paused' THEN 3 WHEN 'done' THEN 4 ELSE 5 END,
                 t.updated_at DESC, t.id DESC
             ${limit ? `LIMIT ${Number(limit)}` : ""}`,
         values: [...face.values, ...OpenTaskStatuses, ...values],

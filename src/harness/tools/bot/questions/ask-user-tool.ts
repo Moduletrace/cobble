@@ -20,9 +20,12 @@ type Params = {
     plan_mode?: boolean;
     /**
      * The plan whose step this run works, when the card ends that step: its
-     * first option continues the plan, anything else pauses it.
+     * first option continues the plan; any other answer leaves the plan
+     * where it stands and the woken reply reads it. A run that ticks a
+     * step mid-reply passes a getter, so the card made after the tick
+     * carries the plan's id.
      */
-    plan_id?: number | null;
+    plan_id?: number | null | (() => number | null);
     /**
      * Whether the run is a task, which stops and reports rather than waits.
      */
@@ -96,7 +99,7 @@ export default function askUserTool({
                 session_id,
                 workspace_id,
                 plan_mode: Boolean(plan_mode),
-                plan_id,
+                plan_id: typeof plan_id == "function" ? plan_id() : plan_id,
                 title: args.title?.trim() ? redact(args.title.trim()) : "",
                 questions: args.questions.map((item) => ({
                     question: redact(item.question),

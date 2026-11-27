@@ -1,7 +1,6 @@
 import type { BUN_SQLITE_COBBLE_BOT_QUESTIONS, BUN_SQLITE_COBBLE_BOT_SESSIONS } from "@/db/types/db";
 import { logError } from "@/src/functions/backend/logger";
 import pushBotNotice from "@/src/bots-queue/push-bot-notice";
-import pushBotPlan from "@/src/bots-queue/push-bot-plan";
 import wakeBotsQueue from "@/src/bots-queue/wake-bots-queue";
 import type { BotQuestionView } from "@/src/types";
 import botQuestionAnswersText from "@/src/utils/bot-question-answers-text";
@@ -11,7 +10,6 @@ import ensureBotSession from "../bot-sessions/ensure-bot-session";
 import grabUserBotSession from "../bot-sessions/grab-user-bot-session";
 import insertUserMessage from "../bots/insert-user-message";
 import enqueueBotReply from "../bots-queue/enqueue-bot-reply";
-import setBotPlanStatus from "../bot-plans/set-bot-plan-status";
 import enqueuePlanStep from "../bot-plans/enqueue-plan-step";
 import grabBotQuestion from "./grab-bot-question";
 
@@ -28,8 +26,11 @@ type Params = {
  * where the question was asked, never to whichever bot's page was open.
  *
  * A card a plan's step ended on is the plan's own next move: Continue
- * starts its next step, and anything else pauses it, so the plan never
- * waits on the user to say "move on" in the chat.
+ * starts its next step, and anything else leaves the plan where it stands:
+ * the reply the answer wakes reads it and either works the step now or
+ * parks the plan with `update_plan`, as the words on the card say.
+ * Pausing it here, unseen, was how one production plan got cancelled: the
+ * bot woke to a plan it had to explain and read "not paused" as "ended".
  *
  * Best effort: a failure is logged and never undoes the answer.
  */
@@ -67,18 +68,6 @@ export default async function postBotQuestionAnswers({ view, user_id }: Params) 
 
                 const plan_id = Number(row.plan_id) || 0;
                 const continue_plan = plan_id > 0 && planContinueAnswer({ view });
-
-                if (plan_id > 0 && !continue_plan) {
-                    await setBotPlanStatus({ plan_id, user_id, status: "paused" })
-                        .then(async () => {
-                            await pushBotPlan({
-                                plan_id,
-                                session_id: Number(session.id),
-                                bot_id,
-                            });
-                        })
-                        .catch(() => null);
-                }
 
                 if (continue_plan) {
                     const step_job = await enqueuePlanStep({ plan_id }).catch(() => null);

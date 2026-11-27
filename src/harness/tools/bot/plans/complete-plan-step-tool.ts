@@ -12,6 +12,12 @@ type Params = {
      * puts the step back (`pauseFailedPlanStep`).
      */
     job_id?: number | string;
+    /**
+     * Called once the step is on record, so the run's message links the plan
+     * and its card counts as the plan's own (an ordinary reply that ticked
+     * a step advances the plan from its card, like a step's own run).
+     */
+    onCompleted?: (params: { plan_id: number }) => void;
 };
 
 type Args = {
@@ -25,7 +31,7 @@ type Args = {
  * ends on, so a step is only ever finished by a run that did the work, one
  * at a time.
  */
-export default function completePlanStepTool({ bot_id, session_id, job_id }: Params): HarnessTool<Args> {
+export default function completePlanStepTool({ bot_id, session_id, job_id, onCompleted }: Params): HarnessTool<Args> {
     let completed = false;
 
     return {
@@ -62,6 +68,7 @@ export default function completePlanStepTool({ bot_id, session_id, job_id }: Par
              * the push keeps the one that's there current.
              */
             await pushBotPlan({ plan_id: done.plan_id, session_id, bot_id });
+            onCompleted?.({ plan_id: done.plan_id });
 
             if (done.done) {
                 return `Step ${done.index + 1} is done and it was the last one: the plan is finished on its card. Write your report now, two or three sentences on what the plan produced. If this plan will come back (the same work, the next project or the next month), save its steps now with update_memory as a short checklist, and say in a line that you kept them.`;

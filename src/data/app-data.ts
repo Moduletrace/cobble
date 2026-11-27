@@ -541,6 +541,13 @@ export const AppData = {
      * many `list_tasks` hands back at once.
      */
     TaskReminderDigestCount: 3,
+    /**
+     * Open tasks put in front of every run (`OpenTasksNote`): a bot that
+     * never sees its own list is how a Doing task sits for weeks. Paused
+     * ones are left out (the user parked them), so this is what a run is
+     * reminded of at most.
+     */
+    TaskDigestCount: 8,
     TaskListToolLimit: 20,
     /**
      * Automatic model picks (`rankAutoModels`). A free model from outside

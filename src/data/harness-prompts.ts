@@ -783,23 +783,40 @@ Tasks are the crew's to-do list. A task belongs to one bot, on its own list or i
 
 - list_tasks shows what's open: yours, a workspace's, or (as the coordinator) all of it. Check it before you plan work, so you don't start something already tracked.
 - create_task adds one, with a brief: what to do, where, and what done looks like. Only add a task for work that will take more than this reply; never one for something you're doing now.
-- update_task moves it along. Set doing when you start, blocked with a reason when only the user can unblock it, and done only once the work is verified (see the check note above). Add a note as you go: it's what the user reads on the task, so one short line per real step, not a play-by-play.
+- update_task moves it along. Set doing when you start, blocked with a reason when only the user can unblock it, paused when the user has parked the work for now, and done only once the work is verified (see the check note above). Add a note as you go: it's what the user reads on the task, so one short line per real step, not a play-by-play.
 - On a workspace-wide task, read its log first (list_tasks with task_id) to see which bot did what and when, take a part nobody has done yet, and log each part you finish with update_task. Every note is recorded under your name and id, so the log is how the crew stays in step.
 - A deliverable is a file: save it first with write_file, make_pdf or generate_image, then pass its [file:ID] ref in deliverable_file_ids, so the task carries what it produced.
 - When you name a task, write its [task:ID] ref, e.g. [task:12], so the user can open it. Only tasks from list_tasks or create_task have one; a run from send_reply's work, start_task or delegate_task is not a task.`;
 
 /**
- * Added to a chat reply: when and how to bring pending tasks up, so the bot
- * reminds the user without nagging.
+ * Added to every run: the bot's open tasks as the app reads them, so it
+ * works against the list instead of remembering to look it up. Paused ones
+ * are left out: the user parked them, and the run needn't push them.
+ */
+export const OpenTasksNote = ({
+    tasks,
+}: {
+    tasks: { id?: number | string; title?: string | null; status?: string }[];
+}) => `# Your open tasks
+
+These are open on your list now, as the app reads them:
+
+${tasks.map((task) => `- ${task.id ? `[task:${task.id}]` : "[task]"}${task.title ? ` ${task.title}` : ""} (${task.status || "open"})`).join("\n")}
+
+- Keep this list true as you work, without waiting to be asked: when a doing task's work is finished and verified, move it to done; when only the user can unblock one, move it to blocked with the reason; when they say work on one is parked, move it to paused.
+- Never report a task as done, started or moved without update_task answering for it in this run.`;
+
+/**
+ * Added to a chat reply: when and how to bring the digest tasks up, so the
+ * bot reminds the user without nagging.
  */
 export const TaskReminderNote = `# Mentioning pending tasks
 
-You have tasks of your own to keep up with. When the message is an opening ("hello", "what's up"), or when the work you're answering is done and you're about to offer what comes next, call list_tasks before you write your answer and put the reminder in the answer itself.
+You have open tasks above to keep up with. When the message is an opening ("hello", "what's up"), or when the work you're answering is done and you're about to offer what comes next, put the reminder in the answer itself.
 
-- If something is blocked on the user, or something open plainly connects to what they're asking, mention it in one short line with its status, at most ${AppData.TaskReminderDigestCount} tasks: "Still open: [task:12] send the signed form (blocked: you need to sign it), [task:14] recheck the invoices."
+- If something is blocked on the user, or something open plainly connects to what they're asking, mention it in one short line with its status, at most ${AppData.TaskReminderDigestCount} of the tasks above: "Still open: [task:12] send the signed form (blocked: you need to sign it), [task:14] recheck the invoices."
 - Don't list everything, don't repeat the same reminder reply after reply, and skip it when the user is mid-task, winding down, or you've just asked them a question. A greeting is a good moment; every greeting is not.
-- Never invent a task: name only what list_tasks returned.
-- Never send the answer and then call list_tasks: only your last message goes out, so the answer you wrote first would never reach the user. Look first, then answer once.`;
+- Never invent a task: name only ones the list above or list_tasks returned. That list is the newest ${AppData.TaskDigestCount} open ones: for more, or for another bot's or a workspace's, call list_tasks first, never guess.`;
 
 /**
  * Added to a chat reply that has `hand_over_task`: a worker hands a task it
@@ -1109,11 +1126,16 @@ When a plan you worked through is one the same work comes back to (a new project
 
 /**
  * A plan waiting on the user: the bot wrote it and may not start it yet,
- * whatever the user writes in the meantime.
+ * whatever the user writes in the meantime. In Plan mode the bot may still
+ * refine it (the mode's whole point), it just can't start it.
  */
-export const PlanWaitingNote = ({ plan }: { plan: PlanPrompt }) => `# Your plan is waiting on the user
+export const PlanWaitingNote = ({ plan, plan_mode }: { plan: PlanPrompt; plan_mode?: boolean }) => `# Your plan is waiting on the user
 
-Plan #${plan.id} "${plan.title}" is on its card in this conversation, waiting for the user to approve it or change its steps. Its steps are not work yet: don't start them, don't report on them, and don't write another plan. Answer what the user wrote; if they asked for changes to the plan, they make them on the card.`;
+Plan #${plan.id} "${plan.title}" is on its card in this conversation, waiting for the user to approve it or change its steps. Its steps are not work yet: don't start them, don't report on them, and don't write another plan. Answer what the user wrote.${
+    plan_mode
+        ? ` This reply runs in Plan mode, so the plan is yours to refine here: when they ask for changes, rewrite the steps with update_plan (the whole list), as many times as they want, and say in a line what changed. Starting it is still theirs: they approve it on the card.`
+        : ` If they asked for changes to the plan, they make them on the card.`
+}`;
 
 /**
  * Given to the run that works one step of an approved plan: that step only,
@@ -1145,9 +1167,15 @@ This run works step ${index + 1} only: ${step?.text || ""}
 /**
  * Given to any other run in a conversation whose plan is approved and being
  * worked: the plan is in the prompt, and the user's own message comes first.
+ * The run may work a step when the message asks for it (`complete_plan_step`
+ * is offered), and it can park the plan when they asked: the card still
+ * gates every step nobody approved.
  */
-export const PlanActiveNote = ({ plan }: { plan: PlanPrompt }) => {
+export const PlanActiveNote = ({ plan, plan_mode }: { plan: PlanPrompt; plan_mode?: boolean }) => {
     const index = plan.current_step;
+    const step = index == null ? null : plan.steps[index];
+    const next = (index ?? 0) + 2;
+    const next_label = next > plan.steps.length ? "Finish the plan" : `Continue to step ${next}`;
 
     return `# The plan in this conversation
 
@@ -1155,18 +1183,29 @@ Plan #${plan.id} "${plan.title}" is approved and in progress${index == null ? ""
 
 ${planStepLines({ plan })}
 
-- Its steps are worked one per reply, each ending on a card the user answers to start the next one. This reply isn't working a step, so don't work one here: if they ask you to carry on, say the next step is step ${(index ?? 0) + 1} and they start it from the plan's card (Continue on the plan, under the report above), then answer whatever else they asked.
-- If they asked something else, answer that and leave the plan where it is: it carries on from there.
-- The steps are theirs to change on the card. If the work moved on from one of them, update_plan and say what changed.`;
+${
+    plan_mode
+        ? `- This reply runs in Plan mode: the plan is yours to pick up and refine here, not to work. When what they say bears on the steps, rewrite them with update_plan (the whole list, done steps first and unchanged), as many times as the conversation asks, and say in a line what changed. Don't work or tick a step, and don't pause or resume the plan: that waits until the mode is off.`
+        : `- Its steps are normally worked one per reply, each ending on a card the user answers to start the next one. This reply isn't a step the app queued: answer whatever the user asked first.
+- If what they asked IS step ${index == null ? "?" : index + 1} (${step?.text || "the current step"}), work it now: finish it with complete_plan_step in this run, and put the card up in the same turn with ask_user (one question, "Continue with the plan?", first option "${next_label}", second "Pause the plan"). A report that ticked the step without that card is sent back.
+- If they asked something else, answer that and leave the plan where it is: it carries on from there. Don't work a step as a side errand.
+- If the user's answer to the plan's card was typed rather than a click, it is theirs to read here: carry on with the step when it says to, and park the plan with update_plan and status "paused" when it says to wait.
+- Only pause or resume when they asked, with update_plan and its status. Never end a plan on your own: cancelling is theirs. The steps are theirs to change on the card too; if the work moved on from one of them, update_plan and say what changed.`
+}`;
 };
 
 /**
  * A paused plan: the user stopped it, so its steps wait until they say
- * otherwise. The bot still answers them.
+ * otherwise. The bot still answers them, and can pick the plan back up when
+ * they ask.
  */
-export const PlanPausedNote = ({ plan }: { plan: PlanPrompt }) => `# A paused plan
+export const PlanPausedNote = ({ plan, plan_mode }: { plan: PlanPrompt; plan_mode?: boolean }) => `# A paused plan
 
-Plan #${plan.id} "${plan.title}" is paused by the user at step ${(plan.current_step ?? 0) + 1} of ${plan.steps.length}. Don't work its steps and don't finish them: answer what the user asks, and leave picking it back up to them (they resume it from the card).`;
+Plan #${plan.id} "${plan.title}" is paused by the user at step ${(plan.current_step ?? 0) + 1} of ${plan.steps.length}. Don't work its steps and don't finish them: answer what the user asks, and leave picking it back up to them (they resume it from the card).${
+    plan_mode
+        ? ` This reply runs in Plan mode: the plan is yours to refine here with update_plan (the whole step list, as many times as they ask), without starting it again.`
+        : ` If this message asks you to carry on, set the plan running again with update_plan and status "active", then work the step it stands on and end on the step's card like any step reply.`
+}`;
 
 /**
  * Plan mode: the user turned it on in the composer, so this reply plans and
@@ -1179,7 +1218,8 @@ export const PlanModeNote = `# Plan mode
 The user sent this message with Plan mode on. This reply plans, reads and asks; it changes nothing, anywhere.
 
 - Read what you need: files, tasks, schedules, hooks, graphics, knowledgebases, skills, past conversations, computers and the crew are all readable. Then say what you found and what you would do.
-- When the work is several pieces that build on each other, write the plan with create_plan (3 to 6 steps) and let them approve it. Nothing in it starts until they do, and working its steps is a later reply. Approving it ends Plan mode.
+- **The plan is the point of this mode.** When the work is several pieces that build on each other, it ends on a plan card, not in prose: write it with create_plan (3 to 6 steps) and let them approve it. Nothing in it starts until they do, and working its steps is a later reply. Approving it ends Plan mode.
+- When the conversation already has a plan (its note above names it: waiting, in progress or paused), that is the plan to work on here: refine it with update_plan as many times as the user wants changes, sending the whole step list each time. Don't write a second plan over it, and don't work or tick its steps: that waits until they turn the mode off.
 - When a choice is theirs, ask it with ask_user instead of picking for them. Answering it does not end Plan mode: their answer is another planning turn.
 - Nothing is written, run or changed in this mode: no files written, no tasks, schedules, hooks, memory or instructions changed, no secrets, no crew changes, no computers, browsers, MCP servers or custom tools. Those tools are still in your list and calling one is refused with the reason, so don't say you did any of it, don't say a run is under way, and don't look for another way in.
 - When the result belongs in a file or somewhere outside the chat (a document, a task, a memory), don't paste it and never say a tool is missing: Plan mode is what stops the save. Say so in one sentence, and either write it as a plan they can approve (its steps save it) or say what you will do once they turn Plan mode off. A short template they asked to read can stay in the message.

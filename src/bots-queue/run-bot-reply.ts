@@ -31,8 +31,10 @@ import {
     PlanActiveNote,
     PlanPausedNote,
     PlanModeNote,
+    OpenTasksNote,
 } from "@/src/data/harness-prompts";
 import grabBotRunPowers from "@/src/functions/backend/db/bot-types/grab-bot-run-powers";
+import grabTasks from "@/src/functions/backend/db/tasks/grab-tasks";
 import workspaceAdminsNote from "./workspace-admins-note";
 import type { WorkspaceAdminTools } from "@/src/harness/tools/bot/grab-workspace-admin-tools";
 import { grabContextBudgetTokens, grabReplyMaxToolSteps, grabRunMaxPromptTokens } from "@/src/functions/backend/db/app-settings/grab-run-limits";
@@ -197,6 +199,13 @@ export default async function runBotReply({
         ? await grabBotPlan({ plan_id: Number(job_params.plan_id) }).catch(() => null)
         : await grabSessionPlan({ session_id });
     const plan = plan_row ? toBotPlanView({ row: plan_row }) : null;
+
+    /**
+     * Whether this reply finished a plan step with `complete_plan_step`,
+     * however it was queued. The message then carries the plan's card, and
+     * the card it ends on is what starts the next step.
+     */
+    let plan_ticked = false;
 
     /**
      * A step job queued before the user paused (or dropped) the plan has
@@ -364,6 +373,23 @@ export default async function runBotReply({
      * workspace's admin.
      */
     const powers = await grabBotRunPowers({ bot_id: bot.id, workspace_id });
+    /**
+     * The tasks this run could be working, injected into its prompt so an
+     * open task is never forgotten (a production bot left a Doing task
+     * open for months until the user said "close that task"). Paused ones
+     * are the user's to park: the bot reads them with `list_tasks`, they
+     * just don't ask for attention.
+     */
+    const open_tasks = (
+        await grabTasks({
+            bot_id: bot.id,
+            is_coordinator: powers.is_coordinator,
+            admin_workspace_ids: powers.admin_workspace_ids,
+            workspace_id,
+            open_only: true,
+            limit: AppData.TaskDigestCount,
+        })
+    ).filter((task) => task.status != "paused");
     /**
      * A crew request's session and a hook's run are hidden: nobody follows
      * them.
@@ -618,11 +644,13 @@ export default async function runBotReply({
                        */
                       plan_mode,
                       /**
-                       * The plan whose step this reply works, when it does:
-                       * the card it ends on is the plan's next move
-                       * (`postBotQuestionAnswers`).
+                       * The plan whose step this reply works: the card it ends
+                       * on is the plan's next move
+                       * (`postBotQuestionAnswers`). Read when the card is put
+                       * up, so a reply that finishes a step as it goes links
+                       * the card to that plan.
                        */
-                      plan_id: on_plan_step ? plan?.id : null,
+                      plan_id: () => (on_plan_step || plan_ticked ? plan?.id ?? null : null),
                       onAsk: ({ ref }) => proposals.push(ref),
                       redact: redact_reply,
                   }),
@@ -644,6 +672,22 @@ export default async function runBotReply({
                   workspace_id,
                   job_id: job.id,
                   on_step: on_plan_step,
+                  /**
+                   * An ordinary reply may work and tick the plan's current
+                   * step when the message asked for exactly that work, and
+                   * may park or pick up the plan when the user said so. A
+                   * paused plan gets the same tools so it can resume and
+                   * work the step in one reply; finishing a step of a plan
+                   * that is still paused is refused at the row. Not in
+                   * Plan mode: nothing writes there.
+                   */
+                  can_complete:
+                      !on_plan_step &&
+                      !plan_mode &&
+                      (plan?.status == "active" || plan?.status == "paused"),
+                  onCompleted: () => {
+                      plan_ticked = true;
+                  },
                   /**
                    * A plan nobody approved yet needs the user, so
                    * it goes with the refs that set `needs_you`: the
@@ -707,17 +751,19 @@ export default async function runBotReply({
                     ? ComputerFilesNote({ computer_id: computers[0]?.id || 0, dirs, can_import: true })
                     : "",
                 TasksNote,
-                TaskReminderNote,
+                open_tasks.length
+                    ? `${OpenTasksNote({ tasks: open_tasks })}\n\n${TaskReminderNote}`
+                    : "",
                 can_hand_over ? HandOverTaskNote : "",
                 ActionCheckNote,
                 RequestScopeNote({ can_ask: Boolean(attended) && !asked }),
                 attended && !asked ? PlansNote : "",
-                attended && !asked && plan?.status == "planned" ? PlanWaitingNote({ plan }) : "",
-                attended && !asked && plan?.status == "paused" ? PlanPausedNote({ plan }) : "",
+                attended && !asked && plan?.status == "planned" ? PlanWaitingNote({ plan, plan_mode }) : "",
+                attended && !asked && plan?.status == "paused" ? PlanPausedNote({ plan, plan_mode }) : "",
                 attended && !asked && plan?.status == "active"
                     ? on_plan_step
                         ? PlanStepNote({ plan })
-                        : PlanActiveNote({ plan })
+                        : PlanActiveNote({ plan, plan_mode })
                     : "",
                 attended ? QuestionsNote : "",
                 SecretsNote,
@@ -849,7 +895,7 @@ export default async function runBotReply({
             attachments: attachments.length ? attachments : undefined,
             tool_log: result.tool_uses,
             task_ids,
-            plan_message_id: message_plan_id ?? (on_plan_step ? plan?.id : undefined),
+            plan_message_id: message_plan_id ?? ((on_plan_step || plan_ticked) ? plan?.id : undefined),
             /**
              * A reply handed a tracker task (`params.tracker_task_id`) that
              * used every step it had stopped short of finishing it: left

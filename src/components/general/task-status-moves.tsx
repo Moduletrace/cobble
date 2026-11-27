@@ -13,7 +13,9 @@ type Props = {
     className?: string;
 };
 
-const MoveStatuses = TaskStatuses.filter((it) => ["todo", "doing", "done"].includes(it.value));
+const MoveStatuses = TaskStatuses.filter((it) =>
+    ["todo", "doing", "paused", "done"].includes(it.value),
+);
 
 /**
  * The buttons that move a task along (To do, Doing, Done), the one it's

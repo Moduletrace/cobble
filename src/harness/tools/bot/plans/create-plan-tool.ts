@@ -31,7 +31,7 @@ type Args = {
 export default function createPlanTool({ user_id, bot_id, session_id, workspace_id, onPlan }: Params): HarnessTool<Args> {
     return {
         name: "create_plan",
-        description: `Write the plan for work that is several steps, before starting it: the goal that says what finished looks like, and 3 to 6 steps in the order you'd do them, one line each, each naming what it produces. It goes to the user as a card in this conversation, and nothing of it runs until they approve it (they can change the steps first). Write the plan instead of answering with a long list of everything you're about to do. Only when a plan is already open in this conversation, work it instead.`,
+        description: `Write the plan for work that is several steps, before starting it: the goal that says what finished looks like, and 3 to 6 steps in the order you'd do them, one line each, each naming what it produces. It goes to the user as a card in this conversation, and nothing of it runs until they approve it (they can change the steps first). Write the plan instead of answering with a long list of everything you're about to do. Only when a plan is already open in this conversation, work that one or refine it with update_plan instead of writing a second.`,
         schema: z.object({
             title: BotPlanTitleSchema.describe(`A short name for the work, e.g. "Audit the pricing pages"`),
             goal: BotPlanGoalSchema.describe(`What the plan is for and what "done" means, in one sentence`),
